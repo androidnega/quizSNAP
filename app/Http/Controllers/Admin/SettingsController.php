@@ -11,6 +11,7 @@ use App\Services\StudentOnboardingEmailOtpService;
 use App\Models\Student;
 use App\Services\ArkeselService;
 use App\Services\LocalUploadService;
+use App\Services\StudentUniversalOtp;
 use App\Services\SupabaseStorageService;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;

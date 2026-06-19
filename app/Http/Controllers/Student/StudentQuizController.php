@@ -53,6 +53,25 @@ class StudentQuizController extends Controller
 
         return $this->proctoringFlags;
     }
+
+    /**
+     * @param  array<string, bool>  $flags
+     */
+    private function isFullscreenEnforcementEnabled(array $flags): bool
+    {
+        return ($flags[Setting::KEY_PROCTORING_CAMERA_REQUIRED] ?? true)
+            || ($flags[Setting::KEY_PROCTORING_FACE_MONITOR] ?? true)
+            || ($flags[Setting::KEY_PROCTORING_TAB_SWITCH] ?? true);
+    }
+
+    private function broadcastDataUpdatedSafe(string $type): void
+    {
+        try {
+            broadcast(new DataUpdated($type))->toOthers();
+        } catch (\Throwable $e) {
+            report($e);
+        }
+    }
     /**
      * System readiness screen after pre-quiz face capture.
      */
@@ -86,7 +105,7 @@ class StudentQuizController extends Controller
                 'courseName' => $session->quiz->course?->name ?? $session->quiz->title ?? 'Quiz',
                 'durationMinutes' => (int) ($session->quiz->duration_minutes ?? 0),
                 'questionCount' => $questionCount,
-                'proctoringTabSwitch' => $flags['proctoring_tab_switch'] ?? true,
+                'fullscreenRequired' => $this->isFullscreenEnforcementEnabled($flags),
             ])
             ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
             ->header('Pragma', 'no-cache');
@@ -152,7 +171,7 @@ class StudentQuizController extends Controller
             'camera_started_at' => $session->camera_started_at ?? now(),
             'start_time' => now(),
         ]);
-        broadcast(new DataUpdated('sessions'))->toOthers();
+        $this->broadcastDataUpdatedSafe('sessions');
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,
@@ -243,6 +262,7 @@ class StudentQuizController extends Controller
         $proctoringObjectDetect = $proctoring[Setting::KEY_PROCTORING_OBJECT_DETECT];
         $proctoringBlockRightClick = $proctoring[Setting::KEY_PROCTORING_BLOCK_RIGHT_CLICK];
         $proctoringBlockCopyPaste = $proctoring[Setting::KEY_PROCTORING_BLOCK_COPY_PASTE];
+        $fullscreenEnforcement = $this->isFullscreenEnforcementEnabled($proctoring);
         // Live proctoring feed removed from session: do not send camera frames to examiner during quiz.
         $liveProctorEnabled = false;
         $matchedStudent = Student::findByIndex($session->student_index, ['index_number', 'student_name']);
@@ -292,6 +312,7 @@ class StudentQuizController extends Controller
                 'proctoringObjectDetect' => $proctoringObjectDetect,
                 'proctoringBlockRightClick' => $proctoringBlockRightClick,
                 'proctoringBlockCopyPaste' => $proctoringBlockCopyPaste,
+                'fullscreenEnforcement' => $fullscreenEnforcement,
                 'liveProctorEnabled' => $liveProctorEnabled,
                 'matchedStudentName' => $matchedStudentName,
                 'studentNameLinked' => $studentNameLinked,
@@ -322,6 +343,7 @@ class StudentQuizController extends Controller
                 'proctoringObjectDetect' => $proctoringObjectDetect,
                 'proctoringBlockRightClick' => $proctoringBlockRightClick,
                 'proctoringBlockCopyPaste' => $proctoringBlockCopyPaste,
+                'fullscreenEnforcement' => $fullscreenEnforcement,
                 'liveProctorEnabled' => $liveProctorEnabled,
                 'matchedStudentName' => $matchedStudentName,
                 'studentNameLinked' => $studentNameLinked,

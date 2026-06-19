@@ -374,6 +374,7 @@ window.QuizSnapQuiz = {
     cameraRequired: {{ ($proctoringCameraRequired ?? true) ? 'true' : 'false' }},
     proctoringFaceMonitor: {{ ($proctoringFaceMonitor ?? true) ? 'true' : 'false' }},
     proctoringTabSwitch: {{ ($proctoringTabSwitch ?? true) ? 'true' : 'false' }},
+    fullscreenEnforcement: {{ ($fullscreenEnforcement ?? true) ? 'true' : 'false' }},
     proctoringObjectDetect: {{ ($proctoringObjectDetect ?? true) ? 'true' : 'false' }},
     proctoringBlockRightClick: {{ ($proctoringBlockRightClick ?? true) ? 'true' : 'false' }},
     proctoringBlockCopyPaste: {{ ($proctoringBlockCopyPaste ?? true) ? 'true' : 'false' }},

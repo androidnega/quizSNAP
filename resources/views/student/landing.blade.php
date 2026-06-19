@@ -463,132 +463,78 @@
         transform: scale(0.98);
     }
 
-    /* Illustration */
+    /* Hero photo */
     .qs-hero-visual {
         position: relative;
         display: flex;
         justify-content: center;
         align-items: center;
-        min-height: 16rem;
+        min-height: 14rem;
+        padding: 0.5rem 0;
     }
 
     .qs-blob {
         position: absolute;
         border-radius: 9999px;
-        filter: blur(40px);
-        opacity: 0.45;
+        filter: blur(48px);
+        opacity: 0.5;
         pointer-events: none;
     }
 
     .qs-blob-1 {
-        width: 14rem;
-        height: 14rem;
+        width: 16rem;
+        height: 16rem;
         background: #c4b5fd;
-        top: 10%;
-        right: 5%;
+        top: 8%;
+        right: 0;
     }
 
     .qs-blob-2 {
-        width: 10rem;
-        height: 10rem;
+        width: 12rem;
+        height: 12rem;
         background: #93c5fd;
-        bottom: 5%;
-        left: 8%;
+        bottom: 0;
+        left: 4%;
     }
 
-    .qs-quiz-card {
+    .qs-hero-photo {
         position: relative;
         z-index: 1;
-        width: min(100%, 22rem);
-        background: #fff;
+        width: min(100%, 28rem);
+        margin: 0;
         border-radius: 1.25rem;
-        border: 1px solid var(--qs-border);
-        box-shadow: 0 24px 48px -24px rgba(15, 23, 42, 0.25);
-        padding: 1.25rem;
-    }
-
-    .qs-quiz-card-head {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        margin-bottom: 1rem;
-    }
-
-    .qs-q-icon {
-        width: 2.5rem;
-        height: 2.5rem;
-        border-radius: 9999px;
-        background: linear-gradient(135deg, var(--qs-brand), var(--qs-accent));
-        color: #fff;
-        display: grid;
-        place-items: center;
-        font-weight: 800;
-        font-size: 1.125rem;
-    }
-
-    .qs-quiz-lines span {
-        display: block;
-        height: 0.5rem;
-        border-radius: 9999px;
-        background: #e2e8f0;
-        margin-bottom: 0.375rem;
-    }
-
-    .qs-quiz-lines span:first-child { width: 70%; }
-    .qs-quiz-lines span:nth-child(2) { width: 90%; }
-    .qs-quiz-lines span:nth-child(3) { width: 55%; margin-bottom: 0; }
-
-    .qs-options {
-        display: grid;
-        gap: 0.5rem;
-    }
-
-    .qs-option {
-        display: flex;
-        align-items: center;
-        gap: 0.625rem;
-        padding: 0.625rem 0.75rem;
-        border-radius: 0.75rem;
-        border: 1px solid var(--qs-border);
-        font-size: 0.8125rem;
-        font-weight: 600;
-        color: #475569;
+        overflow: hidden;
         background: #fff;
+        border: 1px solid rgba(226, 232, 240, 0.95);
+        box-shadow:
+            0 1px 2px rgba(15, 23, 42, 0.04),
+            0 20px 40px -16px rgba(37, 99, 235, 0.22);
+        transition: transform 0.35s ease, box-shadow 0.35s ease;
     }
 
-    .qs-option.selected {
-        border-color: #86efac;
-        background: #f0fdf4;
-        color: #166534;
+    .qs-hero-photo img {
+        display: block;
+        width: 100%;
+        height: auto;
+        aspect-ratio: 720 / 479;
+        object-fit: cover;
+        vertical-align: middle;
     }
 
-    .qs-option-key {
-        width: 1.5rem;
-        height: 1.5rem;
-        border-radius: 0.375rem;
-        background: #f1f5f9;
-        display: grid;
-        place-items: center;
-        font-size: 0.75rem;
-        flex-shrink: 0;
-    }
+    @media (min-width: 768px) {
+        .qs-hero-visual {
+            justify-content: flex-end;
+            min-height: 18rem;
+            padding: 0;
+        }
 
-    .qs-option.selected .qs-option-key {
-        background: #dcfce7;
-        color: #166534;
+        .qs-hero-photo:hover {
+            transform: translateY(-3px);
+            box-shadow:
+                0 2px 4px rgba(15, 23, 42, 0.05),
+                0 28px 52px -18px rgba(37, 99, 235, 0.28);
+        }
     }
-
-    .qs-float {
-        position: absolute;
-        width: 0.75rem;
-        height: 0.75rem;
-        border-radius: 9999px;
-        pointer-events: none;
-    }
-
-    .qs-float-1 { background: #2dd4bf; top: 8%; left: 12%; }
-    .qs-float-2 { background: var(--qs-snap); top: 18%; right: 10%; width: 0.5rem; height: 0.5rem; }
-    .qs-float-3 { background: var(--qs-accent); bottom: 16%; right: 18%; width: 0.625rem; height: 0.625rem; }
 
     /* Mobile hero image from settings */
     .qs-mobile-hero {
@@ -626,8 +572,8 @@
             align-items: flex-start;
             padding-top: 1rem;
         }
-        .qs-hero-visual { min-height: 12rem; margin-top: 0.5rem; }
-        .qs-quiz-card { width: min(100%, 18rem); }
+        .qs-hero-visual { min-height: 10rem; margin-top: 0.75rem; }
+        .qs-hero-photo { width: min(100%, 20rem); border-radius: 1rem; }
         .qs-landing-shell.has-mobile-hero .qs-mobile-hero { display: block; }
     }
 
@@ -864,29 +810,22 @@
                 @endif
             </div>
 
-            <div class="qs-hero-visual" aria-hidden="true">
-                <div class="qs-blob qs-blob-1"></div>
-                <div class="qs-blob qs-blob-2"></div>
-                <span class="qs-float qs-float-1"></span>
-                <span class="qs-float qs-float-2"></span>
-                <span class="qs-float qs-float-3"></span>
-                <div class="qs-quiz-card">
-                    <div class="qs-quiz-card-head">
-                        <div class="qs-q-icon">?</div>
-                        <div class="qs-quiz-lines">
-                            <span></span><span></span><span></span>
-                        </div>
-                    </div>
-                    <div class="qs-options">
-                        <div class="qs-option"><span class="qs-option-key">A</span> Option A</div>
-                        <div class="qs-option selected">
-                            <span class="qs-option-key">B</span> Option B
-                            <svg style="margin-left:auto;" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#16a34a" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                        </div>
-                        <div class="qs-option"><span class="qs-option-key">C</span> Option C</div>
-                        <div class="qs-option"><span class="qs-option-key">D</span> Option D</div>
-                    </div>
-                </div>
+            <div class="qs-hero-visual">
+                <div class="qs-blob qs-blob-1" aria-hidden="true"></div>
+                <div class="qs-blob qs-blob-2" aria-hidden="true"></div>
+                <figure class="qs-hero-photo">
+                    <picture>
+                        <source media="(max-width: 767px)" srcset="{{ asset('images/landing/hero-student-mobile.webp') }}" type="image/webp">
+                        <img
+                            src="{{ asset('images/landing/hero-student.webp') }}"
+                            alt="Student using {{ $appName }} for online assessments"
+                            width="720"
+                            height="479"
+                            loading="eager"
+                            decoding="async"
+                            fetchpriority="high">
+                    </picture>
+                </figure>
             </div>
         </div>
     </main>

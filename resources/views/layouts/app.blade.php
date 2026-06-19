@@ -328,14 +328,14 @@
     <script>window.QuizSnapLive=window.QuizSnapLive||{refreshers:[],registerRefresher:function(fn){if(typeof fn==='function')this.refreshers.push(fn);}};</script>
     @stack('scripts')
 
-    @if(config('broadcasting.default') === 'reverb' && config('broadcasting.connections.reverb.app_id'))
+    @if(($reverbClientConfig = \App\Services\ReverbClientConfig::clientConfig()) !== null)
     <!-- Real-time: Reverb WebSocket + page refresh hooks -->
     <script>
     window.REVERB_CONFIG = {
-        key: @json(config('broadcasting.connections.reverb.key')),
-        host: @json(config('broadcasting.connections.reverb.options.host')),
-        port: @json(config('broadcasting.connections.reverb.options.port')),
-        scheme: @json(config('broadcasting.connections.reverb.options.scheme') ?? 'http')
+        key: @json($reverbClientConfig['key']),
+        host: @json($reverbClientConfig['host']),
+        port: @json($reverbClientConfig['port']),
+        scheme: @json($reverbClientConfig['scheme'])
     };
     </script>
     <script src="https://js.pusher.com/8.2.0/pusher.min.js" crossorigin="anonymous" defer></script>

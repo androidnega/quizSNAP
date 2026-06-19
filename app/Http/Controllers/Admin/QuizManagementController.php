@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Admin\Concerns\InteractsWithAdminSession;
+use App\Http\Controllers\Concerns\BroadcastsDataUpdatesSafely;
 use App\Models\AcademicClass;
 use App\Models\ClassGroup;
 use App\Models\Course;
@@ -30,7 +31,6 @@ use App\Services\LocalUploadService;
 use App\Services\QuizBackupService;
 use App\Services\DocumentTextExtractor;
 use App\Support\QuestionTypes;
-use App\Events\DataUpdated;
 use App\Events\ExaminerVoice;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -48,6 +48,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class QuizManagementController extends Controller
 {
+    use BroadcastsDataUpdatesSafely;
     use InteractsWithAdminSession;
     /** Course IDs the current examiner is assigned to (all for super_admin). */
     private function assignedCourseIds(): array
@@ -562,11 +563,7 @@ class QuizManagementController extends Controller
                 $message = $quizCount > 1
                     ? $quizCount . ' quizzes created with ' . $generatedCount . ' question(s) each from pasted JSON. Approve them to publish.'
                     : 'Quiz created. ' . $generatedCount . ' question(s) from pasted JSON. Approve them below to publish.';
-                try {
-                    broadcast(new DataUpdated('quizzes'))->toOthers();
-                } catch (\Exception $e) {
-                    // Ignore broadcast errors
-                }
+                $this->broadcastDataUpdatedSafe('quizzes');
                 foreach ($createdQuizzes as $quiz) {
                     try {
                         QuizBackupService::sendIfConfigured($quiz);
@@ -578,7 +575,11 @@ class QuizManagementController extends Controller
                 return $this->quizzesCreatedResponse($request, $createdQuizzes, $message);
             }
 
-            Cache::forget('setting:' . \App\Models\Setting::KEY_DEEPSEEK_API);
+                try {
+                    Cache::forget('setting:' . \App\Models\Setting::KEY_DEEPSEEK_API);
+                } catch (\Throwable $e) {
+                    report($e);
+                }
             if (! $aiService->hasApiKey()) {
                 return $this->createQuizFormError(
                     $request,
@@ -637,7 +638,7 @@ class QuizManagementController extends Controller
                     return $this->createQuizFormError($request, 'Failed to create quiz.');
                 }
                 AiQuizGenerationProgress::start((int) $quiz->id, $target);
-                GenerateQuizQuestionsJob::dispatch((int) $quiz->id, $topicList, $target, (int) $user->id);
+                $this->dispatchQuizGenerationJob((int) $quiz->id, $topicList, $target, (int) $user->id);
                 $createdQuizzes[] = $quiz;
             }
             $this->processAiQueueAfterResponse(count($createdQuizzes));
@@ -707,6 +708,36 @@ class QuizManagementController extends Controller
                 ]);
             } catch (\Throwable $e) {
                 Log::warning('AI queue auto-process failed', ['message' => $e->getMessage()]);
+            }
+        });
+    }
+
+    /** @param array<int, array{name: string}> $topicList */
+    private function dispatchQuizGenerationJob(int $quizId, array $topicList, int $target, int $userId): void
+    {
+        try {
+            GenerateQuizQuestionsJob::dispatch($quizId, $topicList, $target, $userId);
+
+            return;
+        } catch (\Throwable $e) {
+            Log::warning('AI quiz job queue dispatch failed; running after response', [
+                'quiz_id' => $quizId,
+                'message' => $e->getMessage(),
+            ]);
+        }
+
+        app()->terminating(function () use ($quizId, $topicList, $target, $userId) {
+            try {
+                GenerateQuizQuestionsJob::dispatchSync($quizId, $topicList, $target, $userId);
+            } catch (\Throwable $e) {
+                AiQuizGenerationProgress::fail(
+                    $quizId,
+                    'Could not start question generation. Check Redis and queue worker configuration.'
+                );
+                Log::error('AI quiz job sync fallback failed', [
+                    'quiz_id' => $quizId,
+                    'message' => $e->getMessage(),
+                ]);
             }
         });
     }
@@ -1177,7 +1208,7 @@ class QuizManagementController extends Controller
             'violations_count' => $violationsCount,
             'submitted_at' => now(),
         ]);
-        broadcast(new DataUpdated('dashboard'))->toOthers();
+        $this->broadcastDataUpdatedSafe('dashboard');
         SendQuizResultReadyNotification::dispatch($quizSession->id);
         return response()->json(['success' => true, 'message' => 'Quiz ended. Student will see submission on next request.']);
     }
@@ -1263,7 +1294,7 @@ class QuizManagementController extends Controller
             'submission_reason' => 'withheld_cleared_by_examiner',
         ]);
 
-        broadcast(new DataUpdated('dashboard'))->toOthers();
+        $this->broadcastDataUpdatedSafe('dashboard');
 
         return redirect()->route($this->staffRoutePrefix() . '.quizzes.sessions.show', [$quiz, $quizSession])
             ->with('success', 'Result released. Student can now view the score.');
@@ -1284,12 +1315,8 @@ class QuizManagementController extends Controller
         // Route quizId may be stale after migrations; session binding is authoritative.
         $quizSession->delete();
 
-        try {
-            broadcast(new DataUpdated('dashboard'))->toOthers();
-            broadcast(new DataUpdated('sessions'))->toOthers();
-        } catch (\Throwable $e) {
-            report($e);
-        }
+        $this->broadcastDataUpdatedSafe('dashboard');
+        $this->broadcastDataUpdatedSafe('sessions');
 
         return redirect()
             ->route($this->staffRoutePrefix() . '.quizzes.show', ['quiz' => $quiz, 'tab' => 'sessions'])
@@ -1336,8 +1363,8 @@ class QuizManagementController extends Controller
         });
 
         try {
-            broadcast(new DataUpdated('quizzes'))->toOthers();
-            broadcast(new DataUpdated('dashboard'))->toOthers();
+            $this->broadcastDataUpdatedSafe('quizzes');
+            $this->broadcastDataUpdatedSafe('dashboard');
         } catch (\Throwable $e) {
             // ignore broadcast failures
         }
@@ -1430,7 +1457,7 @@ class QuizManagementController extends Controller
             return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)->with('error', UserFriendlyMessages::GENERIC);
         }
         $quiz->update(['is_published' => true, 'status' => Quiz::STATUS_PUBLISHED]);
-        broadcast(new DataUpdated('quizzes'))->toOthers();
+        $this->broadcastDataUpdatedSafe('quizzes');
         try {
             QuizBackupService::sendIfConfigured($quiz);
         } catch (\Throwable $e) {
@@ -1447,7 +1474,7 @@ class QuizManagementController extends Controller
     {
         $this->authorize('update', $quiz);
         $quiz->update(['is_published' => false, 'status' => Quiz::STATUS_DRAFT]);
-        broadcast(new DataUpdated('quizzes'))->toOthers();
+        $this->broadcastDataUpdatedSafe('quizzes');
         return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)->with('success', 'Unpublished');
     }
 
@@ -1459,7 +1486,7 @@ class QuizManagementController extends Controller
     {
         $this->authorize('update', $quiz);
         $quiz->update(['ends_at' => now()]);
-        broadcast(new DataUpdated('quizzes'))->toOthers();
+        $this->broadcastDataUpdatedSafe('quizzes');
         return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)->with('success', 'Ended');
     }
 
@@ -1499,7 +1526,7 @@ class QuizManagementController extends Controller
         $quiz->update(['duration_minutes' => $newDuration]);
         
         // Broadcast update so students' timers refresh
-        broadcast(new DataUpdated('quizzes'))->toOthers();
+        $this->broadcastDataUpdatedSafe('quizzes');
         
         return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)
             ->with('success', 'Extended');
@@ -1644,7 +1671,7 @@ class QuizManagementController extends Controller
         }
         $quiz->delete();
         try {
-            broadcast(new DataUpdated('quizzes'))->toOthers();
+            $this->broadcastDataUpdatedSafe('quizzes');
         } catch (\Exception $e) {
             // Ignore broadcast errors
         }
@@ -1787,7 +1814,7 @@ class QuizManagementController extends Controller
                 : ($quiz->getAttribute('allowed_devices') ?? Quiz::ALLOWED_DEVICES_DESKTOP);
         }
         $quiz->update($updateData);
-        broadcast(new DataUpdated('quizzes'))->toOthers();
+        $this->broadcastDataUpdatedSafe('quizzes');
         return redirect()->route($this->staffRoutePrefix() . '.quizzes.edit', $quiz)->with('success', 'Saved. On the quiz overview, use "Generate questions with AI" to add more questions.');
     }
 

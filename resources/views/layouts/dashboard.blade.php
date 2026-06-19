@@ -31,7 +31,7 @@
                             <img src="{{ $inst->logo_url }}" alt="{{ Str::upper($inst->name ?? '') }}" class="h-12 w-12 flex-shrink-0 object-contain rounded-lg border border-gray-200 bg-white">
                         @endif
                         <span class="examiner-sidebar-brand-text truncate text-lg font-extrabold tracking-tight ml-1">
-                            <span class="text-blue-700">Quiz</span><span class="text-amber-400">Snap</span>
+                            @include('partials.brand-wordmark', ['size' => 'sm'])
                         </span>
                     @endif
                 </a>

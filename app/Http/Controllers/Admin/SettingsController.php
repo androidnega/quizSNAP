@@ -139,6 +139,8 @@ class SettingsController extends Controller
             'landing_hero_enabled' => ($settings[Setting::KEY_LANDING_HERO_ENABLED] ?? '1') === '1',
             'landing_show_quiz_token' => ($settings[Setting::KEY_LANDING_SHOW_QUIZ_TOKEN] ?? '0') === '1',
             'login_hero_image' => $settings[Setting::KEY_LOGIN_HERO_IMAGE] ?? null,
+            'theme_preset' => app(\App\Services\ThemeService::class)->activePresetId(),
+            'theme_presets' => app(\App\Services\ThemeService::class)->allPresets(),
             'student_dashboard_banner_enabled' => ($settings[Setting::KEY_STUDENT_DASHBOARD_BANNER_ENABLED] ?? '1') === '1',
             'student_dashboard_banner_mode' => $settings[Setting::KEY_STUDENT_DASHBOARD_BANNER_MODE] ?? 'image',
             'student_dashboard_banner_title' => $settings[Setting::KEY_STUDENT_DASHBOARD_BANNER_TITLE] ?? 'Challenge Yourself.',
@@ -252,6 +254,7 @@ class SettingsController extends Controller
                 'landing_hero_image_file' => 'nullable|image|max:5120',
                 'login_hero_image_file' => 'nullable|image|max:5120',
                 'login_hero_image_url' => 'nullable|string|max:2048',
+                'theme_preset' => 'nullable|string|max:64',
             ]),
             'email' => array_merge($rules, [
                 'mail_mailer' => 'nullable|string|max:50',
@@ -325,6 +328,13 @@ class SettingsController extends Controller
         Setting::setValue(Setting::KEY_APP_TIMEZONE, $request->filled('app_timezone') ? trim($request->app_timezone) : null);
         Setting::setValue(Setting::KEY_FOOTER_COPYRIGHT, $request->filled('footer_copyright') ? trim($request->footer_copyright) : null);
         Setting::setValue(Setting::KEY_DISABLE_IP_DEVICE_RESTRICTIONS, $request->boolean('disable_ip_device_restrictions') ? '1' : '0');
+
+        if ($isSuperAdmin && $request->filled('theme_preset')) {
+            $preset = trim((string) $request->theme_preset);
+            if (app(\App\Services\ThemeService::class)->isValidPreset($preset)) {
+                Setting::setValue(Setting::KEY_THEME_PRESET, $preset);
+            }
+        }
 
         if ($isSuperAdmin) {
             Setting::setValue(Setting::KEY_SEND_SMS_ON_STAFF_CREATION, $request->boolean('send_sms_on_staff_creation') ? '1' : '0');

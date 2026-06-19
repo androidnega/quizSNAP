@@ -136,6 +136,7 @@ class Setting extends Model
             self::KEY_LANDING_HERO_ENABLED,
             self::KEY_LANDING_SHOW_QUIZ_TOKEN,
             self::KEY_LOGIN_HERO_IMAGE,
+            self::KEY_THEME_PRESET,
             self::KEY_STUDENT_DASHBOARD_BANNER_ENABLED,
             self::KEY_STUDENT_DASHBOARD_BANNER_MODE,
             self::KEY_STUDENT_DASHBOARD_BANNER_TITLE,
@@ -164,6 +165,9 @@ class Setting extends Model
             ['value' => $stored]
         );
         Cache::forget('setting:' . $key);
+        if ($key === self::KEY_THEME_PRESET) {
+            app(\App\Services\ThemeService::class)->bustCache();
+        }
         if (in_array($key, PageCacheService::landingSettingKeys(), true)
             || in_array($key, [
                 self::KEY_STUDENT_DASHBOARD_BANNER_ENABLED,
@@ -268,6 +272,8 @@ class Setting extends Model
     public const KEY_LANDING_HERO_IMAGE = 'landing_hero_image';
     /** Staff login page hero image URL. Direct link or local upload. */
     public const KEY_LOGIN_HERO_IMAGE = 'login_hero_image';
+    /** System color theme preset (Super Admin). See config/themes.php. */
+    public const KEY_THEME_PRESET = 'theme_preset';
 
     /** Student dashboard hero banner (Super Admin). */
     public const KEY_STUDENT_DASHBOARD_BANNER_ENABLED = 'student_dashboard_banner_enabled';

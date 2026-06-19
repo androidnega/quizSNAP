@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <meta name="theme-color" content="#fafaf9">
+    <meta name="theme-color" content="{{ $theme['theme_color'] ?? '#fafaf9' }}">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -13,9 +13,13 @@
     <meta name="format-detection" content="telephone=no">
     <title>@yield('title', 'QuizSnap')</title>
     @include('partials.favicon')
+    @php
+        $theme = $theme ?? app(\App\Services\ThemeService::class)->activePreset();
+        $themePrimary = $theme['primary'] ?? [];
+    @endphp
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="{{ $theme['fonts']['url'] ?? 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap' }}" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     {{-- Tailwind via CDN, with project theme config (no local Tailwind build) --}}
@@ -25,24 +29,24 @@
             theme: {
                 extend: {
                     fontFamily: {
-                        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-                        display: ['Outfit', 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+                        sans: ['{{ $theme['fonts']['sans'] ?? 'Inter' }}', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+                        display: ['{{ $theme['fonts']['display'] ?? 'Outfit' }}', 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
                     },
                     colors: {
-                        offwhite: '#fafaf9',
-                        homeBlue: '#0055FF',
-                        homeYellow: '#FFD500',
+                        offwhite: '{{ $theme['bg'] ?? '#fafaf9' }}',
+                        homeBlue: '{{ $themePrimary[600] ?? '#2563eb' }}',
+                        homeYellow: '{{ $theme['brand'] ?? '#FFD500' }}',
                         primary: {
-                            50: '#eff6ff',
-                            100: '#dbeafe',
-                            200: '#bfdbfe',
-                            300: '#93c5fd',
-                            400: '#60a5fa',
-                            500: '#3b82f6',
-                            600: '#2563eb',
-                            700: '#1d4ed8',
-                            800: '#1e40af',
-                            900: '#1e3a8a',
+                            50: '{{ $themePrimary[50] ?? '#eff6ff' }}',
+                            100: '{{ $themePrimary[100] ?? '#dbeafe' }}',
+                            200: '{{ $themePrimary[200] ?? '#bfdbfe' }}',
+                            300: '{{ $themePrimary[300] ?? '#93c5fd' }}',
+                            400: '{{ $themePrimary[400] ?? '#60a5fa' }}',
+                            500: '{{ $themePrimary[500] ?? '#3b82f6' }}',
+                            600: '{{ $themePrimary[600] ?? '#2563eb' }}',
+                            700: '{{ $themePrimary[700] ?? '#1d4ed8' }}',
+                            800: '{{ $themePrimary[800] ?? '#1e40af' }}',
+                            900: '{{ $themePrimary[900] ?? '#1e3a8a' }}',
                         },
                         action: {
                             DEFAULT: '#eab308',
@@ -112,6 +116,8 @@
         })();
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
+
+    @include('partials.theme-styles')
 
     {{-- Non-Tailwind custom styles --}}
     <link rel="stylesheet" href="{{ asset('css/home.css') }}">

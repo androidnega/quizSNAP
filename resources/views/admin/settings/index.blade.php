@@ -91,6 +91,34 @@
 
                         @if(session('admin_role') === 'super_admin')
                         <div class="rounded-lg border border-gray-200 bg-gray-50/50 p-5 space-y-4">
+                            <h3 class="text-sm font-semibold text-gray-800">System theme</h3>
+                            <p class="text-xs text-gray-500">Choose a color theme for the landing page, student dashboard, and staff areas. Changes apply site-wide after save.</p>
+                            <input type="hidden" name="theme_preset" id="theme_preset" value="{{ old('theme_preset', $theme_preset ?? 'quizsnap-classic') }}">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3" role="radiogroup" aria-label="System theme">
+                                @foreach($theme_presets ?? [] as $presetId => $preset)
+                                    @php $selected = old('theme_preset', $theme_preset ?? 'quizsnap-classic') === $presetId; @endphp
+                                    <button type="button"
+                                            class="theme-preset-card text-left rounded-xl border-2 p-4 transition-all duration-150 {{ $selected ? 'border-primary-500 ring-2 ring-primary-200 bg-white shadow-sm' : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm' }}"
+                                            data-theme-preset="{{ $presetId }}"
+                                            aria-pressed="{{ $selected ? 'true' : 'false' }}">
+                                        <div class="flex items-center gap-2 mb-2">
+                                            <span class="h-7 w-7 rounded-lg shrink-0 border border-black/5" style="background: {{ $preset['brand'] }}"></span>
+                                            <span class="h-7 w-7 rounded-lg shrink-0 border border-black/5" style="background: {{ $preset['primary'][600] ?? '#2563eb' }}"></span>
+                                            <span class="h-7 w-7 rounded-lg shrink-0 border border-black/5" style="background: {{ $preset['wordmark_b'] ?? $preset['brand'] }}"></span>
+                                        </div>
+                                        <p class="text-sm font-semibold text-gray-900">{{ $preset['name'] }}</p>
+                                        <p class="text-xs text-gray-500 mt-1 leading-relaxed">{{ $preset['description'] }}</p>
+                                        <div class="mt-3 flex items-center gap-1.5 text-xs font-medium">
+                                            <span class="theme-wordmark-a font-display font-bold" style="color: {{ $preset['wordmark_a'] }}">Quiz</span><span class="font-display font-bold" style="color: {{ $preset['wordmark_b'] }}">Snap</span>
+                                        </div>
+                                    </button>
+                                @endforeach
+                            </div>
+                        </div>
+                        @endif
+
+                        @if(session('admin_role') === 'super_admin')
+                        <div class="rounded-lg border border-gray-200 bg-gray-50/50 p-5 space-y-4">
                             <h3 class="text-sm font-semibold text-gray-800">Quiz access controls</h3>
                             <div class="space-y-3 pt-2 border-t border-gray-200">
                                 <label class="flex items-start gap-3 cursor-pointer group">
@@ -769,6 +797,24 @@ window.toggleBannerTextFields = function () {
 // Tab switching + persist tab in URL hash so refresh keeps user on same tab
 document.addEventListener('DOMContentLoaded', function() {
     if (window.toggleBannerTextFields) window.toggleBannerTextFields();
+
+    var themeInput = document.getElementById('theme_preset');
+    document.querySelectorAll('.theme-preset-card').forEach(function(card) {
+        card.addEventListener('click', function() {
+            var preset = this.getAttribute('data-theme-preset');
+            if (themeInput && preset) themeInput.value = preset;
+            document.querySelectorAll('.theme-preset-card').forEach(function(c) {
+                var active = c === card;
+                c.setAttribute('aria-pressed', active ? 'true' : 'false');
+                c.classList.toggle('border-primary-500', active);
+                c.classList.toggle('ring-2', active);
+                c.classList.toggle('ring-primary-200', active);
+                c.classList.toggle('shadow-sm', active);
+                c.classList.toggle('border-gray-200', !active);
+            });
+        });
+    });
+
     const tabBtns = document.querySelectorAll('.settings-tab-btn');
     const tabContents = document.querySelectorAll('.settings-tab-content');
     const validTabs = ['general', 'email', 'ai', 'supabase', 'otp', 'proctoring', 'backup', 'student-dashboard'];

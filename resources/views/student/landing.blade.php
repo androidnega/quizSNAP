@@ -13,24 +13,8 @@
 @section('body_class', 'landing-page qs-landing')
 
 @push('styles')
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
 <style>
-    :root {
-        --qs-brand: #fbbf24;
-        --qs-brand-dark: #f59e0b;
-        --qs-brand-deep: #b45309;
-        --qs-accent: #2563eb;
-        --qs-accent-soft: #fef3c7;
-        --qs-snap: #ffd500;
-        --qs-text: #0f172a;
-        --qs-muted: #64748b;
-        --qs-border: #e2e8f0;
-        --qs-surface: #ffffff;
-        --qs-bg: #fafaf9;
-    }
-
+    /* Landing page layout — colors come from partials.theme-styles (--qs-* aliases) */
     body.landing-page,
     body.qs-landing {
         background: var(--qs-bg) !important;
@@ -42,7 +26,7 @@
         min-height: 100dvh;
         display: flex;
         flex-direction: column;
-        font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+        font-family: var(--font-sans);
         font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
@@ -109,7 +93,7 @@
     }
 
     .qs-logo-text {
-        font-family: 'Outfit', 'Inter', sans-serif;
+        font-family: var(--font-display);
         font-size: 1.125rem;
         font-weight: 800;
         letter-spacing: -0.03em;
@@ -133,7 +117,7 @@
         border-radius: 0.75rem;
         background: #fff;
         color: var(--qs-text) !important;
-        font-family: 'Outfit', 'Inter', sans-serif;
+        font-family: var(--font-display);
         font-size: 0.8125rem;
         font-weight: 700;
         letter-spacing: -0.01em;
@@ -185,7 +169,7 @@
         border-radius: 0.75rem;
         background: #fff;
         color: #334155;
-        font-family: 'Outfit', 'Inter', sans-serif;
+        font-family: var(--font-display);
         font-size: 0.9375rem;
         font-weight: 600;
         letter-spacing: -0.01em;
@@ -208,7 +192,7 @@
         border-radius: 0.625rem;
         background: var(--qs-accent);
         color: #fff !important;
-        font-family: 'Outfit', 'Inter', sans-serif;
+        font-family: var(--font-display);
         font-size: 0.9375rem;
         font-weight: 600;
         text-decoration: none;
@@ -254,7 +238,7 @@
         border-radius: 9999px;
         background: var(--qs-accent-soft);
         color: var(--qs-brand-deep);
-        font-family: 'Outfit', 'Inter', sans-serif;
+        font-family: var(--font-display);
         font-size: 0.8125rem;
         font-weight: 600;
         letter-spacing: -0.01em;
@@ -263,7 +247,7 @@
     }
 
     .qs-hero-title {
-        font-family: 'Outfit', 'Inter', sans-serif;
+        font-family: var(--font-display);
         font-size: clamp(2.125rem, 5.5vw, 3.375rem);
         font-weight: 800;
         line-height: 1.05;
@@ -307,7 +291,7 @@
         border-radius: 0.75rem;
         background: var(--qs-brand);
         color: var(--qs-text) !important;
-        font-family: 'Outfit', 'Inter', sans-serif;
+        font-family: var(--font-display);
         font-size: 0.9375rem;
         font-weight: 700;
         letter-spacing: -0.01em;
@@ -465,7 +449,7 @@
         border-radius: 0.75rem;
         background: var(--qs-text);
         color: #fff !important;
-        font-family: 'Outfit', 'Inter', sans-serif;
+        font-family: var(--font-display);
         font-size: 0.9375rem;
         font-weight: 600;
         letter-spacing: -0.01em;

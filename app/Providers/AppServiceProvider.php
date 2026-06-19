@@ -36,6 +36,9 @@ class AppServiceProvider extends ServiceProvider
         });
 
         View::composer('layouts.app', function ($view): void {
+            $themeService = app(\App\Services\ThemeService::class);
+            $view->with('theme', $themeService->activePreset());
+
             if (! request()->routeIs('student.quiz.show') && ! request()->routeIs('student.quiz.ready')) {
                 $view->with('quizAllowsMobile', false);
                 return;

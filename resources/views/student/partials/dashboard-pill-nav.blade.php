@@ -12,7 +12,7 @@
     $pillBase = $compact
         ? 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold border transition-colors whitespace-nowrap no-underline'
         : 'inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold border transition-colors whitespace-nowrap no-underline';
-    $pillActive = 'bg-amber-400 border-amber-400 text-slate-900 shadow-sm shadow-amber-200/50';
+    $pillActive = 'theme-pill-active shadow-sm';
     $pillInactive = 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300';
     $iconMr = $compact ? 'text-[10px]' : 'mr-1.5 text-xs';
 @endphp

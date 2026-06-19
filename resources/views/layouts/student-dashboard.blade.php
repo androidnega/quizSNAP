@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('title', $dashboardTitle ?? 'My Dashboard')
-@section('body_class', 'bg-slate-50')
+@section('body_class', 'theme-bg')
 @section('body_extra_class', 'min-h-screen')
 
 @section('content')
@@ -17,30 +17,30 @@
         $appName = 'QuizSnap';
     }
 @endphp
-<div class="min-h-screen flex flex-col bg-slate-50" id="student-dashboard-wrap">
-    <header class="hidden lg:block sticky top-0 z-30 bg-amber-400 border-b border-amber-500/30">
+<div class="min-h-screen flex flex-col theme-bg" id="student-dashboard-wrap">
+    <header class="hidden lg:block sticky top-0 z-30 theme-header">
         <div class="mx-auto flex h-14 lg:h-16 w-full max-w-none lg:max-w-4xl xl:max-w-5xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
             <div class="flex lg:hidden items-center gap-2.5 min-w-0 flex-1">
-                <button type="button" id="student-mobile-menu-btn" class="shrink-0 flex h-10 w-10 items-center justify-center rounded-xl text-slate-900 hover:bg-amber-500/25 focus:outline-none focus:ring-2 focus:ring-slate-700 focus:ring-offset-2 focus:ring-offset-amber-400" aria-label="Open menu" aria-expanded="false" aria-controls="student-mobile-sidebar">
+                <button type="button" id="student-mobile-menu-btn" class="shrink-0 flex h-10 w-10 items-center justify-center rounded-xl theme-header-text theme-header-hover focus:outline-none focus:ring-2 focus:ring-slate-700 focus:ring-offset-2 focus:ring-offset-[var(--theme-brand)]" aria-label="Open menu" aria-expanded="false" aria-controls="student-mobile-sidebar">
                     <i class="fas fa-bars text-base"></i>
                 </button>
-                <a href="{{ route('dashboard') }}" class="text-xl font-extrabold tracking-tight text-blue-700 no-underline truncate">{{ str_contains(strtolower($appName), 'quiz') ? 'Quiz' : $appName }}</a>
+                <a href="{{ route('dashboard') }}" class="truncate">@include('partials.brand-wordmark', ['appName' => $appName, 'size' => 'sm'])</a>
             </div>
             <a href="{{ route('dashboard') }}" class="hidden lg:flex items-center gap-2 shrink-0 no-underline" title="Dashboard">
-                <span class="text-2xl font-extrabold tracking-tight text-blue-700">{{ str_contains(strtolower($appName), 'quiz') ? 'Quiz' : $appName }}</span>
+                @include('partials.brand-wordmark', ['appName' => $appName, 'size' => 'lg'])
             </a>
 
             <nav class="hidden lg:flex items-center gap-1 flex-1 justify-center min-w-0" aria-label="Dashboard navigation">
-                <a href="{{ route('dashboard') }}" class="px-3 xl:px-4 py-2 rounded-xl text-sm font-semibold transition-colors {{ $studentNavHome ? 'bg-white text-slate-900' : 'text-slate-900 hover:bg-amber-500/30' }}"><i class="fas fa-home mr-1.5 xl:mr-2 text-xs"></i>Home</a>
-                <a href="{{ route('dashboard.my-quizzes') }}" class="px-3 xl:px-4 py-2 rounded-xl text-sm font-semibold transition-colors {{ request()->routeIs('dashboard.my-quizzes*') ? 'bg-white text-slate-900' : 'text-slate-900 hover:bg-amber-500/30' }}"><i class="fas fa-clipboard-list mr-1.5 xl:mr-2 text-xs"></i>Quizzes</a>
-                <a href="{{ route('dashboard.calendar') }}" class="px-3 xl:px-4 py-2 rounded-xl text-sm font-semibold transition-colors {{ request()->routeIs('dashboard.calendar') ? 'bg-white text-slate-900' : 'text-slate-900 hover:bg-amber-500/30' }}"><i class="fas fa-calendar-alt mr-1.5 xl:mr-2 text-xs"></i>Calendar</a>
-                <a href="{{ route('dashboard.course-materials') }}" class="px-3 xl:px-4 py-2 rounded-xl text-sm font-semibold transition-colors {{ request()->routeIs('dashboard.course-materials') ? 'bg-white text-slate-900' : 'text-slate-900 hover:bg-amber-500/30' }}"><i class="fas fa-book mr-1.5 xl:mr-2 text-xs"></i>Materials</a>
-                <a href="{{ route('dashboard.my-profile') }}" class="px-3 xl:px-4 py-2 rounded-xl text-sm font-semibold transition-colors {{ request()->routeIs('dashboard.my-profile') ? 'bg-white text-slate-900' : 'text-slate-900 hover:bg-amber-500/30' }}"><i class="fas fa-user mr-1.5 xl:mr-2 text-xs"></i>Profile</a>
+                <a href="{{ route('dashboard') }}" class="px-3 xl:px-4 py-2 rounded-xl text-sm font-semibold transition-colors theme-header-text {{ $studentNavHome ? 'theme-nav-active' : 'theme-nav-idle' }}"><i class="fas fa-home mr-1.5 xl:mr-2 text-xs"></i>Home</a>
+                <a href="{{ route('dashboard.my-quizzes') }}" class="px-3 xl:px-4 py-2 rounded-xl text-sm font-semibold transition-colors theme-header-text {{ request()->routeIs('dashboard.my-quizzes*') ? 'theme-nav-active' : 'theme-nav-idle' }}"><i class="fas fa-clipboard-list mr-1.5 xl:mr-2 text-xs"></i>Quizzes</a>
+                <a href="{{ route('dashboard.calendar') }}" class="px-3 xl:px-4 py-2 rounded-xl text-sm font-semibold transition-colors theme-header-text {{ request()->routeIs('dashboard.calendar') ? 'theme-nav-active' : 'theme-nav-idle' }}"><i class="fas fa-calendar-alt mr-1.5 xl:mr-2 text-xs"></i>Calendar</a>
+                <a href="{{ route('dashboard.course-materials') }}" class="px-3 xl:px-4 py-2 rounded-xl text-sm font-semibold transition-colors theme-header-text {{ request()->routeIs('dashboard.course-materials') ? 'theme-nav-active' : 'theme-nav-idle' }}"><i class="fas fa-book mr-1.5 xl:mr-2 text-xs"></i>Materials</a>
+                <a href="{{ route('dashboard.my-profile') }}" class="px-3 xl:px-4 py-2 rounded-xl text-sm font-semibold transition-colors theme-header-text {{ request()->routeIs('dashboard.my-profile') ? 'theme-nav-active' : 'theme-nav-idle' }}"><i class="fas fa-user mr-1.5 xl:mr-2 text-xs"></i>Profile</a>
             </nav>
 
             @if(isset($student) && $student)
             <div class="relative shrink-0" id="student-profile-menu">
-                <button type="button" id="student-profile-btn" class="flex items-center gap-2 rounded-xl py-1.5 pl-1.5 pr-2 lg:py-2 lg:pl-2 lg:pr-4 hover:bg-amber-500/20 focus:outline-none focus:ring-2 focus:ring-slate-700 focus:ring-offset-2 focus:ring-offset-amber-400 transition-colors" aria-expanded="false" aria-haspopup="true" aria-controls="student-profile-dropdown">
+                <button type="button" id="student-profile-btn" class="flex items-center gap-2 rounded-xl py-1.5 pl-1.5 pr-2 lg:py-2 lg:pl-2 lg:pr-4 theme-header-hover focus:outline-none focus:ring-2 focus:ring-slate-700 focus:ring-offset-2 focus:ring-offset-[var(--theme-brand)] transition-colors" aria-expanded="false" aria-haspopup="true" aria-controls="student-profile-dropdown">
                     <span class="flex h-9 w-9 items-center justify-center rounded-full bg-white/80 text-slate-800 font-medium text-sm"><i class="fas fa-user text-xs"></i></span>
                     <span class="block text-left max-w-[76px] sm:max-w-[100px] lg:max-w-[140px] truncate">
                         <span class="block text-xs lg:text-sm font-semibold text-slate-900 truncate">{{ $student->first_name }}</span>
@@ -65,7 +65,7 @@
             </script>
             @elseif(isset($user) && $user)
             <div class="relative shrink-0" id="student-profile-menu">
-                <button type="button" id="student-profile-btn" class="flex items-center gap-2 rounded-full lg:rounded-xl py-2 pl-2 pr-2 lg:pr-4 hover:bg-amber-500/20 focus:outline-none focus:ring-2 focus:ring-slate-700 focus:ring-offset-2 focus:ring-offset-amber-400 transition-colors" aria-expanded="false" aria-haspopup="true" aria-controls="student-profile-dropdown">
+                <button type="button" id="student-profile-btn" class="flex items-center gap-2 rounded-full lg:rounded-xl py-2 pl-2 pr-2 lg:pr-4 theme-header-hover focus:outline-none focus:ring-2 focus:ring-slate-700 focus:ring-offset-2 focus:ring-offset-[var(--theme-brand)] transition-colors" aria-expanded="false" aria-haspopup="true" aria-controls="student-profile-dropdown">
                     <span class="flex h-9 w-9 items-center justify-center rounded-full bg-white/80 text-slate-800 font-medium text-sm"><i class="fas fa-user text-xs"></i></span>
                     <span class="hidden lg:block text-left max-w-[140px] truncate text-sm font-semibold text-slate-900 truncate">{{ $user->name ?? $user->username }}</span>
                     <i class="fas fa-chevron-down text-slate-700 text-xs hidden lg:block"></i>
@@ -85,17 +85,17 @@
             </script>
             @else
             <div class="flex items-center gap-2 shrink-0">
-                <a href="{{ route('dashboard.my-profile') }}" class="px-3 py-2 rounded-lg text-sm font-semibold text-slate-900 hover:bg-amber-500/20 transition-colors">Profile</a>
-                <form action="{{ route('student.account.logout') }}" method="post" class="inline">@csrf<button type="submit" class="px-3 py-2 rounded-lg text-sm font-semibold text-slate-900 hover:bg-amber-500/20 transition-colors">Log out</button></form>
+                <a href="{{ route('dashboard.my-profile') }}" class="px-3 py-2 rounded-lg text-sm font-semibold theme-header-text theme-header-hover transition-colors">Profile</a>
+                <form action="{{ route('student.account.logout') }}" method="post" class="inline">@csrf<button type="submit" class="px-3 py-2 rounded-lg text-sm font-semibold theme-header-text theme-header-hover transition-colors">Log out</button></form>
             </div>
             @endif
         </div>
     </header>
 
     <aside id="student-mobile-sidebar" class="fixed top-0 left-0 z-40 h-full w-72 max-w-[85vw] bg-white border-r border-slate-200 shadow-xl transition-transform duration-200 ease-out lg:hidden" style="transform: translateX(-100%);" aria-label="Mobile menu" aria-hidden="true">
-        <div class="flex items-center justify-between h-14 px-4 border-b border-slate-200 bg-amber-400">
-            <span class="text-sm font-bold text-black">Menu</span>
-            <button type="button" id="student-mobile-sidebar-close" class="p-2 rounded-lg text-black hover:bg-amber-500/30" aria-label="Close menu"><i class="fas fa-times"></i></button>
+        <div class="flex items-center justify-between h-14 px-4 theme-header">
+            <span class="text-sm font-bold theme-header-text">Menu</span>
+            <button type="button" id="student-mobile-sidebar-close" class="p-2 rounded-lg theme-header-text theme-header-hover" aria-label="Close menu"><i class="fas fa-times"></i></button>
         </div>
         <nav class="p-4 space-y-1" aria-label="Dashboard navigation">
             @include('student.partials.dashboard-sidebar-nav')

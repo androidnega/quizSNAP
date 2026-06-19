@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\StoragePermissions;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Symfony\Component\HttpFoundation\Response;
@@ -39,11 +40,23 @@ class ClearCacheController extends Controller
             $lines[] = 'Running: cache:clear';
             Artisan::call('cache:clear');
             $lines[] = '';
+            $lines[] = 'Fixing storage permissions...';
+            $perm = StoragePermissions::fix(base_path());
+            foreach ($perm['lines'] as $line) {
+                $lines[] = $line;
+            }
+            $lines[] = '';
             $lines[] = '========================================================';
-            $lines[] = 'SUCCESS: All caches cleared. Reload your site.';
+            if ($perm['ok']) {
+                $lines[] = 'SUCCESS: Caches cleared and storage is writable. Reload your site.';
+            } else {
+                $lines[] = 'PARTIAL: Caches cleared but storage may still need a chown via SSH.';
+                if ($perm['chown_hint']) {
+                    $lines[] = $perm['chown_hint'];
+                }
+            }
         } catch (\Throwable $e) {
-            $lines[] = 'ERROR: ' . $e->getMessage();
-            $lines[] = $e->getTraceAsString();
+            $lines[] = 'Something went wrong while clearing caches. Please try again or contact support.';
         }
 
         return response(implode("\n", $lines), 200, [

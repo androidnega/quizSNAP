@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\StoragePermissions;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -86,7 +87,14 @@ class FixPullController extends Controller
             $body .= "Cache clear error: " . $e->getMessage() . "\n\n";
         }
 
-        $body .= "====================================\n";
+        // Step 4: fix storage permissions (Blade compile, sessions, logs)
+        $body .= "Step 4: Fix storage permissions\n";
+        $perm = StoragePermissions::fix($basePath);
+        $body .= implode("\n", $perm['lines']) . "\n";
+        if (! $perm['ok'] && $perm['chown_hint']) {
+            $body .= "\nIMPORTANT: Run via SSH:\n" . $perm['chown_hint'] . "\n";
+        }
+        $body .= "\n";
         if ($codeFetch === 0 && $codeReset === 0) {
             $body .= "SUCCESS: Code matches remote (origin/{$branch}). Reload the site.\n";
         } else {

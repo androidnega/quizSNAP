@@ -22,8 +22,13 @@ fi
 
 $PHP_BIN artisan config:cache
 $PHP_BIN artisan route:cache
-$PHP_BIN artisan view:cache
+# Do not pre-compile views as root/deploy user — PHP-FPM (www-data) must write storage/framework/views at runtime.
+$PHP_BIN artisan view:clear
+$PHP_BIN artisan storage:fix-permissions || true
 
+echo ""
+echo "If storage:fix-permissions failed, run as root:"
+echo "  sudo bash scripts/fix-storage-permissions.sh"
 echo ""
 echo "Start these via Supervisor (recommended):"
 echo "  1. php artisan reverb:start --host=0.0.0.0 --port=\${REVERB_PORT:-8080}"

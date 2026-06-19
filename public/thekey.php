@@ -90,32 +90,16 @@ if ($shellAllowed && is_file($artisan)) {
     }
 }
 
-$body .= "\nStep 6: Permissions (storage, bootstrap/cache)\n";
-$dirs = [$basePath . '/storage', $basePath . '/bootstrap/cache'];
-foreach ($dirs as $d) {
-    if (is_dir($d)) {
-        if (@chmod($d, 0775)) {
-            $body .= "chmod 775: " . basename($d) . "\n";
-        }
-        $iter = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($d, \RecursiveDirectoryIterator::SKIP_DOTS),
-            \RecursiveIteratorIterator::SELF_FIRST
-        );
-        $done = 0;
-        foreach ($iter as $item) {
-            if ($item->isDir() && @chmod($item->getPathname(), 0775)) {
-                $done++;
-            } elseif ($item->isFile() && @chmod($item->getPathname(), 0664)) {
-                $done++;
-            }
-            if ($done >= 100) {
-                break;
-            }
-        }
-        if ($done > 0) {
-            $body .= "  " . $done . " items updated under " . basename($d) . "\n";
+$body .= "\nStep 6: Permissions (storage, bootstrap/cache, compiled views)\n";
+if ($shellAllowed && is_file($artisan)) {
+    $body .= $run('php ' . escapeshellarg($artisan) . ' storage:fix-permissions') . "\n";
+} else {
+    foreach ([$basePath . '/storage', $basePath . '/storage/framework/views', $basePath . '/bootstrap/cache'] as $d) {
+        if (is_dir($d) && @chmod($d, 0775)) {
+            $body .= "chmod 775: " . str_replace($basePath . '/', '', $d) . "\n";
         }
     }
+    $body .= "Run via SSH if site still errors: sudo chown -R www-data:www-data storage bootstrap/cache\n";
 }
 
 $body .= "\n====================================\n";

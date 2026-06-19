@@ -238,7 +238,7 @@ class Setting extends Model
             $mode = 'image';
         }
 
-        $defaultImage = asset('images/student-dashboard-midsem-exams-good-luck-banner.png');
+        $defaultImage = asset('images/student-dashboard-midsem-exams-good-luck-banner.webp');
 
         return [
             'enabled' => ($s[self::KEY_STUDENT_DASHBOARD_BANNER_ENABLED] ?? '1') === '1',

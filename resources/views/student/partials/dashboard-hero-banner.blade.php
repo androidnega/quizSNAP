@@ -15,25 +15,51 @@
     if (is_string($bannerImageUrl) && $bannerImageUrl !== '' && ! preg_match('#^https?://#i', $bannerImageUrl)) {
         $bannerImageUrl = asset(ltrim($bannerImageUrl, '/'));
     }
+    $bundledSlug = 'student-dashboard-midsem-exams-good-luck-banner';
+    $usesBundledBanner = $mode === 'image' && (
+        empty($image)
+        || str_contains((string) $image, $bundledSlug)
+    );
+    $bundledBase = asset('images/' . $bundledSlug);
     $showBanner = ! empty($banner['enabled']) && (
-        ($mode === 'image' && ! empty($bannerImageUrl))
+        ($mode === 'image' && ($usesBundledBanner || ! empty($bannerImageUrl)))
         || ($mode === 'image_text')
     );
+    $bannerAlt = 'Good luck in your midsem exams. Believe in yourself, stay focused, and do your best. Emmanuel Kofi Kwofie, Planning Committee Chair — FASSA.';
 @endphp
 
 @if($showBanner)
-@if($mode === 'image' && ! empty($bannerImageUrl))
-{{-- Full graphic banner: 16:9 aspect, fills dashboard width on mobile through desktop --}}
+@if($mode === 'image' && ($usesBundledBanner || ! empty($bannerImageUrl)))
+{{-- Wide hero banner (1024×394): responsive WebP with JPEG fallback --}}
 <section aria-label="Dashboard banner" class="w-full min-w-0">
-    <figure class="relative m-0 w-full min-w-0 overflow-hidden rounded-2xl lg:rounded-3xl bg-[#fef9e7] shadow-[0_4px_24px_rgba(15,23,42,0.08)] ring-1 ring-slate-200/70 aspect-[16/9]">
+    <figure class="relative m-0 w-full min-w-0 overflow-hidden rounded-2xl lg:rounded-3xl bg-[#fef9e7] shadow-[0_2px_16px_rgba(15,23,42,0.06)] ring-1 ring-amber-200/50 aspect-[1024/394]">
+        @if($usesBundledBanner)
+        <picture>
+            <source type="image/webp"
+                    srcset="{{ $bundledBase }}-640.webp 640w, {{ $bundledBase }}.webp 1024w"
+                    sizes="(max-width: 768px) 100vw, 1024px">
+            <source type="image/jpeg"
+                    srcset="{{ $bundledBase }}-640.jpg 640w, {{ $bundledBase }}.jpg 1024w"
+                    sizes="(max-width: 768px) 100vw, 1024px">
+            <img src="{{ $bundledBase }}.jpg"
+                 alt="{{ $bannerAlt }}"
+                 class="absolute inset-0 block h-full w-full object-cover object-center"
+                 width="1024"
+                 height="394"
+                 loading="eager"
+                 decoding="async"
+                 fetchpriority="high">
+        </picture>
+        @else
         <img src="{{ e($bannerImageUrl) }}"
-             alt="Good luck in your midsem exams. Believe in yourself, stay focused, and do your best. Emmanuel Kofi Kwofie, Planning Committee Chair — FASSA."
+             alt="{{ $bannerAlt }}"
              class="absolute inset-0 block h-full w-full object-cover object-center"
              width="1024"
-             height="576"
+             height="394"
              loading="eager"
              decoding="async"
              fetchpriority="high">
+        @endif
     </figure>
 </section>
 @elseif($mode === 'image_text')

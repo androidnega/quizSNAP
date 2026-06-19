@@ -71,7 +71,7 @@
             @endif
         </dl>
     </div>
-}</section>
+</section>
 @endif
 
 <section class="mb-8" aria-label="Account">

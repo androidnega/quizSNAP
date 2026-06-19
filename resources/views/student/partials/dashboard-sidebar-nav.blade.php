@@ -6,7 +6,7 @@
         ['route' => 'dashboard.calendar', 'label' => 'Calendar', 'icon' => 'fa-calendar-alt', 'active' => request()->routeIs('dashboard.calendar'), 'student_only' => true],
         ['route' => 'dashboard.course-materials', 'label' => 'Materials', 'icon' => 'fa-book', 'active' => request()->routeIs('dashboard.course-materials'), 'student_only' => true],
         ['route' => 'dashboard.my-profile', 'label' => 'Profile', 'icon' => 'fa-user', 'active' => request()->routeIs('dashboard.my-profile')],
-        ['route' => 'dashboard.my-quizzes', 'label' => 'Class results', 'icon' => 'fa-file-alt', 'active' => false, 'student_only' => true],
+        ['route' => 'dashboard.my-quizzes', 'label' => 'Results', 'icon' => 'fa-file-alt', 'active' => false, 'student_only' => true],
     ];
 @endphp
 @foreach($navItems as $item)

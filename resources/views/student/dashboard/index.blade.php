@@ -55,7 +55,7 @@
         <a href="{{ route('dashboard.my-quizzes') }}"
            class="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-colors whitespace-nowrap">
             <i class="fas fa-file-alt mr-1.5 text-xs"></i>
-            Class results
+            Results
         </a>
         @endif
     </div>
@@ -156,8 +156,8 @@
                     <i class="fas fa-file-alt text-sm"></i>
                 </span>
                 <div class="min-w-0">
-                    <span class="text-sm lg:text-base font-semibold text-slate-900 block truncate">Class results</span>
-                    <span class="text-xs lg:text-sm text-slate-600 block truncate mt-0.5">See class results</span>
+                    <span class="text-sm lg:text-base font-semibold text-slate-900 block truncate">Results</span>
+                    <span class="text-xs lg:text-sm text-slate-600 block truncate mt-0.5">See your results</span>
                 </div>
             </div>
             <i class="fas fa-chevron-right text-slate-400 text-xs shrink-0 ml-3"></i>

@@ -1,6 +1,6 @@
 @php
     $banner = $dashboardBanner ?? \App\Models\Setting::getStudentDashboardBannerConfig();
-    $mode = $banner['mode'] ?? 'image_text';
+    $mode = $banner['mode'] ?? 'image';
     $image = $banner['image'] ?? null;
     if (empty($image) && ! empty($banner['images'][0] ?? null)) {
         $image = $banner['images'][0];
@@ -11,31 +11,35 @@
             $image = $fallback;
         }
     }
+    $bannerImageUrl = $image;
+    if (is_string($bannerImageUrl) && $bannerImageUrl !== '' && ! preg_match('#^https?://#i', $bannerImageUrl)) {
+        $bannerImageUrl = asset(ltrim($bannerImageUrl, '/'));
+    }
     $showBanner = ! empty($banner['enabled']) && (
-        ($mode === 'image' && ! empty($image))
+        ($mode === 'image' && ! empty($bannerImageUrl))
         || ($mode === 'image_text')
     );
 @endphp
 
 @if($showBanner)
-@if($mode === 'image' && ! empty($image))
-{{-- Image only: full-width banner, 2:1 aspect on all screen sizes --}}
-<section aria-label="Dashboard banner" class="w-full">
-    <div class="w-full overflow-hidden rounded-xl lg:rounded-2xl border border-slate-200 bg-[#fef9e7] aspect-[2/1]">
-        <img src="{{ e($image) }}"
+@if($mode === 'image' && ! empty($bannerImageUrl))
+{{-- Full graphic banner: 2:1 aspect, fills width on mobile through desktop --}}
+<section aria-label="Dashboard banner" class="w-full min-w-0">
+    <figure class="relative m-0 w-full min-w-0 overflow-hidden rounded-2xl lg:rounded-3xl bg-[#fef9e7] shadow-[0_4px_24px_rgba(15,23,42,0.08)] ring-1 ring-slate-200/70 aspect-[2/1]">
+        <img src="{{ e($bannerImageUrl) }}"
              alt="Good luck in your midsem exams — motivational banner for QuizSnap students"
-             class="block w-full h-full object-cover object-center"
+             class="absolute inset-0 block h-full w-full object-contain object-center"
              width="1024"
              height="512"
              loading="eager"
              decoding="async"
              fetchpriority="high">
-    </div>
+    </figure>
 </section>
 @elseif($mode === 'image_text')
 {{-- Image + text: text left, image right --}}
-<section aria-label="Dashboard banner">
-    <div class="overflow-hidden rounded-2xl xl:rounded-3xl border border-slate-200 bg-white">
+<section aria-label="Dashboard banner" class="w-full min-w-0">
+    <div class="overflow-hidden rounded-2xl lg:rounded-3xl border border-slate-200 bg-white shadow-[0_4px_24px_rgba(15,23,42,0.08)]">
         <div class="grid grid-cols-1 lg:grid-cols-2 lg:min-h-[152px] xl:min-h-[168px]">
             <div class="flex flex-col justify-center px-5 py-4 sm:px-6 sm:py-5 lg:px-8 lg:py-6 order-2 lg:order-1">
                 <h2 class="text-lg sm:text-xl lg:text-2xl xl:text-[1.65rem] font-extrabold text-slate-900 leading-snug tracking-tight">
@@ -47,8 +51,8 @@
                 @endif
             </div>
             <div class="relative h-28 sm:h-32 lg:h-auto lg:min-h-[152px] xl:min-h-[168px] bg-slate-100 order-1 lg:order-2">
-                @if(! empty($image))
-                <img src="{{ e($image) }}"
+                @if(! empty($bannerImageUrl))
+                <img src="{{ e($bannerImageUrl) }}"
                      alt=""
                      class="absolute inset-0 w-full h-full object-cover object-center"
                      loading="eager"

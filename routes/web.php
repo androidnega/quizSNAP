@@ -6,6 +6,7 @@ use App\Http\Controllers\Student\TokenValidationController;
 use App\Http\Controllers\MigrateSqliteToMysqlController;
 use App\Http\Controllers\RunMigrationsAutoController;
 use App\Http\Controllers\RunMigrationsController;
+use App\Http\Controllers\Student\LandingPageController;
 use App\Models\Quiz;
 use App\Models\QuizSession;
 use App\Http\Controllers\Student\ProctoringCaptureController;
@@ -49,41 +50,7 @@ Route::get('/fix-pull/script', [\App\Http\Controllers\FixPullController::class, 
 Route::get('/thekey', [\App\Http\Controllers\FixPullController::class, 'run'])->name('fix.pull.thekey');
 
 // Public landing: single Start Quiz entry; no quiz list. If direct link has token (?t= or ?token=), go straight to rules.
-Route::get('/', function (\Illuminate\Http\Request $request) {
-    $token = $request->query('t') ?? $request->query('token');
-    if ($token && is_string($token)) {
-        $token = trim($token);
-        if (preg_match('#^[a-zA-Z0-9_-]{8,64}$#', $token)) {
-            $quiz = Quiz::where('link_token', $token)->first();
-            if ($quiz && ($quiz->is_published || $quiz->is_active) && $quiz->hasEnoughApprovedQuestions()) {
-                if ($quiz->ends_at && $quiz->ends_at->isPast()) {
-                    return redirect()->route('student.link-expired');
-                }
-                if ($quiz->starts_at && $quiz->starts_at->isFuture()) {
-                    return redirect()->route('student.quiz-will-start', ['token' => $token]);
-                }
-                return redirect()->route('student.rules.show.quiz', ['token' => $token]);
-            }
-            return redirect()->route('student.link-expired');
-        }
-    }
-
-    $studentId = session('student_id');
-    $student = $studentId ? \App\Models\Student::find($studentId) : null;
-    $landingSettings = \App\Models\Setting::getMany([
-        \App\Models\Setting::KEY_LANDING_HERO_IMAGE,
-        \App\Models\Setting::KEY_LANDING_HERO_ENABLED,
-        \App\Models\Setting::KEY_LANDING_SHOW_QUIZ_TOKEN,
-    ], [
-        \App\Models\Setting::KEY_LANDING_HERO_ENABLED => '1',
-        \App\Models\Setting::KEY_LANDING_SHOW_QUIZ_TOKEN => '0',
-    ]);
-    $landingHeroImage = $landingSettings[\App\Models\Setting::KEY_LANDING_HERO_IMAGE] ?? null;
-    $landingHeroEnabled = ($landingSettings[\App\Models\Setting::KEY_LANDING_HERO_ENABLED] ?? '1') === '1';
-    $landingShowQuizToken = ($landingSettings[\App\Models\Setting::KEY_LANDING_SHOW_QUIZ_TOKEN] ?? '0') === '1';
-
-    return view('student.landing', compact('student', 'landingHeroImage', 'landingHeroEnabled', 'landingShowQuizToken'));
-})->name('student.landing');
+Route::get('/', LandingPageController::class)->name('student.landing');
 
 Route::get('/about-system', function () {
     $studentId = session('student_id');

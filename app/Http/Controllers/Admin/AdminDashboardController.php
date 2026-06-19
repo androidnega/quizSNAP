@@ -5,14 +5,10 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Admin\Concerns\InteractsWithAdminSession;
 use App\Models\ClassGroup;
-use App\Models\ClassGroupStudent;
-use App\Models\Course;
-use App\Models\ExamCalendar;
 use App\Models\Quiz;
 use App\Models\QuizSession;
 use App\Models\Setting;
-use App\Models\Student;
-use App\Models\User;
+use App\Services\PageCacheService;
 use Illuminate\View\View;
 
 class AdminDashboardController extends Controller
@@ -34,18 +30,7 @@ class AdminDashboardController extends Controller
     /** Admin (Super Admin) dashboard: stats, courses, users, class groups, quizzes. */
     public function adminDashboard(): View
     {
-        // Sessions = results: only count sessions that have a result (excludes killed/incomplete)
-        $sessionsWithResult = QuizSession::whereNotNull('ended_at')->whereHas('result')->count();
-        $overview = [
-            // Primary Super Admin can see all admins and Docu Mentor users; reflect that in the user count.
-            'users' => User::count(),
-            'courses' => Course::count(),
-            'class_groups' => ClassGroup::count(),
-            'students' => Student::count(),
-            'quizzes' => Quiz::count(),
-            'sessions' => $sessionsWithResult,
-            'results' => $sessionsWithResult,
-        ];
+        $overview = app(PageCacheService::class)->adminOverviewStats();
         $updateSettings = Setting::getMany([
             Setting::KEY_UPDATE_MODE,
             Setting::KEY_UPDATE_STARTED_AT,
@@ -118,34 +103,15 @@ class AdminDashboardController extends Controller
     public function coordinatorDashboard(): View
     {
         $user = $this->adminUser();
-        $classGroupIds = $user ? $user->classGroupIds() : [];
-
-        $classGroupsCount = empty($classGroupIds)
-            ? 0
-            : ClassGroup::whereIn('id', $classGroupIds)->count();
-
-        $courseIds = $user ? $user->assignedCourseIds() : [];
-        $coursesCount = empty($courseIds)
-            ? 0
-            : Course::whereIn('id', $courseIds)->where('is_archived', false)->count();
-
-        $examinersCount = $user ? $user->examinersInScope()->count() : 0;
-
-        $examCalendarCount = empty($classGroupIds)
-            ? 0
-            : ExamCalendar::whereIn('class_group_id', $classGroupIds)->count();
-
-        $studentsCount = empty($classGroupIds)
-            ? 0
-            : ClassGroupStudent::whereIn('class_group_id', $classGroupIds)->distinct()->count('index_number');
-
-        $stats = [
-            'class_groups' => $classGroupsCount,
-            'courses' => $coursesCount,
-            'examiners' => $examinersCount,
-            'exam_calendar' => $examCalendarCount,
-            'students' => $studentsCount,
-        ];
+        $stats = $user
+            ? app(PageCacheService::class)->coordinatorStats($user)
+            : [
+                'class_groups' => 0,
+                'courses' => 0,
+                'examiners' => 0,
+                'exam_calendar' => 0,
+                'students' => 0,
+            ];
 
         return view('admin.dashboard-coordinator', compact('stats'));
     }

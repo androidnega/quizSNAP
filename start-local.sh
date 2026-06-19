@@ -20,6 +20,17 @@ fi
 
 echo "Using PHP: $($PHP_BIN -v 2>/dev/null | head -n 1)"
 
+# Prefer Redis for cache/sessions when available (faster route data caching).
+if command -v redis-cli >/dev/null 2>&1 && redis-cli ping 2>/dev/null | grep -q PONG; then
+  export CACHE_STORE=redis
+  export CACHE_DRIVER=redis
+  export SESSION_DRIVER=redis
+  export QUEUE_CONNECTION=redis
+  echo "Redis detected — using redis for cache, sessions, and queue."
+else
+  echo "Redis not running — using file cache and database queue (install/start Redis for faster pages)."
+fi
+
 if [ ! -e public/storage ]; then
   echo "Linking public/storage → storage/app/public ..."
   $PHP_BIN artisan storage:link
@@ -36,4 +47,3 @@ trap cleanup EXIT INT TERM
 echo "Starting Laravel dev server on http://127.0.0.1:8000 ..."
 
 $PHP_BIN artisan serve --host=127.0.0.1 --port=8000
-

@@ -1,8 +1,8 @@
 @extends('layouts.app')
 
 @php
-    $appName = \App\Models\Setting::getValue(\App\Models\Setting::KEY_APP_NAME, config('app.name', 'QuizSnap'));
-    $institutionName = \App\Models\Setting::getValue(\App\Models\Setting::KEY_INSTITUTION_NAME);
+    $appName = $appName ?? config('app.name', 'QuizSnap');
+    $institutionName = $institutionName ?? null;
     $supportWhatsAppE164 = '233541069241';
     $supportCallE164 = '+233257940791';
     $supportWhatsAppMessage = '[QuizSnap Support | Landing Page] Hi, I need help with: ';

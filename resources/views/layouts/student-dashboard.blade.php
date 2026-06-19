@@ -225,7 +225,7 @@
     }
 
     if ('serviceWorker' in navigator && 'PushManager' in window) {
-        navigator.serviceWorker.register('{{ asset('sw.js') }}', { scope: '/' }).then(function(registration) {
+        function initPush(registration) {
             if (Notification.permission === 'granted') {
                 subscribePush(registration);
             } else if (Notification.permission === 'default') {
@@ -233,7 +233,28 @@
                     if (perm === 'granted') subscribePush(registration);
                 });
             }
-        }).catch(function(err) { console.warn('SW register:', err); });
+        }
+
+        function ensurePushRegistration() {
+            if (window.QuizSnapCacheConsent && window.QuizSnapCacheConsent.isAccepted()) {
+                window.QuizSnapCacheConsent.registerServiceWorker().then(function(registration) {
+                    if (registration) initPush(registration);
+                });
+                return;
+            }
+            navigator.serviceWorker.register('{{ asset('sw.js') }}', { scope: '/' }).then(initPush).catch(function(err) { console.warn('SW register:', err); });
+        }
+
+        if (window.QuizSnapCacheConsent) {
+            ensurePushRegistration();
+        } else {
+            document.addEventListener('DOMContentLoaded', ensurePushRegistration);
+            document.addEventListener('quizsnap-cache-consent', function(e) {
+                if (e.detail && e.detail.accepted) {
+                    ensurePushRegistration();
+                }
+            });
+        }
     }
 })();
 </script>

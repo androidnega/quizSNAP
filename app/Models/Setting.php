@@ -6,6 +6,7 @@ use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
+use App\Services\PageCacheService;
 
 class Setting extends Model
 {
@@ -163,6 +164,17 @@ class Setting extends Model
             ['value' => $stored]
         );
         Cache::forget('setting:' . $key);
+        if (in_array($key, PageCacheService::landingSettingKeys(), true)
+            || in_array($key, [
+                self::KEY_STUDENT_DASHBOARD_BANNER_ENABLED,
+                self::KEY_STUDENT_DASHBOARD_BANNER_MODE,
+                self::KEY_STUDENT_DASHBOARD_BANNER_TITLE,
+                self::KEY_STUDENT_DASHBOARD_BANNER_TITLE_ACCENT,
+                self::KEY_STUDENT_DASHBOARD_BANNER_SUBTITLE,
+                self::KEY_STUDENT_DASHBOARD_BANNER_IMAGES,
+            ], true)) {
+            app(PageCacheService::class)->bumpVersion();
+        }
     }
 
     /**

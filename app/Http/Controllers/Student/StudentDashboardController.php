@@ -10,6 +10,7 @@ use App\Models\Quiz;
 use App\Models\QuizSession;
 use App\Models\Student;
 use App\Models\User;
+use App\Services\PageCacheService;
 use App\Support\UserFriendlyMessages;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,12 +24,12 @@ class StudentDashboardController extends Controller
      */
     private function resolveStudentClassGroups(Student $student): array
     {
-        $cgStudents = ClassGroupStudent::allByIndexNumber($student->index_number ?? '');
-        $classGroupIds = $cgStudents->pluck('class_group_id')->unique()->filter()->values()->all();
-        $classGroups = $cgStudents->map(fn ($s) => $s->classGroup)->filter()->unique('id')->values();
-        if ($classGroups->isEmpty() && $classGroupIds !== []) {
-            $classGroups = ClassGroup::whereIn('id', $classGroupIds)->get();
-        }
+        $indexNumber = $student->index_number ?? '';
+        $classGroupIds = app(PageCacheService::class)->studentClassGroupIds($indexNumber)['classGroupIds'];
+
+        $classGroups = $classGroupIds === []
+            ? collect()
+            : ClassGroup::whereIn('id', $classGroupIds)->get();
 
         return ['classGroupIds' => $classGroupIds, 'classGroups' => $classGroups];
     }

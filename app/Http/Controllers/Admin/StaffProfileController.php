@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Admin\Concerns\InteractsWithAdminSession;
+use App\Support\UserFriendlyMessages;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Hash;
@@ -18,7 +19,7 @@ class StaffProfileController extends Controller
     {
         $user = $this->adminUser();
         if (!$user) {
-            return redirect()->route('login')->with('error', 'Error');
+            return redirect()->route('login')->with('error', UserFriendlyMessages::SIGN_IN_REQUIRED);
         }
         // Load relationships for profile display
         $user->load(['institution', 'faculty', 'department', 'course']);
@@ -29,7 +30,7 @@ class StaffProfileController extends Controller
     {
         $user = $this->adminUser();
         if (!$user) {
-            return redirect()->route('login')->with('error', 'Error');
+            return redirect()->route('login')->with('error', UserFriendlyMessages::SIGN_IN_REQUIRED);
         }
         $rules = [
             'name' => 'nullable|string|max:255',
@@ -50,7 +51,7 @@ class StaffProfileController extends Controller
         ]);
         $user = $this->adminUser();
         if (!$user) {
-            return redirect()->route('login')->with('error', 'Error');
+            return redirect()->route('login')->with('error', UserFriendlyMessages::SIGN_IN_REQUIRED);
         }
 
         $file = $request->file('avatar');
@@ -76,7 +77,7 @@ class StaffProfileController extends Controller
         ]);
         $user = $this->adminUser();
         if (!$user) {
-            return redirect()->route('login')->with('error', 'Error');
+            return redirect()->route('login')->with('error', UserFriendlyMessages::SIGN_IN_REQUIRED);
         }
         if (!Hash::check($request->current_password, $user->password)) {
             return redirect()->back()->withErrors(['current_password' => 'Current password is incorrect.'])->withInput();

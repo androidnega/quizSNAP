@@ -29,12 +29,13 @@ return Application::configure(basePath: dirname(__DIR__))
             'examiner.only' => \App\Http\Middleware\EnsureExaminerOnlyRole::class,
             'course.creation' => \App\Http\Middleware\EnsureCourseCreationAllowed::class,
             'coordinator.only' => \App\Http\Middleware\EnsureCoordinatorRole::class,
+            'staff.tokens' => \App\Http\Middleware\EnsureStaffTokenManager::class,
             'student.has-level' => \App\Http\Middleware\EnsureStudentHasLevel::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         $exceptions->renderable(function (\Illuminate\Session\TokenMismatchException $e, $request) {
-            $message = 'Your session has ended. Please log in again.';
+            $message = \App\Support\UserFriendlyMessages::SESSION_EXPIRED;
             if ($request->expectsJson() || $request->ajax()) {
                 return \Illuminate\Support\Facades\Response::json(['message' => $message], 419);
             }

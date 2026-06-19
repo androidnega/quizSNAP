@@ -1,7 +1,7 @@
 @extends('layouts.dashboard')
 
-@section('title', 'User management')
-@section('dashboard_heading', 'Users')
+@section('title', !empty($isCoordinatorManager) ? 'Examiners' : 'User management')
+@section('dashboard_heading', !empty($isCoordinatorManager) ? 'Examiners' : 'Users')
 
 @section('dashboard_content')
 <div class="w-full min-w-0 max-w-full space-y-6">
@@ -11,7 +11,7 @@
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                 </svg>
-                <span class="text-gray-900 font-medium">User management</span>
+                <span class="text-gray-900 font-medium">{{ !empty($isCoordinatorManager) ? 'Examiners' : 'User management' }}</span>
             </div>
             @php
         $canShowAddUser = (isset($isSuperAdmin) && $isSuperAdmin) || session('admin_role') === 'super_admin';
@@ -77,6 +77,9 @@
                             @if(isset($isSuperAdmin) && $isSuperAdmin)
                             <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase w-32">SMS</th>
                             @endif
+                            @if(!empty($canManageAiTokens))
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase w-32">AI tokens</th>
+                            @endif
                             <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase min-w-[120px]">Actions</th>
                         </tr>
                     </thead>
@@ -120,16 +123,30 @@
                                 @if(isset($isSuperAdmin) && $isSuperAdmin)
                                 <td class="px-3 py-2 text-sm">
                                     @if($u->role === 'examiner' || $u->role === \App\Models\User::ROLE_COORDINATOR)
-                                    <div class="flex flex-col gap-0.5">
-                                        <div class="flex items-center gap-2">
-                                            <span class="text-gray-600" id="sms-display-{{ $u->id }}">
-                                                SMS: {{ $u->sms_allocation ?? 0 }} <span class="text-xs text-gray-500">({{ $u->sms_remaining ?? 0 }} left)</span>
-                                            </span>
-                                            <button type="button" onclick="openSmsModal({{ $u->id }}, '{{ $u->username }}', {{ $u->sms_allocation ?? 0 }}, {{ $u->sms_used ?? 0 }})" class="inline-flex p-1 rounded text-gray-500 hover:text-primary-600 hover:bg-primary-50 transition-colors" title="Add SMS credits">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-gray-600" id="sms-display-{{ $u->id }}">
+                                            {{ $u->sms_allocation ?? 0 }} <span class="text-xs text-gray-500">({{ $u->sms_remaining ?? 0 }} left)</span>
+                                        </span>
+                                        <button type="button" onclick="openSmsModal({{ $u->id }}, '{{ $u->username }}', {{ $u->sms_allocation ?? 0 }}, {{ $u->sms_used ?? 0 }})" class="inline-flex p-1 rounded text-gray-500 hover:text-primary-600 hover:bg-primary-50 transition-colors" title="Add SMS credits">
                                             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
                                         </button>
-                                        </div>
-                                        <span class="text-xs text-gray-500">AI Token: {{ app(\App\Services\AiQuizTokenService::class)->getRemaining($u) }}</span>
+                                    </div>
+                                    @else
+                                    <span class="text-gray-400">—</span>
+                                    @endif
+                                </td>
+                                @endif
+                                @if(!empty($canManageAiTokens))
+                                <td class="px-3 py-2 text-sm">
+                                    @if($u->isExaminer())
+                                    @php $aiRemaining = app(\App\Services\AiQuizTokenService::class)->getRemaining($u); @endphp
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-gray-600" id="ai-display-{{ $u->id }}">
+                                            <span class="font-medium">{{ $aiRemaining }}</span> <span class="text-xs text-gray-500">left</span>
+                                        </span>
+                                        <button type="button" onclick="openAiModal({{ $u->id }}, '{{ $u->username }}', {{ $aiRemaining }}, {{ $u->ai_quiz_tokens_allocation ?? 0 }}, {{ $u->ai_quiz_tokens_used ?? 0 }})" class="inline-flex p-1 rounded text-gray-500 hover:text-primary-600 hover:bg-primary-50 transition-colors" title="Assign AI tokens">
+                                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                                        </button>
                                     </div>
                                     @else
                                     <span class="text-gray-400">—</span>
@@ -179,7 +196,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="{{ isset($isSuperAdmin) && $isSuperAdmin ? '7' : '6' }}" class="px-3 py-12 text-center text-gray-500">No users yet. Add a user.</td>
+                                <td colspan="{{ 6 + (isset($isSuperAdmin) && $isSuperAdmin ? 1 : 0) + (!empty($canManageAiTokens) ? 1 : 0) }}" class="px-3 py-12 text-center text-gray-500">{{ !empty($isCoordinatorManager) ? 'No examiners in your area yet.' : 'No users yet. Add a user.' }}</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -257,7 +274,7 @@ document.getElementById('smsForm').addEventListener('submit', async function(e) 
         
         if (data.success) {
             const display = document.getElementById('sms-display-' + userId);
-            display.innerHTML = 'SMS: ' + data.allocation + ' <span class="text-xs text-gray-500">(' + data.remaining + ' left)</span>';
+            display.innerHTML = data.allocation + ' <span class="text-xs text-gray-500">(' + data.remaining + ' left)</span>';
             closeSmsModal();
             
             // Show success message (you could add a toast notification here)
@@ -281,6 +298,9 @@ document.getElementById('smsForm').addEventListener('submit', async function(e) 
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
         closeSmsModal();
+        if (typeof closeAiModal === 'function') {
+            closeAiModal();
+        }
     }
 });
 
@@ -289,6 +309,104 @@ document.getElementById('smsModal').addEventListener('click', function(e) {
         closeSmsModal();
     }
 });
+
+@if(!empty($canManageAiTokens))
+// AI token modal
+function openAiModal(userId, username, currentRemaining, currentAllocation, currentUsed) {
+    const modal = document.getElementById('aiModal');
+    const inputEl = document.getElementById('aiTokensInput');
+    document.getElementById('aiUserId').value = userId;
+    document.getElementById('aiUsername').textContent = username;
+    modal.dataset.currentRemaining = currentRemaining || 0;
+    modal.dataset.currentAllocation = currentAllocation || 0;
+    modal.dataset.currentUsed = currentUsed || 0;
+    document.getElementById('aiRemainingDisplay').textContent = currentRemaining || 0;
+    inputEl.value = '';
+    inputEl.placeholder = 'e.g. 5, 10, 20';
+    document.getElementById('aiError').classList.add('hidden');
+    document.getElementById('aiError').textContent = '';
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    document.body.style.overflow = 'hidden';
+    inputEl.focus();
+}
+
+function updateAiRemainingDisplay() {
+    var modal = document.getElementById('aiModal');
+    var inputEl = document.getElementById('aiTokensInput');
+    var currentRemaining = parseInt(modal.dataset.currentRemaining, 10) || 0;
+    var tokensToAdd = parseInt(inputEl.value, 10) || 0;
+    document.getElementById('aiRemainingDisplay').textContent = currentRemaining + tokensToAdd;
+}
+
+function closeAiModal() {
+    const modal = document.getElementById('aiModal');
+    if (!modal) return;
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    document.body.style.overflow = '';
+}
+
+document.getElementById('aiForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const userId = document.getElementById('aiUserId').value;
+    const tokensToAdd = parseInt(document.getElementById('aiTokensInput').value) || 0;
+    const errorEl = document.getElementById('aiError');
+    const submitBtn = document.getElementById('aiSubmitBtn');
+
+    errorEl.classList.add('hidden');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Saving...';
+
+    try {
+        const response = await fetch('{{ route("dashboard.users.update-ai-tokens") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            },
+            body: JSON.stringify({ user_id: userId, ai_tokens_to_add: tokensToAdd })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            const display = document.getElementById('ai-display-' + userId);
+            if (display) {
+                display.innerHTML = '<span class="font-medium">' + data.remaining + '</span> <span class="text-xs text-gray-500">left</span>';
+            }
+            closeAiModal();
+            if (window.showToast) {
+                showToast('AI tokens updated successfully', 'success');
+            }
+        } else {
+            errorEl.textContent = data.message || 'We could not update AI tokens. Please try again.';
+            errorEl.classList.remove('hidden');
+        }
+    } catch (error) {
+        errorEl.textContent = 'We could not save your changes. Please check your connection and try again.';
+        errorEl.classList.remove('hidden');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Assign';
+    }
+});
+
+document.getElementById('aiModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeAiModal();
+    }
+});
+
+(function() {
+    var aiInput = document.getElementById('aiTokensInput');
+    if (aiInput) {
+        aiInput.addEventListener('input', updateAiRemainingDisplay);
+        aiInput.addEventListener('change', updateAiRemainingDisplay);
+        aiInput.addEventListener('keyup', updateAiRemainingDisplay);
+    }
+})();
+@endif
 
 (function() {
     var inputEl = document.getElementById('smsAllocationInput');
@@ -331,6 +449,39 @@ document.getElementById('smsModal').addEventListener('click', function(e) {
         </form>
     </div>
 </div>
+
+@if(!empty($canManageAiTokens))
+<!-- AI Token Modal -->
+<div id="aiModal" class="fixed inset-0 bg-black/40 z-50 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-lg w-full max-w-md">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <h2 class="text-lg font-bold text-gray-900">Assign AI tokens</h2>
+            <button type="button" onclick="closeAiModal()" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <form id="aiForm" class="p-6 space-y-4">
+            <input type="hidden" id="aiUserId" name="user_id">
+            <div>
+                <p class="text-sm text-gray-600 mb-4">
+                    Examiner: <strong id="aiUsername"></strong><br>
+                    Tokens remaining: <span id="aiRemainingDisplay" class="font-semibold text-primary-600">0</span>
+                </p>
+            </div>
+            <div>
+                <label for="aiTokensInput" class="block text-sm font-medium text-gray-700 mb-1">Tokens to add</label>
+                <input type="number" id="aiTokensInput" name="ai_tokens_to_add" min="0" step="1" required class="input w-full" placeholder="e.g. 5, 10, 20">
+                <p class="mt-1 text-xs text-gray-500">Each token allows one AI quiz generation. Tokens refill after the cooldown period when used up.</p>
+            </div>
+            <div id="aiError" class="hidden bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800"></div>
+            <div class="flex gap-3 pt-2">
+                <button type="submit" id="aiSubmitBtn" class="btn btn-primary flex-1">Assign</button>
+                <button type="button" onclick="closeAiModal()" class="btn btn-secondary flex-1">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+@endif
 
 @if(session('temp_password'))
 <script>

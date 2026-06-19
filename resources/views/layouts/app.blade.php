@@ -12,7 +12,7 @@
     <meta name="apple-mobile-web-app-title" content="QuizSnap">
     <meta name="format-detection" content="telephone=no">
     <title>@yield('title', 'QuizSnap')</title>
-    {{-- No favicon on admin/dashboard pages — remove Laravel default appearance --}}
+    @include('partials.favicon')
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">

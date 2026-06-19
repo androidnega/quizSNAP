@@ -70,7 +70,9 @@
                     @error('sms_allocation')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
                 </div>
                 @endif
-                @if($user->isExaminer() || $user->role === \App\Models\User::ROLE_COORDINATOR)
+                @endif
+                @if(($isSuperAdmin ?? false) || (!empty($canManageExaminerAiTokens) && $canManageExaminerAiTokens))
+                @if($user->isExaminer() || ($isSuperAdmin && $user->role === \App\Models\User::ROLE_COORDINATOR))
                 <div class="rounded-lg border border-primary-200 bg-primary-50/50 p-4">
                     <label class="flex items-start gap-3 cursor-pointer">
                         <input type="checkbox" name="ai_quiz_generation_allowed" value="1" class="mt-1 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500" {{ old('ai_quiz_generation_allowed', $user->ai_quiz_generation_allowed ?? true) ? 'checked' : '' }}>
@@ -97,6 +99,8 @@
                     @error('ai_quiz_tokens_allocation')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
                 </div>
                 @endif
+                @endif
+                @if(auth()->user()->isSuperAdmin())
                 @if($user->isExaminer() || $user->role === \App\Models\User::ROLE_COORDINATOR)
                 <div id="institution-field">
                     <label for="institution_id" class="block text-xs font-medium text-gray-500 mb-0.5">Institution</label>

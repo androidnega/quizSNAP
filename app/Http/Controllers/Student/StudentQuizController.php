@@ -15,6 +15,7 @@ use App\Models\QuizViolation;
 use App\Models\Result;
 use App\Models\Setting;
 use App\Models\Student;
+use App\Support\UserFriendlyMessages;
 use App\Services\AiQuestionService;
 use App\Services\QuizConcurrencyService;
 use Illuminate\Http\JsonResponse;
@@ -59,7 +60,7 @@ class StudentQuizController extends Controller
     {
         $token = session('quiz_session_token');
         if (!$token) {
-            return redirect()->route('student.landing')->with('error', 'Error');
+            return redirect()->route('student.landing')->with('error', UserFriendlyMessages::GENERIC);
         }
         $session = QuizSession::with('quiz.course')->where('session_token', $token)->firstOrFail();
         if ($session->ended_at) {
@@ -95,11 +96,11 @@ class StudentQuizController extends Controller
     {
         $token = session('quiz_session_token');
         if (! $token) {
-            return redirect()->route('student.landing')->with('error', 'Error');
+            return redirect()->route('student.landing')->with('error', UserFriendlyMessages::GENERIC);
         }
         $session = QuizSession::where('session_token', $token)->first();
         if (! $session) {
-            return redirect()->route('student.landing')->with('error', 'Error');
+            return redirect()->route('student.landing')->with('error', UserFriendlyMessages::GENERIC);
         }
         if ($session->ended_at) {
             return redirect()->to($this->quizCompleteUrl());
@@ -122,14 +123,14 @@ class StudentQuizController extends Controller
             if ($request->expectsJson()) {
                 return response()->json(['success' => false, 'message' => 'No active quiz session.'], 401);
             }
-            return redirect()->route('student.landing')->with('error', 'Error');
+            return redirect()->route('student.landing')->with('error', UserFriendlyMessages::GENERIC);
         }
         $session = QuizSession::where('session_token', $token)->first();
         if (!$session) {
             if ($request->expectsJson()) {
                 return response()->json(['success' => false, 'message' => 'Session not found.'], 404);
             }
-            return redirect()->route('student.landing')->with('error', 'Error');
+            return redirect()->route('student.landing')->with('error', UserFriendlyMessages::GENERIC);
         }
         if ($session->ended_at) {
             if ($request->expectsJson()) {
@@ -165,7 +166,7 @@ class StudentQuizController extends Controller
     {
         $token = session('quiz_session_token');
         if (!$token) {
-            return redirect()->route('student.landing')->with('error', 'Error');
+            return redirect()->route('student.landing')->with('error', UserFriendlyMessages::GENERIC);
         }
         $session = QuizSession::with(['quiz', 'quiz.classGroup'])->where('session_token', $token)->firstOrFail();
         if ($session->ended_at) {
@@ -182,7 +183,7 @@ class StudentQuizController extends Controller
         }
         // Enforce pre-capture gate only when camera is required by settings.
         if (!$session->camera_verified && $this->isProctoringCameraRequired()) {
-            return redirect()->route('student.proctoring.capture')->with('error', 'Error');
+            return redirect()->route('student.proctoring.capture')->with('error', UserFriendlyMessages::GENERIC);
         }
         if (!$session->camera_verified && !$this->isProctoringCameraRequired()) {
             $session->update([
@@ -201,7 +202,7 @@ class StudentQuizController extends Controller
                 'metadata' => json_encode(['expected' => $session->ip_address, 'got' => $request->ip()]),
                 'occurred_at' => now(),
             ]);
-            return redirect()->route('student.landing')->with('error', 'Error');
+            return redirect()->route('student.landing')->with('error', UserFriendlyMessages::GENERIC);
         }
         $questionIds = $session->assigned_question_ids ?? [];
         $questions = collect();
@@ -1283,11 +1284,11 @@ class StudentQuizController extends Controller
     {
         $token = session('quiz_session_token') ?? $request->query('token');
         if (!$token || !is_string($token)) {
-            return redirect()->route('student.landing')->with('error', 'Not found');
+            return redirect()->route('student.landing')->with('error', UserFriendlyMessages::NOT_FOUND);
         }
         $session = QuizSession::with(['quiz', 'result', 'answers.question'])->where('session_token', $token)->first();
         if (!$session) {
-            return redirect()->route('student.landing')->with('error', 'Not found');
+            return redirect()->route('student.landing')->with('error', UserFriendlyMessages::NOT_FOUND);
         }
 
         $studentId = session('student_id');

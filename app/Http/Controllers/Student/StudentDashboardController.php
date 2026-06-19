@@ -10,6 +10,7 @@ use App\Models\Quiz;
 use App\Models\QuizSession;
 use App\Models\Student;
 use App\Models\User;
+use App\Support\UserFriendlyMessages;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -363,7 +364,7 @@ class StudentDashboardController extends Controller
             
             // Validate session ID is numeric
             if (!is_numeric($sessionId)) {
-                return redirect()->route('dashboard.my-quizzes')->with('error', 'Error');
+                return redirect()->route('dashboard.my-quizzes')->with('error', UserFriendlyMessages::GENERIC);
             }
             
             $quizSession = QuizSession::where('id', $sessionId)
@@ -372,11 +373,11 @@ class StudentDashboardController extends Controller
                 ->first();
             
             if (!$quizSession) {
-                return redirect()->route('dashboard.my-quizzes')->with('error', 'Not found');
+                return redirect()->route('dashboard.my-quizzes')->with('error', UserFriendlyMessages::NOT_FOUND);
             }
 
             if (!$quizSession->quiz) {
-                return redirect()->route('dashboard.my-quizzes')->with('error', 'Not found');
+                return redirect()->route('dashboard.my-quizzes')->with('error', UserFriendlyMessages::NOT_FOUND);
             }
 
             if (!$quizSession->result) {
@@ -401,7 +402,7 @@ class StudentDashboardController extends Controller
                 'student_id' => $student->id ?? null,
                 'trace' => $e->getTraceAsString()
             ]);
-            return redirect()->route('dashboard.my-quizzes')->with('error', 'Error');
+            return redirect()->route('dashboard.my-quizzes')->with('error', UserFriendlyMessages::GENERIC);
         }
     }
 
@@ -415,7 +416,7 @@ class StudentDashboardController extends Controller
             
             // Validate session ID is numeric
             if (!is_numeric($sessionId)) {
-                return redirect()->route('dashboard.my-quizzes')->with('error', 'Error');
+                return redirect()->route('dashboard.my-quizzes')->with('error', UserFriendlyMessages::GENERIC);
             }
             
             $quizSession = QuizSession::where('id', $sessionId)
@@ -424,15 +425,15 @@ class StudentDashboardController extends Controller
                 ->first();
             
             if (!$quizSession) {
-                return redirect()->route('dashboard.my-quizzes')->with('error', 'Not found');
+                return redirect()->route('dashboard.my-quizzes')->with('error', UserFriendlyMessages::NOT_FOUND);
             }
 
             if (!$quizSession->quiz) {
-                return redirect()->route('dashboard.my-quizzes')->with('error', 'Not found');
+                return redirect()->route('dashboard.my-quizzes')->with('error', UserFriendlyMessages::NOT_FOUND);
             }
 
             if (!$quizSession->quiz->canShowScore() || !$quizSession->result) {
-                return redirect()->route('dashboard.my-quizzes')->with('error', 'Not found');
+                return redirect()->route('dashboard.my-quizzes')->with('error', UserFriendlyMessages::NOT_FOUND);
             }
 
             if ($quizSession->isResultWithheld()) {
@@ -459,7 +460,7 @@ class StudentDashboardController extends Controller
                 'student_id' => $student->id ?? null,
                 'trace' => $e->getTraceAsString()
             ]);
-            return redirect()->route('dashboard.my-quizzes')->with('error', 'Error');
+            return redirect()->route('dashboard.my-quizzes')->with('error', UserFriendlyMessages::GENERIC);
         }
     }
 

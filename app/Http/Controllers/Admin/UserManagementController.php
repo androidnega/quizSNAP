@@ -11,6 +11,7 @@ use App\Models\Department;
 use App\Models\Setting;
 use App\Models\User;
 use App\Services\ArkeselService;
+use App\Support\UserFriendlyMessages;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Http\RedirectResponse;
@@ -46,26 +47,25 @@ class UserManagementController extends Controller
     {
         $user = $this->adminUser();
         $isSuperAdmin = $user && $user->isSuperAdmin();
+        $isCoordinatorManager = $user && $user->isCoordinator() && ! $isSuperAdmin;
+        $canManageAiTokens = $isSuperAdmin || $isCoordinatorManager;
 
-        // Super Admin sees only staff-style users (Super Admin, Examiners, Docu Mentor Coordinators).
-        // Docu Mentor students/leaders are technical bridge accounts and should not appear here.
         $query = User::query()->with('courses');
 
-        if (!$isSuperAdmin && $user) {
-            // Examiner (or non-super admin): only themselves
+        if ($isCoordinatorManager) {
+            $this->applyCoordinatorExaminerScope($query, $user);
+        } elseif (! $isSuperAdmin && $user) {
             $query->where('id', $user->id);
         } elseif ($isSuperAdmin && $user) {
             $primarySuperAdminId = User::where('role', User::ROLE_SUPER_ADMIN)->min('id');
 
             if ($user->id === $primarySuperAdminId) {
-                // Primary Super Admin: all core staff accounts (super admins, examiners, coordinators)
                 $query->whereIn('role', [
                     User::ROLE_SUPER_ADMIN,
                     User::ROLE_EXAMINER,
                     User::ROLE_COORDINATOR,
                 ]);
             } else {
-                // Secondary Super Admin: see themselves + all non-super-admin staff accounts
                 $query->where(function ($q) use ($user) {
                     $q->where('id', $user->id)
                       ->orWhereIn('role', [
@@ -75,15 +75,21 @@ class UserManagementController extends Controller
                 });
             }
         }
-        
+
         $users = $query->with('institution')
             ->orderBy('role')
             ->orderBy('username')
             ->paginate(20);
-        
+
         $institutions = Institution::orderBy('name')->get();
 
-        return view('admin.users.index', compact('users', 'isSuperAdmin', 'institutions'));
+        return view('admin.users.index', compact(
+            'users',
+            'isSuperAdmin',
+            'institutions',
+            'canManageAiTokens',
+            'isCoordinatorManager'
+        ));
     }
 
     public function create(): View
@@ -92,8 +98,8 @@ class UserManagementController extends Controller
         $isSuperAdmin = $user && $user->isSuperAdmin();
         
         // Only Super Admin can create users
-        if (!$isSuperAdmin) {
-            abort(403, 'Only Super Administrators can create users.');
+        if (! $isSuperAdmin) {
+            abort(403, UserFriendlyMessages::ADMIN_ONLY);
         }
         // Any super admin can create a secondary super admin (show "Super Admin (secondary)" in role dropdown)
         $canCreateSuperAdmin = $isSuperAdmin && $user;
@@ -111,8 +117,8 @@ class UserManagementController extends Controller
         $isSuperAdmin = $user && $user->isSuperAdmin();
         
         // Only Super Admin can create users
-        if (!$isSuperAdmin) {
-            abort(403, 'Only Super Administrators can create users.');
+        if (! $isSuperAdmin) {
+            abort(403, UserFriendlyMessages::ADMIN_ONLY);
         }
         $primarySuperAdminId = User::where('role', User::ROLE_SUPER_ADMIN)->min('id');
         $canCreateSuperAdmin = $isSuperAdmin && $user;
@@ -264,12 +270,16 @@ class UserManagementController extends Controller
         $allowedRoles = [User::ROLE_SUPER_ADMIN, User::ROLE_EXAMINER, User::ROLE_COORDINATOR];
         if (! in_array($user->role, $allowedRoles, true)) {
             return redirect()->route('dashboard.users.index')
-                ->with('error', 'Error');
+                ->with('error', UserFriendlyMessages::NOT_FOUND);
         }
         
-        // Examiners can only edit themselves
-        if (!$isSuperAdmin && $currentUser && $currentUser->id !== $user->id) {
-            abort(403, 'You can only edit your own profile.');
+        // Examiners can only edit themselves (coordinators may edit examiners in scope for AI tokens)
+        $isCoordinatorManager = $currentUser && $currentUser->isCoordinator() && ! $isSuperAdmin;
+        if (! $isSuperAdmin && ! $isCoordinatorManager && $currentUser && $currentUser->id !== $user->id) {
+            abort(403, UserFriendlyMessages::PROFILE_ONLY);
+        }
+        if ($isCoordinatorManager && $currentUser->id !== $user->id && ! $this->canManageExaminerAiTokens($currentUser, $user)) {
+            abort(403, UserFriendlyMessages::ACCESS_DENIED);
         }
         
         $user->load(['courses', 'institution', 'faculty', 'department']);
@@ -302,8 +312,22 @@ class UserManagementController extends Controller
 
         // Prefill institution when editing examiner/coordinator who has faculty but no institution_id
         $displayInstitutionId = $user->institution_id ?? $user->faculty?->institution_id;
-        
-        return view('admin.users.edit', compact('user', 'courses', 'institutions', 'faculties', 'departments', 'isSuperAdmin', 'isProfileCompletion', 'displayInstitutionId'));
+
+        $isCoordinatorManager = $currentUser && $currentUser->isCoordinator() && ! $isSuperAdmin;
+        $canManageExaminerAiTokens = $this->canManageExaminerAiTokens($currentUser, $user);
+
+        return view('admin.users.edit', compact(
+            'user',
+            'courses',
+            'institutions',
+            'faculties',
+            'departments',
+            'isSuperAdmin',
+            'isProfileCompletion',
+            'displayInstitutionId',
+            'isCoordinatorManager',
+            'canManageExaminerAiTokens'
+        ));
     }
 
     public function update(Request $request, User $user): RedirectResponse
@@ -314,12 +338,34 @@ class UserManagementController extends Controller
         $allowedRoles = [User::ROLE_SUPER_ADMIN, User::ROLE_EXAMINER, User::ROLE_COORDINATOR];
         if (! in_array($user->role, $allowedRoles, true)) {
             return redirect()->route('dashboard.users.index')
-                ->with('error', 'Error');
+                ->with('error', UserFriendlyMessages::NOT_FOUND);
         }
         
-        // Examiners can only edit themselves
-        if (!$isSuperAdmin && $currentUser && $currentUser->id !== $user->id) {
-            abort(403, 'You can only edit your own profile.');
+        // Examiners can only edit themselves (coordinators may edit examiners in scope for AI tokens)
+        $isCoordinatorManager = $currentUser && $currentUser->isCoordinator() && ! $isSuperAdmin;
+        if (! $isSuperAdmin && ! $isCoordinatorManager && $currentUser && $currentUser->id !== $user->id) {
+            abort(403, UserFriendlyMessages::PROFILE_ONLY);
+        }
+        if ($isCoordinatorManager && $currentUser->id !== $user->id && ! $this->canManageExaminerAiTokens($currentUser, $user)) {
+            abort(403, UserFriendlyMessages::ACCESS_DENIED);
+        }
+
+        if ($isCoordinatorManager && $currentUser->id !== $user->id && $user->isExaminer()) {
+            $request->validate([
+                'ai_quiz_tokens_allocation' => 'nullable|integer|min:0',
+                'ai_quiz_generation_allowed' => 'nullable|boolean',
+            ]);
+
+            if ($request->has('ai_quiz_tokens_allocation')) {
+                $user->ai_quiz_tokens_allocation = max(0, (int) ($request->ai_quiz_tokens_allocation ?? 10));
+            }
+            if ($request->has('ai_quiz_generation_allowed')) {
+                $user->ai_quiz_generation_allowed = $request->boolean('ai_quiz_generation_allowed');
+            }
+            $user->save();
+
+            return redirect()->route('dashboard.users.index')
+                ->with('success', UserFriendlyMessages::UPDATED);
         }
         
         // Examiners cannot change their role
@@ -458,8 +504,8 @@ class UserManagementController extends Controller
         $isSuperAdmin = $currentUser && $currentUser->isSuperAdmin();
         
         // Only Super Admin can view/reset passwords
-        if (!$isSuperAdmin) {
-            abort(403, 'Only Super Administrators can view user passwords.');
+        if (! $isSuperAdmin) {
+            abort(403, UserFriendlyMessages::ADMIN_ONLY);
         }
         
         return view('admin.users.view-password', compact('user'));
@@ -474,9 +520,8 @@ class UserManagementController extends Controller
         $currentUser = $this->adminUser();
         $isSuperAdmin = $currentUser && $currentUser->isSuperAdmin();
         
-        // Only Super Admin can view/reset passwords
-        if (!$isSuperAdmin) {
-            abort(403, 'Only Super Administrators can view user passwords.');
+        if (! $isSuperAdmin) {
+            abort(403, UserFriendlyMessages::ADMIN_ONLY);
         }
         
         $request->validate([
@@ -490,7 +535,7 @@ class UserManagementController extends Controller
         if (!Hash::check($request->admin_password, $currentUser->password)) {
             return redirect()->back()
                 ->withInput()
-                ->with('error', 'Invalid password');
+                ->with('error', UserFriendlyMessages::PASSWORD_INCORRECT);
         }
         
         // Generate a random password
@@ -534,8 +579,8 @@ class UserManagementController extends Controller
         $isSuperAdmin = $currentUser && $currentUser->isSuperAdmin();
         
         // Only Super Admin can reset passwords
-        if (!$isSuperAdmin) {
-            abort(403, 'Only Super Administrators can reset user passwords.');
+        if (! $isSuperAdmin) {
+            abort(403, UserFriendlyMessages::ADMIN_ONLY);
         }
         
         $primarySuperAdminId = User::where('role', User::ROLE_SUPER_ADMIN)->min('id');
@@ -581,14 +626,14 @@ class UserManagementController extends Controller
         $currentUser = $this->adminUser();
         $isSuperAdmin = $currentUser && $currentUser->isSuperAdmin();
 
-        if (!$isSuperAdmin) {
-            abort(403, 'Only Super Administrators can revoke user access.');
+        if (! $isSuperAdmin) {
+            abort(403, UserFriendlyMessages::ADMIN_ONLY);
         }
 
         $allowedRoles = [User::ROLE_SUPER_ADMIN, User::ROLE_EXAMINER, User::ROLE_COORDINATOR];
         if (! in_array($user->role, $allowedRoles, true)) {
             return redirect()->route('dashboard.users.index')
-                ->with('error', 'Error');
+                ->with('error', UserFriendlyMessages::NOT_FOUND);
         }
 
         $user->remember_token = null;
@@ -613,18 +658,18 @@ class UserManagementController extends Controller
         $currentUser = $this->adminUser();
         $isSuperAdmin = $currentUser && $currentUser->isSuperAdmin();
 
-        if (!$isSuperAdmin) {
-            abort(403, 'Only Super Administrators can delete users.');
+        if (! $isSuperAdmin) {
+            abort(403, UserFriendlyMessages::ADMIN_ONLY);
         }
 
         if ($user->role === User::ROLE_SUPER_ADMIN) {
             return redirect()->route('dashboard.users.index')
-                ->with('error', 'Cannot delete super admin.');
+                ->with('error', 'Administrator accounts cannot be removed this way.');
         }
 
         if ($currentUser && $currentUser->id === $user->id) {
             return redirect()->route('dashboard.users.index')
-                ->with('error', 'Error');
+                ->with('error', 'You cannot remove your own account.');
         }
 
         $user->courses()->detach();
@@ -635,6 +680,59 @@ class UserManagementController extends Controller
     }
 
     /**
+     * Update AI quiz token allocation for an examiner (AJAX).
+     */
+    public function updateAiTokens(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $currentUser = $this->adminUser();
+        $isSuperAdmin = $currentUser && $currentUser->isSuperAdmin();
+        $isCoordinatorManager = $currentUser && $currentUser->isCoordinator() && ! $isSuperAdmin;
+
+        if (! $isSuperAdmin && ! $isCoordinatorManager) {
+            return response()->json([
+                'success' => false,
+                'message' => UserFriendlyMessages::ACCESS_DENIED,
+            ], 403);
+        }
+
+        $request->validate([
+            'user_id' => 'required|integer|exists:users,id',
+            'ai_tokens_to_add' => 'required|integer|min:0',
+        ]);
+
+        $user = User::findOrFail($request->user_id);
+
+        if (! $user->isExaminer()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'AI tokens can only be assigned to examiners.',
+            ], 422);
+        }
+
+        if (! $this->canManageExaminerAiTokens($currentUser, $user)) {
+            return response()->json([
+                'success' => false,
+                'message' => UserFriendlyMessages::ACCESS_DENIED,
+            ], 403);
+        }
+
+        $tokensToAdd = max(0, (int) $request->ai_tokens_to_add);
+        $user->ai_quiz_tokens_allocation = ($user->ai_quiz_tokens_allocation ?? 0) + $tokensToAdd;
+        $user->save();
+        $user->refresh();
+
+        $status = app(\App\Services\AiQuizTokenService::class)->getStatus($user);
+
+        return response()->json([
+            'success' => true,
+            'allocation' => $status['allocation'],
+            'used' => $status['used'],
+            'remaining' => $status['remaining'],
+            'message' => 'AI tokens updated successfully.',
+        ]);
+    }
+
+    /**
      * Update SMS allocation for an examiner (AJAX).
      */
     public function updateSms(Request $request): \Illuminate\Http\JsonResponse
@@ -642,10 +740,10 @@ class UserManagementController extends Controller
         $currentUser = $this->adminUser();
         $isSuperAdmin = $currentUser && $currentUser->isSuperAdmin();
 
-        if (!$isSuperAdmin) {
+        if (! $isSuperAdmin) {
             return response()->json([
                 'success' => false,
-                'message' => 'Only Super Administrators can set SMS allocation.',
+                'message' => UserFriendlyMessages::ADMIN_ONLY,
             ], 403);
         }
 
@@ -676,6 +774,46 @@ class UserManagementController extends Controller
             'remaining' => $user->sms_remaining,
             'message' => 'SMS allocation updated successfully.',
         ]);
+    }
+
+    private function canManageExaminerAiTokens(?User $current, User $target): bool
+    {
+        if (! $current) {
+            return false;
+        }
+        if ($current->isSuperAdmin()) {
+            return $target->isExaminer();
+        }
+        if (! $current->isCoordinator()) {
+            return false;
+        }
+        if (! $target->isExaminer()) {
+            return false;
+        }
+
+        return $this->examinerInCoordinatorScope($current, $target);
+    }
+
+    private function examinerInCoordinatorScope(User $coordinator, User $examiner): bool
+    {
+        if ($coordinator->faculty_id && (int) $examiner->faculty_id !== (int) $coordinator->faculty_id) {
+            return false;
+        }
+        if ($coordinator->department_id && (int) $examiner->department_id !== (int) $coordinator->department_id) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function applyCoordinatorExaminerScope($query, User $coordinator): void
+    {
+        $query->where('role', User::ROLE_EXAMINER);
+        if ($coordinator->faculty_id) {
+            $query->where('faculty_id', $coordinator->faculty_id);
+        } elseif ($coordinator->department_id) {
+            $query->where('department_id', $coordinator->department_id);
+        }
     }
 
     /**

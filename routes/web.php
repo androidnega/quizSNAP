@@ -347,6 +347,12 @@ Route::middleware('admin.auth')->group(function () {
         // Examiners can edit their own profile (faculty/department)
         Route::get('/users/{user}/edit', [\App\Http\Controllers\Admin\UserManagementController::class, 'edit'])->name('users.edit');
         Route::put('/users/{user}', [\App\Http\Controllers\Admin\UserManagementController::class, 'update'])->name('users.update');
+
+        // Super Admin and Coordinator: view examiners and assign AI tokens
+        Route::middleware('staff.tokens')->group(function () {
+            Route::get('/users', [\App\Http\Controllers\Admin\UserManagementController::class, 'index'])->name('users.index');
+            Route::post('/users/update-ai-tokens', [\App\Http\Controllers\Admin\UserManagementController::class, 'updateAiTokens'])->name('users.update-ai-tokens');
+        });
         
         // QuizSnap: cascading selects for assessment creation
         Route::get('/quizsnap/courses', [\App\Http\Controllers\Admin\QuizSnapApiController::class, 'coursesByContext'])->name('quizsnap.courses');
@@ -399,7 +405,6 @@ Route::middleware('admin.auth')->group(function () {
             Route::post('/student-levels', [\App\Http\Controllers\Admin\StudentLevelController::class, 'store'])->name('student-levels.store');
             Route::put('/student-levels/{studentLevel}', [\App\Http\Controllers\Admin\StudentLevelController::class, 'update'])->name('student-levels.update');
             Route::delete('/student-levels/{studentLevel}', [\App\Http\Controllers\Admin\StudentLevelController::class, 'destroy'])->name('student-levels.destroy');
-            Route::get('/users', [\App\Http\Controllers\Admin\UserManagementController::class, 'index'])->name('users.index');
             Route::get('/users/create', [\App\Http\Controllers\Admin\UserManagementController::class, 'create'])->name('users.create');
             Route::post('/users', [\App\Http\Controllers\Admin\UserManagementController::class, 'store'])->name('users.store');
             Route::get('/users/{user}/view-password', [\App\Http\Controllers\Admin\UserManagementController::class, 'showPasswordForm'])->name('users.view-password-form');

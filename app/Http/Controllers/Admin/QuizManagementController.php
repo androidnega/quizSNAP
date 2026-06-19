@@ -24,6 +24,7 @@ use App\Exports\QuizScoresExport;
 use App\Services\AiQuestionService;
 use App\Services\AiQuizGenerationProgress;
 use App\Services\AiQuizTokenService;
+use App\Support\UserFriendlyMessages;
 use App\Services\AiTopicExtractorService;
 use App\Services\LocalUploadService;
 use App\Services\QuizBackupService;
@@ -324,7 +325,7 @@ class QuizManagementController extends Controller
             $user = $this->adminUser();
             if (!$user) {
                 return redirect()->route('login')
-                    ->with('error', 'Error');
+                    ->with('error', UserFriendlyMessages::GENERIC);
             }
 
             $request->validate([
@@ -371,7 +372,7 @@ class QuizManagementController extends Controller
                 if (!$classGroup) {
                     return redirect()->route($this->staffRoutePrefix() . '.quizzes.create')
                         ->withInput()
-                        ->with('error', 'Not found');
+                        ->with('error', UserFriendlyMessages::NOT_FOUND);
                 }
                 // Examiner can create quiz only for courses they are assigned to in this group
                 if ($user->isExaminer()) {
@@ -382,22 +383,22 @@ class QuizManagementController extends Controller
                     if (!$teachesCourse) {
                         return redirect()->route($this->staffRoutePrefix() . '.quizzes.create')
                             ->withInput()
-                            ->with('error', 'Error');
+                            ->with('error', UserFriendlyMessages::GENERIC);
                     }
                 } elseif (!$user->isSuperAdmin() && !$user->isCoordinator()) {
                     return redirect()->route($this->staffRoutePrefix() . '.quizzes.create')
                         ->withInput()
-                        ->with('error', 'Error');
+                        ->with('error', UserFriendlyMessages::GENERIC);
                 }
                 if (!$classGroup->hasStudents()) {
                     return redirect()->route($this->staffRoutePrefix() . '.quizzes.create')
                         ->withInput()
-                        ->with('error', 'Error');
+                        ->with('error', UserFriendlyMessages::GENERIC);
                 }
                 if (!$classGroup->courses()->where('courses.id', $requestCourseId)->exists()) {
                     return redirect()->route($this->staffRoutePrefix() . '.quizzes.create')
                         ->withInput()
-                        ->with('error', 'Error');
+                        ->with('error', UserFriendlyMessages::GENERIC);
                 }
             } elseif (!$usesQuizSnapFlow) {
                 return redirect()->route($this->staffRoutePrefix() . '.quizzes.create')
@@ -624,7 +625,7 @@ class QuizManagementController extends Controller
         $quiz = Quiz::query()->find($quiz);
         if (! $quiz) {
             return redirect()->route('dashboard.quizzes.index')
-                ->with('error', 'Not found');
+                ->with('error', UserFriendlyMessages::NOT_FOUND);
         }
 
         $this->authorize('view', $quiz);
@@ -1339,7 +1340,7 @@ class QuizManagementController extends Controller
     {
         $this->authorize('update', $quiz);
         if (!$quiz->hasEnoughApprovedQuestions()) {
-            return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)->with('error', 'Error');
+            return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)->with('error', UserFriendlyMessages::GENERIC);
         }
         $quiz->update(['is_published' => true, 'status' => Quiz::STATUS_PUBLISHED]);
         broadcast(new DataUpdated('quizzes'))->toOthers();
@@ -1386,13 +1387,13 @@ class QuizManagementController extends Controller
         // Only allow extending time if quiz has started (has active sessions)
         if (!$quiz->hasStarted()) {
             return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)
-                ->with('error', 'Error');
+                ->with('error', UserFriendlyMessages::GENERIC);
         }
         
         // Check if quiz has ended
         if ($quiz->hasEnded()) {
             return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)
-                ->with('error', 'Error');
+                ->with('error', UserFriendlyMessages::GENERIC);
         }
         
         $request->validate([
@@ -1405,7 +1406,7 @@ class QuizManagementController extends Controller
         // Cap at reasonable maximum (e.g., 600 minutes = 10 hours)
         if ($newDuration > 600) {
             return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)
-                ->with('error', 'Error');
+                ->with('error', UserFriendlyMessages::GENERIC);
         }
         
         $quiz->update(['duration_minutes' => $newDuration]);
@@ -1424,7 +1425,7 @@ class QuizManagementController extends Controller
     {
         $this->authorize('view', $quiz);
         if ($quiz->hasStarted()) {
-            return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)->with('error', 'Error');
+            return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)->with('error', UserFriendlyMessages::GENERIC);
         }
         if ($pool->quiz_id !== $quiz->id) {
             abort(404);
@@ -1442,7 +1443,7 @@ class QuizManagementController extends Controller
     {
         $this->authorize('update', $quiz);
         if ($quiz->hasStarted()) {
-            return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)->with('error', 'Error');
+            return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)->with('error', UserFriendlyMessages::GENERIC);
         }
         if ($pool->quiz_id !== $quiz->id || $pool->is_approved) {
             abort(404);
@@ -1477,7 +1478,7 @@ class QuizManagementController extends Controller
     {
         $this->authorize('update', $quiz);
         if ($quiz->hasStarted()) {
-            return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)->with('error', 'Error');
+            return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)->with('error', UserFriendlyMessages::GENERIC);
         }
         if ($pool->quiz_id !== $quiz->id) {
             abort(404);
@@ -1496,7 +1497,7 @@ class QuizManagementController extends Controller
     {
         $this->authorize('view', $quiz);
         if ($quiz->hasStarted()) {
-            return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)->with('error', 'Error');
+            return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)->with('error', UserFriendlyMessages::GENERIC);
         }
         if ($question->quiz_id !== $quiz->id) {
             abort(404);
@@ -1511,7 +1512,7 @@ class QuizManagementController extends Controller
     {
         $this->authorize('update', $quiz);
         if ($quiz->hasStarted()) {
-            return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)->with('error', 'Error');
+            return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)->with('error', UserFriendlyMessages::GENERIC);
         }
         if ($question->quiz_id !== $quiz->id) {
             abort(404);
@@ -1548,7 +1549,7 @@ class QuizManagementController extends Controller
     {
         $this->authorize('delete', $quiz);
         if ($quiz->hasStarted()) {
-            return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)->with('error', 'Error');
+            return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)->with('error', UserFriendlyMessages::GENERIC);
         }
         $title = $quiz->title;
         if ($quiz->script_public_id && ! str_starts_with((string) $quiz->script_public_id, 'http')) {
@@ -1577,10 +1578,10 @@ class QuizManagementController extends Controller
             ->whereJsonContains('assigned_question_ids', (int) $question->id)
             ->exists();
         if ($assignedToActiveSession) {
-            return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)->with('error', 'Error');
+            return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)->with('error', UserFriendlyMessages::GENERIC);
         }
         if ($quiz->hasStarted()) {
-            return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)->with('error', 'Error');
+            return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)->with('error', UserFriendlyMessages::GENERIC);
         }
         $question->delete();
         return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)->with('success', 'Removed');
@@ -1590,7 +1591,7 @@ class QuizManagementController extends Controller
     {
         $this->authorize('view', $quiz);
         if ($quiz->hasStarted()) {
-            return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)->with('error', 'Error');
+            return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)->with('error', UserFriendlyMessages::GENERIC);
         }
         $quiz->load('classGroup.courses', 'course');
         $courses = $quiz->classGroup
@@ -1606,7 +1607,7 @@ class QuizManagementController extends Controller
     {
         $this->authorize('update', $quiz);
         if ($quiz->hasStarted()) {
-            return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)->with('error', 'Error');
+            return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)->with('error', UserFriendlyMessages::GENERIC);
         }
         $request->validate([
             'title' => 'required|string|max:255',
@@ -1643,7 +1644,7 @@ class QuizManagementController extends Controller
         if ($classGroup && ! $classGroup->courses()->where('courses.id', $requestCourseId)->exists()) {
             return redirect()->route($this->staffRoutePrefix() . '.quizzes.edit', $quiz)
                 ->withInput()
-                ->with('error', 'Error');
+                ->with('error', UserFriendlyMessages::GENERIC);
         }
         $topics = $request->topics;
         if (is_string($topics) && $topics !== '') {
@@ -2164,7 +2165,7 @@ class QuizManagementController extends Controller
             if (isset($tempFile) && file_exists($tempFile)) {
                 @unlink($tempFile);
             }
-            abort(500, 'Failed to generate TXT file: ' . $e->getMessage());
+            abort(500, UserFriendlyMessages::DOWNLOAD_UNAVAILABLE);
         }
     }
 
@@ -2367,7 +2368,7 @@ class QuizManagementController extends Controller
             if (isset($tempFile) && file_exists($tempFile)) {
                 @unlink($tempFile);
             }
-            abort(500, 'Failed to generate TXT file: '.$e->getMessage());
+            abort(500, UserFriendlyMessages::DOWNLOAD_UNAVAILABLE);
         }
     }
 

@@ -16,6 +16,5 @@ class DatabaseSeeder extends Seeder
         $this->call(InstitutionSeeder::class);
         $this->call(TtuFacultiesDepartmentsSeeder::class);
         $this->call(StaffSeeder::class);
-        $this->call(GroupNameSeeder::class);
     }
 }

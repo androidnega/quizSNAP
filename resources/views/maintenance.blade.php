@@ -2,12 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
     <title>Site Under Update</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <link rel="alternate icon" href="/favicon.ico" type="image/x-icon">
     <style>
         * { box-sizing: border-box; }
+        html { touch-action: manipulation; -ms-touch-action: manipulation; text-size-adjust: 100%; -webkit-text-size-adjust: 100%; }
         body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: #fff; color: #374151; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem; }
         .box { max-width: 22rem; width: 100%; text-align: center; background: #f0f9ff; border: 1px solid #e0f2fe; border-radius: 1rem; padding: 1.75rem; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
         .icon { width: 3.5rem; height: 3.5rem; margin: 0 auto 1rem; border-radius: 50%; background: #e0f2fe; display: flex; align-items: center; justify-content: center; }
@@ -70,5 +71,6 @@
     })();
     </script>
     @endif
+    @include('partials.zoom-lock')
 </body>
 </html>

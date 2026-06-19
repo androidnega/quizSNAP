@@ -3,7 +3,7 @@
 <head>
     <script>document.documentElement.classList.add('quizsnap-js');</script>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     @php
         $theme = $theme ?? app(\App\Services\ThemeService::class)->activePreset();
@@ -118,6 +118,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
 
     @include('partials.theme-styles')
+    @include('partials.zoom-lock')
 
     {{-- Non-Tailwind custom styles --}}
     <link rel="stylesheet" href="{{ asset('css/home.css') }}">

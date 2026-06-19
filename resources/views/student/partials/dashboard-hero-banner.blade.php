@@ -19,14 +19,14 @@
 
 @if($showBanner)
 @if($mode === 'image' && ! empty($image))
-{{-- Image only --}}
-<section aria-label="Dashboard banner">
-    <div class="overflow-hidden rounded-xl lg:rounded-2xl border border-slate-200 bg-slate-50">
+{{-- Image only: full-width banner, 2:1 aspect on all screen sizes --}}
+<section aria-label="Dashboard banner" class="w-full">
+    <div class="w-full overflow-hidden rounded-xl lg:rounded-2xl border border-slate-200 bg-[#fef9e7] aspect-[2/1]">
         <img src="{{ e($image) }}"
              alt="Good luck in your midsem exams — motivational banner for QuizSnap students"
-             class="w-full h-auto max-h-[100px] sm:max-h-[108px] lg:max-h-[116px] object-contain object-center mx-auto"
+             class="block w-full h-full object-cover object-center"
              width="1024"
-             height="553"
+             height="512"
              loading="eager"
              decoding="async"
              fetchpriority="high">

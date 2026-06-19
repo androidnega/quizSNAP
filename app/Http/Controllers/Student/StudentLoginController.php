@@ -117,9 +117,7 @@ class StudentLoginController extends Controller
 
         $exists = false;
         if ($quiz->class_group_id) {
-            $exists = ClassGroupStudent::where('class_group_id', $quiz->class_group_id)
-                ->whereRaw('UPPER(TRIM(index_number)) = ?', [strtoupper($indexNumber)])
-                ->exists();
+            $exists = ClassGroupStudent::existsInClassGroup((int) $quiz->class_group_id, $indexNumber);
         }
         if (!$exists && $quiz->academic_class_id && $quiz->academic_year_id) {
             $studentRecord = Student::where('index_number_hash', Student::hashIndexNumber($indexNumber))->first();
@@ -167,18 +165,13 @@ class StudentLoginController extends Controller
             ]
         );
 
-        StudentAuthAuditLogger::log('quiz_index_verified', $student, $indexHash, $request);
+        defer(fn () => StudentAuthAuditLogger::log('quiz_index_verified', $student, $indexHash, $request));
 
         $quiz->load(['classGroup.examiner', 'examiner']);
 
         return StudentAuthFlowService::nextStepResponse(
             $student,
-            fn () => $this->jsonAfterIssuingOrReusingSmsOtp(
-                $student,
-                $indexHash,
-                $this->smsOwnerForQuiz($quiz),
-                null
-            )
+            fn () => $this->jsonOtpStepWithoutSending($student, $indexHash)
         );
     }
 

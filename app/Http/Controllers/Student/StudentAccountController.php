@@ -75,18 +75,15 @@ class StudentAccountController extends Controller
         
         $request->validate(['index_number' => 'required|string|max:100']);
         $inputIndex = trim((string) $request->index_number);
-        $inputNormalized = strtolower($inputIndex);
 
-        // Match class_group_students case- and trim-insensitively (admin may have added as "BC/ITN/23/285" or "bc/itn/23/285")
-        $cgStudent = ClassGroupStudent::whereRaw('LOWER(TRIM(index_number)) = ?', [$inputNormalized])->first();
-        if (!$cgStudent) {
+        $cgStudent = ClassGroupStudent::findByIndexNumber($inputIndex);
+        if (! $cgStudent) {
             return response()->json([
                 'success' => false,
                 'message' => 'Index number not found. You must belong to a class first.',
             ], 422);
         }
 
-        // Use a canonical (uppercase) form for display; store hash for lookups
         $indexNumber = strtoupper(trim($cgStudent->index_number));
         $indexHash = Student::hashIndexNumber($cgStudent->index_number);
 
@@ -98,7 +95,7 @@ class StudentAccountController extends Controller
             ]
         );
 
-        StudentAuthAuditLogger::log('index_verified', $student, $indexHash, $request);
+        defer(fn () => StudentAuthAuditLogger::log('index_verified', $student, $indexHash, $request));
 
         return $this->resolveNextLoginStep($student, $cgStudent->index_number);
     }
@@ -233,12 +230,7 @@ class StudentAccountController extends Controller
     {
         return StudentAuthFlowService::nextStepResponse(
             $student,
-            fn () => $this->jsonAfterIssuingOrReusingSmsOtp(
-                $student,
-                $student->index_number_hash,
-                $this->smsOwnerForIndex($canonicalIndex),
-                null
-            )
+            fn () => $this->jsonOtpStepWithoutSending($student, $student->index_number_hash)
         );
     }
 
@@ -364,9 +356,16 @@ class StudentAccountController extends Controller
     /** User whose SMS balance is deducted for this index: coordinator (who has the student's class groups) first, then examiner (class group owner or lecturers). */
     private function smsOwnerForIndex(string $indexNumber): ?\App\Models\User
     {
-        $cgStudents = ClassGroupStudent::whereRaw('UPPER(TRIM(index_number)) = ?', [strtoupper(trim($indexNumber))])
-            ->with('classGroup.examiner')
-            ->get();
+        $cgStudents = ClassGroupStudent::findByIndexNumber($indexNumber);
+        $cgStudents = $cgStudents ? collect([$cgStudents]) : collect();
+
+        if ($cgStudents->isEmpty()) {
+            $cgStudents = ClassGroupStudent::whereRaw('UPPER(TRIM(index_number)) = ?', [strtoupper(trim($indexNumber))])
+                ->with('classGroup.examiner')
+                ->get();
+        } else {
+            $cgStudents->load('classGroup.examiner');
+        }
 
         // 1) Coordinator who has any of the student's class groups (and has SMS balance)
         foreach ($cgStudents as $cg) {
@@ -711,7 +710,6 @@ class StudentAccountController extends Controller
 
         $request->validate(['index_number' => 'required|string|max:100']);
         $inputIndex = trim((string) $request->index_number);
-        $inputNormalized = strtolower($inputIndex);
         $indexHash = Student::hashIndexNumber($inputIndex);
 
         $quizId = session('quiz_id');
@@ -724,7 +722,7 @@ class StudentAccountController extends Controller
                 ], 422);
             }
         } else {
-            $cgStudent = ClassGroupStudent::whereRaw('LOWER(TRIM(index_number)) = ?', [$inputNormalized])->first();
+            $cgStudent = ClassGroupStudent::findByIndexNumber($inputIndex);
             if (! $cgStudent) {
                 return response()->json([
                     'success' => false,

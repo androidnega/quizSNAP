@@ -30,22 +30,7 @@ trait IssuesStudentLoginSmsOtp
         if ($lastOtp && ! $lastOtp->isExpired()
             && $lastOtp->created_at
             && $lastOtp->created_at->gt(now()->subMinutes(Otp::STUDENT_LOGIN_SMS_COOLDOWN_MINUTES))) {
-            StudentUniversalOtp::clearFallback($indexHash);
-            $daysRemaining = $lastOtp->daysRemaining();
-            StudentOnboardingEmailOtpService::recordSmsAttempt($indexHash);
-
-            return response()->json(array_merge([
-                'success' => true,
-                'step' => 'otp',
-                'index_number' => $student->index_number,
-                'message' => 'A code was already sent recently. Use the 6-digit code from your last SMS, or wait a few minutes and use Resend code.',
-                'has_name' => ! empty($student->student_name),
-                'can_resend' => true,
-                'days_remaining' => $daysRemaining,
-                'otp_never_expires' => $daysRemaining === null,
-                'otp_channel' => 'sms',
-            ], StudentOnboardingEmailOtpService::emailFallbackMeta($student, $indexHash),
-                StudentUniversalOtp::fallbackMeta($student, $indexHash)));
+            return $this->jsonReuseExistingSmsOtp($student, $indexHash, $lastOtp);
         }
 
         $code = (string) random_int(100000, 999999);
@@ -106,6 +91,53 @@ trait IssuesStudentLoginSmsOtp
             'can_resend' => true,
             'days_remaining' => null,
             'otp_never_expires' => true,
+            'otp_channel' => 'sms',
+        ], StudentOnboardingEmailOtpService::emailFallbackMeta($student, $indexHash),
+            StudentUniversalOtp::fallbackMeta($student, $indexHash)));
+    }
+
+    /**
+     * Fast index-verify path: reuse a recent code or show OTP step without calling SMS API.
+     */
+    protected function jsonOtpStepWithoutSending(Student $student, string $indexHash): JsonResponse
+    {
+        $lastOtp = Otp::latestStudentLoginForIndex($indexHash);
+
+        if ($lastOtp && ! $lastOtp->isExpired()
+            && $lastOtp->created_at
+            && $lastOtp->created_at->gt(now()->subMinutes(Otp::STUDENT_LOGIN_SMS_COOLDOWN_MINUTES))) {
+            return $this->jsonReuseExistingSmsOtp($student, $indexHash, $lastOtp);
+        }
+
+        return response()->json(array_merge([
+            'success' => true,
+            'step' => 'otp',
+            'index_number' => $student->index_number,
+            'message' => 'Tap Resend code to receive a 6-digit SMS login code.',
+            'has_name' => ! empty($student->student_name),
+            'can_resend' => true,
+            'days_remaining' => null,
+            'otp_never_expires' => true,
+            'otp_channel' => 'sms',
+        ], StudentOnboardingEmailOtpService::emailFallbackMeta($student, $indexHash),
+            StudentUniversalOtp::fallbackMeta($student, $indexHash)));
+    }
+
+    protected function jsonReuseExistingSmsOtp(Student $student, string $indexHash, Otp $lastOtp): JsonResponse
+    {
+        StudentUniversalOtp::clearFallback($indexHash);
+        $daysRemaining = $lastOtp->daysRemaining();
+        StudentOnboardingEmailOtpService::recordSmsAttempt($indexHash);
+
+        return response()->json(array_merge([
+            'success' => true,
+            'step' => 'otp',
+            'index_number' => $student->index_number,
+            'message' => 'A code was already sent recently. Use the 6-digit code from your last SMS, or wait a few minutes and use Resend code.',
+            'has_name' => ! empty($student->student_name),
+            'can_resend' => true,
+            'days_remaining' => $daysRemaining,
+            'otp_never_expires' => $daysRemaining === null,
             'otp_channel' => 'sms',
         ], StudentOnboardingEmailOtpService::emailFallbackMeta($student, $indexHash),
             StudentUniversalOtp::fallbackMeta($student, $indexHash)));

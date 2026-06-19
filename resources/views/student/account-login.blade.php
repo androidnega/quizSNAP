@@ -180,6 +180,37 @@
                 return csrf;
             });
     }
+    function postJson(url, payload, timeoutMs) {
+        var controller = new AbortController();
+        var timer = setTimeout(function() { controller.abort(); }, timeoutMs || 12000);
+        function doFetch(token) {
+            return fetch(url, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: jsonHeaders(token),
+                body: JSON.stringify(payload),
+                signal: controller.signal
+            });
+        }
+        return ensureFreshCsrf()
+            .then(function() { return doFetch(csrf); })
+            .then(function(r) {
+                if (r.status === 419) {
+                    return ensureFreshCsrf().then(function(t) { return doFetch(t); });
+                }
+                return r;
+            })
+            .then(function(r) {
+                clearTimeout(timer);
+                return r.json().then(function(data) {
+                    return { ok: r.ok, status: r.status, data: data };
+                });
+            })
+            .catch(function(err) {
+                clearTimeout(timer);
+                throw err;
+            });
+    }
     var passwordLoginEnabled = @json(!empty($password_login_enabled));
     var onboardingEmailOtpEnabled = @json(!empty($onboarding_email_otp_enabled) && !empty($mail_configured));
     var otpChannel = 'sms';
@@ -361,17 +392,12 @@
         }
         showError('index-error', '');
         setLoading(this, true);
-        fetch('{{ route("student.account.verify-index") }}', {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: jsonHeaders(csrf),
-            body: JSON.stringify({ index_number: index })
-        })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
+        postJson('{{ route("student.account.verify-index") }}', { index_number: index })
+        .then(function(result) {
             setLoading(document.getElementById('btn-index'), false);
-            if (!data.success) {
-                showError('index-error', data.message || 'Verification failed. Please try again.');
+            var data = result.data;
+            if (!data || !data.success) {
+                showError('index-error', (data && data.message) || 'Verification failed. Please try again.');
                 var btnIndex = document.getElementById('btn-index');
                 if (btnIndex) { btnIndex.dataset.originalText = 'Try again'; btnIndex.textContent = 'Try again'; }
                 return;
@@ -380,9 +406,12 @@
             if (btnIndex) btnIndex.dataset.originalText = 'Continue';
             handleLoginStepData(data, index);
         })
-        .catch(function() {
+        .catch(function(err) {
             setLoading(document.getElementById('btn-index'), false);
-            showError('index-error', 'Network error. Please try again.');
+            var msg = (err && err.name === 'AbortError')
+                ? 'Request timed out. Please try again.'
+                : 'Network error. Please try again.';
+            showError('index-error', msg);
             var btnIndex = document.getElementById('btn-index');
             if (btnIndex) { btnIndex.dataset.originalText = 'Try again'; btnIndex.textContent = 'Try again'; }
         });

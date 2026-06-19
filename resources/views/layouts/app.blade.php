@@ -318,10 +318,11 @@
     <script src="{{ asset('js/quizsnap-guard.js') }}"></script>
     @yield('copy_restriction_script')
     <script src="{{ asset('js/app.js') }}" defer></script>
+    <script>window.QuizSnapLive=window.QuizSnapLive||{refreshers:[],registerRefresher:function(fn){if(typeof fn==='function')this.refreshers.push(fn);}};</script>
     @stack('scripts')
 
     @if(config('broadcasting.default') === 'reverb' && config('broadcasting.connections.reverb.app_id'))
-    <!-- Real-time: Reverb WebSocket - no auto-reload to keep pages light -->
+    <!-- Real-time: Reverb WebSocket + page refresh hooks -->
     <script>
     window.REVERB_CONFIG = {
         key: @json(config('broadcasting.connections.reverb.key')),
@@ -354,6 +355,9 @@
         if (typeof Pusher !== 'undefined') init(); else window.addEventListener('load', init);
     })();
     </script>
+    <script src="{{ asset('js/quizsnap-live.js') }}" defer></script>
+    @else
+    <script src="{{ asset('js/quizsnap-live.js') }}" defer></script>
     @endif
 
     <!-- Auto-dismiss toast notifications after 4s -->

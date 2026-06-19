@@ -1203,6 +1203,7 @@ class QuizManagementController extends Controller
         $quizSession->delete();
         
         broadcast(new DataUpdated('dashboard'))->toOthers();
+        broadcast(new DataUpdated('sessions'))->toOthers();
         
         return redirect()
             ->route($this->staffRoutePrefix() . '.quizzes.show', ['quiz' => $quiz, 'tab' => 'sessions'])

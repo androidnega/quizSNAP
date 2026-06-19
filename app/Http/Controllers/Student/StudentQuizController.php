@@ -193,6 +193,7 @@ class StudentQuizController extends Controller
         }
         if ($session->start_time === null) {
             $session->update(['start_time' => now()]);
+            broadcast(new DataUpdated('sessions'))->toOthers();
         }
         if ($this->isIpDeviceRestrictionEnabled() && $session->ip_address !== $request->ip()) {
             QuizViolation::create([
@@ -967,6 +968,7 @@ class StudentQuizController extends Controller
         if (! Cache::has($broadcastKey)) {
             Cache::put($broadcastKey, true, $throttle);
             broadcast(new ProctorFrameUpdated($session->id))->toOthers();
+            broadcast(new DataUpdated('sessions'))->toOthers();
         }
 
         return response()->json(['success' => true]);
@@ -1118,6 +1120,7 @@ class StudentQuizController extends Controller
             'submitted_at' => now(),
         ]);
         broadcast(new DataUpdated('dashboard'))->toOthers();
+        broadcast(new DataUpdated('sessions'))->toOthers();
         SendQuizResultReadyNotification::dispatch($session->id);
     }
 

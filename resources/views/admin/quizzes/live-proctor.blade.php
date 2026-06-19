@@ -18,7 +18,7 @@
         </div>
         <div id="live-proctor-empty" class="hidden text-center py-12 text-gray-500">
             <p class="text-sm">No students are currently writing this quiz.</p>
-            <p class="text-xs mt-1">This list refreshes every 5 seconds.</p>
+            <p class="text-xs mt-1">This list updates automatically when students join or finish.</p>
         </div>
         <div id="live-proctor-loading" class="text-center py-8 text-gray-500 text-sm">Loading…</div>
     </div>
@@ -74,8 +74,23 @@
             .catch(function() { renderSessions([]); });
     }
 
+    var socketRefreshTimer = null;
+    function scheduleSocketRefresh() {
+        if (socketRefreshTimer) return;
+        socketRefreshTimer = setTimeout(function() {
+            socketRefreshTimer = null;
+            fetchLiveSessions();
+        }, 400);
+    }
+
+    if (window.QuizSnapLive) {
+        window.QuizSnapLive.registerRefresher(function(type) {
+            if (type === 'sessions') scheduleSocketRefresh();
+        });
+    }
+
     fetchLiveSessions();
-    setInterval(fetchLiveSessions, 5000);
+    setInterval(fetchLiveSessions, 30000);
 })();
 </script>
 @endpush

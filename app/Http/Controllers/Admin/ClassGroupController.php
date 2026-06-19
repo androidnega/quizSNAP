@@ -35,6 +35,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\Response;
 use App\Exports\ClassGroupStudentsExport;
+use App\Events\DataUpdated;
 
 class ClassGroupController extends Controller
 {
@@ -295,6 +296,9 @@ class ClassGroupController extends Controller
         }
         $classGroup->courses()->sync($syncData);
 
+        broadcast(new DataUpdated('class-groups'))->toOthers();
+        broadcast(new DataUpdated('dashboard'))->toOthers();
+
         return redirect()->route($this->staffRoutePrefix() . '.class-groups.show', $classGroup)
             ->with('success', 'Saved');
     }
@@ -441,6 +445,9 @@ class ClassGroupController extends Controller
             $syncData[(int) $a['course_id']] = ['examiner_id' => (int) $a['examiner_id']];
         }
         $classGroup->courses()->sync($syncData);
+
+        broadcast(new DataUpdated('class-groups'))->toOthers();
+        broadcast(new DataUpdated('dashboard'))->toOthers();
 
         return redirect()->route($this->staffRoutePrefix() . '.class-groups.show', $classGroup)->with('success', 'Saved');
     }

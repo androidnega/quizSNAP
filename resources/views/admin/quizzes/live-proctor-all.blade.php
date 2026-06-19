@@ -93,6 +93,21 @@
             .catch(function() { renderSessions([]); });
     }
 
+    var socketRefreshTimer = null;
+    function scheduleSocketRefresh() {
+        if (socketRefreshTimer) return;
+        socketRefreshTimer = setTimeout(function() {
+            socketRefreshTimer = null;
+            fetchSessions();
+        }, 400);
+    }
+
+    if (window.QuizSnapLive) {
+        window.QuizSnapLive.registerRefresher(function(type) {
+            if (type === 'sessions') scheduleSocketRefresh();
+        });
+    }
+
     function getTargetSessionIds() {
         var target = document.getElementById('live-proctor-mic-target');
         target = target && target.value ? target.value : 'all';
@@ -209,7 +224,7 @@
     }
 
     fetchSessions();
-    setInterval(fetchSessions, 5000);
+    setInterval(fetchSessions, 30000);
 })();
 </script>
 @endpush

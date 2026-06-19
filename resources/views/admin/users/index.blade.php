@@ -138,7 +138,7 @@
                                 @endif
                                 @if(!empty($canManageAiTokens))
                                 <td class="px-3 py-2 text-sm">
-                                    @if($u->isExaminer())
+                                    @if($u->isExaminer() || (!empty($isSuperAdmin) && $u->role === \App\Models\User::ROLE_COORDINATOR))
                                     @php $aiRemaining = app(\App\Services\AiQuizTokenService::class)->getRemaining($u); @endphp
                                     <div class="flex items-center gap-2">
                                         <span class="text-gray-600" id="ai-display-{{ $u->id }}">
@@ -464,7 +464,7 @@ document.getElementById('aiModal').addEventListener('click', function(e) {
             <input type="hidden" id="aiUserId" name="user_id">
             <div>
                 <p class="text-sm text-gray-600 mb-4">
-                    Examiner: <strong id="aiUsername"></strong><br>
+                    <strong id="aiUsername"></strong><br>
                     Tokens remaining: <span id="aiRemainingDisplay" class="font-semibold text-primary-600">0</span>
                 </p>
             </div>

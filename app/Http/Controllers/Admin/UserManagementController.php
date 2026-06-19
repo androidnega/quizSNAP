@@ -702,10 +702,10 @@ class UserManagementController extends Controller
 
         $user = User::findOrFail($request->user_id);
 
-        if (! $user->isExaminer()) {
+        if (! $this->canReceiveAiTokens($user)) {
             return response()->json([
                 'success' => false,
-                'message' => 'AI tokens can only be assigned to examiners.',
+                'message' => 'AI tokens can only be assigned to examiners and coordinators.',
             ], 422);
         }
 
@@ -776,13 +776,18 @@ class UserManagementController extends Controller
         ]);
     }
 
+    private function canReceiveAiTokens(User $user): bool
+    {
+        return $user->isExaminer() || $user->role === User::ROLE_COORDINATOR;
+    }
+
     private function canManageExaminerAiTokens(?User $current, User $target): bool
     {
         if (! $current) {
             return false;
         }
         if ($current->isSuperAdmin()) {
-            return $target->isExaminer();
+            return $target->isExaminer() || $target->role === User::ROLE_COORDINATOR;
         }
         if (! $current->isCoordinator()) {
             return false;

@@ -28,16 +28,24 @@ class AppServiceProvider extends ServiceProvider
         Route::bind('academicYear', fn (string $value) => \App\Models\AcademicYear::findOrFail($value));
 
         View::composer('*', function ($view): void {
-            if (request()->routeIs('admin.*')) {
-                $view->with('staffPrefix', 'admin');
-            } elseif (request()->routeIs('examiner.*')) {
-                $view->with('staffPrefix', 'examiner');
+            if (! app()->runningInConsole() && request()->route()) {
+                if (request()->routeIs('admin.*')) {
+                    $view->with('staffPrefix', 'admin');
+                } elseif (request()->routeIs('examiner.*')) {
+                    $view->with('staffPrefix', 'examiner');
+                }
             }
         });
 
         View::composer('layouts.app', function ($view): void {
             $themeService = app(\App\Services\ThemeService::class);
             $view->with('theme', $themeService->activePreset());
+
+            if (app()->runningInConsole() || ! request()->route()) {
+                $view->with('quizAllowsMobile', false);
+
+                return;
+            }
 
             if (! request()->routeIs('student.quiz.show') && ! request()->routeIs('student.quiz.ready')) {
                 $view->with('quizAllowsMobile', false);

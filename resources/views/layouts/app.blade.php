@@ -5,6 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    @php
+        $theme = $theme ?? app(\App\Services\ThemeService::class)->activePreset();
+        $themePrimary = $theme['primary'] ?? [];
+    @endphp
     <meta name="theme-color" content="{{ $theme['theme_color'] ?? '#fafaf9' }}">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -13,10 +17,6 @@
     <meta name="format-detection" content="telephone=no">
     <title>@yield('title', 'QuizSnap')</title>
     @include('partials.favicon')
-    @php
-        $theme = $theme ?? app(\App\Services\ThemeService::class)->activePreset();
-        $themePrimary = $theme['primary'] ?? [];
-    @endphp
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="{{ $theme['fonts']['url'] ?? 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap' }}" rel="stylesheet">

@@ -1,0 +1,57 @@
+# =============================================================================
+# QuizSnap — MySQL 8 (PRODUCTION ONLY)
+# =============================================================================
+# SERVER: 48 GB RAM total
+# MYSQL RESERVATION: 8 GB RAM (hard cap — do not raise without audit)
+#
+# innodb_buffer_pool_size 6G leaves ~2 GB for connections, temp tables, logs.
+#
+# INSTALL: /etc/mysql/mysql.conf.d/quizsnap.cnf
+# Development: default MySQL settings locally.
+# =============================================================================
+
+[mysqld]
+character-set-server = utf8mb4
+collation-server = utf8mb4_unicode_ci
+
+# Conservative connections — matches PHP-FPM 48 + queue 5 + admin margin
+max_connections = 250
+max_connect_errors = 100000
+wait_timeout = 600
+interactive_timeout = 600
+
+# InnoDB — 6G within 8G MySQL reservation
+innodb_buffer_pool_size = 6G
+innodb_buffer_pool_instances = 6
+innodb_log_file_size = 512M
+innodb_log_buffer_size = 32M
+innodb_flush_log_at_trx_commit = 2
+innodb_flush_method = O_DIRECT
+innodb_file_per_table = 1
+innodb_io_capacity = 1000
+innodb_io_capacity_max = 2000
+innodb_read_io_threads = 4
+innodb_write_io_threads = 4
+innodb_thread_concurrency = 0
+
+tmp_table_size = 64M
+max_heap_table_size = 64M
+
+sort_buffer_size = 1M
+join_buffer_size = 1M
+read_buffer_size = 512K
+read_rnd_buffer_size = 1M
+
+table_open_cache = 4000
+table_definition_cache = 2000
+
+slow_query_log = 1
+slow_query_log_file = /var/log/mysql/slow.log
+long_query_time = 1.5
+log_queries_not_using_indexes = 0
+
+local_infile = 0
+symbolic-links = 0
+
+[client]
+default-character-set = utf8mb4

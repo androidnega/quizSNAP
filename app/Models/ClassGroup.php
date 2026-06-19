@@ -1,0 +1,189 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class ClassGroup extends Model
+{
+    /** Allowed devices for quizzes in this group: desktop, mobile, both */
+    public const ALLOWED_DEVICES_DESKTOP = 'desktop';
+    public const ALLOWED_DEVICES_MOBILE = 'mobile';
+    public const ALLOWED_DEVICES_BOTH = 'both';
+
+    /** Soft accent colors for cards (no gradient). Keys used in DB; values are Tailwind bg/border classes. */
+    public const ACCENT_COLORS = [
+        'sky'    => ['bg' => 'bg-sky-50', 'border' => 'border-sky-200', 'text' => 'text-sky-800'],
+        'emerald'=> ['bg' => 'bg-emerald-50', 'border' => 'border-emerald-200', 'text' => 'text-emerald-800'],
+        'amber'  => ['bg' => 'bg-amber-50', 'border' => 'border-amber-200', 'text' => 'text-amber-800'],
+        'violet' => ['bg' => 'bg-violet-50', 'border' => 'border-violet-200', 'text' => 'text-violet-800'],
+        'rose'   => ['bg' => 'bg-rose-50', 'border' => 'border-rose-200', 'text' => 'text-rose-800'],
+        'teal'   => ['bg' => 'bg-teal-50', 'border' => 'border-teal-200', 'text' => 'text-teal-800'],
+        'indigo' => ['bg' => 'bg-indigo-50', 'border' => 'border-indigo-200', 'text' => 'text-indigo-800'],
+        'slate'  => ['bg' => 'bg-slate-100', 'border' => 'border-slate-200', 'text' => 'text-slate-800'],
+    ];
+
+    protected $fillable = ['name', 'examiner_id', 'quiz_category_id', 'level_id', 'semester_id', 'academic_year_id', 'academic_class_id', 'accent_color', 'allowed_devices'];
+
+    /** Soft accent per group (no gradient). When accent_color is set use it; otherwise vary by id so groups get different colors. */
+    public function getAccentClassesAttribute(): array
+    {
+        $keys = array_keys(self::ACCENT_COLORS);
+        $key = $this->accent_color && isset(self::ACCENT_COLORS[$this->accent_color])
+            ? $this->accent_color
+            : $keys[((int) $this->id) % count($keys)];
+        return self::ACCENT_COLORS[$key];
+    }
+
+    /** Tailwind classes for the level tag on the card (darker bg based on accent). */
+    public function getLevelTagClassesAttribute(): string
+    {
+        $keys = array_keys(self::ACCENT_COLORS);
+        $key = $this->accent_color && isset(self::ACCENT_COLORS[$this->accent_color])
+            ? $this->accent_color
+            : $keys[((int) $this->id) % count($keys)];
+        $tagMap = [
+            'sky' => 'bg-sky-200 text-sky-900',
+            'emerald' => 'bg-emerald-200 text-emerald-900',
+            'amber' => 'bg-amber-200 text-amber-900',
+            'violet' => 'bg-violet-200 text-violet-900',
+            'rose' => 'bg-rose-200 text-rose-900',
+            'teal' => 'bg-teal-200 text-teal-900',
+            'indigo' => 'bg-indigo-200 text-indigo-900',
+            'slate' => 'bg-slate-200 text-slate-900',
+        ];
+        return $tagMap[$key] ?? 'bg-gray-200 text-gray-900';
+    }
+
+    /**
+     * Level tag classes with group-hover: prefix for each token (card uses Tailwind "group").
+     * Used when the card is neutral by default and accent level colors apply on row hover.
+     */
+    public function getLevelTagGroupHoverClassesAttribute(): string
+    {
+        $raw = trim($this->level_tag_classes);
+        if ($raw === '') {
+            return '';
+        }
+        $parts = preg_split('/\s+/', $raw);
+
+        return implode(' ', array_map(static fn (string $c): string => 'group-hover:' . $c, $parts));
+    }
+
+    /** Pick next accent from palette (round-robin) for auto-assign. */
+    public static function nextAccentColor(): string
+    {
+        $keys = array_keys(self::ACCENT_COLORS);
+        $idx = self::query()->count() % count($keys);
+        return $keys[$idx];
+    }
+
+    /** Dropdown options for allowed devices (used by coordinator on class group form). */
+    public static function allowedDevicesOptions(): array
+    {
+        return [
+            self::ALLOWED_DEVICES_DESKTOP => 'Desktop only',
+            self::ALLOWED_DEVICES_MOBILE => 'Mobile only',
+            self::ALLOWED_DEVICES_BOTH => 'Both (desktop and mobile)',
+        ];
+    }
+
+    /**
+     * Effective allowed_devices for this class group: from DB column or from settings (coordinator choice).
+     * Use this when displaying or enforcing device rules so coordinator and examiner see the same value.
+     */
+    public function getEffectiveAllowedDevices(): string
+    {
+        if (\Illuminate\Support\Facades\Schema::hasColumn('class_groups', 'allowed_devices')) {
+            $v = $this->getAttribute('allowed_devices');
+            if (in_array($v, [self::ALLOWED_DEVICES_DESKTOP, self::ALLOWED_DEVICES_MOBILE, self::ALLOWED_DEVICES_BOTH], true)) {
+                return $v;
+            }
+        }
+        $fromSettings = \App\Models\Setting::getValue('class_group_allowed_devices_' . $this->id, self::ALLOWED_DEVICES_DESKTOP);
+        return in_array($fromSettings, [self::ALLOWED_DEVICES_DESKTOP, self::ALLOWED_DEVICES_MOBILE, self::ALLOWED_DEVICES_BOTH], true)
+            ? $fromSettings
+            : self::ALLOWED_DEVICES_DESKTOP;
+    }
+
+    public function examiner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'examiner_id');
+    }
+
+    public function quizCategory(): BelongsTo
+    {
+        return $this->belongsTo(QuizCategory::class, 'quiz_category_id');
+    }
+
+    public function level(): BelongsTo
+    {
+        return $this->belongsTo(StudentLevel::class, 'level_id');
+    }
+
+    public function semester(): BelongsTo
+    {
+        return $this->belongsTo(Semester::class, 'semester_id');
+    }
+
+    public function academicYear(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\AcademicYear::class, 'academic_year_id');
+    }
+
+    public function academicClass(): BelongsTo
+    {
+        return $this->belongsTo(AcademicClass::class, 'academic_class_id');
+    }
+
+    public function students(): HasMany
+    {
+        return $this->hasMany(ClassGroupStudent::class, 'class_group_id');
+    }
+
+    /** Courses in this class with lecturer per course (pivot has examiner_id). */
+    public function courses(): BelongsToMany
+    {
+        return $this->belongsToMany(Course::class, 'class_group_course')
+            ->withPivot('examiner_id')
+            ->withTimestamps();
+    }
+
+    public function quizzes(): HasMany
+    {
+        return $this->hasMany(Quiz::class, 'class_group_id');
+    }
+
+    public function examCalendarEntries(): HasMany
+    {
+        return $this->hasMany(ExamCalendar::class, 'class_group_id');
+    }
+
+    /** Whether this class group has at least one student (required for quiz creation). */
+    public function hasStudents(): bool
+    {
+        return $this->students()->exists();
+    }
+
+    /** Display name with level appended (e.g. "BTECH IT GROUP A - Level 100"). Updates when level_id changes. */
+    public function getDisplayNameAttribute(): string
+    {
+        $name = $this->attributes['name'] ?? '';
+        $level = $this->relationLoaded('level') ? $this->level : $this->level;
+        if ($level && $level->label) {
+            return trim($name) . ' - ' . $level->label;
+        }
+        return trim($name);
+    }
+
+    /**
+     * Resolve route model binding. Access control is handled by ClassGroupPolicy.
+     */
+    public function resolveRouteBinding($value, $field = null)
+    {
+        return parent::resolveRouteBinding($value, $field);
+    }
+}

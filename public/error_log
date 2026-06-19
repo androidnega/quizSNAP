@@ -1,0 +1,7 @@
+[24-Feb-2026 07:07:41 UTC] PHP Fatal error:  Uncaught RuntimeException: Composer detected issues in your platform: Your Composer dependencies require a PHP version ">= 8.2.0". You are running 8.1.34. in /home3/manuelc8/digitstec.store/vendor/composer/platform_check.php:26
+Stack trace:
+#0 /home3/manuelc8/digitstec.store/vendor/composer/autoload_real.php(25): require()
+#1 /home3/manuelc8/digitstec.store/vendor/autoload.php(22): ComposerAutoloaderInit0ed577aa877dfd6056aa7a3fb2837d53::getLoader()
+#2 /home3/manuelc8/digitstec.store/public/index.php(13): require('/home3/manuelc8...')
+#3 {main}
+  thrown in /home3/manuelc8/digitstec.store/vendor/composer/platform_check.php on line 26

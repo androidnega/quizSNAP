@@ -1,0 +1,119 @@
+================================================================================
+QuizSnap Production Audit Report
+================================================================================
+Server:        _______________________
+Exam / window: _______________________
+Auditor:       _______________________
+Date:          _______________________
+Audit script:  production-audit.sh output attached or referenced below
+
+RESOURCE BUDGET (reference — do not exceed QuizSnap allocation):
+  Total hardware:    48 GB RAM | 12 CPU cores
+  QuizSnap budget:   24 GB RAM |  8 CPU cores
+  Redis reserved:     4 GB RAM (maxmemory 3gb)
+  MySQL reserved:     8 GB RAM (buffer pool 6G)
+  OS + monitoring:    6 GB RAM |  4 CPU cores
+
+================================================================================
+METRICS SUMMARY
+================================================================================
+Fill "Current" from production-audit.sh output or Netdata during peak load.
+"Safe" = do not exceed during exams. "Recommended" = typical healthy range.
+
+Metric                          Current          Safe              Recommended
+--------------------------------------------------------------------------------
+CPU total %                     _________        < 70%             50–65% peak
+CPU QuizSnap (php-fpm)          _________        < 60% of 8 cores  —
+RAM used (total)                _________        < 40 GB           < 36 GB
+RAM QuizSnap PHP-FPM RSS        _________        < 12 GB           5–8 GB typical
+Swap used                       _________        0                 0
+Redis used_memory               _________        < 2.5 GB          < 2 GB typical
+Redis connected_clients         _________        < 3500            2500 + workers
+MySQL buffer pool hit %         _________        > 99%             > 99.5%
+MySQL Threads_running           _________        < 80              < 50 typical
+PHP-FPM active processes        _________        < 40              15–35 typical
+PHP-FPM listen queue            _________        0                 0
+Queue backlog (redis)           _________        < 100             < 20
+failed_jobs (24h)               _________        0                 0
+Reverb WebSocket connections    _________        < 3000            ~2500
+Nginx 5xx rate                  _________        < 0.1%            0%
+Disk await (iostat)             _________        < 5 ms            < 2 ms
+Open file descriptors (system)  _________        < 80% of max      —
+Nginx HTTPS established         _________        —                 —
+
+Status key: OK | WARN | CRITICAL (circle one per row in notes below)
+
+================================================================================
+DETAILED CHECKLIST (16 audit areas)
+================================================================================
+[ ]  1.  PHP-FPM utilization        — active/idle workers, listen queue, slow log
+[ ]  2.  CPU utilization            — load average, per-core saturation
+[ ]  3.  RAM utilization            — MemAvailable, process RSS totals
+[ ]  4.  Redis memory usage         — used_memory vs maxmemory
+[ ]  5.  Redis connection count     — connected_clients, rejected_connections
+[ ]  6.  MySQL buffer pool         — hit rate, pages read from disk
+[ ]  7.  MySQL query performance   — slow_queries, Threads_running
+[ ]  8.  Queue worker performance  — supervisor RUNNING, worker CPU/mem
+[ ]  9.  Queue backlog             — queue:monitor, redis list lengths
+[ ] 10.  Failed jobs               — failed_jobs table, artisan queue:failed
+[ ] 11.  Reverb connection count   — WS established on :8080
+[ ] 12.  Nginx throughput          — req/s, 4xx/5xx, upstream timing
+[ ] 13.  Netdata metrics           — CPU, RAM, disk, app charts reviewed
+[ ] 14.  Open file descriptors     — php-fpm, redis, mysql FD counts
+[ ] 15.  Swap usage                — must be 0 during exams
+[ ] 16.  Disk I/O utilization      — iostat await, %util
+
+================================================================================
+BOTTLENECKS DETECTED
+================================================================================
+1. ____________________________________________________________________________
+
+2. ____________________________________________________________________________
+
+3. ____________________________________________________________________________
+
+================================================================================
+RECOMMENDED CHANGES (only if metrics exceed Safe column)
+================================================================================
+- _____________________________________________________________________________
+
+- _____________________________________________________________________________
+
+- _____________________________________________________________________________
+
+================================================================================
+CONCURRENT STUDENT CAPACITY
+================================================================================
+Estimates MUST be based on measured metrics from this audit — not assumptions.
+Run audit during: (a) exam start spike, (b) steady autosave, (c) proctoring peak.
+
+Scenario tested: _______________________________________________________________
+Duration:        _______________________________________________________________
+Peak concurrent: _______________________________________________________________
+
+Conservative estimate (swap=0, CPU<70%, FPM queue=0, no 5xx):
+  _________ students
+
+Realistic estimate (CPU 65–75%, Redis <2.5 GB, minor queue backlog <20):
+  _________ students
+
+Optimistic estimate (all metrics green, significant headroom remains):
+  _________ students
+
+Notes on how estimates were derived:
+________________________________________________________________________________
+________________________________________________________________________________
+
+================================================================================
+SIGN-OFF
+================================================================================
+Auditor signature: _________________________   Date: _______________
+
+Next audit due:    _________________________   (recommend after config change
+                                                 or before next major exam)
+
+================================================================================
+RAW MEASUREMENTS (paste production-audit.sh output below)
+================================================================================
+
+

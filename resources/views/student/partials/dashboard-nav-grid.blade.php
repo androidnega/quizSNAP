@@ -10,16 +10,16 @@
     ];
 @endphp
 <nav class="lg:hidden mb-5" aria-label="Dashboard sections">
-    <div class="grid grid-cols-2 gap-2.5">
+    <div class="grid grid-cols-3 gap-2.5">
         @foreach($gridItems as $item)
             @if(!empty($item['student_only']) && !($student ?? null))
                 @continue
             @endif
             <a href="{{ route($item['route']) }}"
-               class="flex flex-col items-center justify-center gap-2 rounded-2xl border shadow-sm p-4 min-h-[88px] no-underline transition-colors
-                      {{ $item['active'] ? 'bg-amber-50 border-amber-200 text-slate-900' : 'bg-white border-slate-200 text-slate-800 hover:bg-slate-50' }}">
-                <i class="fas {{ $item['icon'] }} text-lg {{ $item['active'] ? 'text-amber-600' : 'text-slate-600' }}"></i>
-                <span class="text-xs font-semibold text-center leading-tight">{{ $item['label'] }}</span>
+               class="flex items-center gap-2 rounded-full border px-3 py-2.5 min-h-[44px] no-underline transition-colors
+                      {{ $item['active'] ? 'bg-amber-50 border-amber-300 text-slate-900' : 'bg-white border-slate-200 text-slate-800 hover:bg-slate-50 hover:border-slate-300' }}">
+                <i class="fas {{ $item['icon'] }} text-xs shrink-0 {{ $item['active'] ? 'text-amber-600' : 'text-slate-600' }}"></i>
+                <span class="text-xs font-semibold leading-tight">{{ $item['label'] }}</span>
             </a>
         @endforeach
     </div>

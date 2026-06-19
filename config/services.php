@@ -20,8 +20,8 @@ return [
         'connect_timeout' => (int) env('ARKESEL_CONNECT_TIMEOUT', 12),
         'timeout' => (int) env('ARKESEL_TIMEOUT', 25),
         'retries' => (int) env('ARKESEL_RETRIES', 1),
-        // When local dev cannot reach Arkesel, still complete OTP flows and show the code in admin UI.
-        'fallback_on_connection_error' => env('ARKESEL_FALLBACK_ON_CONNECTION_ERROR', env('APP_ENV') === 'local'),
+        // Opt-in only: when true AND APP_ENV=local, show test code if Arkesel is unreachable (no real SMS).
+        'fallback_on_connection_error' => env('ARKESEL_FALLBACK_ON_CONNECTION_ERROR', false),
     ],
     'webpush' => [
         'vapid_public' => env('VAPID_PUBLIC_KEY'),

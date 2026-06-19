@@ -267,8 +267,8 @@ class ArkeselService
                 'sms_delivered' => false,
                 'test_code' => $code,
                 'connection_error' => true,
-                'message' => 'This computer cannot reach Arkesel (SMS was not sent). Local test code: '.$code.'. '
-                    .'Real SMS works on the production VPS — test there once deployed.',
+                'message' => 'Arkesel is unreachable from this machine (SMS was not sent). Dev test code: '.$code
+                    .'. Set ARKESEL_FALLBACK_ON_CONNECTION_ERROR=true only if you need offline OTP testing.',
             ];
         }
 

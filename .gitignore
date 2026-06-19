@@ -24,6 +24,8 @@
 .env
 .env.backup
 .env.local
+.env.production
+.env.*.local
 .DS_Store
 Thumbs.db
 composer.phar

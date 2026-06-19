@@ -356,16 +356,7 @@ class StudentAccountController extends Controller
     /** User whose SMS balance is deducted for this index: coordinator (who has the student's class groups) first, then examiner (class group owner or lecturers). */
     private function smsOwnerForIndex(string $indexNumber): ?\App\Models\User
     {
-        $cgStudents = ClassGroupStudent::findByIndexNumber($indexNumber);
-        $cgStudents = $cgStudents ? collect([$cgStudents]) : collect();
-
-        if ($cgStudents->isEmpty()) {
-            $cgStudents = ClassGroupStudent::whereRaw('UPPER(TRIM(index_number)) = ?', [strtoupper(trim($indexNumber))])
-                ->with('classGroup.examiner')
-                ->get();
-        } else {
-            $cgStudents->load('classGroup.examiner');
-        }
+        $cgStudents = ClassGroupStudent::allByIndexNumber($indexNumber);
 
         // 1) Coordinator who has any of the student's class groups (and has SMS balance)
         foreach ($cgStudents as $cg) {

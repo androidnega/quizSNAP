@@ -21,19 +21,29 @@ class ClassGroupStudent extends Model
 
     public static function findByIndexNumber(string $index): ?self
     {
-        $hash = Student::hashIndexNumber($index);
-        if ($hash === hash('sha256', '')) {
-            return null;
-        }
+        return self::allByIndexNumber($index)->first();
+    }
 
-        if (Schema::hasColumn((new self)->getTable(), 'index_number_hash')) {
-            $match = static::where('index_number_hash', $hash)->first();
-            if ($match) {
-                return $match;
+    /**
+     * All class-group rows for an index (student may belong to multiple groups).
+     *
+     * @return \Illuminate\Database\Eloquent\Collection<int, self>
+     */
+    public static function allByIndexNumber(string $index): \Illuminate\Database\Eloquent\Collection
+    {
+        $hash = Student::hashIndexNumber($index);
+        $query = static::query()->with('classGroup.examiner');
+
+        if ($hash !== hash('sha256', '') && Schema::hasColumn((new self)->getTable(), 'index_number_hash')) {
+            $matches = (clone $query)->where('index_number_hash', $hash)->get();
+            if ($matches->isNotEmpty()) {
+                return $matches;
             }
         }
 
-        return static::whereRaw('LOWER(TRIM(index_number)) = ?', [strtolower(trim($index))])->first();
+        return $query
+            ->whereRaw('UPPER(TRIM(index_number)) = ?', [strtoupper(trim($index))])
+            ->get();
     }
 
     public static function existsInClassGroup(int $classGroupId, string $index): bool

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Admin\Concerns\InteractsWithAdminSession;
+use App\Http\Controllers\Concerns\BroadcastsDataUpdatesSafely;
 use App\Models\AttendanceUploadLog;
 use App\Models\AcademicClass;
 use App\Models\ClassGroup;
@@ -35,10 +36,10 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\Response;
 use App\Exports\ClassGroupStudentsExport;
-use App\Events\DataUpdated;
 
 class ClassGroupController extends Controller
 {
+    use BroadcastsDataUpdatesSafely;
     use InteractsWithAdminSession;
 
     private function classGroupIds(): array
@@ -296,8 +297,8 @@ class ClassGroupController extends Controller
         }
         $classGroup->courses()->sync($syncData);
 
-        broadcast(new DataUpdated('class-groups'))->toOthers();
-        broadcast(new DataUpdated('dashboard'))->toOthers();
+        $this->broadcastDataUpdatedSafe('class-groups');
+        $this->broadcastDataUpdatedSafe('dashboard');
 
         return redirect()->route($this->staffRoutePrefix() . '.class-groups.show', $classGroup)
             ->with('success', 'Saved');
@@ -446,8 +447,8 @@ class ClassGroupController extends Controller
         }
         $classGroup->courses()->sync($syncData);
 
-        broadcast(new DataUpdated('class-groups'))->toOthers();
-        broadcast(new DataUpdated('dashboard'))->toOthers();
+        $this->broadcastDataUpdatedSafe('class-groups');
+        $this->broadcastDataUpdatedSafe('dashboard');
 
         return redirect()->route($this->staffRoutePrefix() . '.class-groups.show', $classGroup)->with('success', 'Saved');
     }

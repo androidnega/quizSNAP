@@ -17,7 +17,10 @@ class EnsureStudentAuthenticated
                 ->with('error', 'Error');
         }
 
-        $student = Student::find($studentId);
+        $student = auth()->user();
+        if (! $student instanceof Student) {
+            $student = Student::find($studentId);
+        }
         if (!$student) {
             session()->forget(['student_id', 'student_index']);
             return redirect()->guest(route('student.account.login.form'))

@@ -208,7 +208,9 @@ class StudentQuizController extends Controller
         $shuffledOptionsByQuestion = $session->shuffled_question_options ?? [];
         if (!empty($questionIds)) {
             $ids = array_map('intval', $questionIds);
-            $questions = Question::whereIn('id', $ids)->get();
+            $questions = Question::whereIn('id', $ids)
+                ->select(['id', 'type', 'text', 'options', 'points'])
+                ->get();
             $questions = $questions->sortBy(fn ($q) => array_search($q->id, $ids))->values();
         }
         $durationSeconds = $session->quiz->duration_minutes * 60;

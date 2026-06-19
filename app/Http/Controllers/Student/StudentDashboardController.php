@@ -17,6 +17,68 @@ use Illuminate\View\View;
 
 class StudentDashboardController extends Controller
 {
+    /**
+     * @return array{classGroupIds: array<int>, classGroups: \Illuminate\Support\Collection<int, ClassGroup>}
+     */
+    private function resolveStudentClassGroups(Student $student): array
+    {
+        $cgStudents = ClassGroupStudent::allByIndexNumber($student->index_number ?? '');
+        $classGroupIds = $cgStudents->pluck('class_group_id')->unique()->filter()->values()->all();
+        $classGroups = $cgStudents->map(fn ($s) => $s->classGroup)->filter()->unique('id')->values();
+        if ($classGroups->isEmpty() && $classGroupIds !== []) {
+            $classGroups = ClassGroup::whereIn('id', $classGroupIds)->get();
+        }
+
+        return ['classGroupIds' => $classGroupIds, 'classGroups' => $classGroups];
+    }
+
+    /**
+     * @param  array<int>  $classGroupIds
+     * @return \Illuminate\Support\Collection<int, Quiz>
+     */
+    private function publishedQuizCandidates(array $classGroupIds, bool $onlyStarted = false): \Illuminate\Support\Collection
+    {
+        if ($classGroupIds === []) {
+            return collect();
+        }
+
+        $query = Quiz::whereIn('class_group_id', $classGroupIds)
+            ->where('is_published', true)
+            ->where('is_active', true)
+            ->where(function ($q) {
+                $q->whereNull('ends_at')->orWhere('ends_at', '>', now());
+            });
+
+        if ($onlyStarted) {
+            $query->where(function ($q) {
+                $q->whereNull('starts_at')->orWhere('starts_at', '<=', now());
+            });
+        }
+
+        return $query->with('course')->withCount('questions')->get();
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, Quiz>  $candidates
+     * @return array<int, true>
+     */
+    private function completedQuizIdMap(Student $student, \Illuminate\Support\Collection $candidates): array
+    {
+        $quizIds = $candidates->pluck('id')->filter()->values()->all();
+        if ($quizIds === []) {
+            return [];
+        }
+
+        return QuizSession::query()
+            ->where('student_index', $student->index_number)
+            ->whereIn('quiz_id', $quizIds)
+            ->whereNotNull('ended_at')
+            ->pluck('quiz_id')
+            ->unique()
+            ->flip()
+            ->all();
+    }
+
     protected function student(): Student
     {
         $user = auth()->user();
@@ -33,20 +95,7 @@ class StudentDashboardController extends Controller
     public function index(): View
     {
         $student = $this->student();
-        $student->load(['classGroupStudents.classGroup']);
-        // Use case-insensitive index match (class_group_students may differ from students.index_number after migration)
-        $classGroupIds = ClassGroupStudent::whereRaw('LOWER(TRIM(index_number)) = ?', [strtolower(trim($student->index_number ?? ''))])
-            ->pluck('class_group_id')
-            ->unique()
-            ->values()
-            ->all();
-        $classGroups = $student->classGroupStudents->map(fn ($s) => $s->classGroup)->filter()->unique('id')->values();
-        if (empty($classGroupIds) && $classGroups->isNotEmpty()) {
-            $classGroupIds = $classGroups->pluck('id')->filter()->values()->all();
-        }
-        if ($classGroups->isEmpty() && !empty($classGroupIds)) {
-            $classGroups = ClassGroup::whereIn('id', $classGroupIds)->get();
-        }
+        ['classGroupIds' => $classGroupIds, 'classGroups' => $classGroups] = $this->resolveStudentClassGroups($student);
 
         $sessionsCount = QuizSession::where('student_index', $student->index_number)->whereHas('result')->count();
         $recentSessions = QuizSession::where('student_index', $student->index_number)
@@ -54,37 +103,27 @@ class StudentDashboardController extends Controller
             ->orderByDesc('created_at')
             ->limit(5)
             ->get();
-        
-        // Get the last completed quiz with result
+
         $lastQuiz = QuizSession::where('student_index', $student->index_number)
             ->whereHas('result')
             ->with(['quiz.course', 'result'])
             ->orderByDesc('created_at')
             ->first();
 
-        $examCalendarEntries = collect();
-        if (!empty($classGroupIds)) {
-            $examCalendarEntries = ExamCalendar::with('course')
+        $examCalendarEntries = $classGroupIds === []
+            ? collect()
+            : ExamCalendar::with('course')
                 ->whereIn('class_group_id', $classGroupIds)
                 ->orderBy('scheduled_at')
                 ->get();
-        }
 
         $scheduledQuiz = null;
         $scheduledQuizSession = null;
-        if (!empty($classGroupIds)) {
-            $candidates = Quiz::whereIn('class_group_id', $classGroupIds)
-                ->where('is_published', true)
-                ->where('is_active', true)
-                ->where(function ($q) {
-                    $q->whereNull('ends_at')->orWhere('ends_at', '>', now());
-                })
-                ->with('course')
-                ->get();
+        if ($classGroupIds !== []) {
+            $candidates = $this->publishedQuizCandidates($classGroupIds);
             $ready = $candidates->filter(fn (Quiz $q) => $q->hasEnoughApprovedQuestions() && (($q->starts_at && $q->starts_at->isFuture()) || $q->isActive()));
             $scheduledQuiz = $ready->sortBy(fn (Quiz $q) => $q->starts_at && $q->starts_at->isFuture() ? $q->starts_at->timestamp : PHP_INT_MAX)->first();
-            
-            // Check if student has already completed this quiz
+
             if ($scheduledQuiz) {
                 $scheduledQuizSession = QuizSession::where('quiz_id', $scheduledQuiz->id)
                     ->where('student_index', $student->index_number)
@@ -119,24 +158,14 @@ class StudentDashboardController extends Controller
     public function calendar(): View|RedirectResponse
     {
         $student = $this->student();
-        $student->load(['classGroupStudents.classGroup']);
-        $classGroupIds = ClassGroupStudent::whereRaw('LOWER(TRIM(index_number)) = ?', [strtolower(trim($student->index_number ?? ''))])
-            ->pluck('class_group_id')
-            ->unique()
-            ->values()
-            ->all();
-        $classGroups = $student->classGroupStudents->map(fn ($s) => $s->classGroup)->filter()->unique('id')->values();
-        if (empty($classGroupIds) && $classGroups->isNotEmpty()) {
-            $classGroupIds = $classGroups->pluck('id')->filter()->values()->all();
-        }
+        ['classGroupIds' => $classGroupIds] = $this->resolveStudentClassGroups($student);
 
-        $examCalendarEntries = collect();
-        if (!empty($classGroupIds)) {
-            $examCalendarEntries = ExamCalendar::with('course')
+        $examCalendarEntries = $classGroupIds === []
+            ? collect()
+            : ExamCalendar::with('course')
                 ->whereIn('class_group_id', $classGroupIds)
                 ->orderBy('scheduled_at')
                 ->get();
-        }
 
         return view('student.dashboard.calendar', [
             'student' => $student,
@@ -151,44 +180,17 @@ class StudentDashboardController extends Controller
     public function quizzes(): View
     {
         $student = $this->student();
-        $student->load(['classGroupStudents.classGroup']);
-        // Use case-insensitive index match (class_group_students may differ from students.index_number after migration)
-        $classGroupIds = ClassGroupStudent::whereRaw('LOWER(TRIM(index_number)) = ?', [strtolower(trim($student->index_number ?? ''))])
-            ->pluck('class_group_id')
-            ->unique()
-            ->values()
-            ->all();
-        $classGroups = $student->classGroupStudents->map(fn ($s) => $s->classGroup)->filter()->unique('id')->values();
-        if (empty($classGroupIds) && $classGroups->isNotEmpty()) {
-            $classGroupIds = $classGroups->pluck('id')->filter()->values()->all();
-        }
-        
-        // Get active quizzes the student can take
+        ['classGroupIds' => $classGroupIds] = $this->resolveStudentClassGroups($student);
+
         $activeQuizzes = collect();
-        if (!empty($classGroupIds)) {
-            $activeQuizzes = Quiz::whereIn('class_group_id', $classGroupIds)
-                ->where('is_published', true)
-                ->where('is_active', true)
-                ->where(function ($q) {
-                    $q->whereNull('ends_at')->orWhere('ends_at', '>', now());
-                })
-                ->where(function ($q) {
-                    $q->whereNull('starts_at')->orWhere('starts_at', '<=', now());
-                })
-                ->with('course')
-                ->get()
+        if ($classGroupIds !== []) {
+            $candidates = $this->publishedQuizCandidates($classGroupIds, onlyStarted: true);
+            $completedIds = $this->completedQuizIdMap($student, $candidates);
+            $activeQuizzes = $candidates
                 ->filter(fn (Quiz $q) => $q->hasEnoughApprovedQuestions() && $q->isActive())
-                ->filter(function (Quiz $quiz) use ($student) {
-                    // Only show if student hasn't completed it yet
-                    $hasSession = QuizSession::where('quiz_id', $quiz->id)
-                        ->where('student_index', $student->index_number)
-                        ->whereNotNull('ended_at')
-                        ->exists();
-                    return !$hasSession;
-                });
+                ->reject(fn (Quiz $q) => isset($completedIds[$q->id]));
         }
-        
-        // Only show sessions that have a result (killed or abandoned sessions are hidden)
+
         $sessions = QuizSession::where('student_index', $student->index_number)
             ->whereHas('result')
             ->with(['quiz', 'result'])

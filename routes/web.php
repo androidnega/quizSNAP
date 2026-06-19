@@ -70,9 +70,17 @@ Route::get('/', function (\Illuminate\Http\Request $request) {
 
     $studentId = session('student_id');
     $student = $studentId ? \App\Models\Student::find($studentId) : null;
-    $landingHeroImage = \App\Models\Setting::getValue(\App\Models\Setting::KEY_LANDING_HERO_IMAGE);
-    $landingHeroEnabled = \App\Models\Setting::getValue(\App\Models\Setting::KEY_LANDING_HERO_ENABLED, '1') === '1';
-    $landingShowQuizToken = \App\Models\Setting::getValue(\App\Models\Setting::KEY_LANDING_SHOW_QUIZ_TOKEN, '0') === '1';
+    $landingSettings = \App\Models\Setting::getMany([
+        \App\Models\Setting::KEY_LANDING_HERO_IMAGE,
+        \App\Models\Setting::KEY_LANDING_HERO_ENABLED,
+        \App\Models\Setting::KEY_LANDING_SHOW_QUIZ_TOKEN,
+    ], [
+        \App\Models\Setting::KEY_LANDING_HERO_ENABLED => '1',
+        \App\Models\Setting::KEY_LANDING_SHOW_QUIZ_TOKEN => '0',
+    ]);
+    $landingHeroImage = $landingSettings[\App\Models\Setting::KEY_LANDING_HERO_IMAGE] ?? null;
+    $landingHeroEnabled = ($landingSettings[\App\Models\Setting::KEY_LANDING_HERO_ENABLED] ?? '1') === '1';
+    $landingShowQuizToken = ($landingSettings[\App\Models\Setting::KEY_LANDING_SHOW_QUIZ_TOKEN] ?? '0') === '1';
 
     return view('student.landing', compact('student', 'landingHeroImage', 'landingHeroEnabled', 'landingShowQuizToken'));
 })->name('student.landing');

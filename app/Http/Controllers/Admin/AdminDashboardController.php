@@ -46,9 +46,16 @@ class AdminDashboardController extends Controller
             'sessions' => $sessionsWithResult,
             'results' => $sessionsWithResult,
         ];
-        $update_mode = Setting::getValue(Setting::KEY_UPDATE_MODE, '0') === '1';
-        $update_started_at = $update_mode ? Setting::getValue(Setting::KEY_UPDATE_STARTED_AT) : null;
-        $update_estimated_end = $update_mode ? Setting::getValue(Setting::KEY_UPDATE_ESTIMATED_END) : null;
+        $updateSettings = Setting::getMany([
+            Setting::KEY_UPDATE_MODE,
+            Setting::KEY_UPDATE_STARTED_AT,
+            Setting::KEY_UPDATE_ESTIMATED_END,
+        ], [
+            Setting::KEY_UPDATE_MODE => '0',
+        ]);
+        $update_mode = ($updateSettings[Setting::KEY_UPDATE_MODE] ?? '0') === '1';
+        $update_started_at = $update_mode ? ($updateSettings[Setting::KEY_UPDATE_STARTED_AT] ?? null) : null;
+        $update_estimated_end = $update_mode ? ($updateSettings[Setting::KEY_UPDATE_ESTIMATED_END] ?? null) : null;
         return view('admin.dashboard-admin', compact('overview', 'update_mode', 'update_started_at', 'update_estimated_end'));
     }
 
@@ -57,53 +64,53 @@ class AdminDashboardController extends Controller
     {
         $user = $this->adminUser();
         $classGroupIds = $user ? $user->classGroupIds() : [];
-        // For examiners/coordinators, only consider quizzes they actually own (examiner_id = user id).
-        $quizQuery = Quiz::query();
-        if ($user && !$user->isSuperAdmin()) {
-            $quizQuery->where('examiner_id', $user->id);
-        }
-        $quizzes = Quiz::with(['course', 'classGroup'])
-            ->when($user && !$user->isSuperAdmin(), fn ($q) => $q->where('examiner_id', $user->id))
+        $quizQuery = Quiz::query()
+            ->when($user && ! $user->isSuperAdmin(), fn ($q) => $q->where('examiner_id', $user->id));
+
+        $quizzes = (clone $quizQuery)
+            ->with(['course', 'classGroup'])
             ->orderByDesc('created_at')
             ->paginate(10);
-        // Load class groups with courses that this examiner teaches in each group
-        $classGroups = !empty($classGroupIds)
+
+        $classGroups = ! empty($classGroupIds)
             ? ClassGroup::withCount('students')
                 ->with([
                     'courses' => function ($q) use ($user) {
-                        // Only show courses where this examiner is assigned (via pivot examiner_id)
                         if ($user && \Illuminate\Support\Facades\Schema::hasColumn('class_group_course', 'examiner_id')) {
                             $q->wherePivot('examiner_id', $user->id);
                         }
                         $q->where('is_archived', false)->orderBy('name');
-                    }
+                    },
                 ])
                 ->whereIn('id', $classGroupIds)
                 ->orderBy('name')
                 ->get()
             : collect();
-        // Class groups count: only groups where this examiner actually has at least one active course
+
         $classGroupsCount = $classGroups->filter(function ($g) {
             return $g->relationLoaded('courses') && $g->courses->isNotEmpty();
         })->count();
-        $quizIds = (clone $quizQuery)->pluck('id');
-        $sessionsWithResults = $quizIds->isEmpty()
-            ? 0
-            : QuizSession::whereIn('quiz_id', $quizIds)
-                ->whereNotNull('ended_at')
-                ->whereHas('result')
-                ->count();
+
+        $sessionsWithResults = QuizSession::query()
+            ->whereNotNull('ended_at')
+            ->whereHas('result')
+            ->whereIn('quiz_id', (clone $quizQuery)->select('id'))
+            ->count();
+
         $stats = [
             'quizzes' => (clone $quizQuery)->count(),
-            // Keep sessions/results in sync by counting only completed sessions with exactly one result snapshot.
             'sessions' => $sessionsWithResults,
             'results' => $sessionsWithResults,
         ];
-        $recentSessions = $quizIds->isEmpty() ? collect() : QuizSession::with(['quiz', 'result'])->whereIn('quiz_id', $quizIds)->orderByDesc('start_time')->limit(20)->get();
-        
-        // Check if examiner needs to set faculty/department
-        $needsFacultyDepartment = $user && $user->isExaminer() && (!$user->faculty_id || !$user->department_id);
-        
+
+        $recentSessions = QuizSession::with(['quiz', 'result'])
+            ->whereIn('quiz_id', (clone $quizQuery)->select('id'))
+            ->orderByDesc('start_time')
+            ->limit(20)
+            ->get();
+
+        $needsFacultyDepartment = $user && $user->isExaminer() && (! $user->faculty_id || ! $user->department_id);
+
         return view('admin.dashboard-examiner', compact('quizzes', 'classGroups', 'classGroupsCount', 'recentSessions', 'stats', 'needsFacultyDepartment'));
     }
 

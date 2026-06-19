@@ -48,6 +48,108 @@ class Setting extends Model
     }
 
     /**
+     * Load multiple settings in one query and warm per-key cache (non-AI keys).
+     *
+     * @param  list<string>  $keys
+     * @param  array<string, string|null>  $defaults
+     * @return array<string, string|null>
+     */
+    public static function getMany(array $keys, array $defaults = []): array
+    {
+        $keys = array_values(array_unique($keys));
+        if ($keys === []) {
+            return [];
+        }
+
+        $aiKeys = [self::KEY_OPENAI_API, self::KEY_GEMINI_API, self::KEY_DEEPSEEK_API];
+        $rows = static::whereIn('key', $keys)->pluck('value', 'key');
+        $out = [];
+
+        foreach ($keys as $key) {
+            $raw = $rows[$key] ?? null;
+            if ($raw === null) {
+                $out[$key] = $defaults[$key] ?? null;
+                continue;
+            }
+
+            if (! in_array($key, $aiKeys, true)) {
+                Cache::put('setting:'.$key, $raw, 3600);
+            }
+
+            if (in_array($key, self::ENCRYPTED_KEYS, true)) {
+                try {
+                    $out[$key] = Crypt::decryptString($raw);
+                } catch (DecryptException $e) {
+                    \Illuminate\Support\Facades\Log::warning('Setting decryption failed (wrong APP_KEY?). Re-save this key in Settings.', ['key' => $key]);
+                    $out[$key] = $defaults[$key] ?? null;
+                }
+            } else {
+                $out[$key] = $raw;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * Keys loaded on the admin settings index page (single bulk read on cold cache).
+     *
+     * @return list<string>
+     */
+    public static function settingsIndexKeys(): array
+    {
+        return [
+            self::KEY_DEEPSEEK_API,
+            self::KEY_AI_QUIZ_GENERATION_ENABLED,
+            self::KEY_APP_NAME,
+            self::KEY_APP_TIMEZONE,
+            self::KEY_FOOTER_COPYRIGHT,
+            self::KEY_MAIL_MAILER,
+            self::KEY_MAIL_HOST,
+            self::KEY_MAIL_PORT,
+            self::KEY_MAIL_USERNAME,
+            self::KEY_MAIL_PASSWORD,
+            self::KEY_MAIL_ENCRYPTION,
+            self::KEY_MAIL_FROM_ADDRESS,
+            self::KEY_MAIL_FROM_NAME,
+            self::KEY_NOTIFY_RESULT_READY,
+            self::KEY_NOTIFY_RESULT_EMAIL,
+            self::KEY_SEND_SMS_ON_STAFF_CREATION,
+            self::KEY_DISABLE_IP_DEVICE_RESTRICTIONS,
+            self::KEY_OTP_ARKESEL_API_KEY,
+            self::KEY_OTP_ARKESEL_SENDER_ID,
+            self::KEY_STUDENT_PASSWORD_LOGIN_ENABLED,
+            self::KEY_STUDENT_OTP_RETURN_LOGIN_ENABLED,
+            self::KEY_STUDENT_ONBOARDING_EMAIL_OTP_ENABLED,
+            self::KEY_STUDENT_EMAIL_REQUIRED,
+            self::KEY_STUDENT_PASSWORD_RESET_ENABLED,
+            self::KEY_STUDENT_OTP_MAX_ATTEMPTS,
+            self::KEY_STUDENT_OTP_LOCKOUT_MINUTES,
+            self::KEY_STUDENT_UNIVERSAL_OTP_CODES,
+            self::KEY_LIVE_PROCTOR_ENABLED,
+            self::KEY_VIOLATION_STORAGE_DRIVER,
+            self::KEY_VIOLATION_RETENTION_DAYS_PRIMARY,
+            self::KEY_VIOLATION_RETENTION_DAYS_SECONDARY,
+            self::KEY_AI_QUIZ_COOLDOWN_HOURS,
+            self::KEY_LANDING_HERO_IMAGE,
+            self::KEY_LANDING_HERO_ENABLED,
+            self::KEY_LANDING_SHOW_QUIZ_TOKEN,
+            self::KEY_LOGIN_HERO_IMAGE,
+            self::KEY_STUDENT_DASHBOARD_BANNER_ENABLED,
+            self::KEY_STUDENT_DASHBOARD_BANNER_MODE,
+            self::KEY_STUDENT_DASHBOARD_BANNER_TITLE,
+            self::KEY_STUDENT_DASHBOARD_BANNER_TITLE_ACCENT,
+            self::KEY_STUDENT_DASHBOARD_BANNER_SUBTITLE,
+            self::KEY_STUDENT_DASHBOARD_BANNER_IMAGES,
+            self::KEY_SUPABASE_URL,
+            self::KEY_SUPABASE_SERVICE_KEY,
+            self::KEY_SUPABASE_BUCKET,
+            self::KEY_SUPABASE_SIGNED_URL_TTL,
+            ...self::PROCTORING_FLAG_KEYS,
+        ];
+    }
+
+    /**
      * Set a setting value by key. Encrypts if key is sensitive.
      */
     public static function setValue(string $key, ?string $value): void
@@ -97,13 +199,29 @@ class Setting extends Model
      */
     public static function getStudentDashboardBannerConfig(): array
     {
-        $imagesRaw = self::getValue(self::KEY_STUDENT_DASHBOARD_BANNER_IMAGES, '[]');
+        $s = self::getMany([
+            self::KEY_STUDENT_DASHBOARD_BANNER_ENABLED,
+            self::KEY_STUDENT_DASHBOARD_BANNER_MODE,
+            self::KEY_STUDENT_DASHBOARD_BANNER_TITLE,
+            self::KEY_STUDENT_DASHBOARD_BANNER_TITLE_ACCENT,
+            self::KEY_STUDENT_DASHBOARD_BANNER_SUBTITLE,
+            self::KEY_STUDENT_DASHBOARD_BANNER_IMAGES,
+        ], [
+            self::KEY_STUDENT_DASHBOARD_BANNER_ENABLED => '1',
+            self::KEY_STUDENT_DASHBOARD_BANNER_MODE => 'image',
+            self::KEY_STUDENT_DASHBOARD_BANNER_TITLE => 'Challenge Yourself.',
+            self::KEY_STUDENT_DASHBOARD_BANNER_TITLE_ACCENT => 'Achieve More.',
+            self::KEY_STUDENT_DASHBOARD_BANNER_SUBTITLE => 'Take quizzes, track progress and achieve your goals every day.',
+            self::KEY_STUDENT_DASHBOARD_BANNER_IMAGES => '[]',
+        ]);
+
+        $imagesRaw = $s[self::KEY_STUDENT_DASHBOARD_BANNER_IMAGES] ?? '[]';
         $images = json_decode($imagesRaw ?: '[]', true);
         if (! is_array($images)) {
             $images = [];
         }
         $images = array_values(array_filter(array_map(static fn ($url) => is_string($url) ? trim($url) : '', $images)));
-        $mode = self::getValue(self::KEY_STUDENT_DASHBOARD_BANNER_MODE, 'image');
+        $mode = $s[self::KEY_STUDENT_DASHBOARD_BANNER_MODE] ?? 'image';
         if (! in_array($mode, ['image', 'image_text'], true)) {
             $mode = 'image';
         }
@@ -111,11 +229,11 @@ class Setting extends Model
         $defaultImage = asset('images/student-dashboard-midsem-exams-good-luck-banner.jpg');
 
         return [
-            'enabled' => self::getValue(self::KEY_STUDENT_DASHBOARD_BANNER_ENABLED, '1') === '1',
+            'enabled' => ($s[self::KEY_STUDENT_DASHBOARD_BANNER_ENABLED] ?? '1') === '1',
             'mode' => $mode,
-            'title' => self::getValue(self::KEY_STUDENT_DASHBOARD_BANNER_TITLE, 'Challenge Yourself.') ?: 'Challenge Yourself.',
-            'title_accent' => self::getValue(self::KEY_STUDENT_DASHBOARD_BANNER_TITLE_ACCENT, 'Achieve More.') ?: 'Achieve More.',
-            'subtitle' => self::getValue(self::KEY_STUDENT_DASHBOARD_BANNER_SUBTITLE, 'Take quizzes, track progress and achieve your goals every day.') ?: 'Take quizzes, track progress and achieve your goals every day.',
+            'title' => ($s[self::KEY_STUDENT_DASHBOARD_BANNER_TITLE] ?? 'Challenge Yourself.') ?: 'Challenge Yourself.',
+            'title_accent' => ($s[self::KEY_STUDENT_DASHBOARD_BANNER_TITLE_ACCENT] ?? 'Achieve More.') ?: 'Achieve More.',
+            'subtitle' => ($s[self::KEY_STUDENT_DASHBOARD_BANNER_SUBTITLE] ?? 'Take quizzes, track progress and achieve your goals every day.') ?: 'Take quizzes, track progress and achieve your goals every day.',
             'image' => $images[0] ?? $defaultImage,
             'images' => $images !== [] ? $images : [$defaultImage],
         ];
@@ -252,9 +370,10 @@ class Setting extends Model
      */
     public static function getProctoringFlags(): array
     {
+        $values = self::getMany(self::PROCTORING_FLAG_KEYS);
         $flags = [];
         foreach (self::PROCTORING_FLAG_KEYS as $key) {
-            $flags[$key] = self::getValue($key, '1') === '1';
+            $flags[$key] = ($values[$key] ?? '1') === '1';
         }
 
         return $flags;

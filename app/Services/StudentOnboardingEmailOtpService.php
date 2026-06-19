@@ -15,15 +15,18 @@ class StudentOnboardingEmailOtpService
 {
     public const EXPIRES_MINUTES = Otp::ONBOARDING_EMAIL_OTP_MINUTES;
 
-    public static function isEnabled(): bool
+    public static function isEnabled(?array $settings = null): bool
     {
-        return Setting::getValue(Setting::KEY_STUDENT_ONBOARDING_EMAIL_OTP_ENABLED, '1') === '1'
-            && self::isMailConfigured();
+        $enabled = $settings !== null
+            ? (($settings[Setting::KEY_STUDENT_ONBOARDING_EMAIL_OTP_ENABLED] ?? '1') === '1')
+            : (Setting::getValue(Setting::KEY_STUDENT_ONBOARDING_EMAIL_OTP_ENABLED, '1') === '1');
+
+        return $enabled && self::isMailConfigured($settings);
     }
 
-    public static function isMailConfigured(): bool
+    public static function isMailConfigured(?array $settings = null): bool
     {
-        return MailConfigService::isConfigured();
+        return MailConfigService::isConfigured($settings);
     }
 
     /** Only while phone is not yet verified (first-time setup). */

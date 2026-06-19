@@ -17,8 +17,12 @@ class EnsureStudentHasLevel
         if (!session('student_id')) {
             return $next($request);
         }
-        $student = Student::find(session('student_id'));
-        if (!$student) {
+
+        $student = auth()->user();
+        if (! $student instanceof Student) {
+            $student = Student::find(session('student_id'));
+        }
+        if (! $student) {
             return $next($request);
         }
         if ($student->level !== null && $student->level !== '') {

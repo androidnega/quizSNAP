@@ -29,8 +29,13 @@ class MailConfigService
     }
 
     /** Whether outbound email can be sent (Settings SMTP host + username). */
-    public static function isConfigured(): bool
+    public static function isConfigured(?array $settings = null): bool
     {
+        if ($settings !== null) {
+            return trim((string) ($settings[Setting::KEY_MAIL_HOST] ?? '')) !== ''
+                && trim((string) ($settings[Setting::KEY_MAIL_USERNAME] ?? '')) !== '';
+        }
+
         return trim((string) Setting::getValue(Setting::KEY_MAIL_HOST, '')) !== ''
             && trim((string) Setting::getValue(Setting::KEY_MAIL_USERNAME, '')) !== '';
     }

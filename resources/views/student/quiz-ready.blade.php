@@ -11,7 +11,7 @@
             <i class="fas fa-expand text-2xl text-sky-600" aria-hidden="true"></i>
         </div>
         <h2 class="text-lg font-bold text-gray-900 mb-2">Full screen required</h2>
-        <p class="text-sm text-gray-600 mb-5">Before you start the quiz, your browser must be in full screen or maximized. Click the button below, or use F11 / your browser's maximize control.</p>
+        <p class="text-sm text-gray-600 mb-5">Before you start, your browser must be in <strong>full screen mode</strong> (tabs and address bar hidden). Click the button below and allow full screen when prompted.</p>
         <button type="button" id="quiz-fs-gate-btn" class="btn btn-action w-full py-2.5 text-sm font-semibold bg-sky-600 hover:bg-sky-700 text-white border-0">
             Enter full screen
         </button>
@@ -57,8 +57,8 @@
 @endsection
 
 @push('scripts')
-<script src="{{ asset('js/quiz-window-state.js') }}"></script>
-<script src="{{ asset('js/quiz-fullscreen-gate.js') }}"></script>
+<script src="{{ asset('js/quiz-window-state.js') }}?v={{ filemtime(public_path('js/quiz-window-state.js')) }}"></script>
+<script src="{{ asset('js/quiz-fullscreen-gate.js') }}?v={{ filemtime(public_path('js/quiz-fullscreen-gate.js')) }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     if (window.QuizSnapFullscreenGate) {

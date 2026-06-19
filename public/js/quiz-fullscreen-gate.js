@@ -23,19 +23,25 @@
         var startForm = document.getElementById(options.startFormId || 'quiz-start-form');
 
         function isOk() {
+            if (ws.isBrowserFullscreen) {
+                return ws.isBrowserFullscreen() || (ws.isFullscreenOrMaximized && ws.isFullscreenOrMaximized());
+            }
             return ws.isFullscreenOrMaximized ? ws.isFullscreenOrMaximized() : false;
         }
 
         function requestFs() {
-            if (ws.requestMaximizeOrFullscreen) {
-                return ws.requestMaximizeOrFullscreen();
+            if (ws.requestFullscreen) {
+                return ws.requestFullscreen();
             }
             return Promise.reject(new Error('unsupported'));
         }
 
         function waitReady() {
+            if (ws.waitForBrowserFullscreen) {
+                return ws.waitForBrowserFullscreen(5000);
+            }
             if (ws.waitForFullscreenOrMaximized) {
-                return ws.waitForFullscreenOrMaximized(4500);
+                return ws.waitForFullscreenOrMaximized(5000);
             }
             return isOk() ? Promise.resolve() : Promise.reject(new Error('timeout'));
         }
@@ -82,7 +88,7 @@
                     .then(waitReady)
                     .then(syncGate)
                     .catch(function () {
-                        alert('Could not enter full screen. Press F11 (Windows) or Ctrl+Cmd+F (Mac), or maximize your browser window, then try again.');
+                        alert('Could not enter full screen. Click "Enter full screen" and allow it in your browser, or press F11 (Windows) / Ctrl+Cmd+F (Mac).');
                         syncGate();
                     });
             });
@@ -93,7 +99,7 @@
                 if (!isOk()) {
                     e.preventDefault();
                     lockStart();
-                    alert('Please enter full screen or maximize your browser window before starting the quiz.');
+                    alert('You must be in browser full screen before starting the quiz. Click "Enter full screen" first.');
                 }
             });
         }
@@ -103,8 +109,6 @@
         } else {
             document.addEventListener('fullscreenchange', syncGate);
             document.addEventListener('webkitfullscreenchange', syncGate);
-            window.addEventListener('resize', syncGate);
-            window.addEventListener('focus', syncGate);
         }
 
         syncGate();

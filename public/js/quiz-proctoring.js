@@ -845,15 +845,7 @@
     var isFullscreenOrMaximized = ws.isFullscreenOrMaximized
         ? ws.isFullscreenOrMaximized.bind(ws)
         : function () {
-            if (document.fullscreenElement || document.webkitFullscreenElement) return true;
-            var outerW = window.outerWidth;
-            var outerH = window.outerHeight;
-            if (!window.screen) return false;
-            var availW = window.screen.availWidth;
-            var availH = window.screen.availHeight;
-            if (availW <= 0 || availH <= 0) return false;
-            var tol = 100;
-            return (outerW >= availW - tol && outerH >= availH - tol);
+            return !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement);
         };
     var wasFullscreenOrMaximized = isFullscreenOrMaximized();
     var invalidStateTimer = null;
@@ -994,8 +986,8 @@
     }
 
     function requestQuizFullscreen() {
-        if (ws.requestMaximizeOrFullscreen) {
-            return ws.requestMaximizeOrFullscreen();
+        if (ws.requestFullscreen) {
+            return ws.requestFullscreen();
         }
         var el = document.documentElement;
         var fn = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
@@ -1006,7 +998,9 @@
     }
 
     function afterFullscreenEntered() {
-        var wait = ws.waitForFullscreenOrMaximized ? ws.waitForFullscreenOrMaximized(4500) : Promise.resolve();
+        var wait = ws.waitForBrowserFullscreen
+            ? ws.waitForBrowserFullscreen(5000)
+            : (ws.waitForFullscreenOrMaximized ? ws.waitForFullscreenOrMaximized(5000) : Promise.resolve());
         return wait.then(function () {
             wasFullscreenOrMaximized = isFullscreenOrMaximized();
             if (wasFullscreenOrMaximized) {
@@ -1018,17 +1012,17 @@
     if (enterFsBtn) {
         enterFsBtn.addEventListener('click', function() {
             requestQuizFullscreen().then(afterFullscreenEntered).catch(function() {
-                alert('Could not enter full screen. Press F11 (Windows) or Ctrl+Cmd+F (Mac), or maximize your browser window.');
+                alert('Could not enter full screen. Click the button and allow full screen in your browser, or press F11 (Windows) / Ctrl+Cmd+F (Mac).');
             });
         });
     }
 
-    // Block the quiz until the student is in full screen or maximized (before answering questions).
+    // Block the quiz until the student is in browser full screen (before answering questions).
     if (fullscreenEnforced && !isFullscreenOrMaximized()) {
         wasFullscreenOrMaximized = false;
         showResizeBlur(false);
         if (resizeBlurTitle) resizeBlurTitle.textContent = 'Full screen required';
-        if (resizeBlurMessage) resizeBlurMessage.textContent = 'You must be in full screen or maximized before answering questions. Click the button below to continue.';
+        if (resizeBlurMessage) resizeBlurMessage.textContent = 'You must enter browser full screen before answering questions. Click the button below — your browser will hide tabs and the address bar.';
     } else if (!fullscreenEnforced && c.proctoringTabSwitch === false) {
         hideResizeBlur();
     }

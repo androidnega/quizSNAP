@@ -198,7 +198,7 @@
     <div id="resize-blur-overlay" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-gray-900 px-4 pointer-events-auto" aria-hidden="true">
         <div class="bg-white border border-gray-200 rounded-lg p-4 max-w-md w-full border border-gray-200 text-center">
             <h4 id="resize-blur-title" class="font-semibold text-gray-800 mb-2">Full screen required</h4>
-            <p id="resize-blur-message" class="text-sm text-gray-600 mb-4">You must be in full screen or maximized before answering questions. Click the button below to continue.</p>
+            <p id="resize-blur-message" class="text-sm text-gray-600 mb-4">You must enter browser full screen before answering questions. Click the button below — your browser will hide tabs and the address bar.</p>
             <button type="button" id="resize-blur-enter-fs-btn" class="mb-3 w-full py-2.5 px-5 text-sm font-semibold rounded-lg border-2 border-sky-400 bg-sky-50 text-sky-800 hover:bg-sky-100 focus:ring-2 focus:ring-sky-500 focus:ring-offset-1 transition-colors">Enter full screen</button>
             <p id="resize-blur-warning" class="text-sm font-medium text-amber-700 mb-3 hidden">Repeated violations will result in auto-submission of your quiz.</p>
             <p id="resize-blur-final-warning" class="text-sm font-bold text-red-600 mb-3 hidden">One more resize or exit from full screen will auto-submit your quiz.</p>
@@ -347,8 +347,8 @@
 <!-- TensorFlow.js for Object Detection -->
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.2/dist/coco-ssd.min.js" crossorigin="anonymous"></script>
 
-<script src="{{ asset('js/quiz-window-state.js') }}"></script>
-<script src="{{ asset('js/quiz-proctoring.js') }}" defer></script>
+<script src="{{ asset('js/quiz-window-state.js') }}?v={{ filemtime(public_path('js/quiz-window-state.js')) }}"></script>
+<script src="{{ asset('js/quiz-proctoring.js') }}?v={{ filemtime(public_path('js/quiz-proctoring.js')) }}" defer></script>
 <script src="{{ asset('js/proctoring/intelligentFaceMonitor.js') }}" defer></script>
 <script src="{{ asset('js/proctoring/objectMonitor.js') }}" defer></script>
 <script src="{{ asset('js/proctoring/audioMonitor.js') }}" defer></script>

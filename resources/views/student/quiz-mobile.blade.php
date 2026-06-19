@@ -239,8 +239,8 @@
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface@0.1.0/dist/blazeface.min.umd.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.2/dist/coco-ssd.min.js" crossorigin="anonymous"></script>
-<script src="{{ asset('js/quiz-window-state.js') }}"></script>
-<script src="{{ asset('js/quiz-proctoring.js') }}" defer></script>
+<script src="{{ asset('js/quiz-window-state.js') }}?v={{ filemtime(public_path('js/quiz-window-state.js')) }}"></script>
+<script src="{{ asset('js/quiz-proctoring.js') }}?v={{ filemtime(public_path('js/quiz-proctoring.js')) }}" defer></script>
 <script src="{{ asset('js/proctoring/intelligentFaceMonitor.js') }}" defer></script>
 <script src="{{ asset('js/proctoring/objectMonitor.js') }}" defer></script>
 <script src="{{ asset('js/proctoring/audioMonitor.js') }}" defer></script>

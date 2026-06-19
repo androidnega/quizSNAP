@@ -32,7 +32,7 @@ class StaffSeeder extends Seeder
             ['username' => 'coordinator'],
             [
                 'name' => 'Coordinator',
-                'role' => User::DM_ROLE_COORDINATOR,
+                'role' => User::ROLE_COORDINATOR,
                 'password' => Hash::make('coordinator'),
             ]
         );

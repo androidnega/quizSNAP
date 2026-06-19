@@ -242,5 +242,3 @@
 })();
 </script>
 @endpush
-@endif
-@endsection

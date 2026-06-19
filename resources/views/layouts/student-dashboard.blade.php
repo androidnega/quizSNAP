@@ -18,7 +18,7 @@
     }
 @endphp
 <div class="min-h-screen flex flex-col bg-slate-50" id="student-dashboard-wrap">
-    <header class="sticky top-0 z-30 bg-amber-400 border-b border-amber-500/30">
+    <header class="hidden lg:block sticky top-0 z-30 bg-amber-400 border-b border-amber-500/30">
         <div class="mx-auto flex h-14 lg:h-16 w-full max-w-none lg:max-w-4xl xl:max-w-5xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
             <div class="flex lg:hidden items-center gap-2.5 min-w-0 flex-1">
                 <button type="button" id="student-mobile-menu-btn" class="shrink-0 flex h-10 w-10 items-center justify-center rounded-xl text-slate-900 hover:bg-amber-500/25 focus:outline-none focus:ring-2 focus:ring-slate-700 focus:ring-offset-2 focus:ring-offset-amber-400" aria-label="Open menu" aria-expanded="false" aria-controls="student-mobile-sidebar">
@@ -103,7 +103,7 @@
     </aside>
     <div id="student-mobile-sidebar-overlay" class="fixed inset-0 z-30 bg-slate-900/40 lg:hidden cursor-pointer pointer-events-none" aria-hidden="true" role="button" tabindex="-1" aria-label="Close menu" style="visibility: hidden;"></div>
 
-    <main class="flex-1 w-full min-w-0 overflow-x-hidden pb-20 lg:pb-12">
+    <main class="flex-1 w-full min-w-0 overflow-x-hidden pb-20 lg:pb-12 pt-[max(1rem,env(safe-area-inset-top))] lg:pt-0">
         <div class="mx-auto w-full max-w-none lg:max-w-4xl xl:max-w-5xl min-w-0 px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
             @if(!request()->routeIs('dashboard'))
                 <div class="hidden lg:flex items-center text-xs font-medium text-slate-500 gap-1 mb-6">

@@ -12,52 +12,7 @@
 
 @include('student.partials.dashboard-hero-banner')
 
-<nav class="hidden lg:block" aria-label="Dashboard sections">
-    <div class="flex flex-wrap items-center gap-2.5">
-        <a href="{{ route('dashboard') }}"
-           class="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold border transition-colors whitespace-nowrap
-                  {{ request()->routeIs('dashboard') ? 'bg-amber-400 border-amber-400 text-slate-900' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300' }}">
-            <i class="fas fa-home mr-1.5 text-xs"></i>
-            Overview
-        </a>
-
-        @if($student)
-        <a href="{{ route('dashboard.my-quizzes') }}"
-           class="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold border transition-colors whitespace-nowrap
-                  {{ request()->routeIs('dashboard.my-quizzes*') ? 'bg-amber-400 border-amber-400 text-slate-900' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300' }}">
-            <i class="fas fa-clipboard-list mr-1.5 text-xs"></i>
-            Quizzes
-        </a>
-        <a href="{{ route('dashboard.calendar') }}"
-           class="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold border transition-colors whitespace-nowrap
-                  {{ request()->routeIs('dashboard.calendar') ? 'bg-amber-400 border-amber-400 text-slate-900' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300' }}">
-            <i class="fas fa-calendar-alt mr-1.5 text-xs"></i>
-            Calendar
-        </a>
-        <a href="{{ route('dashboard.course-materials') }}"
-           class="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold border transition-colors whitespace-nowrap
-                  {{ request()->routeIs('dashboard.course-materials') ? 'bg-amber-400 border-amber-400 text-slate-900' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300' }}">
-            <i class="fas fa-book mr-1.5 text-xs"></i>
-            Materials
-        </a>
-        @endif
-
-        <a href="{{ route('dashboard.my-profile') }}"
-           class="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold border transition-colors whitespace-nowrap
-                  {{ request()->routeIs('dashboard.my-profile') ? 'bg-amber-400 border-amber-400 text-slate-900' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300' }}">
-            <i class="fas fa-user mr-1.5 text-xs"></i>
-            Profile
-        </a>
-
-        @if($student)
-        <a href="{{ route('dashboard.my-quizzes') }}"
-           class="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-colors whitespace-nowrap">
-            <i class="fas fa-file-alt mr-1.5 text-xs"></i>
-            Results
-        </a>
-        @endif
-    </div>
-</nav>
+@include('student.partials.dashboard-pill-nav', ['class' => 'hidden lg:block'])
 
 <section aria-label="At a glance">
     <h2 class="text-[10px] sm:text-xs lg:text-sm font-semibold text-slate-500 mb-2.5 lg:mb-4 uppercase tracking-wider">At a glance</h2>
@@ -131,6 +86,8 @@
         </a>
     </div>
 </section>
+
+@include('student.partials.dashboard-pill-nav', ['class' => 'lg:hidden mt-4', 'compact' => true])
 </div>
 
 @if($student)

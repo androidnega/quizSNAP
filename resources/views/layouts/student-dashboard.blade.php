@@ -103,7 +103,7 @@
     </aside>
     <div id="student-mobile-sidebar-overlay" class="fixed inset-0 z-30 bg-slate-900/40 lg:hidden cursor-pointer pointer-events-none" aria-hidden="true" role="button" tabindex="-1" aria-label="Close menu" style="visibility: hidden;"></div>
 
-    <main class="flex-1 w-full min-w-0 overflow-x-hidden pb-24 lg:pb-12 pt-[max(1rem,env(safe-area-inset-top))] lg:pt-0">
+    <main class="flex-1 w-full min-w-0 overflow-x-hidden pb-6 lg:pb-12 pt-[max(1rem,env(safe-area-inset-top))] lg:pt-0">
         <div class="mx-auto w-full max-w-none lg:max-w-4xl xl:max-w-5xl min-w-0 px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
             @if(!request()->routeIs('dashboard'))
                 <div class="hidden lg:flex items-center text-xs font-medium text-slate-500 gap-1 mb-6">
@@ -112,13 +112,12 @@
                         <span>Back to dashboard</span>
                     </a>
                 </div>
+                @include('student.partials.dashboard-pill-nav', ['class' => 'lg:hidden mb-5', 'compact' => true])
             @endif
 
             @yield('dashboard_content')
         </div>
     </main>
-
-    @include('student.partials.dashboard-bottom-nav')
 </div>
 <script>
 (function(){

@@ -31,7 +31,6 @@
                 </form>
                 <form method="post" action="{{ route('dashboard.quizzes.sessions.kill', [$quiz, $session]) }}" onsubmit="return confirm('Kill this session? This will remove the result and allow the student to retake the quiz.');">
                     @csrf
-                    @method('DELETE')
                     <button type="submit" class="text-xs font-medium px-2.5 py-1.5 rounded border border-red-300 bg-red-50 text-red-700 hover:bg-red-100">Kill session</button>
                 </form>
             </div>

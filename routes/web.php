@@ -242,7 +242,7 @@ Route::middleware('admin.auth')->group(function () {
         Route::get('/proctoring-media/{path}', [\App\Http\Controllers\Admin\ProctoringMediaController::class, 'show'])->where('path', '.*')->name('proctoring-media');
         Route::post('/quizzes/{quizId}/sessions/{quizSession}/reset-ip', [QuizManagementController::class, 'resetSessionIp'])->name('quizzes.sessions.reset-ip');
         Route::post('/quizzes/{quizId}/sessions/{quizSession}/clear-withheld', [QuizManagementController::class, 'clearWithheldResult'])->name('quizzes.sessions.clear-withheld');
-        Route::delete('/quizzes/{quizId}/sessions/{quizSession}/kill', [QuizManagementController::class, 'killSession'])->name('quizzes.sessions.kill');
+        Route::post('/quizzes/{quizId}/sessions/{quizSession}/kill', [QuizManagementController::class, 'killSession'])->name('quizzes.sessions.kill');
         Route::get('/quizzes/live-proctor-all', [QuizManagementController::class, 'liveProctorAll'])->name('quizzes.live-proctor-all');
         Route::get('/quizzes/live-proctor-all/sessions', [QuizManagementController::class, 'liveProctorAllSessions'])->name('quizzes.live-proctor-all.sessions');
         Route::post('/quizzes/live-proctor-voice', [QuizManagementController::class, 'broadcastExaminerVoice'])->name('quizzes.live-proctor-voice');

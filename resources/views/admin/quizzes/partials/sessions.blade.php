@@ -108,7 +108,6 @@
                                         </a>
                                         <form action="{{ route('dashboard.quizzes.sessions.kill', [$quiz, $session]) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to kill this session? This will remove the result and allow the student to retake the quiz.');">
                                             @csrf
-                                            @method('DELETE')
                                             <button type="submit" class="inline-flex items-center gap-0.5 text-xs font-medium text-danger-600 hover:text-danger-800" title="Kill session - remove result and allow retake">
                                                 Kill
                                                 <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">

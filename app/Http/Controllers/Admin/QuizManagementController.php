@@ -1188,26 +1188,21 @@ class QuizManagementController extends Controller
             abort(404);
         }
         $this->authorize('update', $quiz);
-        
-        // If URL quiz is stale, move to canonical URL first.
-        if ((string) $quizId !== (string) $quiz->getRouteKey()) {
-            return redirect()->route('dashboard.quizzes.sessions.kill', [
-                'quizId' => $quiz->getRouteKey(),
-                'quizSession' => $quizSession->getRouteKey(),
-            ]);
-        }
-        
-        $studentIndex = $quizSession->student_index;
-        
-        // Delete the session (DB cascade deletes result, answers, violations)
+
+        // Delete the session (DB cascade deletes result, answers, violations).
+        // Route quizId may be stale after migrations; session binding is authoritative.
         $quizSession->delete();
-        
-        broadcast(new DataUpdated('dashboard'))->toOthers();
-        broadcast(new DataUpdated('sessions'))->toOthers();
-        
+
+        try {
+            broadcast(new DataUpdated('dashboard'))->toOthers();
+            broadcast(new DataUpdated('sessions'))->toOthers();
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
         return redirect()
             ->route($this->staffRoutePrefix() . '.quizzes.show', ['quiz' => $quiz, 'tab' => 'sessions'])
-            ->with('success', 'Reset');
+            ->with('success', 'Session killed. The student can retake this quiz.');
     }
 
     /**

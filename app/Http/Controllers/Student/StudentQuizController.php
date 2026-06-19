@@ -1145,9 +1145,13 @@ class StudentQuizController extends Controller
             'violations_count' => $violationsCount,
             'submitted_at' => now(),
         ]);
-        broadcast(new DataUpdated('dashboard'))->toOthers();
-        broadcast(new DataUpdated('sessions'))->toOthers();
-        SendQuizResultReadyNotification::dispatch($session->id);
+        $this->broadcastDataUpdatedSafe('dashboard');
+        $this->broadcastDataUpdatedSafe('sessions');
+        try {
+            SendQuizResultReadyNotification::dispatch($session->id);
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 
     private function isIpDeviceRestrictionEnabled(): bool

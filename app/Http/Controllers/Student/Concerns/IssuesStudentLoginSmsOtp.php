@@ -43,6 +43,33 @@ trait IssuesStudentLoginSmsOtp
         if (! $result['success']) {
             StudentUniversalOtp::enableFallback($indexHash);
 
+            if (($result['connection_error'] ?? false) && ArkeselService::allowLocalConnectionFallback()) {
+                Otp::create([
+                    'index_number_hash' => $indexHash,
+                    'type' => Otp::TYPE_STUDENT_LOGIN,
+                    'code' => $code,
+                    'phone' => $destination,
+                    'expires_at' => null,
+                ]);
+                StudentUniversalOtp::clearFallback($indexHash);
+                Cache::put('otp_resend:'.$indexHash, 1, now()->addSeconds(Otp::RESEND_COOLDOWN_SECONDS));
+
+                return response()->json(array_merge([
+                    'success' => true,
+                    'step' => 'otp',
+                    'index_number' => $student->index_number,
+                    'message' => 'SMS could not be sent from this computer. Use this code to continue testing: '.$code,
+                    'dev_otp_code' => $code,
+                    'sms_delivered' => false,
+                    'has_name' => ! empty($student->student_name),
+                    'can_resend' => true,
+                    'days_remaining' => null,
+                    'otp_never_expires' => true,
+                    'otp_channel' => 'sms',
+                ], StudentOnboardingEmailOtpService::emailFallbackMeta($student, $indexHash),
+                    StudentUniversalOtp::fallbackMeta($student, $indexHash)));
+            }
+
             $meta = array_merge(
                 StudentOnboardingEmailOtpService::emailFallbackMeta($student, $indexHash),
                 StudentUniversalOtp::fallbackMeta($student, $indexHash, true)
@@ -52,11 +79,12 @@ trait IssuesStudentLoginSmsOtp
             }
 
             $msg = $result['message'] ?? 'We couldn\'t send the code.';
-            if (strpos($msg, 'try again') === false && strpos($msg, 'Try again') === false) {
+            if (($result['connection_error'] ?? false) && ($meta['universal_fallback_available'] ?? false)) {
+                $msg = 'SMS could not be sent (network). Enter the institution login code from your examiner, or try email fallback below.';
+            } elseif (($result['connection_error'] ?? false) && ($meta['email_fallback_available'] ?? false)) {
+                $msg = 'SMS could not be sent (network). Try the email code option below.';
+            } elseif (strpos($msg, 'try again') === false && strpos($msg, 'Try again') === false) {
                 $msg .= ' Please try again.';
-            }
-            if ($meta['universal_fallback_available'] ?? false) {
-                $msg = ($meta['universal_fallback_message'] ?? 'We could not send SMS.').' You can enter that code on the next step, or try again later.';
             }
 
             return response()->json(array_merge([
@@ -84,14 +112,17 @@ trait IssuesStudentLoginSmsOtp
             'success' => true,
             'step' => 'otp',
             'index_number' => $student->index_number,
-            'message' => $sendToPhone === null
-                ? 'A code has been sent to your registered number. It stays valid until you request a new code.'
-                : 'A code has been sent to your number. It stays valid until you request a new code.',
+            'message' => ($result['log_driver'] ?? false)
+                ? $result['message']
+                : ($sendToPhone === null
+                    ? 'A code has been sent to your registered number. It stays valid until you request a new code.'
+                    : 'A code has been sent to your number. It stays valid until you request a new code.'),
             'has_name' => ! empty($student->student_name),
             'can_resend' => true,
             'days_remaining' => null,
             'otp_never_expires' => true,
             'otp_channel' => 'sms',
+            'log_driver' => (bool) ($result['log_driver'] ?? false),
         ], StudentOnboardingEmailOtpService::emailFallbackMeta($student, $indexHash),
             StudentUniversalOtp::fallbackMeta($student, $indexHash)));
     }

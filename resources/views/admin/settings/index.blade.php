@@ -991,8 +991,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 var d = res.data;
                 resultEl.classList.remove('hidden');
                 if (d.success) {
-                    resultEl.classList.add('bg-success-50', 'border', 'border-success-200', 'text-success-800');
+                    if (d.sms_delivered === false) {
+                        resultEl.classList.add('bg-yellow-50', 'border', 'border-yellow-300', 'text-yellow-900');
+                    } else {
+                        resultEl.classList.add('bg-success-50', 'border', 'border-success-200', 'text-success-800');
+                    }
                     resultEl.textContent = d.message || 'Test OTP sent.';
+                    if (d.test_code) {
+                        resultEl.textContent += ' Code: ' + d.test_code;
+                    }
                 } else {
                     resultEl.classList.add('bg-danger-50', 'border', 'border-danger-200', 'text-danger-800');
                     resultEl.textContent = (d.message || 'Failed to send test OTP.') + (d.detail ? ' (' + d.detail + ')' : '');

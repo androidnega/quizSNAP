@@ -23,14 +23,14 @@
 
 @if($showBanner)
 @if($mode === 'image' && ! empty($bannerImageUrl))
-{{-- Full graphic banner: 2:1 aspect, fills width on mobile through desktop --}}
+{{-- Full graphic banner: 16:9 aspect, fills dashboard width on mobile through desktop --}}
 <section aria-label="Dashboard banner" class="w-full min-w-0">
-    <figure class="relative m-0 w-full min-w-0 overflow-hidden rounded-2xl lg:rounded-3xl bg-[#fef9e7] shadow-[0_4px_24px_rgba(15,23,42,0.08)] ring-1 ring-slate-200/70 aspect-[2/1]">
+    <figure class="relative m-0 w-full min-w-0 overflow-hidden rounded-2xl lg:rounded-3xl bg-[#fef9e7] shadow-[0_4px_24px_rgba(15,23,42,0.08)] ring-1 ring-slate-200/70 aspect-[16/9]">
         <img src="{{ e($bannerImageUrl) }}"
-             alt="Good luck in your midsem exams — motivational banner for QuizSnap students"
-             class="absolute inset-0 block h-full w-full object-contain object-center"
+             alt="Good luck in your midsem exams. Believe in yourself, stay focused, and do your best. Emmanuel Kofi Kwofie, Planning Committee Chair — FASSA."
+             class="absolute inset-0 block h-full w-full object-cover object-center"
              width="1024"
-             height="512"
+             height="576"
              loading="eager"
              decoding="async"
              fetchpriority="high">

@@ -78,12 +78,15 @@ class StudentQuizController extends Controller
             'quizAllowsMobile',
             in_array($allowedDevices, [Quiz::ALLOWED_DEVICES_BOTH, Quiz::ALLOWED_DEVICES_MOBILE], true)
         );
+        $flags = $this->proctoringFlags();
+
         return response()
             ->view('student.quiz-ready', [
                 'session' => $session,
                 'courseName' => $session->quiz->course?->name ?? $session->quiz->title ?? 'Quiz',
                 'durationMinutes' => (int) ($session->quiz->duration_minutes ?? 0),
                 'questionCount' => $questionCount,
+                'proctoringTabSwitch' => $flags['proctoring_tab_switch'] ?? true,
             ])
             ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
             ->header('Pragma', 'no-cache');
@@ -146,8 +149,10 @@ class StudentQuizController extends Controller
         }
         $session->update([
             'camera_verified' => true,
-            'camera_started_at' => now(),
+            'camera_started_at' => $session->camera_started_at ?? now(),
+            'start_time' => now(),
         ]);
+        broadcast(new DataUpdated('sessions'))->toOthers();
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,
@@ -159,7 +164,7 @@ class StudentQuizController extends Controller
 
     /**
      * Show quiz interface (StudentQuiz): timer, questions, auto-save.
-     * Session token resolved from session (not URL). Timer starts on first load (start_time set here if null).
+     * Session token resolved from session (not URL). Timer starts when the student submits quiz-ready.
      * Requires camera_verified = true before allowing quiz to start.
      */
     public function show(Request $request): View|JsonResponse|\Illuminate\Http\Response|\Illuminate\Http\RedirectResponse
@@ -192,8 +197,7 @@ class StudentQuizController extends Controller
             ]);
         }
         if ($session->start_time === null) {
-            $session->update(['start_time' => now()]);
-            broadcast(new DataUpdated('sessions'))->toOthers();
+            return redirect()->route('student.quiz.ready');
         }
         if ($this->isIpDeviceRestrictionEnabled() && $session->ip_address !== $request->ip()) {
             QuizViolation::create([

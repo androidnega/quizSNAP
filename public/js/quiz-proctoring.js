@@ -840,8 +840,9 @@
     var resizeBlurFinalWarning = document.getElementById('resize-blur-final-warning');
     var enterFsBtn = document.getElementById('resize-blur-enter-fs-btn');
     var windowResizeLimit = (window.QuizSnapQuiz && window.QuizSnapQuiz.windowResizeLimit) || 3;
-    var isFullscreenOrMaximized = (window.QuizSnapWindowState && window.QuizSnapWindowState.isFullscreenOrMaximized)
-        ? window.QuizSnapWindowState.isFullscreenOrMaximized
+    var ws = window.QuizSnapWindowState || {};
+    var isFullscreenOrMaximized = ws.isFullscreenOrMaximized
+        ? ws.isFullscreenOrMaximized.bind(ws)
         : function () {
             if (document.fullscreenElement || document.webkitFullscreenElement) return true;
             var outerW = window.outerWidth;
@@ -988,6 +989,9 @@
     }
 
     function requestQuizFullscreen() {
+        if (ws.requestMaximizeOrFullscreen) {
+            return ws.requestMaximizeOrFullscreen();
+        }
         var el = document.documentElement;
         var fn = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
         if (!fn) {
@@ -997,18 +1001,23 @@
     }
     if (enterFsBtn) {
         enterFsBtn.addEventListener('click', function() {
-            requestQuizFullscreen().catch(function() {
+            requestQuizFullscreen().then(function() {
+                wasFullscreenOrMaximized = isFullscreenOrMaximized();
+                if (wasFullscreenOrMaximized) {
+                    hideResizeBlur();
+                }
+            }).catch(function() {
                 alert('Could not enter full screen. Use F11 or your browser\'s full screen control.');
             });
         });
     }
 
-    // Block the quiz until the student is in full screen (before answering questions).
+    // Block the quiz until the student is in full screen or maximized (before answering questions).
     if (c.proctoringTabSwitch !== false && !isFullscreenOrMaximized()) {
         wasFullscreenOrMaximized = false;
         showResizeBlur(false);
         if (resizeBlurTitle) resizeBlurTitle.textContent = 'Full screen required';
-        if (resizeBlurMessage) resizeBlurMessage.textContent = 'You must be in full screen before answering questions. Click the button below to continue.';
+        if (resizeBlurMessage) resizeBlurMessage.textContent = 'You must be in full screen or maximized before answering questions. Click the button below to continue.';
     }
 
     // --- Camera monitoring during quiz (single background camera stream) ---

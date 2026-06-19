@@ -172,11 +172,16 @@
     </div>
 
     {{-- Reusable proctoring warning (out of frame, two faces, etc.) --}}
-    <div id="proctoring-message-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-90 px-4">
-        <div class="bg-amber-50 border-2 border-amber-500 rounded-lg p-4 max-w-md w-full text-center">
-            <h4 id="proctoring-message-title" class="font-semibold text-amber-900 mb-2">⚠️ Warning</h4>
-            <p id="proctoring-message-body" class="text-sm text-amber-900 mb-4"></p>
-            <button type="button" onclick="this.closest('#proctoring-message-modal').classList.add('hidden')" class="btn btn-action py-2.5 px-5 text-sm font-semibold">OK</button>
+    <div id="proctoring-message-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+        <div class="bg-white rounded-2xl shadow-xl p-6 max-w-md w-full text-center">
+            <div id="proctoring-message-icon-wrap" class="hidden mb-4">
+                <span class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-100">
+                    <i id="proctoring-message-icon" class="fas fa-user-group text-3xl text-slate-700" aria-hidden="true"></i>
+                </span>
+            </div>
+            <h4 id="proctoring-message-title" class="text-lg font-semibold text-gray-900 mb-2">Warning</h4>
+            <p id="proctoring-message-body" class="text-sm text-gray-600 mb-5"></p>
+            <button type="button" onclick="this.closest('#proctoring-message-modal').classList.add('hidden')" class="w-full py-2.5 px-5 text-sm font-semibold rounded-xl text-white bg-gray-900 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 transition-colors">OK</button>
         </div>
     </div>
 
@@ -193,7 +198,7 @@
     <div id="resize-blur-overlay" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-gray-900 px-4 pointer-events-auto" aria-hidden="true">
         <div class="bg-white border border-gray-200 rounded-lg p-4 max-w-md w-full border border-gray-200 text-center">
             <h4 id="resize-blur-title" class="font-semibold text-gray-800 mb-2">Full screen required</h4>
-            <p id="resize-blur-message" class="text-sm text-gray-600 mb-4">You must be in full screen before answering questions. Click the button below to continue.</p>
+            <p id="resize-blur-message" class="text-sm text-gray-600 mb-4">You must be in full screen or maximized before answering questions. Click the button below to continue.</p>
             <button type="button" id="resize-blur-enter-fs-btn" class="mb-3 w-full py-2.5 px-5 text-sm font-semibold rounded-lg border-2 border-sky-400 bg-sky-50 text-sky-800 hover:bg-sky-100 focus:ring-2 focus:ring-sky-500 focus:ring-offset-1 transition-colors">Enter full screen</button>
             <p id="resize-blur-warning" class="text-sm font-medium text-amber-700 mb-3 hidden">Repeated violations will result in auto-submission of your quiz.</p>
             <p id="resize-blur-final-warning" class="text-sm font-bold text-red-600 mb-3 hidden">One more resize or exit from full screen will auto-submit your quiz.</p>

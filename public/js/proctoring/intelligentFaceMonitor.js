@@ -671,7 +671,8 @@
             if (multipleFacesConsecutiveCount >= MULTIPLE_FACES_CONSECUTIVE_THRESHOLD) {
                 showProctoringModal(
                     effectiveMultiple === 2 ? 'Two faces detected' : 'Multiple faces detected',
-                    'Only one person should be in the camera frame. Your quiz is being submitted.'
+                    'Only one person should be in the camera frame. Your quiz is being submitted.',
+                    { icon: effectiveMultiple === 2 ? 'fa-user-group' : 'fa-users' }
                 );
                 recordViolation('multiple_faces_during_quiz', 'major', true, { face_count: effectiveMultiple });
                 // Instant auto-submit on first confirmed multiple-faces (2+ or 3+)
@@ -932,13 +933,24 @@
     /**
      * Show reusable proctoring message modal (quiz page only). Used for out-of-frame and two-faces warnings.
      */
-    function showProctoringModal(title, body) {
+    function showProctoringModal(title, body, options) {
+        options = options || {};
         const el = document.getElementById('proctoring-message-modal');
         if (!el) return;
         const titleEl = document.getElementById('proctoring-message-title');
         const bodyEl = document.getElementById('proctoring-message-body');
+        const iconWrap = document.getElementById('proctoring-message-icon-wrap');
+        const iconEl = document.getElementById('proctoring-message-icon');
         if (titleEl) titleEl.textContent = title || 'Warning';
         if (bodyEl) bodyEl.textContent = body || '';
+        if (iconWrap && iconEl) {
+            if (options.icon) {
+                iconWrap.classList.remove('hidden');
+                iconEl.className = 'fas ' + options.icon + ' text-3xl text-slate-700';
+            } else {
+                iconWrap.classList.add('hidden');
+            }
+        }
         el.classList.remove('hidden');
     }
 

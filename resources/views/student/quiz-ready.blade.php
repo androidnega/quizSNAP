@@ -4,16 +4,24 @@
 @section('body_class', 'bg-offwhite')
 
 @section('content')
-<div id="quiz-fs-gate" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-95 px-4">
+@php
+    $fullscreenRequired = ($proctoringTabSwitch ?? true);
+@endphp
+@if($fullscreenRequired)
+<div id="quiz-fs-gate" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-95 px-4" aria-hidden="false">
     <div class="max-w-md w-full bg-white border border-gray-200 rounded-xl p-6 shadow-lg text-center">
+        <div class="w-14 h-14 mx-auto mb-4 rounded-full bg-sky-50 flex items-center justify-center">
+            <i class="fas fa-expand text-2xl text-sky-600" aria-hidden="true"></i>
+        </div>
         <h2 class="text-lg font-bold text-gray-900 mb-2">Full screen required</h2>
-        <p class="text-sm text-gray-600 mb-5">Before you start the quiz, your browser must be in full screen. This helps prevent cheating and is required for proctoring.</p>
+        <p class="text-sm text-gray-600 mb-5">Before you start the quiz, your browser must be in full screen or maximized. This helps prevent cheating and is required for proctoring.</p>
         <button type="button" id="quiz-fs-gate-btn" class="btn btn-action w-full py-2.5 text-sm font-semibold bg-sky-600 hover:bg-sky-700 text-white border-0">
             Enter full screen
         </button>
         <p id="quiz-fs-gate-hint" class="mt-3 text-xs text-gray-500 hidden">Full screen active. You can start the quiz below.</p>
     </div>
 </div>
+@endif
 
 <div class="min-h-[100dvh] min-h-screen flex items-center justify-center px-4 py-6 w-full max-w-full">
     <div class="max-w-md w-full max-w-full">
@@ -42,7 +50,7 @@
 
             <form method="POST" action="{{ route('student.quiz.session.start') }}" id="quiz-start-form">
                 @csrf
-                <button type="submit" id="start-quiz-btn" disabled class="btn btn-action w-full py-2.5 text-sm font-semibold bg-red-600 hover:bg-red-700 text-white border-0 disabled:opacity-50 disabled:cursor-not-allowed">
+                <button type="submit" id="start-quiz-btn" @if($fullscreenRequired) disabled @endif class="btn btn-action w-full py-2.5 text-sm font-semibold bg-red-600 hover:bg-red-700 text-white border-0 disabled:opacity-50 disabled:cursor-not-allowed">
                     Start Quiz
                 </button>
             </form>
@@ -55,31 +63,37 @@
 <script src="{{ asset('js/quiz-window-state.js') }}"></script>
 <script>
 (function() {
+    var fullscreenRequired = {{ $fullscreenRequired ? 'true' : 'false' }};
     var gate = document.getElementById('quiz-fs-gate');
     var gateBtn = document.getElementById('quiz-fs-gate-btn');
     var gateHint = document.getElementById('quiz-fs-gate-hint');
     var startBtn = document.getElementById('start-quiz-btn');
     var startForm = document.getElementById('quiz-start-form');
+    var ws = window.QuizSnapWindowState || {};
 
     function isFullscreenOrMaximized() {
-        if (window.QuizSnapWindowState && window.QuizSnapWindowState.isFullscreenOrMaximized) {
-            return window.QuizSnapWindowState.isFullscreenOrMaximized();
-        }
-        if (document.fullscreenElement || document.webkitFullscreenElement) {
-            return true;
-        }
-        if (!window.screen) return false;
-        var tol = 100;
-        return window.outerWidth >= window.screen.availWidth - tol && window.outerHeight >= window.screen.availHeight - tol;
+        return ws.isFullscreenOrMaximized ? ws.isFullscreenOrMaximized() : false;
     }
 
-    function requestFullscreen() {
-        var el = document.documentElement;
-        var fn = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
-        if (!fn) {
-            return Promise.reject(new Error('unsupported'));
+    function requestMaximizeOrFullscreen() {
+        if (ws.requestMaximizeOrFullscreen) {
+            return ws.requestMaximizeOrFullscreen();
         }
-        return fn.call(el);
+        return Promise.reject(new Error('unsupported'));
+    }
+
+    function lockStart() {
+        if (startBtn) {
+            startBtn.disabled = true;
+        }
+        if (gate) {
+            gate.classList.remove('hidden');
+            gate.classList.add('flex');
+            gate.setAttribute('aria-hidden', 'false');
+        }
+        if (gateHint) {
+            gateHint.classList.add('hidden');
+        }
     }
 
     function unlockStart() {
@@ -88,6 +102,7 @@
         }
         if (gate) {
             gate.classList.add('hidden');
+            gate.classList.remove('flex');
             gate.setAttribute('aria-hidden', 'true');
         }
         if (gateHint) {
@@ -96,15 +111,26 @@
     }
 
     function syncGate() {
+        if (!fullscreenRequired) {
+            unlockStart();
+            return;
+        }
         if (isFullscreenOrMaximized()) {
             unlockStart();
+        } else {
+            lockStart();
         }
+    }
+
+    if (!fullscreenRequired) {
+        unlockStart();
+        return;
     }
 
     if (gateBtn) {
         gateBtn.addEventListener('click', function() {
-            requestFullscreen().then(syncGate).catch(function() {
-                alert('Could not enter full screen. Use F11 or your browser\'s full screen control, then try again.');
+            requestMaximizeOrFullscreen().then(syncGate).catch(function() {
+                alert('Could not enter full screen. Use F11 or your browser\'s maximize/full screen control, then try again.');
                 syncGate();
             });
         });
@@ -114,18 +140,20 @@
         startForm.addEventListener('submit', function(e) {
             if (!isFullscreenOrMaximized()) {
                 e.preventDefault();
-                if (gate) {
-                    gate.classList.remove('hidden');
-                    gate.setAttribute('aria-hidden', 'false');
-                }
-                alert('Please enter full screen before starting the quiz.');
+                lockStart();
+                alert('Please enter full screen or maximize your browser window before starting the quiz.');
             }
         });
     }
 
-    document.addEventListener('fullscreenchange', syncGate);
-    document.addEventListener('webkitfullscreenchange', syncGate);
-    window.addEventListener('resize', syncGate);
+    if (ws.bindFullscreenSync) {
+        ws.bindFullscreenSync(syncGate);
+    } else {
+        document.addEventListener('fullscreenchange', syncGate);
+        document.addEventListener('webkitfullscreenchange', syncGate);
+        window.addEventListener('resize', syncGate);
+    }
+
     syncGate();
 })();
 </script>

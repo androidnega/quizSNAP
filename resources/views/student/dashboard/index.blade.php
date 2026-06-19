@@ -62,13 +62,13 @@
 </nav>
 
 <section aria-label="At a glance">
-    <h2 class="text-[10px] sm:text-xs lg:text-sm font-semibold text-slate-500 mb-3 lg:mb-5 uppercase tracking-wider">At a glance</h2>
-    <div class="grid grid-cols-3 gap-2 sm:gap-3 lg:gap-5">
+    <h2 class="text-[10px] sm:text-xs lg:text-sm font-semibold text-slate-500 mb-2.5 lg:mb-4 uppercase tracking-wider">At a glance</h2>
+    <div class="grid grid-cols-3 gap-2 sm:gap-3 lg:gap-4">
         @if($student && ($hasQuizAccess ?? true))
-        <a href="{{ route('dashboard.my-quizzes') }}" class="rounded-2xl p-3 sm:p-5 lg:p-6 flex flex-col no-underline hover:opacity-95 transition-opacity min-h-[100px] lg:min-h-[128px]" style="background-color: #dbeafe;">
-            <span class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-sm sm:text-base shrink-0" style="background-color: #bfdbfe; color: #1d4ed8;"><i class="fas fa-clipboard-list"></i></span>
-            <span class="text-xl sm:text-2xl lg:text-3xl font-bold tabular-nums mt-2 sm:mt-3 lg:mt-4 truncate text-slate-900">{{ $sessionsCount ?? 0 }}</span>
-            <span class="text-[9px] sm:text-[10px] lg:text-xs font-bold uppercase tracking-wide mt-0.5 sm:mt-1 lg:mt-1.5 truncate text-slate-600 leading-tight">Quizzes taken</span>
+        <a href="{{ route('dashboard.my-quizzes') }}" class="group rounded-xl border border-blue-200/80 bg-gradient-to-br from-blue-50 to-blue-100/90 p-3 sm:p-3.5 flex flex-col no-underline transition-all duration-200 ease-out hover:border-blue-300 hover:from-blue-100 hover:to-blue-200/80 hover:shadow-md hover:shadow-blue-100/80 hover:-translate-y-0.5">
+            <span class="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-blue-600/10 text-blue-700 flex items-center justify-center text-sm shrink-0 transition-colors duration-200 group-hover:bg-blue-600 group-hover:text-white"><i class="fas fa-clipboard-list"></i></span>
+            <span class="text-lg sm:text-xl font-bold tabular-nums mt-2 truncate text-slate-900">{{ $sessionsCount ?? 0 }}</span>
+            <span class="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wide mt-0.5 truncate text-blue-800/70 leading-tight">Quizzes taken</span>
         </a>
         @endif
 
@@ -80,12 +80,12 @@
             $scheduledActive = $hasScheduled && !$hasScheduledResult && !$scheduledUpcoming;
             $showLastQuiz = isset($lastQuiz) && $lastQuiz && $lastQuiz->result && !$scheduledActive;
         @endphp
-        <div class="rounded-2xl p-3 sm:p-5 lg:p-6 flex flex-col min-h-[100px] lg:min-h-[128px] relative overflow-hidden" style="background-color: #d1fae5;">
+        <div class="group rounded-xl border border-emerald-200/80 bg-gradient-to-br from-emerald-50 to-emerald-100/90 p-3 sm:p-3.5 flex flex-col relative overflow-hidden transition-all duration-200 ease-out hover:border-emerald-300 hover:from-emerald-100 hover:to-emerald-200/80 hover:shadow-md hover:shadow-emerald-100/80 hover:-translate-y-0.5">
             @if($showLastQuiz)
-            <a href="{{ route('dashboard.my-quizzes.show', ['sessionId' => $lastQuiz->id]) }}" class="flex flex-col flex-1 no-underline text-inherit hover:opacity-90 transition-opacity min-w-0">
-                <span class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-sm sm:text-base shrink-0" style="background-color: #a7f3d0; color: #047857;"><i class="fas fa-book"></i></span>
-                <span class="text-xs sm:text-sm lg:text-base font-bold mt-2 sm:mt-3 lg:mt-4 truncate text-slate-900">{{ $lastQuiz->quiz?->title ?? 'Latest quiz' }}</span>
-                <span class="text-[9px] sm:text-[10px] lg:text-xs font-bold uppercase tracking-wide mt-0.5 sm:mt-1 lg:mt-1.5 truncate text-slate-600 leading-tight">Score: {{ number_format($lastQuiz->result->score, 1) }}%</span>
+            <a href="{{ route('dashboard.my-quizzes.show', ['sessionId' => $lastQuiz->id]) }}" class="flex flex-col flex-1 no-underline text-inherit min-w-0">
+                <span class="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-emerald-600/10 text-emerald-700 flex items-center justify-center text-sm shrink-0 transition-colors duration-200 group-hover:bg-emerald-600 group-hover:text-white"><i class="fas fa-book"></i></span>
+                <span class="text-xs sm:text-sm font-bold mt-2 truncate text-slate-900">{{ $lastQuiz->quiz?->title ?? 'Latest quiz' }}</span>
+                <span class="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wide mt-0.5 truncate text-emerald-800/70 leading-tight">Score: {{ number_format($lastQuiz->result->score, 1) }}%</span>
             </a>
             @else
             <a href="@if($hasScheduled && $hasScheduledResult)
@@ -98,16 +98,16 @@
                       {{ route('dashboard.my-quizzes') }}
                   @endif"
                @if($scheduledUpcoming) data-rules-url="{{ route('student.rules.show.quiz', ['token' => $scheduledQuiz->link_token]) }}" @endif
-               class="flex flex-col flex-1 no-underline text-inherit hover:opacity-90 transition-opacity min-w-0">
-                <span class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-sm sm:text-base shrink-0" style="background-color: #a7f3d0; color: #047857;"><i class="fas fa-book"></i></span>
-                <span class="text-xs sm:text-sm lg:text-base font-bold mt-2 sm:mt-3 lg:mt-4 truncate text-slate-900">
+               class="flex flex-col flex-1 no-underline text-inherit min-w-0">
+                <span class="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-emerald-600/10 text-emerald-700 flex items-center justify-center text-sm shrink-0 transition-colors duration-200 group-hover:bg-emerald-600 group-hover:text-white"><i class="fas fa-book"></i></span>
+                <span class="text-xs sm:text-sm font-bold mt-2 truncate text-slate-900">
                     @if(isset($scheduledQuiz) && $scheduledQuiz)
                         {{ $scheduledQuiz->title }}
                     @else
                         No active quiz
                     @endif
                 </span>
-                <span class="text-[9px] sm:text-[10px] lg:text-xs font-bold uppercase tracking-wide mt-0.5 sm:mt-1 lg:mt-1.5 truncate text-slate-600 leading-tight">
+                <span class="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wide mt-0.5 truncate text-emerald-800/70 leading-tight">
                     @if(isset($scheduledQuizSession) && $scheduledQuizSession?->result)
                         Score: {{ number_format($scheduledQuizSession->result->score, 1) }}%
                     @elseif($scheduledUpcoming)
@@ -120,16 +120,16 @@
                 </span>
             </a>
             @if($scheduledActive && $scheduledQuiz)
-            <a href="{{ route('student.rules.show.quiz', ['token' => $scheduledQuiz->link_token]) }}" class="mt-3 lg:mt-4 self-start inline-flex items-center justify-center px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wide text-amber-900 bg-amber-400 hover:bg-amber-500 transition-colors no-underline">Start</a>
+            <a href="{{ route('student.rules.show.quiz', ['token' => $scheduledQuiz->link_token]) }}" class="mt-2 self-start inline-flex items-center justify-center px-3 py-1.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wide text-amber-950 bg-amber-400 hover:bg-amber-500 hover:shadow-sm transition-all duration-200 no-underline">Start</a>
             @endif
             @endif
         </div>
         @endif
 
-        <a href="{{ route('dashboard.my-profile') }}" class="rounded-2xl p-3 sm:p-5 lg:p-6 flex flex-col no-underline hover:opacity-95 transition-opacity min-h-[100px] lg:min-h-[128px]" style="background-color: #fef3c7;">
-            <span class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-sm sm:text-base shrink-0" style="background-color: #fde68a; color: #b45309;"><i class="fas fa-user"></i></span>
-            <span class="text-xs sm:text-sm lg:text-base font-bold mt-2 sm:mt-3 lg:mt-4 truncate text-slate-900">View</span>
-            <span class="text-[9px] sm:text-[10px] lg:text-xs font-bold uppercase tracking-wide mt-0.5 sm:mt-1 lg:mt-1.5 truncate text-slate-600 leading-tight">Profile</span>
+        <a href="{{ route('dashboard.my-profile') }}" class="group rounded-xl border border-amber-200/80 bg-gradient-to-br from-amber-50 to-amber-100/90 p-3 sm:p-3.5 flex flex-col no-underline transition-all duration-200 ease-out hover:border-amber-300 hover:from-amber-100 hover:to-amber-200/80 hover:shadow-md hover:shadow-amber-100/80 hover:-translate-y-0.5">
+            <span class="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-amber-600/10 text-amber-800 flex items-center justify-center text-sm shrink-0 transition-colors duration-200 group-hover:bg-amber-600 group-hover:text-white"><i class="fas fa-user"></i></span>
+            <span class="text-xs sm:text-sm font-bold mt-2 truncate text-slate-900">View</span>
+            <span class="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wide mt-0.5 truncate text-amber-900/70 leading-tight">Profile</span>
         </a>
     </div>
 </section>

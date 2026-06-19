@@ -14,249 +14,234 @@
 @push('styles')
 @include('student.partials.marketing-chrome-styles')
 <style>
-    .section-icon-box {
-        width: 64px;
-        height: 64px;
-        border-radius: 16px;
+    .about-page-main {
+        flex: 1;
+        width: 100%;
+        padding: 1.5rem 0 3rem;
+    }
+    .about-hero {
+        margin-bottom: 1.5rem;
+    }
+    .about-card {
+        width: 100%;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 1.25rem;
+        padding: 1.5rem;
+    }
+    @media (min-width: 640px) {
+        .about-page-main { padding: 2rem 0 4rem; }
+        .about-card { padding: 2rem; border-radius: 1.5rem; }
+    }
+    @media (min-width: 1024px) {
+        .about-card { padding: 2.5rem 3rem; }
+    }
+    .about-section {
+        padding: 1.25rem 0;
+        border-bottom: 1px solid #f1f5f9;
+    }
+    .about-section:last-child { border-bottom: none; padding-bottom: 0; }
+    .about-section:first-child { padding-top: 0; }
+    .about-section-head {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        margin-bottom: 0.875rem;
+    }
+    .about-icon {
+        width: 3rem;
+        height: 3rem;
+        border-radius: 0.875rem;
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         flex-shrink: 0;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
     }
-    .section-icon-box svg {
-        width: 32px;
-        height: 32px;
-        color: white;
-        stroke-width: 2;
+    .about-icon svg { width: 1.375rem; height: 1.375rem; color: #fff; }
+    .about-section-body {
+        color: #475569;
+        font-size: 0.9375rem;
+        line-height: 1.65;
+    }
+    .about-section-body p { margin: 0 0 0.625rem; }
+    .about-section-body p:last-child { margin-bottom: 0; }
+    .about-section-body ul { margin: 0.5rem 0 0; padding-left: 1.25rem; }
+    .about-section-body li { margin-bottom: 0.375rem; }
+    .about-highlight {
+        background: #eff6ff;
+        border: 1px solid #dbeafe;
+        border-radius: 1rem;
+        padding: 1.25rem;
+        margin-top: 0.5rem;
+    }
+    .about-cta {
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #e2e8f0;
+        text-align: center;
     }
 </style>
 @endpush
 
 @section('content')
-<div class="min-h-screen flex flex-col font-sans antialiased">
+<div class="min-h-screen flex flex-col font-sans antialiased qs-landing-shell">
     @include('student.partials.marketing-header', [
         'appName' => $appName,
         'student' => $student ?? null,
         'showStudentLogin' => true,
     ])
 
-    <main class="flex-1 px-6 py-12">
-        <div class="max-w-4xl mx-auto">
-            <div class="mb-8">
-                <a href="{{ route('student.landing') }}" class="text-sm text-blue-600 hover:text-blue-800 font-medium inline-flex items-center gap-1">
+    <main class="about-page-main">
+        <div class="qs-container">
+            <div class="about-hero">
+                <a href="{{ route('student.landing') }}" class="text-sm text-blue-600 hover:text-blue-800 font-medium inline-flex items-center gap-1 mb-4 no-underline">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                     </svg>
                     Back to Home
                 </a>
+                <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900 tracking-tight">How {{ $appName }} Works</h1>
+                <p class="mt-3 text-base sm:text-lg text-slate-600 max-w-3xl leading-relaxed">
+                    {{ $appName }} is a secure online assessment platform for educational institutions.
+                    Here is everything you need to know about taking quizzes.
+                </p>
             </div>
 
-            <div class="bg-white rounded-2xl border border-slate-200 p-8 md:p-12">
-                <h1 class="text-3xl sm:text-4xl font-bold text-slate-900 mb-6">How QuizSnap Works</h1>
-                
-                <p class="text-lg text-slate-700 mb-8 leading-relaxed">
-                    QuizSnap is a secure online assessment platform designed for educational institutions. 
-                    Here's everything you need to know about taking quizzes on QuizSnap.
-                </p>
-
-                <div class="space-y-10">
-                    <!-- Getting Started -->
-                    <section>
-                        <div class="flex items-start gap-4 mb-4">
-                            <div class="section-icon-box" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);">
-                                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                </svg>
-                            </div>
-                            <div class="flex-1">
-                                <h2 class="text-2xl font-semibold text-slate-900 mb-1">Getting Started</h2>
-                                <p class="text-sm text-slate-500">Your first steps to taking a quiz</p>
-                            </div>
+            <div class="about-card">
+                <div class="about-section">
+                    <div class="about-section-head">
+                        <div class="about-icon" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);">
+                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                         </div>
-                        <div class="ml-20 space-y-3 text-slate-700">
-                            <p><strong>Receive your token:</strong> Your lecturer or examiner will provide you with a unique quiz token (e.g., KTdie54-3Sx9).</p>
-                            <p><strong>Enter the token:</strong> On the homepage, enter the token in the input field and click "Start Quiz".</p>
-                            <p><strong>Login to your account:</strong> You can also log in to your student account to see all available quizzes on your dashboard.</p>
+                        <div>
+                            <h2 class="text-lg sm:text-xl font-semibold text-slate-900">Getting Started</h2>
+                            <p class="text-sm text-slate-500 mt-0.5">Your first steps to taking a quiz</p>
                         </div>
-                    </section>
-
-                    <!-- Verification Process -->
-                    <section>
-                        <div class="flex items-start gap-4 mb-4">
-                            <div class="section-icon-box" style="background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%);">
-                                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                                </svg>
-                            </div>
-                            <div class="flex-1">
-                                <h2 class="text-2xl font-semibold text-slate-900 mb-1">Verification Process</h2>
-                                <p class="text-sm text-slate-500">Secure identity verification steps</p>
-                            </div>
-                        </div>
-                        <div class="ml-20 space-y-3 text-slate-700">
-                            <p><strong>Index number:</strong> Enter your student index number for verification.</p>
-                            <p><strong>Phone verification:</strong> If it's your first time, you'll verify your phone number with an OTP.</p>
-                            <p><strong>Pre-quiz photo:</strong> Take a clear photo of your face using your device camera. This helps verify your identity.</p>
-                        </div>
-                    </section>
-
-                    <!-- Taking the Quiz -->
-                    <section>
-                        <div class="flex items-start gap-4 mb-4">
-                            <div class="section-icon-box" style="background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);">
-                                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                </svg>
-                            </div>
-                            <div class="flex-1">
-                                <h2 class="text-2xl font-semibold text-slate-900 mb-1">Taking the Quiz</h2>
-                                <p class="text-sm text-slate-500">Important guidelines during the quiz</p>
-                            </div>
-                        </div>
-                        <div class="ml-20 space-y-3 text-slate-700">
-                            <p><strong>Timer:</strong> Once you start, a countdown timer begins. You must complete the quiz before time runs out.</p>
-                            <p><strong>Answer questions:</strong> Questions are displayed one screen at a time. Select your answers carefully.</p>
-                            <p><strong>Auto-save:</strong> Your answers are automatically saved as you progress.</p>
-                            <p><strong>Stay focused:</strong> Remain on the quiz tab. Switching tabs may be logged as a violation.</p>
-                            <p><strong>Desktop only:</strong> QuizSnap is optimized for desktop browsers. Mobile devices are not supported.</p>
-                        </div>
-                    </section>
-
-                    <!-- Proctoring & Security -->
-                    <section>
-                        <div class="flex items-start gap-4 mb-4">
-                            <div class="section-icon-box" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);">
-                                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                                </svg>
-                            </div>
-                            <div class="flex-1">
-                                <h2 class="text-2xl font-semibold text-slate-900 mb-1">Proctoring & Security</h2>
-                                <p class="text-sm text-slate-500">What is monitored and when your quiz may auto-submit</p>
-                            </div>
-                        </div>
-                        <div class="ml-20 space-y-4 text-slate-700">
-                            <p class="text-sm text-slate-500 uppercase tracking-wide font-semibold">What is monitored during a proctored quiz</p>
-                            <ul class="list-disc pl-5 space-y-2">
-                                <li><strong>Face verification & camera:</strong> A pre-quiz photo (and sometimes post-quiz photo) confirms it is really you. If camera proctoring is enabled for your quiz, your camera must stay on and your face should remain clearly visible and centered.</li>
-                                <li><strong>Screen focus & tab changes:</strong> The system can detect when you leave the quiz tab, minimize the window, or resize it in suspicious ways.</li>
-                                <li><strong>Multiple faces & environment:</strong> If more than one face is detected for a proctored quiz, or your face repeatedly leaves the frame, these events are logged for your examiner.</li>
-                                <li><strong>Clipboard & screenshots:</strong> Attempts to copy/paste quiz content or take screenshots are recorded as serious violations.</li>
-                                <li><strong>Devices & network:</strong> For protected quizzes, using a second device or a different network (IP address) for the same attempt can be treated as a violation.</li>
-                            </ul>
-
-                            <p class="text-sm text-slate-500 uppercase tracking-wide font-semibold mt-4">When the system may auto-submit your quiz</p>
-                            <ul class="list-disc pl-5 space-y-2">
-                                <li><strong>Serious violations:</strong> Certain actions (for example: using a phone on camera, clear screenshot attempts, obvious copy/paste of quiz content, multiple faces or multiple devices for the same attempt, or repeated tab switching/blur events) can cause your quiz to be <span class="font-semibold text-red-700">automatically submitted and flagged</span> for review.</li>
-                                <li><strong>Too many warnings:</strong> If you repeatedly break proctoring rules (for example, your face is out of frame many times, or there are many warning-level violations), the system may automatically submit your quiz and mark the attempt as risky for the examiner.</li>
-                                <li><strong>Time running out:</strong> When the quiz timer reaches zero, QuizSnap will submit your attempt automatically using the last answers we successfully saved.</li>
-                            </ul>
-
-                            <p class="text-sm text-slate-500 uppercase tracking-wide font-semibold mt-4">What does <span class="font-semibold text-slate-800 normal-case">not</span> auto-submit your quiz</p>
-                            <ul class="list-disc pl-5 space-y-2">
-                                <li><strong>Network problems:</strong> If your connection drops, your answers are stored safely in your browser and will sync when you come back online. Network errors alone do <span class="font-semibold">not</span> auto-submit your quiz.</li>
-                                <li><strong>Short camera glitches:</strong> Brief camera interruptions are treated as warnings. You will see on-screen messages and should fix the issue quickly, but a single glitch does not immediately submit your quiz.</li>
-                            </ul>
-
-                            <p><strong>Fair assessment:</strong> Proctoring is designed to protect honest students. If you stay on the quiz page, keep your camera on (when required), avoid external help, and follow the rules, you can complete your quiz without interruption.</p>
-                        </div>
-                    </section>
-
-                    <!-- Submitting & Results -->
-                    <section>
-                        <div class="flex items-start gap-4 mb-4">
-                            <div class="section-icon-box" style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);">
-                                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                            </div>
-                            <div class="flex-1">
-                                <h2 class="text-2xl font-semibold text-slate-900 mb-1">Submitting & Results</h2>
-                                <p class="text-sm text-slate-500">Complete and view your results</p>
-                            </div>
-                        </div>
-                        <div class="ml-20 space-y-3 text-slate-700">
-                            <p><strong>Final photo:</strong> After completing all questions, take a final photo to submit your quiz.</p>
-                            <p><strong>Instant results:</strong> Your score is calculated immediately after submission.</p>
-                            <p><strong>Review answers:</strong> You can review your answers and see correct answers (if enabled by your lecturer).</p>
-                            <p><strong>Results history:</strong> Your scores are saved forever. Detailed question reviews are available for 21 days.</p>
-                        </div>
-                    </section>
-
-                    <!-- Technical Requirements -->
-                    <section>
-                        <div class="flex items-start gap-4 mb-4">
-                            <div class="section-icon-box" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
-                                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                                </svg>
-                            </div>
-                            <div class="flex-1">
-                                <h2 class="text-2xl font-semibold text-slate-900 mb-1">Technical Requirements</h2>
-                                <p class="text-sm text-slate-500">What you need to get started</p>
-                            </div>
-                        </div>
-                        <div class="ml-20 space-y-3 text-slate-700">
-                            <p><strong>Device:</strong> Desktop or laptop computer (mobile devices not supported).</p>
-                            <p><strong>Browser:</strong> Modern browser with JavaScript enabled (Chrome, Firefox, Safari, Edge).</p>
-                            <p><strong>Camera:</strong> Working webcam for face verification photos.</p>
-                            <p><strong>Internet:</strong> Stable internet connection throughout the quiz.</p>
-                            <p><strong>Environment:</strong> Quiet space with minimal distractions.</p>
-                        </div>
-                    </section>
-
-                    <!-- Tips for Success -->
-                    <section class="bg-blue-50 border border-blue-100 rounded-xl p-6">
-                        <h2 class="text-xl font-semibold text-blue-900 mb-4">Tips for Success</h2>
-                        <ul class="space-y-2 text-slate-700">
-                            <li class="flex items-start gap-2">
-                                <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                                </svg>
-                                <span>Test your camera and internet connection before starting.</span>
-                            </li>
-                            <li class="flex items-start gap-2">
-                                <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                                </svg>
-                                <span>Keep your face visible during photo capture for best results.</span>
-                            </li>
-                            <li class="flex items-start gap-2">
-                                <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                                </svg>
-                                <span>Don't switch tabs during the quiz - it may be flagged as a violation.</span>
-                            </li>
-                            <li class="flex items-start gap-2">
-                                <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                                </svg>
-                                <span>Read each question carefully and manage your time wisely.</span>
-                            </li>
-                            <li class="flex items-start gap-2">
-                                <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                                </svg>
-                                <span>Ensure you're in a quiet environment with good lighting.</span>
-                            </li>
-                        </ul>
-                    </section>
-
-                    <!-- Need Help? -->
-                    <section class="bg-slate-50 border border-slate-200 rounded-xl p-6">
-                        <h2 class="text-xl font-semibold text-slate-900 mb-3">Need Help?</h2>
-                        <p class="text-slate-700 mb-3">
-                            If you encounter any issues during your quiz, contact your lecturer or examiner immediately.
-                        </p>
-                        <p class="text-sm text-slate-600">
-                            Common issues: camera not working, token invalid, connection problems, or technical errors.
-                        </p>
-                    </section>
+                    </div>
+                    <div class="about-section-body">
+                        <p><strong>Receive your token:</strong> Your lecturer or examiner will provide a unique quiz token (e.g., KTdie54-3Sx9).</p>
+                        <p><strong>Enter the token:</strong> On the homepage, enter the token and click Start Quiz.</p>
+                        <p><strong>Login to your account:</strong> You can also log in to see all available quizzes on your dashboard.</p>
+                    </div>
                 </div>
 
-                <div class="mt-10 pt-8 border-t border-slate-200 text-center">
-                    <a href="{{ route('student.landing') }}" class="inline-flex items-center px-6 py-3 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors">
+                <div class="about-section">
+                    <div class="about-section-head">
+                        <div class="about-icon" style="background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%);">
+                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                        </div>
+                        <div>
+                            <h2 class="text-lg sm:text-xl font-semibold text-slate-900">Verification Process</h2>
+                            <p class="text-sm text-slate-500 mt-0.5">Secure identity verification steps</p>
+                        </div>
+                    </div>
+                    <div class="about-section-body">
+                        <p><strong>Index number:</strong> Enter your student index number for verification.</p>
+                        <p><strong>Phone verification:</strong> First-time users verify their phone number with an OTP.</p>
+                        <p><strong>Pre-quiz photo:</strong> Take a clear face photo using your device camera.</p>
+                    </div>
+                </div>
+
+                <div class="about-section">
+                    <div class="about-section-head">
+                        <div class="about-icon" style="background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);">
+                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        </div>
+                        <div>
+                            <h2 class="text-lg sm:text-xl font-semibold text-slate-900">Taking the Quiz</h2>
+                            <p class="text-sm text-slate-500 mt-0.5">Important guidelines during the quiz</p>
+                        </div>
+                    </div>
+                    <div class="about-section-body">
+                        <p><strong>Timer:</strong> A countdown begins when you start. Complete the quiz before time runs out.</p>
+                        <p><strong>Answer questions:</strong> Select your answers carefully on each screen.</p>
+                        <p><strong>Auto-save:</strong> Your answers are saved automatically as you progress.</p>
+                        <p><strong>Stay focused:</strong> Remain on the quiz tab. Switching tabs may be logged as a violation.</p>
+                        <p><strong>Desktop recommended:</strong> QuizSnap is optimized for desktop browsers with a working webcam.</p>
+                    </div>
+                </div>
+
+                <div class="about-section">
+                    <div class="about-section-head">
+                        <div class="about-icon" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);">
+                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                        </div>
+                        <div>
+                            <h2 class="text-lg sm:text-xl font-semibold text-slate-900">Proctoring & Security</h2>
+                            <p class="text-sm text-slate-500 mt-0.5">What is monitored during a proctored quiz</p>
+                        </div>
+                    </div>
+                    <div class="about-section-body">
+                        <ul>
+                            <li><strong>Face verification & camera:</strong> Pre- and post-quiz photos confirm your identity.</li>
+                            <li><strong>Screen focus:</strong> Leaving the quiz tab or resizing the window may be logged.</li>
+                            <li><strong>Multiple faces:</strong> More than one face in frame is recorded for review.</li>
+                            <li><strong>Clipboard & screenshots:</strong> Copy/paste and screenshot attempts are serious violations.</li>
+                            <li><strong>Devices & network:</strong> Using a second device or different IP may be flagged.</li>
+                        </ul>
+                        <p class="mt-3"><strong>Auto-submit:</strong> Repeated or serious violations can automatically submit your quiz for examiner review.</p>
+                        <p><strong>Network problems:</strong> Brief disconnections do not auto-submit; answers sync when you reconnect.</p>
+                    </div>
+                </div>
+
+                <div class="about-section">
+                    <div class="about-section-head">
+                        <div class="about-icon" style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);">
+                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        </div>
+                        <div>
+                            <h2 class="text-lg sm:text-xl font-semibold text-slate-900">Submitting & Results</h2>
+                            <p class="text-sm text-slate-500 mt-0.5">Complete and view your results</p>
+                        </div>
+                    </div>
+                    <div class="about-section-body">
+                        <p><strong>Final photo:</strong> After completing questions, take a final photo to submit.</p>
+                        <p><strong>Instant results:</strong> Your score is calculated immediately after submission.</p>
+                        <p><strong>Review answers:</strong> See correct answers if enabled by your lecturer.</p>
+                        <p><strong>Results history:</strong> Scores are saved; detailed reviews are available for 21 days.</p>
+                    </div>
+                </div>
+
+                <div class="about-section">
+                    <div class="about-section-head">
+                        <div class="about-icon" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
+                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                        </div>
+                        <div>
+                            <h2 class="text-lg sm:text-xl font-semibold text-slate-900">Technical Requirements</h2>
+                            <p class="text-sm text-slate-500 mt-0.5">What you need to get started</p>
+                        </div>
+                    </div>
+                    <div class="about-section-body">
+                        <p><strong>Device:</strong> Desktop or laptop computer with a working webcam.</p>
+                        <p><strong>Browser:</strong> Modern browser with JavaScript enabled (Chrome, Firefox, Safari, Edge).</p>
+                        <p><strong>Internet:</strong> Stable connection throughout the quiz.</p>
+                        <p><strong>Environment:</strong> Quiet space with good lighting.</p>
+                    </div>
+                </div>
+
+                <div class="about-highlight">
+                    <h2 class="text-lg font-semibold text-blue-900 mb-3">Tips for Success</h2>
+                    <ul class="text-slate-700 space-y-2 text-sm sm:text-base">
+                        <li>Test your camera and internet connection before starting.</li>
+                        <li>Keep your face visible during photo capture.</li>
+                        <li>Do not switch tabs during the quiz.</li>
+                        <li>Read each question carefully and manage your time.</li>
+                        <li>Use a quiet environment with good lighting.</li>
+                    </ul>
+                </div>
+
+                <div class="about-section mt-2">
+                    <h2 class="text-lg font-semibold text-slate-900 mb-2">Need Help?</h2>
+                    <p class="about-section-body">
+                        If you encounter issues during your quiz, contact your lecturer or examiner immediately.
+                        Common issues include camera problems, invalid tokens, connection drops, or technical errors.
+                    </p>
+                </div>
+
+                <div class="about-cta">
+                    <a href="{{ route('student.landing') }}" class="inline-flex items-center px-6 py-3 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors no-underline">
                         Go to Homepage
                         <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>

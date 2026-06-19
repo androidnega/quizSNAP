@@ -77,7 +77,13 @@
         @endif
     @else
         <div class="rounded-lg border border-gray-200 bg-gray-50 p-8 text-center">
-            <p class="text-sm text-gray-500">No courses yet. Create one to assign lecturers and create quizzes.</p>
+            <p class="text-sm text-gray-500">
+                @if($canManageAll)
+                    No courses yet. Create one to assign lecturers and create quizzes.
+                @else
+                    No courses assigned to you yet. If you teach courses in a class group, they will appear here once your coordinator assigns you.
+                @endif
+            </p>
             @if($canManageAll)
             <a href="{{ route('dashboard.courses.create') }}" class="mt-3 inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium text-gray-900 bg-yellow-400 hover:bg-yellow-500 border border-yellow-600/30 shadow-sm">Add course</a>
             @endif

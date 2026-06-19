@@ -389,6 +389,49 @@
         margin-top: 1.25rem;
     }
 
+    .qs-hero-actions--row {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.625rem;
+        margin-top: 1.25rem;
+        max-width: 32rem;
+    }
+
+    .qs-hero-actions--row .qs-btn-hero,
+    .qs-hero-actions--row .qs-btn-hero-secondary,
+    .qs-hero-actions--row .qs-btn-outline {
+        min-height: 2.75rem;
+        padding: 0.625rem 0.75rem;
+        font-size: 0.8125rem;
+        justify-content: center;
+        text-align: center;
+        width: 100%;
+    }
+
+    .qs-hero-actions--row .qs-btn-hero svg {
+        display: none;
+    }
+
+    @media (min-width: 480px) {
+        .qs-hero-actions--row {
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 0.75rem;
+            max-width: none;
+        }
+        .qs-hero-actions--row .qs-btn-hero,
+        .qs-hero-actions--row .qs-btn-hero-secondary,
+        .qs-hero-actions--row .qs-btn-outline {
+            width: auto;
+            flex: 1 1 0;
+            padding: 0.6875rem 1.125rem;
+            font-size: 0.875rem;
+        }
+        .qs-hero-actions--row .qs-btn-hero svg {
+            display: inline;
+        }
+    }
+
     .qs-hero-actions .qs-btn-outline,
     .qs-hero-actions .qs-btn-hero-secondary {
         min-height: 2.75rem;
@@ -777,19 +820,23 @@
                 </p>
 
                 @if(($landingShowQuizToken ?? false) || (isset($student) && $student))
+                @if($landingShowQuizToken ?? false)
                 <div class="qs-cta-row">
-                    @if($landingShowQuizToken ?? false)
                         <button type="button" class="qs-btn-hero" id="scroll-to-token-btn">
                             Start quiz
                             <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
                         </button>
-                    @elseif(isset($student) && $student)
-                        <a href="{{ route('dashboard.my-quizzes') }}" class="qs-btn-hero">
-                            My quizzes
-                            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
-                        </a>
-                    @endif
                 </div>
+                @elseif(isset($student) && $student)
+                <div class="qs-hero-actions qs-hero-actions--row">
+                    <a href="{{ route('dashboard.my-quizzes') }}" class="qs-btn-hero">
+                        My quizzes
+                        <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                    </a>
+                    <a href="{{ route('dashboard') }}" class="qs-btn-hero-secondary">Dashboard</a>
+                    <a href="{{ route('about-system') }}" class="qs-btn-outline">About us</a>
+                </div>
+                @endif
                 @endif
 
                 @if($landingShowQuizToken ?? false)
@@ -809,14 +856,12 @@
                     </div>
                 @endif
 
+                @if(!isset($student) || !$student)
                 <div class="qs-hero-actions">
-                    @if(isset($student) && $student)
-                        <a href="{{ route('dashboard') }}" class="qs-btn-hero-secondary">Dashboard</a>
-                    @else
-                        <a href="{{ route('student.account.login.form') }}" class="qs-btn-hero-secondary">Student login</a>
-                    @endif
+                    <a href="{{ route('student.account.login.form') }}" class="qs-btn-hero-secondary">Student login</a>
                     <a href="{{ route('about-system') }}" class="qs-btn-outline">About us</a>
                 </div>
+                @endif
             </div>
 
             <div class="qs-hero-visual" aria-hidden="true">

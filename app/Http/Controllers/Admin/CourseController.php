@@ -27,26 +27,35 @@ class CourseController extends Controller
         $canManageAll = $user && ($user->isSuperAdmin() || $user->isCoordinator());
         // Base query for stats and listing (respecting scope: all vs examiner-assigned)
         $baseQuery = Course::query()->where('is_archived', false);
-        if (!$canManageAll && $user?->isExaminer()) {
-            $baseQuery->whereHas('examiners', fn ($q) => $q->where('users.id', $user->id));
+        if (!$canManageAll && $user) {
+            $assignedIds = $user->assignedCourseIds();
+            $baseQuery->whereIn('id', $assignedIds ?: [-1]);
         }
 
         // Stats: total, assigned (has examiners), unassigned (no examiners)
-        $assignedCount = (clone $baseQuery)->whereHas('examiners')->count();
-        $unassignedCount = (clone $baseQuery)->whereDoesntHave('examiners')->count();
-        $totalCount = $assignedCount + $unassignedCount;
+        if (!$canManageAll && $user?->isExaminer()) {
+            $totalCount = (clone $baseQuery)->count();
+            $stats = [
+                'total' => $totalCount,
+                'assigned' => $totalCount,
+                'unassigned' => 0,
+            ];
+        } else {
+            $assignedCount = (clone $baseQuery)->whereHas('examiners')->count();
+            $unassignedCount = (clone $baseQuery)->whereDoesntHave('examiners')->count();
+            $totalCount = $assignedCount + $unassignedCount;
+            $stats = [
+                'total' => $totalCount,
+                'assigned' => $assignedCount,
+                'unassigned' => $unassignedCount,
+            ];
+        }
 
         $courses = (clone $baseQuery)
             ->withCount(['quizzes', 'validIndices'])
             ->with('examiners:id,username,name')
             ->orderBy('name')
             ->paginate(20);
-
-        $stats = [
-            'total' => $totalCount,
-            'assigned' => $assignedCount,
-            'unassigned' => $unassignedCount,
-        ];
 
         return view('admin.courses.index', compact('courses', 'canManageAll', 'stats'));
     }

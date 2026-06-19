@@ -319,6 +319,85 @@ class QuizManagementController extends Controller
         return $counts;
     }
 
+    /** @return list<int> */
+    private function resolveClassGroupIdsFromRequest(Request $request): array
+    {
+        $ids = $request->input('class_group_ids', []);
+        if (! is_array($ids)) {
+            $ids = $ids !== null && $ids !== '' ? [(int) $ids] : [];
+        }
+        $ids = array_values(array_unique(array_filter(array_map('intval', $ids))));
+        if ($ids === [] && $request->filled('class_group_id')) {
+            $ids = [(int) $request->class_group_id];
+        }
+
+        return $ids;
+    }
+
+    private function validateClassGroupForQuiz(User $user, ClassGroup $classGroup, int $courseId): ?string
+    {
+        if (! $classGroup->hasStudents()) {
+            return 'Class group "' . ($classGroup->display_name ?? $classGroup->name) . '" has no students.';
+        }
+        if (! $classGroup->courses()->where('courses.id', $courseId)->exists()) {
+            return 'The selected course is not attached to "' . ($classGroup->display_name ?? $classGroup->name) . '".';
+        }
+        if ($user->isExaminer()) {
+            $teachesCourse = $classGroup->courses()
+                ->where('courses.id', $courseId)
+                ->wherePivot('examiner_id', $user->id)
+                ->exists();
+            if (! $teachesCourse) {
+                return 'You are not assigned to teach this course in "' . ($classGroup->display_name ?? $classGroup->name) . '".';
+            }
+        } elseif (! $user->isSuperAdmin() && ! $user->isCoordinator()) {
+            return UserFriendlyMessages::GENERIC;
+        }
+
+        return null;
+    }
+
+    /** @param array<string, mixed> $baseCreateData */
+    private function quizCreateDataForClassGroup(array $baseCreateData, int $classGroupId, Request $request): array
+    {
+        $createData = $baseCreateData;
+        $createData['class_group_id'] = $classGroupId;
+        if (Schema::hasColumn('quizzes', 'allowed_devices')) {
+            $defaultAllowed = ClassGroup::find($classGroupId)?->getEffectiveAllowedDevices() ?? Quiz::ALLOWED_DEVICES_DESKTOP;
+            $createData['allowed_devices'] = in_array($request->input('allowed_devices'), [Quiz::ALLOWED_DEVICES_DESKTOP, Quiz::ALLOWED_DEVICES_MOBILE, Quiz::ALLOWED_DEVICES_BOTH], true)
+                ? $request->input('allowed_devices')
+                : $defaultAllowed;
+        }
+
+        return $createData;
+    }
+
+    /** @param list<Quiz> $quizzes */
+    private function quizzesCreatedResponse(Request $request, array $quizzes, string $message, bool $isAi = false, ?int $aiTarget = null): RedirectResponse|JsonResponse
+    {
+        if (count($quizzes) === 1 && $isAi && $aiTarget !== null) {
+            return $this->aiQuizCreatedResponse($request, $quizzes[0], $aiTarget, $message);
+        }
+
+        $indexUrl = route($this->staffRoutePrefix() . '.quizzes.index');
+        if (count($quizzes) === 1) {
+            return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', ['quiz' => $quizzes[0]->id])
+                ->with('success', $message);
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'multiple' => true,
+                'count' => count($quizzes),
+                'redirect_url' => $indexUrl,
+                'message' => $message,
+            ]);
+        }
+
+        return redirect()->to($indexUrl)->with('success', $message);
+    }
+
     public function store(Request $request): RedirectResponse|JsonResponse
     {
         try {
@@ -331,6 +410,8 @@ class QuizManagementController extends Controller
             $request->validate([
                 'title' => 'required|string|max:255',
                 'exam_type' => 'nullable|in:quiz,midsem,end_of_semester',
+                'class_group_ids' => 'nullable|array|min:1',
+                'class_group_ids.*' => 'integer|exists:class_groups,id',
                 'class_group_id' => 'nullable|exists:class_groups,id',
                 'course_id' => 'required|exists:courses,id',
                 'academic_year_id' => 'nullable|exists:academic_years,id',
@@ -361,49 +442,38 @@ class QuizManagementController extends Controller
             ], [
                 'course_id.required' => 'Please select a course (from Class Group or QuizSnap section).',
                 'course_id.exists' => 'The selected course is invalid or no longer exists.',
+                'class_group_ids.min' => 'Select at least one class group.',
             ]);
 
-            $requestClassGroupId = $request->filled('class_group_id') ? (int) $request->class_group_id : null;
+            $classGroupIds = $this->resolveClassGroupIdsFromRequest($request);
             $requestCourseId = (int) $request->course_id;
             $usesQuizSnapFlow = $request->filled('academic_class_id') && $request->filled('academic_year_id');
 
-            if ($requestClassGroupId) {
-                $classGroup = ClassGroup::find($requestClassGroupId);
-                if (!$classGroup) {
-                    return redirect()->route($this->staffRoutePrefix() . '.quizzes.create')
-                        ->withInput()
-                        ->with('error', UserFriendlyMessages::NOT_FOUND);
-                }
-                // Examiner can create quiz only for courses they are assigned to in this group
-                if ($user->isExaminer()) {
-                    $teachesCourse = $classGroup->courses()
-                        ->where('courses.id', $requestCourseId)
-                        ->wherePivot('examiner_id', $user->id)
-                        ->exists();
-                    if (!$teachesCourse) {
+            if (! empty($classGroupIds)) {
+                $allowedGroupIds = $this->classGroupIds();
+                foreach ($classGroupIds as $classGroupId) {
+                    if (! $user->isSuperAdmin() && ! in_array($classGroupId, $allowedGroupIds, true)) {
                         return redirect()->route($this->staffRoutePrefix() . '.quizzes.create')
                             ->withInput()
-                            ->with('error', UserFriendlyMessages::GENERIC);
+                            ->with('error', UserFriendlyMessages::NOT_FOUND);
                     }
-                } elseif (!$user->isSuperAdmin() && !$user->isCoordinator()) {
-                    return redirect()->route($this->staffRoutePrefix() . '.quizzes.create')
-                        ->withInput()
-                        ->with('error', UserFriendlyMessages::GENERIC);
+                    $classGroup = ClassGroup::find($classGroupId);
+                    if (! $classGroup) {
+                        return redirect()->route($this->staffRoutePrefix() . '.quizzes.create')
+                            ->withInput()
+                            ->with('error', UserFriendlyMessages::NOT_FOUND);
+                    }
+                    $groupError = $this->validateClassGroupForQuiz($user, $classGroup, $requestCourseId);
+                    if ($groupError !== null) {
+                        return redirect()->route($this->staffRoutePrefix() . '.quizzes.create')
+                            ->withInput()
+                            ->with('error', $groupError);
+                    }
                 }
-                if (!$classGroup->hasStudents()) {
-                    return redirect()->route($this->staffRoutePrefix() . '.quizzes.create')
-                        ->withInput()
-                        ->with('error', UserFriendlyMessages::GENERIC);
-                }
-                if (!$classGroup->courses()->where('courses.id', $requestCourseId)->exists()) {
-                    return redirect()->route($this->staffRoutePrefix() . '.quizzes.create')
-                        ->withInput()
-                        ->with('error', UserFriendlyMessages::GENERIC);
-                }
-            } elseif (!$usesQuizSnapFlow) {
+            } elseif (! $usesQuizSnapFlow) {
                 return redirect()->route($this->staffRoutePrefix() . '.quizzes.create')
                     ->withInput()
-                    ->with('error', 'Select either a class group or QuizSnap academic context (Category, Level, Semester, Class, Academic Year).');
+                    ->with('error', 'Select at least one class group, or use QuizSnap academic context (Category, Level, Semester, Class, Academic Year).');
             }
 
             $topics = $request->topics;
@@ -424,10 +494,10 @@ class QuizManagementController extends Controller
             $typeCounts = $typeCountsOrError;
             $poolTotal = QuestionTypes::total($typeCounts);
 
-            $createData = [
+            $baseCreateData = [
                 'title' => $request->title,
                 'exam_type' => $request->input('exam_type') ?: null,
-                'class_group_id' => $requestClassGroupId,
+                'class_group_id' => null,
                 'course_id' => $requestCourseId,
                 'academic_year_id' => $usesQuizSnapFlow ? (int) $request->academic_year_id : null,
                 'quiz_category_id' => $usesQuizSnapFlow && $request->filled('quiz_category_id') ? (int) $request->quiz_category_id : null,
@@ -447,17 +517,15 @@ class QuizManagementController extends Controller
                 'result_visibility' => $request->input('result_visibility', Quiz::RESULT_VISIBILITY_FULL_REVIEW_AFTER_END),
             ];
             if (Schema::hasColumn('quizzes', 'questions_per_student')) {
-                $createData['questions_per_student'] = (int) $request->questions_per_student;
+                $baseCreateData['questions_per_student'] = (int) $request->questions_per_student;
             }
-            if (Schema::hasColumn('quizzes', 'allowed_devices')) {
-                // Single source of truth: new quiz inherits from class group when present.
-                $defaultAllowed = $requestClassGroupId
-                    ? \App\Models\ClassGroup::find($requestClassGroupId)?->getEffectiveAllowedDevices()
-                    : Quiz::ALLOWED_DEVICES_DESKTOP;
-                $createData['allowed_devices'] = in_array($request->input('allowed_devices'), [Quiz::ALLOWED_DEVICES_DESKTOP, Quiz::ALLOWED_DEVICES_MOBILE, Quiz::ALLOWED_DEVICES_BOTH], true)
+            if (empty($classGroupIds) && Schema::hasColumn('quizzes', 'allowed_devices')) {
+                $baseCreateData['allowed_devices'] = in_array($request->input('allowed_devices'), [Quiz::ALLOWED_DEVICES_DESKTOP, Quiz::ALLOWED_DEVICES_MOBILE, Quiz::ALLOWED_DEVICES_BOTH], true)
                     ? $request->input('allowed_devices')
-                    : $defaultAllowed;
+                    : Quiz::ALLOWED_DEVICES_DESKTOP;
             }
+
+            $quizTargets = ! empty($classGroupIds) ? $classGroupIds : [null];
 
             $aiService = app(AiQuestionService::class);
             $questionSource = $request->input('question_source', 'json');
@@ -475,26 +543,39 @@ class QuizManagementController extends Controller
                         ->withInput()
                         ->withErrors(['ai_json' => $result['errors']]);
                 }
-                $quiz = Quiz::create($createData);
-                if (! $quiz || ! $quiz->id) {
-                    return redirect()->route($this->staffRoutePrefix() . '.quizzes.create')
-                        ->withInput()
-                        ->with('error', 'Failed to create quiz.');
+                $createdQuizzes = [];
+                foreach ($quizTargets as $classGroupId) {
+                    $createData = $classGroupId
+                        ? $this->quizCreateDataForClassGroup($baseCreateData, (int) $classGroupId, $request)
+                        : $baseCreateData;
+                    $quiz = Quiz::create($createData);
+                    if (! $quiz || ! $quiz->id) {
+                        return redirect()->route($this->staffRoutePrefix() . '.quizzes.create')
+                            ->withInput()
+                            ->with('error', 'Failed to create quiz.');
+                    }
+                    $aiService->createPoolsFromValidatedJson($quiz, $result['parsed']);
+                    $createdQuizzes[] = $quiz;
                 }
-                $aiService->createPoolsFromValidatedJson($quiz, $result['parsed']);
-                $generatedCount = $quiz->questionPools()->count();
-                $message = 'Quiz created. ' . $generatedCount . ' question(s) from pasted JSON. Approve them below to publish.';
+                $generatedCount = $createdQuizzes[0]->questionPools()->count();
+                $quizCount = count($createdQuizzes);
+                $message = $quizCount > 1
+                    ? $quizCount . ' quizzes created with ' . $generatedCount . ' question(s) each from pasted JSON. Approve them to publish.'
+                    : 'Quiz created. ' . $generatedCount . ' question(s) from pasted JSON. Approve them below to publish.';
                 try {
                     broadcast(new DataUpdated('quizzes'))->toOthers();
                 } catch (\Exception $e) {
                     // Ignore broadcast errors
                 }
-                try {
-                    QuizBackupService::sendIfConfigured($quiz);
-                } catch (\Throwable $e) {
-                    // Do not fail the request if backup send fails
+                foreach ($createdQuizzes as $quiz) {
+                    try {
+                        QuizBackupService::sendIfConfigured($quiz);
+                    } catch (\Throwable $e) {
+                        // Do not fail the request if backup send fails
+                    }
                 }
-                return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', ['quiz' => $quiz->id])->with('success', $message);
+
+                return $this->quizzesCreatedResponse($request, $createdQuizzes, $message);
             }
 
             Cache::forget('setting:' . \App\Models\Setting::KEY_DEEPSEEK_API);
@@ -534,32 +615,39 @@ class QuizManagementController extends Controller
                 );
                 if (! empty($extractResult['topics'])) {
                     $topics = array_map(fn ($t) => ['name' => $t], $extractResult['topics']);
-                    $createData['topics'] = json_encode(array_values($topics));
+                    $baseCreateData['topics'] = json_encode(array_values($topics));
                 } elseif ($extractResult['error'] !== null) {
                     return $this->createQuizFormError($request, $extractResult['error']);
                 }
             }
 
             if ($hasOutline) {
-                $createData['script_text'] = $scriptText;
-            }
-
-            $quiz = Quiz::create($createData);
-
-            if (! $quiz || ! $quiz->id) {
-                return $this->createQuizFormError($request, 'Failed to create quiz.');
+                $baseCreateData['script_text'] = $scriptText;
             }
 
             $target = $poolTotal;
             $topicList = ! empty($topics) ? $topics : [['name' => 'General knowledge']];
+            $createdQuizzes = [];
+            foreach ($quizTargets as $classGroupId) {
+                $createData = $classGroupId
+                    ? $this->quizCreateDataForClassGroup($baseCreateData, (int) $classGroupId, $request)
+                    : $baseCreateData;
+                $quiz = Quiz::create($createData);
+                if (! $quiz || ! $quiz->id) {
+                    return $this->createQuizFormError($request, 'Failed to create quiz.');
+                }
+                AiQuizGenerationProgress::start((int) $quiz->id, $target);
+                GenerateQuizQuestionsJob::dispatch((int) $quiz->id, $topicList, $target, (int) $user->id);
+                $createdQuizzes[] = $quiz;
+            }
+            $this->processAiQueueAfterResponse(count($createdQuizzes));
 
-            AiQuizGenerationProgress::start((int) $quiz->id, $target);
-            GenerateQuizQuestionsJob::dispatch((int) $quiz->id, $topicList, $target, (int) $user->id);
-            $this->processAiQueueAfterResponse();
+            $quizCount = count($createdQuizzes);
+            $message = $quizCount > 1
+                ? $quizCount . ' quizzes created. Generating ' . $target . ' question(s) for each…'
+                : 'Quiz created. Generating ' . $target . ' question(s)…';
 
-            $message = 'Quiz created. Generating ' . $target . ' question(s)…';
-
-            return $this->aiQuizCreatedResponse($request, $quiz, $target, $message);
+            return $this->quizzesCreatedResponse($request, $createdQuizzes, $message, true, $target);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
             throw $e;
@@ -600,17 +688,20 @@ class QuizManagementController extends Controller
         return null;
     }
 
-    /** Process one queued job after the HTTP response (so AI generation runs without a dedicated worker). */
-    private function processAiQueueAfterResponse(): void
+    /** Process queued AI jobs after the HTTP response (when no dedicated worker is running). */
+    private function processAiQueueAfterResponse(int $maxJobs = 1): void
     {
         if (! config('quizsnap.ai.process_queue_after_dispatch', true)) {
             return;
         }
 
-        app()->terminating(function () {
+        $maxJobs = max(1, min(5, $maxJobs));
+
+        app()->terminating(function () use ($maxJobs) {
             try {
                 Artisan::call('queue:work', [
-                    '--once' => true,
+                    '--max-jobs' => $maxJobs,
+                    '--stop-when-empty' => true,
                     '--timeout' => 900,
                     '--tries' => 2,
                 ]);

@@ -53,23 +53,32 @@
 #generated-ai-prompt:not([data-prompt-default="true"]) {
     cursor: pointer;
 }
+#ai-generate-panel {
+    margin-top: 0.875rem;
+    padding: 0.625rem 0.875rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.625rem;
+    background: #fafafa;
+}
+#ai-generate-panel.ai-generating {
+    border-color: #c7d2fe;
+    background: #f8fafc;
+}
 #ai-generate-panel .ai-progress-track {
-    height: 1.25rem;
+    height: 3px;
     border-radius: 9999px;
-    background: linear-gradient(90deg, #e0e7ff 0%, #eef2ff 100%);
+    background: #e5e7eb;
     overflow: hidden;
-    box-shadow: inset 0 1px 2px rgba(79, 70, 229, 0.12);
 }
 #ai-generate-panel .ai-progress-fill {
     height: 100%;
     border-radius: 9999px;
-    background: linear-gradient(90deg, #6366f1 0%, #4f46e5 50%, #4338ca 100%);
-    transition: width 0.45s ease;
+    background: #6366f1;
+    transition: width 0.25s ease;
     min-width: 0;
 }
-#ai-generate-panel.ai-generating {
-    border-color: #818cf8;
-    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.15);
+#ai-generate-btn {
+    min-height: 0;
 }
 </style>
 @endpush
@@ -154,14 +163,20 @@
                     <p class="text-xs text-gray-500 mt-1">Shown on PDF score reports (e.g. Quiz, Midsem, End of Semester).</p>
                 </div>
 
+                @php
+                    $oldClassGroupIds = old('class_group_ids', request('class_group_ids', old('class_group_id') ? [old('class_group_id')] : []));
+                    if (! is_array($oldClassGroupIds)) {
+                        $oldClassGroupIds = $oldClassGroupIds ? [(string) $oldClassGroupIds] : [];
+                    }
+                @endphp
                 <div class="mb-5">
                     <fieldset>
-                        <legend class="block font-medium text-gray-700 mb-2">Class Group *</legend>
-                        <p class="text-xs text-gray-500 mb-3">Select one class group assigned to you. Courses for that group load below.</p>
-                        <div class="space-y-2 rounded-lg border border-gray-200 p-3 bg-gray-50/50 max-h-64 overflow-y-auto" id="class-group-radios">
+                        <legend class="block font-medium text-gray-700 mb-2">Class groups *</legend>
+                        <p class="text-xs text-gray-500 mb-3">Select one or more class groups assigned to you. The same exam is created for each group. Courses shared by all selected groups appear below.</p>
+                        <div class="space-y-2 rounded-lg border border-gray-200 p-3 bg-gray-50/50 max-h-64 overflow-y-auto" id="class-group-checkboxes">
                             @foreach($classGroups as $g)
                                 <label class="flex items-start gap-3 p-2 rounded-lg hover:bg-white cursor-pointer">
-                                    <input type="radio" name="class_group_id" value="{{ $g->id }}" class="mt-1 w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500 class-group-radio" data-courses="{{ $g->courses->map(fn($c) => ['id' => $c->id, 'name' => $c->name])->toJson() }}" {{ (string) old('class_group_id', request('class_group_id')) === (string) $g->id ? 'checked' : '' }}>
+                                    <input type="checkbox" name="class_group_ids[]" value="{{ $g->id }}" class="mt-1 w-4 h-4 rounded text-primary-600 border-gray-300 focus:ring-primary-500 class-group-checkbox" data-courses="{{ $g->courses->map(fn($c) => ['id' => $c->id, 'name' => $c->name])->toJson() }}" {{ in_array((string) $g->id, array_map('strval', $oldClassGroupIds), true) ? 'checked' : '' }}>
                                     <span class="text-sm text-gray-800">
                                         <span class="font-medium">{{ $g->display_name }}</span>
                                         <span class="text-gray-500">({{ $g->students_count }} students)</span>
@@ -173,15 +188,17 @@
                             <p class="text-sm text-red-600 mt-2">No class groups with students are assigned to you yet.</p>
                         @endif
                     </fieldset>
-                    @error('class_group_id')<p class="text-sm text-red-600 mt-1">{{ $message }}</p>@enderror
+                    @error('class_group_ids')<p class="text-sm text-red-600 mt-1">{{ $message }}</p>@enderror
+                    @error('class_group_ids.*')<p class="text-sm text-red-600 mt-1">{{ $message }}</p>@enderror
+                    <p id="quiz-create-class-group-required" class="text-sm text-red-600 mt-1 hidden">Select at least one class group.</p>
                 </div>
                 <div class="mb-5">
                     <label for="course_id" class="block font-medium text-gray-700 mb-2">Course *</label>
                     <select id="course_id" class="input @error('course_id') border-danger-500 @enderror">
-                        <option value="">Select class group first</option>
+                        <option value="">Select class group(s) first</option>
                     </select>
                     <input type="hidden" name="course_id" id="course_id_input" value="{{ old('course_id') }}">
-                    <p class="text-xs text-gray-500 mt-1">From the selected class group’s attached courses.</p>
+                    <p class="text-xs text-gray-500 mt-1">Courses attached to every selected class group.</p>
                     @error('course_id')<p class="text-sm text-red-600 mt-1">{{ $message }}</p>@enderror
                 </div>
 
@@ -281,10 +298,8 @@
                             <input type="radio" name="question_source" value="ai" class="mt-1 w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500 question-source-radio" {{ $defaultQuestionSource === 'ai' ? 'checked' : '' }} {{ !$canUseAi ? 'disabled' : '' }}>
                             <span>
                                 <span class="block text-sm font-medium text-gray-900">Generate with AI (DeepSeek)</span>
-                                <span class="block text-xs text-gray-500 mt-0.5">Add topics (or an outline), then click <strong>Generate Questions</strong>. Uses one AI token <strong>only if generation succeeds</strong>.</span>
-                                @if($canUseAi && isset($aiTokenStatus))
-                                    <span class="block text-xs text-primary-700 mt-1">Tokens remaining: {{ $aiTokenStatus['remaining'] ?? '—' }}</span>
-                                @elseif(!$canUseAi)
+                                <span class="block text-xs text-gray-500 mt-0.5">Add topics, then generate. One token only if questions are created.</span>
+                                @if(!$canUseAi)
                                     <span class="block text-xs text-amber-700 mt-1">
                                         @if(!($aiGenerationEnabled ?? true))
                                             AI is disabled in Settings → AI.
@@ -337,36 +352,25 @@
                         </div>
                     </div>
 
-                    <div id="ai-generate-panel" class="mt-5 rounded-xl border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 via-white to-white p-5 shadow-sm">
-                        <div class="flex flex-wrap items-start justify-between gap-3 mb-4">
-                            <div>
-                                <p class="text-sm font-semibold text-indigo-900">Ready to generate?</p>
-                                <p class="text-xs text-indigo-800/80 mt-1 max-w-xl">Fill in quiz details above, add topics, then start generation. One token is used only when at least one question is generated.</p>
-                            </div>
+                    <div id="ai-generate-panel" class="mt-3">
+                        <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
                             @if($canUseAi && isset($aiTokenStatus))
-                                <span class="inline-flex items-center rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-800 shrink-0">
-                                    {{ $aiTokenStatus['remaining'] }} token{{ ($aiTokenStatus['remaining'] ?? 0) === 1 ? '' : 's' }} left
-                                </span>
+                                <span class="text-[11px] font-medium text-slate-500 tabular-nums">{{ $aiTokenStatus['remaining'] }} token{{ ($aiTokenStatus['remaining'] ?? 0) === 1 ? '' : 's' }}</span>
                             @endif
+                            <button type="button" id="ai-generate-btn" class="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed transition-colors" {{ !$canUseAi ? 'disabled' : '' }}>
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                Generate questions
+                            </button>
+                            <span id="ai-generate-status" class="text-[11px] text-slate-500 truncate max-w-[14rem] hidden" aria-live="polite"></span>
+                            <span id="ai-generate-percent" class="text-[11px] font-semibold tabular-nums text-indigo-600 hidden">0%</span>
                         </div>
-                        <button type="button" id="ai-generate-btn" class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg font-semibold text-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px] shadow-sm" {{ !$canUseAi ? 'disabled' : '' }}>
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
-                            Generate Questions
-                        </button>
-                        <div id="ai-generate-progress" class="hidden mt-5" aria-live="polite">
-                            <div class="flex items-center justify-between gap-3 mb-2">
-                                <div class="flex items-center gap-2 min-w-0">
-                                    <svg id="ai-generate-spinner" class="w-5 h-5 text-indigo-600 animate-spin flex-shrink-0" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
-                                    <span id="ai-generate-status" class="text-sm font-medium text-indigo-900 truncate">Starting…</span>
-                                </div>
-                                <span id="ai-generate-percent" class="text-lg font-bold tabular-nums text-indigo-700 shrink-0">0%</span>
-                            </div>
+                        <div id="ai-generate-progress" class="hidden mt-2" aria-live="polite">
                             <div class="ai-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="ai-generate-progressbar">
                                 <div id="ai-generate-bar" class="ai-progress-fill" style="width:0%"></div>
                             </div>
-                            <p id="ai-generate-counts" class="text-xs text-indigo-700/90 mt-2">0 / 0 questions in pool</p>
+                            <p id="ai-generate-counts" class="text-[10px] text-slate-500 mt-1 tabular-nums">0 / 0</p>
                         </div>
-                        <p id="ai-generate-error" class="hidden text-sm text-red-600 mt-3" role="alert"></p>
+                        <p id="ai-generate-error" class="hidden text-xs text-red-600 mt-2" role="alert"></p>
                     </div>
                 </div>
 
@@ -448,7 +452,7 @@
                     <button type="submit" class="btn px-6 py-3 rounded-lg font-semibold min-h-[48px] bg-yellow-400 hover:bg-yellow-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed" id="submit-btn" {{ $classGroups->isEmpty() && !isset($quizCategories) ? 'disabled' : '' }}>
                         Create Quiz
                     </button>
-                    <p id="ai-submit-hint" class="text-sm text-indigo-700 hidden w-full sm:w-auto">Use <strong>Generate Questions</strong> above when AI is selected.</p>
+                    <p id="ai-submit-hint" class="text-xs text-slate-500 hidden w-full sm:w-auto">Use <strong>Generate questions</strong> above when AI is selected.</p>
                     <a href="{{ route('dashboard.quizzes.index') }}" class="btn px-6 py-3 rounded-lg font-semibold min-h-[48px] bg-red-600 hover:bg-red-700 text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
                         Cancel
                     </a>
@@ -473,24 +477,45 @@
 <script src="{{ asset('js/quiz-question-types.js') }}"></script>
 <script>
 (function() {
-    function getSelectedClassGroupRadio() {
-        return document.querySelector('input.class-group-radio:checked');
+    function getSelectedClassGroupCheckboxes() {
+        return Array.from(document.querySelectorAll('input.class-group-checkbox:checked'));
     }
     var courseSelect = document.getElementById('course_id');
     var oldCourseId = @json(old('course_id'));
     var courseIdInput = document.getElementById('course_id_input');
+    function parseCoursesFromCheckbox(cb) {
+        try {
+            return JSON.parse(cb.getAttribute('data-courses') || '[]');
+        } catch (e) {
+            return [];
+        }
+    }
+    function intersectCourses(courseSets) {
+        if (!courseSets.length) return [];
+        return courseSets.reduce(function(acc, set) {
+            if (acc === null) return set.slice();
+            var ids = new Set(set.map(function(c) { return String(c.id); }));
+            return acc.filter(function(c) { return ids.has(String(c.id)); });
+        }, null) || [];
+    }
     function updateCourses() {
-        var opt = getSelectedClassGroupRadio();
+        var checked = getSelectedClassGroupCheckboxes();
         courseSelect.innerHTML = '<option value="">Select course</option>';
-        if (!opt || !opt.value) {
+        if (!checked.length) {
             var quizsnapEl = document.getElementById('course_id_quizsnap');
             if (!quizsnapEl || !quizsnapEl.value) { if (courseIdInput) courseIdInput.value = ''; }
             return;
         }
-        var courses = [];
-        try {
-            courses = JSON.parse(opt.getAttribute('data-courses') || '[]');
-        } catch (e) {}
+        var courseSets = checked.map(parseCoursesFromCheckbox);
+        var courses = intersectCourses(courseSets);
+        if (checked.length > 1 && courses.length === 0) {
+            var emptyOpt = document.createElement('option');
+            emptyOpt.value = '';
+            emptyOpt.textContent = 'No course shared by all selected groups';
+            courseSelect.appendChild(emptyOpt);
+            if (courseIdInput) courseIdInput.value = '';
+            return;
+        }
         courses.forEach(function(c) {
             var o = document.createElement('option');
             o.value = c.id;
@@ -505,8 +530,8 @@
         var v = courseSelect && courseSelect.value ? courseSelect.value : (document.getElementById('course_id_quizsnap') && document.getElementById('course_id_quizsnap').value) || '';
         courseIdInput.value = v;
     }
-    document.querySelectorAll('input.class-group-radio').forEach(function(radio) {
-        radio.addEventListener('change', function() {
+    document.querySelectorAll('input.class-group-checkbox').forEach(function(cb) {
+        cb.addEventListener('change', function() {
             updateCourses();
             var quizsnap = document.getElementById('course_id_quizsnap');
             if (quizsnap) quizsnap.innerHTML = '<option value="">Select Category, Level, Semester</option>';
@@ -519,8 +544,20 @@
     if (form) form.addEventListener('submit', function(e) {
         syncCourseId();
         var quizsnap = document.getElementById('course_id_quizsnap');
+        var usesQuizSnap = quizsnap && quizsnap.value;
         if (quizsnap && quizsnap.value) {
             if (courseIdInput) courseIdInput.value = quizsnap.value;
+        }
+        if (!usesQuizSnap) {
+            var checkedGroups = getSelectedClassGroupCheckboxes();
+            var groupMsg = document.getElementById('quiz-create-class-group-required');
+            if (!checkedGroups.length) {
+                e.preventDefault();
+                if (groupMsg) { groupMsg.classList.remove('hidden'); groupMsg.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+                else { alert('Select at least one class group.'); }
+                return false;
+            }
+            if (groupMsg) groupMsg.classList.add('hidden');
         }
         var val = courseIdInput ? courseIdInput.value.trim() : '';
         if (!val) {
@@ -1115,7 +1152,6 @@
     var progressPct = document.getElementById('ai-generate-percent');
     var progressStatus = document.getElementById('ai-generate-status');
     var progressCounts = document.getElementById('ai-generate-counts');
-    var progressSpinner = document.getElementById('ai-generate-spinner');
     var errorEl = document.getElementById('ai-generate-error');
     var topicsValue = document.getElementById('topics-value');
     var sourceScript = document.getElementById('source_script');
@@ -1154,16 +1190,21 @@
     function setProgress(percent, generated, target, message, failed) {
         var pct = Math.min(100, Math.max(0, parseInt(percent, 10) || 0));
         if (progressBar) progressBar.style.width = pct + '%';
-        if (progressPct) progressPct.textContent = pct + '%';
+        if (progressPct) {
+            progressPct.textContent = pct + '%';
+            progressPct.classList.remove('hidden');
+        }
         if (progressBarWrap) progressBarWrap.setAttribute('aria-valuenow', String(pct));
-        if (progressStatus && message) progressStatus.textContent = message;
+        if (progressStatus && message) {
+            progressStatus.textContent = message;
+            progressStatus.classList.remove('hidden');
+        }
         if (progressCounts && target > 0) {
-            progressCounts.textContent = (parseInt(generated, 10) || 0) + ' / ' + target + ' questions in pool';
+            progressCounts.textContent = (parseInt(generated, 10) || 0) + ' / ' + target;
         }
         if (failed) {
             if (panel) panel.classList.remove('ai-generating');
-            if (progressSpinner) progressSpinner.classList.add('hidden');
-            if (progressBar) progressBar.classList.add('bg-red-500');
+            if (progressBar) progressBar.style.background = '#ef4444';
         }
     }
 
@@ -1202,10 +1243,10 @@
                         if (progressStatus) progressStatus.textContent = 'Stalled';
                         return;
                     }
-                    pollTimer = setTimeout(function() { pollStatus(statusUrl, redirectUrl); }, 2500);
+                    pollTimer = setTimeout(function() { pollStatus(statusUrl, redirectUrl); }, 900);
                 } else if (status === 'completed') {
-                    setProgress(100, generated, target, 'Complete! Opening quiz…', false);
-                    setTimeout(function() { window.location.href = redirectUrl; }, 800);
+                    setProgress(100, generated, target, 'Done', false);
+                    setTimeout(function() { window.location.href = redirectUrl; }, 350);
                 } else if (status === 'failed') {
                     showError(data.message || 'Question generation failed. Try again or check Settings → AI.');
                     if (progressStatus) progressStatus.textContent = 'Generation failed';
@@ -1213,11 +1254,11 @@
                 } else if (elapsed > 90000 && generated === 0) {
                     showError('No progress detected. Ensure DeepSeek API key is set in Settings → AI, then try again.');
                 } else {
-                    pollTimer = setTimeout(function() { pollStatus(statusUrl, redirectUrl); }, 2500);
+                    pollTimer = setTimeout(function() { pollStatus(statusUrl, redirectUrl); }, 900);
                 }
             })
             .catch(function() {
-                pollTimer = setTimeout(function() { pollStatus(statusUrl, redirectUrl); }, 4000);
+                pollTimer = setTimeout(function() { pollStatus(statusUrl, redirectUrl); }, 1500);
             });
     }
 
@@ -1232,6 +1273,18 @@
             else { alert('Please select a course.'); }
             return;
         }
+        var quizsnap = document.getElementById('course_id_quizsnap');
+        var usesQuizSnap = quizsnap && quizsnap.value;
+        if (!usesQuizSnap) {
+            var checkedGroups = document.querySelectorAll('input.class-group-checkbox:checked');
+            var groupMsg = document.getElementById('quiz-create-class-group-required');
+            if (!checkedGroups.length) {
+                if (groupMsg) { groupMsg.classList.remove('hidden'); groupMsg.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+                else { alert('Select at least one class group.'); }
+                return;
+            }
+            if (groupMsg) groupMsg.classList.add('hidden');
+        }
 
         if (!hasTopicsOrOutline()) {
             showError('Add at least one topic, or upload/paste a course outline.');
@@ -1244,9 +1297,11 @@
         generateBtn.disabled = true;
         if (panel) panel.classList.add('ai-generating');
         if (progressWrap) progressWrap.classList.remove('hidden');
-        if (progressSpinner) progressSpinner.classList.remove('hidden');
-        if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        setProgress(0, 0, 0, 'Creating quiz and starting queue…', false);
+        if (progressStatus) {
+            progressStatus.textContent = 'Starting…';
+            progressStatus.classList.remove('hidden');
+        }
+        setProgress(0, 0, 0, 'Starting…', false);
 
         var formData = new FormData(form);
         formData.set('question_source', 'ai');
@@ -1274,6 +1329,13 @@
                     }
                     showError(errMsg || ('Could not start generation (HTTP ' + res.status + ').'));
                     if (progressWrap) progressWrap.classList.add('hidden');
+                    return;
+                }
+                if (res.data.multiple) {
+                    setProgress(100, 0, 0, res.data.message || 'Quizzes created.', false);
+                    setTimeout(function() {
+                        window.location.href = res.data.redirect_url || @json(route('dashboard.quizzes.index'));
+                    }, 900);
                     return;
                 }
                 var target = res.data.target || 0;

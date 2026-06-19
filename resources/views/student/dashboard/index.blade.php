@@ -12,8 +12,6 @@
 
 @include('student.partials.dashboard-hero-banner')
 
-@include('student.partials.dashboard-nav-grid')
-
 <nav class="hidden lg:block" aria-label="Dashboard sections">
     <div class="flex flex-wrap items-center gap-2.5">
         <a href="{{ route('dashboard') }}"
@@ -131,38 +129,6 @@
             <span class="text-xs sm:text-sm font-bold mt-2 truncate text-slate-900">View</span>
             <span class="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wide mt-0.5 truncate text-amber-900/70 leading-tight">Profile</span>
         </a>
-    </div>
-</section>
-
-<section aria-label="Quick access" class="lg:hidden">
-    <h2 class="text-[10px] sm:text-xs lg:text-sm font-semibold text-slate-500 mb-3 lg:mb-5 uppercase tracking-wider">Quick access</h2>
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-5">
-        <a href="{{ route('dashboard.calendar') }}" class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 lg:px-6 lg:py-5 flex items-center justify-between no-underline hover:bg-slate-50 hover:border-slate-300 transition-colors min-h-[72px] lg:min-h-[80px]">
-            <div class="flex items-center gap-3 lg:gap-4 min-w-0">
-                <span class="w-11 h-11 lg:w-12 lg:h-12 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700 shrink-0">
-                    <i class="fas fa-calendar-alt text-sm"></i>
-                </span>
-                <div class="min-w-0">
-                    <span class="text-sm lg:text-base font-semibold text-slate-900 block truncate">Calendar</span>
-                    <span class="text-xs lg:text-sm text-slate-600 block truncate mt-0.5">Exam & quiz dates</span>
-                </div>
-            </div>
-            <i class="fas fa-chevron-right text-slate-400 text-xs shrink-0 ml-3"></i>
-        </a>
-        @if($student)
-        <a href="{{ route('dashboard.my-quizzes') }}" class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 lg:px-6 lg:py-5 flex items-center justify-between no-underline hover:bg-slate-50 hover:border-slate-300 transition-colors min-h-[72px] lg:min-h-[80px]">
-            <div class="flex items-center gap-3 lg:gap-4 min-w-0">
-                <span class="w-11 h-11 lg:w-12 lg:h-12 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700 shrink-0">
-                    <i class="fas fa-file-alt text-sm"></i>
-                </span>
-                <div class="min-w-0">
-                    <span class="text-sm lg:text-base font-semibold text-slate-900 block truncate">Results</span>
-                    <span class="text-xs lg:text-sm text-slate-600 block truncate mt-0.5">See your results</span>
-                </div>
-            </div>
-            <i class="fas fa-chevron-right text-slate-400 text-xs shrink-0 ml-3"></i>
-        </a>
-        @endif
     </div>
 </section>
 </div>

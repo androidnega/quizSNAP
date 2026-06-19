@@ -749,7 +749,7 @@ class AiQuestionService
             
             // Small delay between batches to avoid rate limits
             if ($i < $batches - 1) {
-                usleep(500000); // 0.5 second delay
+                usleep(150000); // 0.15s between batches
             }
         }
         
@@ -914,7 +914,7 @@ class AiQuestionService
             }
             
             if ($i < $batches - 1) {
-                usleep(500000); // 0.5 second delay between batches
+                usleep(150000); // 0.15s between batches
             }
         }
         

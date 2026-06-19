@@ -110,7 +110,24 @@ class User extends Authenticatable
             return Course::where('is_archived', false)->pluck('id')->all();
         }
 
-        return $this->courses()->where('is_archived', false)->pluck('courses.id')->all();
+        $ids = $this->courses()
+            ->where('is_archived', false)
+            ->pluck('courses.id')
+            ->all();
+
+        // Per-class-group lecturer assignments (class_group_course.examiner_id)
+        if (\Illuminate\Support\Facades\Schema::hasColumn('class_group_course', 'examiner_id')) {
+            $pivotIds = \Illuminate\Support\Facades\DB::table('class_group_course')
+                ->join('courses', 'courses.id', '=', 'class_group_course.course_id')
+                ->where('class_group_course.examiner_id', $this->id)
+                ->where('courses.is_archived', false)
+                ->distinct()
+                ->pluck('class_group_course.course_id')
+                ->all();
+            $ids = array_values(array_unique(array_merge($ids, $pivotIds)));
+        }
+
+        return $ids;
     }
 
     public static function coordinatorWithSmsBalanceForClassGroup(ClassGroup $classGroup): ?self

@@ -57,26 +57,20 @@ class GenerateQuizQuestionsJob implements ShouldQueue
             $sourceText = mb_substr($sourceText, 0, 50000) . "\n[... truncated ...]";
         }
 
-        $batchSize = 5;
-        $maxBatches = (int) ceil($target / $batchSize) + 3;
-        $maxAttempts = 3;
+        $maxAttempts = 2;
 
         for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
-            for ($i = 0; $i < $maxBatches; $i++) {
-                $poolCount = $quiz->questionPools()->count();
-                $remaining = max(0, $target - $poolCount);
-                if ($remaining <= 0) {
-                    break 2;
-                }
-                $toGenerate = min($batchSize, $remaining);
-                $aiService->generatePoolAndStore($quiz, $topicList, $toGenerate, $sourceText ?: null);
-                $quiz->refresh();
-                AiQuizGenerationProgress::update($this->quizId, $quiz->questionPools()->count());
-
-                if ($quiz->questionPools()->count() === 0 && $i >= 2) {
-                    break;
-                }
+            $poolCount = $quiz->questionPools()->count();
+            $remaining = max(0, $target - $poolCount);
+            if ($remaining <= 0) {
+                break;
             }
+
+            // AiQuestionService batches up to 20 questions per API call internally.
+            $aiService->generatePoolAndStore($quiz, $topicList, $remaining, $sourceText ?: null);
+            $quiz->refresh();
+            AiQuizGenerationProgress::update($this->quizId, $quiz->questionPools()->count());
+
             if ($quiz->questionPools()->count() >= 1) {
                 break;
             }

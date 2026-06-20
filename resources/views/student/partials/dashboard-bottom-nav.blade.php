@@ -260,9 +260,9 @@
                target="_blank"
                rel="noopener noreferrer">
                 <span class="sd-nav-fab-item-icon sd-nav-fab-item-icon--whatsapp" aria-hidden="true">
-                    <i class="fab fa-whatsapp"></i>
+                    <i class="fas fa-headset"></i>
                 </span>
-                WhatsApp
+                Support
             </a>
             <a href="tel:{{ $supportCallE164 }}"
                class="sd-nav-fab-item sd-nav-fab-item--support"

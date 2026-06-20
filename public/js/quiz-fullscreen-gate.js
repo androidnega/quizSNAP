@@ -100,7 +100,18 @@
                     e.preventDefault();
                     lockStart();
                     alert('You must be in browser full screen before starting the quiz. Click "Enter full screen" first.');
+                    return;
                 }
+                e.preventDefault();
+                requestFs()
+                    .then(waitReady)
+                    .then(function () {
+                        HTMLFormElement.prototype.submit.call(startForm);
+                    })
+                    .catch(function () {
+                        alert('Could not enter full screen. Click "Enter full screen" and allow it in your browser, then try Start Quiz again.');
+                        syncGate();
+                    });
             });
         }
 

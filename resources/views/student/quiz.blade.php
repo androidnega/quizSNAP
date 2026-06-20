@@ -5,6 +5,8 @@
 
 @push('styles')
 <style>
+body.quiz-fs-blocked { overflow: hidden; }
+#resize-blur-overlay.flex { display: flex !important; }
 .quiz-timer-green{color:#059669}.quiz-timer-blue{color:#2563eb}.quiz-timer-red{color:#dc2626}.quiz-side-num.quiz-side-answered{border-color:#22c55e;background-color:#f0fdf4;color:#15803d}
 /* AI invigilator badge (top panel only) when camera is active */
 #ai-invigilator-badge-panel.visible{display:flex!important}
@@ -92,18 +94,18 @@
             <button type="button" onclick="this.closest('#right-click-warning').classList.add('hidden')" class="btn btn-secondary py-2.5 px-5 text-sm font-semibold">OK</button>
         </div>
     </div>
-    <div id="new-tab-zone-warning" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-90 px-4">
-        <div class="bg-amber-50 border border-amber-300 rounded-lg p-4 max-w-md w-full">
-            <h4 class="font-semibold text-amber-800 mb-1">Stay in the quiz</h4>
-            <p class="text-sm text-amber-800 mb-3">If you open a new tab or switch to another tab, that will be detected as leaving the page and may result in your quiz being auto-submitted. Stay on this tab and keep your cursor in the quiz area.</p>
-            <button type="button" onclick="this.closest('#new-tab-zone-warning').classList.add('hidden')" class="btn btn-action py-2.5 px-5 text-sm font-semibold">OK</button>
+    <div id="new-tab-zone-warning" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900/80 px-4">
+        <div class="bg-white border border-gray-200 rounded-xl shadow-lg p-5 max-w-md w-full">
+            <h4 class="font-semibold text-gray-900 mb-1">Stay in the quiz</h4>
+            <p class="text-sm text-gray-600 mb-4">If you open a new tab or switch to another tab, that will be detected as leaving the page and may result in your quiz being auto-submitted. Stay on this tab and keep your cursor in the quiz area.</p>
+            <button type="button" id="new-tab-zone-warning-ok" class="w-full py-2.5 px-5 text-sm font-semibold rounded-lg text-white bg-gray-900 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 transition-colors">OK</button>
         </div>
     </div>
-    <div id="tab-switch-once-warning" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-90 px-4">
-        <div class="bg-amber-50 border border-amber-400 rounded-lg p-4 max-w-md w-full">
-            <h4 class="font-semibold text-amber-800 mb-1">You left this tab</h4>
-            <p class="text-sm text-amber-800 mb-3">If you switch tabs again, your quiz will be auto-submitted immediately with no further warning. Stay on this tab to continue.</p>
-            <button type="button" onclick="this.closest('#tab-switch-once-warning').classList.add('hidden')" class="btn btn-action py-2.5 px-5 text-sm font-semibold">OK</button>
+    <div id="tab-switch-once-warning" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900/80 px-4">
+        <div class="bg-white border border-gray-200 rounded-xl shadow-lg p-5 max-w-md w-full">
+            <h4 class="font-semibold text-gray-900 mb-1">You left this tab</h4>
+            <p class="text-sm text-gray-600 mb-4">If you switch tabs again, your quiz will be auto-submitted immediately with no further warning. Stay on this tab to continue.</p>
+            <button type="button" id="tab-switch-once-warning-ok" class="w-full py-2.5 px-5 text-sm font-semibold rounded-lg text-white bg-gray-900 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 transition-colors">OK</button>
         </div>
     </div>
 
@@ -194,12 +196,15 @@
         </div>
     </div>
 
-    {{-- Resize / exit fullscreen overlay: blocks quiz until full screen --}}
-    <div id="resize-blur-overlay" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-gray-900 px-4 pointer-events-auto" aria-hidden="true">
-        <div class="bg-white border border-gray-200 rounded-lg p-4 max-w-md w-full border border-gray-200 text-center">
-            <h4 id="resize-blur-title" class="font-semibold text-gray-800 mb-2">Full screen required</h4>
-            <p id="resize-blur-message" class="text-sm text-gray-600 mb-4">You must enter browser full screen before answering questions. Click the button below — your browser will hide tabs and the address bar.</p>
-            <button type="button" id="resize-blur-enter-fs-btn" class="mb-3 w-full py-2.5 px-5 text-sm font-semibold rounded-lg border-2 border-sky-400 bg-sky-50 text-sky-800 hover:bg-sky-100 focus:ring-2 focus:ring-sky-500 focus:ring-offset-1 transition-colors">Enter full screen</button>
+    {{-- Full screen entry gate: blocks quiz until browser full screen (required on load; fullscreen is lost on redirect from quiz-ready) --}}
+    <div id="resize-blur-overlay" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/95 px-4 pointer-events-auto" aria-hidden="true">
+        <div class="bg-white border border-gray-200 rounded-2xl shadow-xl p-6 max-w-md w-full text-center">
+            <div class="w-14 h-14 mx-auto mb-4 rounded-full bg-primary-50 flex items-center justify-center">
+                <i class="fas fa-expand text-2xl text-primary-600" aria-hidden="true"></i>
+            </div>
+            <h4 id="resize-blur-title" class="text-lg font-bold text-gray-900 mb-2">Full screen required</h4>
+            <p id="resize-blur-message" class="text-sm text-gray-600 mb-5">Your quiz runs in browser full screen so tabs and the address bar are hidden. Click below and choose <strong>Allow</strong> when your browser asks.</p>
+            <button type="button" id="resize-blur-enter-fs-btn" class="btn btn-primary w-full py-2.5 px-5 text-sm font-semibold text-white border-0 mb-3">Enter full screen</button>
             <p id="resize-blur-warning" class="text-sm font-medium text-amber-700 mb-3 hidden">Repeated violations will result in auto-submission of your quiz.</p>
             <p id="resize-blur-final-warning" class="text-sm font-bold text-red-600 mb-3 hidden">One more resize or exit from full screen will auto-submit your quiz.</p>
         </div>
@@ -414,6 +419,22 @@ window.QuizSnapAudioMonitor.config.violationCaptureUrl = "{{ route('student.quiz
 window.QuizSnapAudioMonitor.config.csrfToken = "{{ csrf_token() }}";
 window.QuizSnapAudioMonitor.config.sessionId = {{ $session->id ?? 0 }};
 document.addEventListener('DOMContentLoaded', function() {
+    function dismissWithFullscreen(modalId) {
+        var modal = document.getElementById(modalId);
+        if (modal) modal.classList.add('hidden');
+        if (window.QuizSnapQuiz && typeof window.QuizSnapQuiz.requestFullscreen === 'function') {
+            window.QuizSnapQuiz.requestFullscreen().catch(function () {});
+        }
+    }
+    var newTabOk = document.getElementById('new-tab-zone-warning-ok');
+    if (newTabOk) {
+        newTabOk.addEventListener('click', function () { dismissWithFullscreen('new-tab-zone-warning'); });
+    }
+    var tabSwitchOk = document.getElementById('tab-switch-once-warning-ok');
+    if (tabSwitchOk) {
+        tabSwitchOk.addEventListener('click', function () { dismissWithFullscreen('tab-switch-once-warning'); });
+    }
+
     window.QuizSnapQuiz.showRightClickWarning = function() {
         var el = document.getElementById('right-click-warning');
         if (el) { el.classList.remove('hidden'); }

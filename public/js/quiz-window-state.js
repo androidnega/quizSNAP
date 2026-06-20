@@ -31,15 +31,19 @@
     }
 
     function requestFullscreen() {
-        var el = document.documentElement;
-        var fn = el.requestFullscreen
-            || el.webkitRequestFullscreen
-            || el.mozRequestFullScreen
-            || el.msRequestFullscreen;
-        if (!fn) {
-            return Promise.reject(new Error('unsupported'));
+        var candidates = [document.documentElement, document.body];
+        for (var i = 0; i < candidates.length; i++) {
+            var el = candidates[i];
+            if (!el) continue;
+            var fn = el.requestFullscreen
+                || el.webkitRequestFullscreen
+                || el.mozRequestFullScreen
+                || el.msRequestFullscreen;
+            if (fn) {
+                return Promise.resolve(fn.call(el));
+            }
         }
-        return Promise.resolve(fn.call(el));
+        return Promise.reject(new Error('unsupported'));
     }
 
     /** Quiz enforcement entry point — full screen API only (no window maximize fallback). */

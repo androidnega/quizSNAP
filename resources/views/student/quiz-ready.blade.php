@@ -12,7 +12,7 @@
         </div>
         <h2 class="text-lg font-bold text-gray-900 mb-2">Full screen required</h2>
         <p class="text-sm text-gray-600 mb-5">Before you start, your browser must be in <strong>full screen mode</strong> (tabs and address bar hidden). Click the button below and allow full screen when prompted.</p>
-        <button type="button" id="quiz-fs-gate-btn" class="btn btn-action w-full py-2.5 text-sm font-semibold bg-sky-600 hover:bg-sky-700 text-white border-0">
+        <button type="button" id="quiz-fs-gate-btn" class="btn btn-primary w-full py-2.5 text-sm font-semibold text-white border-0">
             Enter full screen
         </button>
         <p id="quiz-fs-gate-hint" class="mt-3 text-xs text-gray-500 hidden">Full screen active. You can start the quiz below.</p>
@@ -47,7 +47,7 @@
 
             <form method="POST" action="{{ route('student.quiz.session.start') }}" id="quiz-start-form">
                 @csrf
-                <button type="submit" id="start-quiz-btn" class="btn btn-action w-full py-2.5 text-sm font-semibold bg-red-600 hover:bg-red-700 text-white border-0 disabled:opacity-50 disabled:cursor-not-allowed"{{ ($fullscreenRequired ?? true) ? ' disabled' : '' }}>
+                <button type="submit" id="start-quiz-btn" class="btn btn-primary w-full py-2.5 text-sm font-semibold text-white border-0 disabled:opacity-50 disabled:cursor-not-allowed"{{ ($fullscreenRequired ?? true) ? ' disabled' : '' }}>
                     Start Quiz
                 </button>
             </form>

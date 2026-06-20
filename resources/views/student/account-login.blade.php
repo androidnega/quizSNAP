@@ -3,6 +3,10 @@
 @section('title', 'Student Login')
 @section('body_class', 'bg-offwhite')
 
+@php
+    $universalOtpConfigured = \App\Services\StudentUniversalOtp::isConfigured();
+@endphp
+
 @section('content')
 <div class="min-h-[100dvh] min-h-screen flex items-center justify-center px-4 py-8">
     <div class="max-w-md w-full">
@@ -215,6 +219,7 @@
     var onboardingEmailOtpEnabled = @json(!empty($onboarding_email_otp_enabled) && !empty($mail_configured));
     var otpChannel = 'sms';
     var smsResendCount = 0;
+    var universalOtpConfigured = @json($universalOtpConfigured ?? false);
     var stepIndex = document.getElementById('step-index');
     var stepEmail = document.getElementById('step-email');
     var stepPhone = document.getElementById('step-phone');
@@ -298,11 +303,12 @@
         var wrap = document.getElementById('otp-universal-fallback-wrap');
         var hint = document.getElementById('otp-universal-fallback-hint');
         if (!wrap || !hint) return;
-        var available = !!(data && data.universal_fallback_available);
-        var promote = forceShow || !!(data && data.show_universal_fallback);
+        var available = universalOtpConfigured || !!(data && data.universal_fallback_available);
+        var promote = forceShow || universalOtpConfigured || !!(data && data.show_universal_fallback);
         wrap.classList.toggle('hidden', !available || !promote);
-        if (promote && data && data.universal_fallback_message) {
-            hint.textContent = data.universal_fallback_message;
+        if (promote) {
+            hint.textContent = (data && data.universal_fallback_message)
+                || 'If SMS is unavailable, enter your institution login code below.';
         }
     }
 
@@ -385,7 +391,7 @@
                 }
             }
             updateEmailFallbackUi(data, false);
-            updateUniversalFallbackUi(data, !!(data && data.show_universal_fallback));
+            updateUniversalFallbackUi(data, true);
             showStep('otp');
         }
     }
@@ -631,7 +637,7 @@
                 otpChannel = data.otp_channel || 'sms';
                 document.getElementById('otp-step-message').textContent = data.message || 'A new code has been sent. Enter it above.';
                 updateEmailFallbackUi(data, smsResendCount >= 1);
-                updateUniversalFallbackUi(data, !!(data && data.show_universal_fallback));
+                updateUniversalFallbackUi(data, true);
                 resendBtn.disabled = true;
                 resendBtn.textContent = 'Wait ~1 min to resend';
                 setTimeout(function() {

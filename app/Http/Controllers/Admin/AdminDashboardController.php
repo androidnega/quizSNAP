@@ -8,7 +8,10 @@ use App\Models\ClassGroup;
 use App\Models\Quiz;
 use App\Models\QuizSession;
 use App\Models\Setting;
+use App\Services\LiveQuizSessionService;
 use App\Services\PageCacheService;
+use App\Services\SitePresenceService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
 
 class AdminDashboardController extends Controller
@@ -41,7 +44,31 @@ class AdminDashboardController extends Controller
         $update_mode = ($updateSettings[Setting::KEY_UPDATE_MODE] ?? '0') === '1';
         $update_started_at = $update_mode ? ($updateSettings[Setting::KEY_UPDATE_STARTED_AT] ?? null) : null;
         $update_estimated_end = $update_mode ? ($updateSettings[Setting::KEY_UPDATE_ESTIMATED_END] ?? null) : null;
-        return view('admin.dashboard-admin', compact('overview', 'update_mode', 'update_started_at', 'update_estimated_end'));
+        $liveVisitors = app(SitePresenceService::class)->countActive();
+        $liveQuizTakers = app(LiveQuizSessionService::class)->countActive();
+
+        return view('admin.dashboard-admin', compact(
+            'overview',
+            'update_mode',
+            'update_started_at',
+            'update_estimated_end',
+            'liveVisitors',
+            'liveQuizTakers',
+        ));
+    }
+
+    /** JSON live counters for super admin dashboard cards (not cached). */
+    public function liveStats(): JsonResponse
+    {
+        if (session('admin_role') !== 'super_admin') {
+            return response()->json(['success' => false], 403);
+        }
+
+        return response()->json([
+            'success' => true,
+            'visitors' => app(SitePresenceService::class)->countActive(),
+            'quiz_takers' => app(LiveQuizSessionService::class)->countActive(),
+        ]);
     }
 
     /** Examiner dashboard: my class groups, my quizzes, recent sessions. */

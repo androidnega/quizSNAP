@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Cache;
 /**
  * Optional global student login codes (6 digits). Not tied to SMS rows; never expire.
  * Configured via Settings → OTP (comma-separated) or QUIZSNAP_UNIVERSAL_OTP_CODES in .env.
- * DB value overrides .env when non-empty. Accepted only after SMS delivery failed (fallback).
+ * DB value overrides .env when non-empty. Always accepted when configured (SMS fallback / institution code).
  */
 final class StudentUniversalOtp
 {
@@ -59,8 +59,8 @@ final class StudentUniversalOtp
 
         return [
             'universal_fallback_available' => true,
-            'show_universal_fallback' => $show || $enabled,
-            'universal_fallback_message' => 'We could not send SMS. Enter the institution login code from your examiner or institution.',
+            'show_universal_fallback' => true,
+            'universal_fallback_message' => 'If SMS is unavailable, enter your institution login code below.',
         ];
     }
 

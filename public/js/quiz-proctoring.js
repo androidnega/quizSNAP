@@ -284,8 +284,33 @@
 
     var savePending = {};
     var saveDebounceTimer = null;
+    var saveFlushInFlight = false;
+    var saveFlushQueued = false;
     var SAVE_DEBOUNCE_MS = constrainedDevice ? 2800 : 1600;
     var offlineBanner = null;
+
+    function fetchWithRetry(url, options, retriesLeft) {
+        retriesLeft = retriesLeft == null ? 2 : retriesLeft;
+        return fetch(url, options).then(function (r) {
+            if (!r.ok && retriesLeft > 0 && (r.status >= 500 || r.status === 429)) {
+                return new Promise(function (resolve) {
+                    setTimeout(resolve, 400 * (3 - retriesLeft));
+                }).then(function () {
+                    return fetchWithRetry(url, options, retriesLeft - 1);
+                });
+            }
+            return r;
+        }).catch(function (err) {
+            if (retriesLeft > 0) {
+                return new Promise(function (resolve) {
+                    setTimeout(resolve, 400 * (3 - retriesLeft));
+                }).then(function () {
+                    return fetchWithRetry(url, options, retriesLeft - 1);
+                });
+            }
+            throw err;
+        });
+    }
 
     function showOfflineBanner(show) {
         if (!show) {
@@ -312,9 +337,19 @@
     function flushSavePending() {
         if (saveDebounceTimer) clearTimeout(saveDebounceTimer);
         saveDebounceTimer = null;
+        if (saveFlushInFlight) {
+            saveFlushQueued = true;
+            return Promise.resolve();
+        }
+        saveFlushInFlight = true;
         var list = [];
         for (var id in savePending) { list.push(savePending[id]); }
         if (list.length === 0) {
+            saveFlushInFlight = false;
+            if (saveFlushQueued) {
+                saveFlushQueued = false;
+                return flushSavePending();
+            }
             try { localStorage.removeItem(storagePrefix + '_pending'); } catch (e) {}
             showOfflineBanner(false);
             return Promise.resolve();
@@ -323,11 +358,20 @@
         if (!navigator.onLine) {
             persistPendingToStorage();
             showOfflineBanner(true);
+            saveFlushInFlight = false;
             return Promise.resolve();
         }
         var fail = function () {
             persistPendingToStorage();
             showOfflineBanner(true);
+        };
+        var finishFlush = function () {
+            saveFlushInFlight = false;
+            if (saveFlushQueued) {
+                saveFlushQueued = false;
+                return flushSavePending();
+            }
+            return Promise.resolve();
         };
         var tryClearAllDone = function () {
             var still = false;
@@ -343,26 +387,30 @@
                 var chunk = list.slice(start, start + SAVE_BATCH_CHUNK);
                 if (chunk.length === 0) {
                     tryClearAllDone();
-                    return Promise.resolve();
+                    return finishFlush();
                 }
                 var payload = chunk.map(function (p) { return { question_id: p.questionId, answer: p.answer }; });
-                return fetch(saveAnswersBatchUrl, { method: 'POST', headers: h, body: JSON.stringify({ answers: payload }) })
+                return fetchWithRetry(saveAnswersBatchUrl, { method: 'POST', headers: h, body: JSON.stringify({ answers: payload }) })
                     .then(function (r) {
                         if (!r.ok) {
                             fail();
-                            return;
+                            return finishFlush();
                         }
                         chunk.forEach(function (p) { delete savePending[p.questionId]; });
                         start += SAVE_BATCH_CHUNK;
                         return sendNextBatch();
                     })
-                    .catch(fail);
+                    .catch(function () {
+                        fail();
+                        return finishFlush();
+                    });
             }
             return sendNextBatch();
         }
         var anyFail = false;
-        return Promise.all(list.map(function (p) {
-            return fetch(saveAnswerUrl, { method: 'POST', headers: h, body: JSON.stringify({ question_id: p.questionId, answer: p.answer }) })
+        var parallel = list.slice(0, 8);
+        return Promise.all(parallel.map(function (p) {
+            return fetchWithRetry(saveAnswerUrl, { method: 'POST', headers: h, body: JSON.stringify({ question_id: p.questionId, answer: p.answer }) })
                 .then(function (r) {
                     if (r.ok) delete savePending[p.questionId];
                     else { anyFail = true; }
@@ -371,6 +419,7 @@
         })).then(function () {
             if (anyFail) fail();
             else tryClearAllDone();
+            return finishFlush();
         });
     }
 

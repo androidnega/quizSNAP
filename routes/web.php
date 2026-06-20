@@ -50,6 +50,10 @@ Route::get('/fix-pull/script', [\App\Http\Controllers\FixPullController::class, 
 // Short link: quizsnap.online/thekey?key=YOUR_SECRET — runs fix-pull (no SSH needed)
 Route::get('/thekey', [\App\Http\Controllers\FixPullController::class, 'run'])->name('fix.pull.thekey');
 
+Route::post('/presence/ping', [\App\Http\Controllers\SitePresenceController::class, 'ping'])
+    ->middleware('throttle:120,1')
+    ->name('presence.ping');
+
 // Public landing: single Start Quiz entry; no quiz list. If direct link has token (?t= or ?token=), go straight to rules.
 Route::get('/', LandingPageController::class)->name('student.landing');
 
@@ -181,6 +185,7 @@ Route::post('/password/reset', [\App\Http\Controllers\Admin\StaffPasswordResetCo
 Route::middleware('admin.auth')->group(function () {
     Route::post('/logout', [AdminAuthController::class, 'logout'])->name('logout');
     Route::get('/logout', [AdminAuthController::class, 'logout'])->name('logout.get');
+    Route::get('/dashboard/live-stats', [AdminDashboardController::class, 'liveStats'])->name('dashboard.live-stats');
     // GET /dashboard is handled by DashboardGatewayController (unified)
 
         Route::prefix('dashboard')->name('dashboard.')->middleware('block.superadmin.coordinator')->group(function () {

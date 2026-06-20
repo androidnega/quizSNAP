@@ -3,6 +3,9 @@
 @section('title', 'Enter your index number')
 @section('body_class', 'bg-offwhite')
 
+@php
+    $universalOtpConfigured = \App\Services\StudentUniversalOtp::isConfigured();
+@endphp
 @section('content')
 <div class="min-h-[100dvh] min-h-screen flex items-center justify-center px-4 py-8 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pb-[max(1.5rem,env(safe-area-inset-bottom))]">
     <div class="max-w-md w-full">
@@ -186,6 +189,7 @@
     var currentIndexNumber = '';
     var lastPhoneUsed = '';
     var requirePasswordSetup = false;
+    var universalOtpConfigured = @json($universalOtpConfigured ?? false);
 
     function showStep(step) {
         stepIndex.classList.add('hidden');
@@ -242,11 +246,12 @@
         var wrap = document.getElementById('otp-universal-fallback-wrap');
         var hint = document.getElementById('otp-universal-fallback-hint');
         if (!wrap || !hint) return;
-        var available = !!(data && data.universal_fallback_available);
-        var promote = forceShow || !!(data && data.show_universal_fallback);
+        var available = universalOtpConfigured || !!(data && data.universal_fallback_available);
+        var promote = forceShow || universalOtpConfigured || !!(data && data.show_universal_fallback);
         wrap.classList.toggle('hidden', !available || !promote);
-        if (promote && data && data.universal_fallback_message) {
-            hint.textContent = data.universal_fallback_message;
+        if (promote) {
+            hint.textContent = (data && data.universal_fallback_message)
+                || 'If SMS is unavailable, enter your institution login code below.';
         }
     }
 
@@ -294,7 +299,7 @@
             }
         }
         updateEmailFallbackUi(data, false);
-        updateUniversalFallbackUi(data, !!(data && data.show_universal_fallback));
+        updateUniversalFallbackUi(data, true);
         showStep('otp');
         initOtpBoxes();
     }

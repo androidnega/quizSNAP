@@ -324,6 +324,7 @@
     
     </div><!-- /#quizsnap-app -->
     <script src="{{ asset('js/quizsnap-guard.js') }}"></script>
+    <script src="{{ asset('js/quizsnap-presence.js') }}?v={{ filemtime(public_path('js/quizsnap-presence.js')) }}" defer></script>
     @yield('copy_restriction_script')
     <script src="{{ asset('js/app.js') }}" defer></script>
     <script>window.QuizSnapLive=window.QuizSnapLive||{refreshers:[],registerRefresher:function(fn){if(typeof fn==='function')this.refreshers.push(fn);}};</script>

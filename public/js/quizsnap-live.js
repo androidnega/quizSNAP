@@ -27,7 +27,7 @@
             return { reloadTypes: ['class-groups', 'dashboard'] };
         }
         if (/\/dashboard\/?$/.test(path)) {
-            return { reloadTypes: ['dashboard', 'quizzes', 'class-groups', 'sessions'] };
+            return { reloadTypes: ['dashboard', 'quizzes', 'class-groups'] };
         }
         if (path.indexOf('/dashboard') === 0) {
             return { reloadTypes: ['dashboard', 'quizzes', 'class-groups', 'sessions'] };

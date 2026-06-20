@@ -40,10 +40,20 @@ class StudentAuthThrottleService
         return max(0, (int) $expiresAt - time());
     }
 
+    public static function currentAttempts(string $type, string $indexHash): int
+    {
+        return (int) Cache::get(self::attemptKey($type, $indexHash), 0);
+    }
+
+    public static function remainingAttempts(string $type, string $indexHash): int
+    {
+        return max(0, self::maxAttempts() - self::currentAttempts($type, $indexHash));
+    }
+
     public static function recordFailure(string $type, string $indexHash): int
     {
         $attemptKey = self::attemptKey($type, $indexHash);
-        $attempts = (int) Cache::get($attemptKey, 0) + 1;
+        $attempts = self::currentAttempts($type, $indexHash) + 1;
         Cache::put($attemptKey, $attempts, now()->addMinutes(self::lockoutMinutes()));
 
         if ($attempts >= self::maxAttempts()) {
@@ -71,6 +81,19 @@ class StudentAuthThrottleService
         return $type === self::TYPE_PASSWORD
             ? "Too many failed password attempts. Try again in {$minutes} minute(s) or use “Forgot password”."
             : "Too many failed code attempts. Try again in {$minutes} minute(s) or request a new code.";
+    }
+
+    public static function failureMessage(string $type, string $indexHash): string
+    {
+        if (self::isLocked($type, $indexHash)) {
+            return self::lockoutMessage($type, $indexHash);
+        }
+
+        $remaining = self::remainingAttempts($type, $indexHash);
+
+        return $type === self::TYPE_PASSWORD
+            ? "Incorrect password. You have {$remaining} attempt(s) left before a temporary lockout."
+            : "Incorrect code. You have {$remaining} attempt(s) left before a temporary lockout.";
     }
 
     private static function attemptKey(string $type, string $indexHash): string

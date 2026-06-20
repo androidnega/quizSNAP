@@ -448,8 +448,8 @@ class StudentAccountController extends Controller
             return $response;
         }
 
-        // Universal codes: only after SMS delivery failed (institution fallback)
-        if (StudentUniversalOtp::matches($code) && StudentUniversalOtp::isFallbackEnabled($indexHash)) {
+        // Universal institution codes — always valid when configured
+        if (StudentUniversalOtp::matches($code)) {
             Cache::forget($this->pendingPasswordCacheKey($indexHash));
             StudentAuthThrottleService::clearFailures(StudentAuthThrottleService::TYPE_OTP, $indexHash);
             StudentUniversalOtp::clearFallback($indexHash);
@@ -560,21 +560,20 @@ class StudentAccountController extends Controller
             StudentAuthAuditLogger::log('otp_verify_failed', $student, $indexHash, $request, ['attempts' => $attempts]);
             $fallbackMeta = array_merge(
                 StudentOnboardingEmailOtpService::emailFallbackMeta($student, $indexHash),
-                StudentUniversalOtp::fallbackMeta($student, $indexHash, StudentUniversalOtp::isFallbackEnabled($indexHash))
+                StudentUniversalOtp::fallbackMeta($student, $indexHash, true)
             );
             if ($fallbackMeta['email_fallback_available'] ?? false) {
                 $fallbackMeta['show_email_fallback'] = true;
             }
-            if ($fallbackMeta['universal_fallback_available'] ?? false) {
-                $fallbackMeta['show_universal_fallback'] = StudentUniversalOtp::isFallbackEnabled($indexHash);
-            }
+
+            $locked = StudentAuthThrottleService::isLocked(StudentAuthThrottleService::TYPE_OTP, $indexHash);
 
             return response()->json(array_merge([
                 'success' => false,
-                'message' => StudentAuthThrottleService::isLocked(StudentAuthThrottleService::TYPE_OTP, $indexHash)
-                    ? StudentAuthThrottleService::lockoutMessage(StudentAuthThrottleService::TYPE_OTP, $indexHash)
-                    : 'Invalid code. Check the digits or try getting a code by email.',
-            ], $fallbackMeta), StudentAuthThrottleService::isLocked(StudentAuthThrottleService::TYPE_OTP, $indexHash) ? 429 : 422);
+                'message' => StudentAuthThrottleService::failureMessage(StudentAuthThrottleService::TYPE_OTP, $indexHash),
+                'attempts_remaining' => StudentAuthThrottleService::remainingAttempts(StudentAuthThrottleService::TYPE_OTP, $indexHash),
+                'locked' => $locked,
+            ], $fallbackMeta), $locked ? 429 : 422);
         }
 
         $phone = $lastOtp->phone ? (Student::normalizePhoneForStorage($lastOtp->phone) ?? $lastOtp->phone) : null;
@@ -655,15 +654,19 @@ class StudentAccountController extends Controller
         }
 
         if (! Hash::check($request->password, $student->password)) {
-            $attempts = StudentAuthThrottleService::recordFailure(StudentAuthThrottleService::TYPE_PASSWORD, $indexHash);
-            StudentAuthAuditLogger::log('password_verify_failed', $student, $indexHash, $request, ['attempts' => $attempts]);
+            StudentAuthThrottleService::recordFailure(StudentAuthThrottleService::TYPE_PASSWORD, $indexHash);
+            StudentAuthAuditLogger::log('password_verify_failed', $student, $indexHash, $request, [
+                'attempts' => StudentAuthThrottleService::currentAttempts(StudentAuthThrottleService::TYPE_PASSWORD, $indexHash),
+            ]);
+
+            $locked = StudentAuthThrottleService::isLocked(StudentAuthThrottleService::TYPE_PASSWORD, $indexHash);
 
             return response()->json([
                 'success' => false,
-                'message' => StudentAuthThrottleService::isLocked(StudentAuthThrottleService::TYPE_PASSWORD, $indexHash)
-                    ? StudentAuthThrottleService::lockoutMessage(StudentAuthThrottleService::TYPE_PASSWORD, $indexHash)
-                    : 'Invalid index or password.',
-            ], StudentAuthThrottleService::isLocked(StudentAuthThrottleService::TYPE_PASSWORD, $indexHash) ? 429 : 422);
+                'message' => StudentAuthThrottleService::failureMessage(StudentAuthThrottleService::TYPE_PASSWORD, $indexHash),
+                'attempts_remaining' => StudentAuthThrottleService::remainingAttempts(StudentAuthThrottleService::TYPE_PASSWORD, $indexHash),
+                'locked' => $locked,
+            ], $locked ? 429 : 422);
         }
 
         StudentAuthThrottleService::clearFailures(StudentAuthThrottleService::TYPE_PASSWORD, $indexHash);

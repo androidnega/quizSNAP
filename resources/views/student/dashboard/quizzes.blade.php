@@ -73,8 +73,7 @@
     @else
     <div class="bg-white rounded-xl border border-slate-200 p-8 text-center">
         <span class="w-12 h-12 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 mx-auto"><i class="fas fa-clipboard-list"></i></span>
-        <p class="text-sm text-slate-500 mt-3">You haven't taken any quizzes yet.</p>
-        <a href="{{ route('student.landing') }}" class="inline-flex items-center justify-center px-4 py-2 rounded-lg text-sm font-medium bg-slate-600 text-white hover:bg-slate-700 mt-4 min-h-[44px] sm:min-h-0">Start a quiz</a>
+        <p class="text-sm text-slate-500 mt-3">You haven't completed any quizzes yet.</p>
     </div>
     @endif
 </section>

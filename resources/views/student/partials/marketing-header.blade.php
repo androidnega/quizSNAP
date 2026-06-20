@@ -15,7 +15,7 @@
 
         <div class="qs-header-right">
             @if(isset($student) && $student)
-                <a href="{{ route('dashboard') }}" class="qs-btn-get-started">Dashboard</a>
+                <a href="{{ route('dashboard') }}" class="qs-btn-get-started hidden sm:inline-flex">Dashboard</a>
             @elseif($showGetStarted)
                 <button type="button" class="qs-btn-get-started" id="header-get-started-btn">Get started</button>
             @elseif($showStudentLogin)

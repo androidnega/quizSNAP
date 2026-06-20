@@ -3,6 +3,10 @@
 @section('title', 'Dashboard')
 @php $dashboardTitle = 'Dashboard'; @endphp
 
+@section('body_extra_class')
+min-h-screen @if(($studentDashboardMobileLayout ?? \App\Models\Setting::getStudentDashboardMobileLayout()) === 'modern') sd-home-mobile-modern @endif
+@endsection
+
 @section('dashboard_content')
 @php
     $studentDashboardMobileLayout = $studentDashboardMobileLayout ?? \App\Models\Setting::getStudentDashboardMobileLayout();

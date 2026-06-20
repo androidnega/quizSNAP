@@ -8,7 +8,7 @@
 @endphp
 
 @section('title', $appName)
-@section('body_class', 'landing-page qs-landing')
+@section('body_class', 'landing-page qs-landing' . (isset($student) && $student ? ' qs-landing--signed-in' : ''))
 
 @push('styles')
 <style>
@@ -645,6 +645,37 @@
             height: 9rem;
             left: 6%;
         }
+
+        body.qs-landing--signed-in .qs-main {
+            overflow: hidden;
+            align-items: center;
+            padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+        }
+
+        body.qs-landing--signed-in .qs-hero-visual {
+            display: none;
+        }
+
+        body.qs-landing--signed-in .qs-hero-copy {
+            padding-top: 0.5rem;
+        }
+
+        body.qs-landing--signed-in .qs-badge {
+            margin-bottom: 0.75rem;
+        }
+
+        body.qs-landing--signed-in .qs-hero-title {
+            font-size: clamp(1.75rem, 8vw, 2.25rem);
+            margin-bottom: 0.5rem;
+        }
+
+        body.qs-landing--signed-in .qs-hero-sub--mobile {
+            margin-bottom: 0.875rem;
+        }
+
+        body.qs-landing--signed-in .qs-hero-actions--row {
+            margin-top: 0;
+        }
     }
 
     @include('partials.support-fab-styles')
@@ -759,8 +790,8 @@
                         My quizzes
                         <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
                     </a>
-                    <a href="{{ route('dashboard') }}" class="qs-btn-hero-secondary">Dashboard</a>
-                    <a href="{{ route('about-system') }}" class="qs-btn-outline">About us</a>
+                    <a href="{{ route('dashboard') }}" class="qs-btn-hero-secondary hidden sm:inline-flex">Dashboard</a>
+                    <a href="{{ route('about-system') }}" class="qs-btn-outline hidden sm:inline-flex">About us</a>
                 </div>
                 @endif
                 @endif

@@ -50,13 +50,13 @@
 
 <div class="md-dash lg:hidden" aria-label="Mobile dashboard overview">
     <header class="md-dash__header">
-        <div class="md-dash__profile">
+        <a href="{{ route('dashboard.my-profile') }}" class="md-dash__profile md-dash__profile-link">
             <span class="md-dash__avatar" aria-hidden="true">{{ $initials ?: 'U' }}</span>
             <div class="md-dash__greeting min-w-0">
                 <span class="md-dash__hello">{{ $greeting ?? 'Hello' }},</span>
                 <span class="md-dash__name truncate">{{ $displayName }}</span>
             </div>
-        </div>
+        </a>
         <div class="md-dash__header-actions">
             @if($student ?? null)
             @include('student.partials.dashboard-student-notifications')
@@ -202,11 +202,60 @@
         padding-bottom: 0.25rem;
     }
 
+    @media (max-width: 1023px) {
+        body.sd-home-mobile-modern {
+            overflow: hidden;
+        }
+
+        body.sd-home-mobile-modern #student-dashboard-wrap {
+            max-height: 100dvh;
+            overflow: hidden;
+        }
+
+        body.sd-home-mobile-modern #student-dashboard-wrap > main {
+            overflow: hidden;
+            padding-top: max(0.75rem, env(safe-area-inset-top));
+            padding-bottom: 5.5rem;
+        }
+
+        body.sd-home-mobile-modern #student-dashboard-wrap > main > div {
+            padding-top: 0.75rem;
+            padding-bottom: 0.75rem;
+        }
+
+        body.sd-home-mobile-modern .md-dash {
+            gap: 0.875rem;
+            max-height: calc(100dvh - 7rem - env(safe-area-inset-top));
+            overflow: hidden;
+        }
+
+        body.sd-home-mobile-modern .md-dash__banner-media {
+            aspect-ratio: 999 / 220;
+        }
+
+        body.sd-home-mobile-modern .md-dash__tile {
+            min-height: 6.25rem;
+        }
+    }
+
     .md-dash__header {
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 0.75rem;
+    }
+
+    .md-dash__profile-link {
+        text-decoration: none;
+        color: inherit;
+        min-width: 0;
+        flex: 1;
+        border-radius: 0.875rem;
+        transition: background 0.15s ease;
+    }
+
+    .md-dash__profile-link:active {
+        background: var(--theme-primary-50);
     }
 
     .md-dash__profile {
@@ -552,6 +601,7 @@
         font-size: 1.125rem;
         color: var(--theme-primary-500);
         opacity: 0.55;
+        pointer-events: none;
     }
 
     .md-dash__tile--brand .md-dash__tile-icon {

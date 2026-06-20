@@ -110,6 +110,11 @@
         background: rgba(15, 23, 42, 0.28);
     }
 
+    .stu-notif__backdrop[hidden] {
+        display: none !important;
+        pointer-events: none !important;
+    }
+
     .stu-notif__panel {
         position: fixed;
         top: max(3.25rem, calc(env(safe-area-inset-top) + 2.75rem));

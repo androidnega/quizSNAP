@@ -1,6 +1,6 @@
 <section aria-label="At a glance">
     <h2 class="text-[10px] sm:text-xs lg:text-sm font-semibold text-slate-500 mb-2 lg:mb-4 uppercase tracking-wider">At a glance</h2>
-    <div class="glance-grid grid grid-cols-3 gap-2 sm:gap-3 lg:gap-4">
+    <div class="glance-grid grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 lg:gap-4">
         @if($student && ($hasQuizAccess ?? true))
         <a href="{{ route('dashboard.my-quizzes') }}" class="group glance-card glance-card--blue no-underline">
             <span class="glance-card__glow" aria-hidden="true"></span>
@@ -70,7 +70,7 @@
         </div>
         @endif
 
-        <a href="{{ route('dashboard.my-profile') }}" class="group glance-card glance-card--violet no-underline">
+        <a href="{{ route('dashboard.my-profile') }}" class="group glance-card glance-card--violet no-underline hidden lg:flex">
             <span class="glance-card__glow" aria-hidden="true"></span>
             <div class="glance-card__body">
                 <div class="glance-card__icon glance-card__icon--violet">

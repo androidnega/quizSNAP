@@ -12,6 +12,7 @@ use App\Models\Student;
 use App\Models\User;
 use App\Services\PageCacheService;
 use App\Support\UserFriendlyMessages;
+use App\Support\DashboardQuizState;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -147,7 +148,14 @@ class StudentDashboardController extends Controller
         $hour = (int) now()->format('G');
         $greeting = ($hour >= 5 && $hour < 12) ? 'Good morning' : (($hour >= 12 && $hour < 17) ? 'Good afternoon' : 'Good evening');
 
-        return view('student.dashboard.index', [
+        return view('student.dashboard.index', array_merge(
+            DashboardQuizState::resolve(
+                $scheduledQuiz,
+                $scheduledQuizSession,
+                $scheduledOpenSession,
+                $lastQuiz,
+            ),
+            [
             'student' => $student,
             'classGroups' => $classGroups,
             'examCalendarEntries' => $examCalendarEntries,
@@ -161,7 +169,8 @@ class StudentDashboardController extends Controller
             'displayName' => $student->first_name,
             'dashboardBanner' => \App\Models\Setting::getStudentDashboardBannerConfig(),
             'studentDashboardMobileLayout' => \App\Models\Setting::getStudentDashboardMobileLayout(),
-        ]);
+            ]
+        ));
     }
 
     /**

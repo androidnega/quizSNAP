@@ -1,10 +1,7 @@
 @php
     $banner = $dashboardBanner ?? \App\Models\Setting::getStudentDashboardBannerConfig();
     $displayName = $displayName ?? $student?->first_name ?? 'User';
-    $initials = strtoupper(substr(trim($displayName), 0, 1));
-    if ($student?->last_name) {
-        $initials .= strtoupper(substr(trim($student->last_name), 0, 1));
-    }
+    $initials = $student?->initials ?? strtoupper(substr(trim($displayName), 0, 1));
     $promoTitle = $banner['title'] ?? 'Challenge Yourself.';
     $promoAccent = $banner['title_accent'] ?? 'Achieve More.';
     $promoSubtitle = trim($banner['subtitle'] ?? '');

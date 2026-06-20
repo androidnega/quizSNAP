@@ -9,8 +9,6 @@
     $isModernMobile = $studentDashboardMobileLayout === 'modern';
 @endphp
 
-@include('student.partials.dashboard-overview-quiz-state')
-
 <div class="space-y-5 lg:space-y-10">
     <header class="@if($isModernMobile) hidden lg:block @endif">
         <h1 class="text-xl sm:text-2xl lg:text-[1.75rem] xl:text-3xl font-bold text-slate-900 tracking-tight">{{ $greeting ?? 'Hello' }}, {{ $displayName ?? $student?->first_name ?? 'User' }}</h1>

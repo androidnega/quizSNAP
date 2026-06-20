@@ -290,6 +290,35 @@
         box-shadow: 0 3px 10px rgba(5, 150, 105, 0.28);
     }
 
+    @keyframes glance-start-pulse {
+        0%, 100% {
+            box-shadow: 0 3px 10px rgba(5, 150, 105, 0.28);
+            transform: scale(1);
+        }
+        50% {
+            box-shadow: 0 6px 22px rgba(5, 150, 105, 0.48);
+            transform: scale(1.05);
+        }
+    }
+
+    @media (min-width: 640px) {
+        .glance-card__cta--start {
+            animation: glance-start-pulse 1.8s ease-in-out infinite;
+        }
+
+        a.glance-card__body:hover .glance-card__cta--start,
+        .glance-card:has(a.glance-card__body:hover) .glance-card__cta--start {
+            animation: none;
+            transform: translateY(-1px) scale(1.05);
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .glance-card__cta--start {
+            animation: none !important;
+        }
+    }
+
     .glance-card__cta--continue {
         color: #fff;
         background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
@@ -401,9 +430,9 @@
         .glance-card__body {
             flex-direction: row;
             align-items: center;
-            gap: 0.625rem;
-            padding: 0.8125rem 0.8125rem;
-            min-height: 4.625rem;
+            gap: 0.6875rem;
+            padding: 0.9375rem 0.875rem;
+            min-height: 5.5rem;
         }
 
         .glance-card__icon {
@@ -428,7 +457,11 @@
 
         .glance-card__value--sm {
             font-size: 0.75rem;
-            line-height: 1.35;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
         }
 
         .glance-card__label {

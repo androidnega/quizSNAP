@@ -59,6 +59,14 @@ class QuizSession extends Model
         return $this->hasOne(Result::class, 'quiz_session_id');
     }
 
+    /**
+     * True when the student started the quiz timer (not only face capture or an idle session).
+     */
+    public function participatedInExam(): bool
+    {
+        return $this->start_time !== null;
+    }
+
     public function isResultWithheld(): bool
     {
         $reason = trim((string) $this->submission_reason);

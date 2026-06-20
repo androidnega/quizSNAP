@@ -251,7 +251,6 @@ window.QuizSnapQuiz = {
     violationUrl: "{{ route('student.quiz.violation') }}",
     violationCaptureUrl: "{{ route('student.quiz.violation.capture') }}",
     heartbeatUrl: "{{ route('student.quiz.heartbeat') }}",
-    proctorFeedUrl: "{{ route('student.quiz.proctor-feed') }}",
     finalPhotoUrl: "{{ route('student.final-photo.capture') }}",
     finalizeUrl: "{{ route('student.quiz.finalize') }}",
     timeSyncUrl: "{{ route('student.quiz.time-sync') }}",
@@ -270,7 +269,6 @@ window.QuizSnapQuiz = {
     proctoringObjectDetect: {{ ($proctoringObjectDetect ?? true) ? 'true' : 'false' }},
     proctoringBlockRightClick: {{ ($proctoringBlockRightClick ?? true) ? 'true' : 'false' }},
     proctoringBlockCopyPaste: {{ ($proctoringBlockCopyPaste ?? true) ? 'true' : 'false' }},
-    liveProctorEnabled: {{ ($liveProctorEnabled ?? false) ? 'true' : 'false' }},
     studentIndex: @json($session->student_index ?? null),
     studentName: @json($matchedStudentName ?? null),
     studentNameLinked: {{ ($studentNameLinked ?? false) ? 'true' : 'false' }}

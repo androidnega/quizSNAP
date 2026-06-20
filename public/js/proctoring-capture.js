@@ -64,6 +64,18 @@
         else if (captureBtn) captureBtn.textContent = text;
     }
 
+    function applyCaptureButtonVisual(state) {
+        if (!captureBtn) return;
+        captureBtn.classList.remove('capture-btn--ready', 'capture-btn--waiting', 'capture-btn--neutral');
+        if (state === 'ready') {
+            captureBtn.classList.add('capture-btn--ready');
+        } else if (state === 'waiting') {
+            captureBtn.classList.add('capture-btn--waiting');
+        } else {
+            captureBtn.classList.add('capture-btn--neutral');
+        }
+    }
+
     function showError(msg) {
         if (errorTextEl) errorTextEl.textContent = msg || '';
         if (errorEl) {
@@ -147,21 +159,25 @@
         if (!stream) {
             captureBtn.disabled = false;
             setButtonText('Allow camera & continue');
+            applyCaptureButtonVisual('neutral');
             hideLoading();
             return;
         }
         if (!videoReady) {
             captureBtn.disabled = true;
             setButtonText('Waiting for camera...');
+            applyCaptureButtonVisual('neutral');
             return;
         }
         if (!detectorReady) {
             captureBtn.disabled = true;
             setButtonText('Preparing verification...');
+            applyCaptureButtonVisual('neutral');
             return;
         }
         if (!liveFaceValid) {
             captureBtn.disabled = true;
+            applyCaptureButtonVisual('waiting');
             if (readySinceMs && detectorReady && videoReady) {
                 const heldMs = Date.now() - readySinceMs;
                 if (heldMs < STANDARD_HEADSHOT.stableHoldMs) {
@@ -177,6 +193,7 @@
         }
         captureBtn.disabled = false;
         setButtonText('Capture photo');
+        applyCaptureButtonVisual('ready');
     }
 
     function analyzeDetections(predictions) {

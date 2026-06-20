@@ -38,7 +38,7 @@
 @endphp
 <div class="min-h-screen flex flex-col theme-bg" id="student-dashboard-wrap">
     <header class="hidden lg:block sticky top-0 z-30 theme-header">
-        <div class="mx-auto flex h-14 lg:h-16 w-full max-w-none lg:max-w-4xl xl:max-w-5xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+        <div class="mx-auto flex h-14 lg:h-16 w-full max-w-none lg:max-w-4xl xl:max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
             <div class="flex lg:hidden items-center gap-2.5 min-w-0 flex-1">
                 <button type="button" id="student-mobile-menu-btn" class="shrink-0 flex h-10 w-10 items-center justify-center rounded-xl theme-header-text theme-header-hover focus:outline-none focus:ring-2 focus:ring-slate-700 focus:ring-offset-2 focus:ring-offset-[var(--theme-brand)]" aria-label="Open menu" aria-expanded="false" aria-controls="student-mobile-sidebar">
                     <i class="fas fa-bars text-base"></i>
@@ -132,8 +132,8 @@
     </aside>
     <div id="student-mobile-sidebar-overlay" class="fixed inset-0 z-30 bg-slate-900/40 lg:hidden cursor-pointer pointer-events-none" aria-hidden="true" role="button" tabindex="-1" aria-label="Close menu" style="visibility: hidden;"></div>
 
-    <main class="flex-1 w-full min-w-0 overflow-x-hidden pb-24 lg:pb-12 pt-[max(1rem,env(safe-area-inset-top))] lg:pt-0">
-        <div class="mx-auto w-full max-w-none lg:max-w-4xl xl:max-w-5xl min-w-0 px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
+    <main class="flex-1 w-full min-w-0 overflow-x-hidden pb-24 lg:pb-10 xl:pb-8 pt-[max(1rem,env(safe-area-inset-top))] lg:pt-0">
+        <div class="mx-auto w-full max-w-none lg:max-w-4xl xl:max-w-6xl min-w-0 px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-6 xl:py-5">
             @if(isset($student) && $student && !request()->routeIs('dashboard'))
             <div class="lg:hidden flex justify-end mb-2">
                 @include('student.partials.dashboard-student-notifications')
@@ -157,7 +157,7 @@
     @include('student.partials.dashboard-bottom-nav')
 
     <div id="student-dashboard-support-fab" class="hidden lg:block">
-        @include('student.partials.support-fab', ['supportContext' => $supportContext])
+        @include('student.partials.support-fab', ['supportContext' => $supportContext, 'supportPage' => $breadcrumbLabel])
     </div>
 </div>
 <script>

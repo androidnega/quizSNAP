@@ -28,9 +28,7 @@
     let wakeLock = null;
     let cameraProtectionInterval = null;
     let cameraWarningShown = false;
-    let proctorFeedInterval = null;
     var periodicHeartbeatInterval = null;
-    var proctorFeedInFlight = false;
     let lastUserInputSample = '';
     const AI_KEYWORDS = ['chatgpt', 'openai', 'deepseek', 'gemini', 'google', 'ngrok', 'claude', 'copilot', 'perplexity'];
 
@@ -50,6 +48,18 @@
     var constrainedDevice = isConstrainedDevice();
     var SAVE_BATCH_CHUNK = 25;
     var TIME_SYNC_INTERVAL_MS = constrainedDevice ? 45000 : 30000;
+
+    function notifyStudentError(kind) {
+        if (window.QuizSnapStudentFeedback) {
+            if (kind === 'save' && window.QuizSnapStudentFeedback.saveError) {
+                window.QuizSnapStudentFeedback.saveError();
+            } else if (kind === 'violation' && window.QuizSnapStudentFeedback.violationError) {
+                window.QuizSnapStudentFeedback.violationError();
+            } else if (window.QuizSnapStudentFeedback.connectionError) {
+                window.QuizSnapStudentFeedback.connectionError();
+            }
+        }
+    }
 
     /**
      * Request screen wake lock to prevent dimming
@@ -192,7 +202,9 @@
                 image_base64: imageBase64,
                 metadata: metadata || {},
             }),
-        }).catch(function () {});
+        }).catch(function () {
+            notifyStudentError('violation');
+        });
     }
 
     function formatTime(sec) {
@@ -279,7 +291,9 @@
                     }
                 }
             })
-            .catch(function () {});
+            .catch(function () {
+                notifyStudentError('connection');
+            });
     }
 
     var savePending = {};
@@ -364,6 +378,7 @@
         var fail = function () {
             persistPendingToStorage();
             showOfflineBanner(true);
+            notifyStudentError('save');
         };
         var finishFlush = function () {
             saveFlushInFlight = false;
@@ -561,7 +576,7 @@
                 }
             })
             .catch(function () {
-                /* Network failure or parse error: do not auto-submit. Only server-confirmed rule violations trigger auto-submit. */
+                notifyStudentError('violation');
             });
     }
 
@@ -615,6 +630,7 @@
                 .catch(function () {
                     showOfflineBanner(true);
                     if (offlineBanner) offlineBanner.textContent = 'Network error. Please try again.';
+                    notifyStudentError('connection');
                 });
             return;
         }
@@ -789,65 +805,10 @@
                     window.QuizSnapQuiz.showTabSwitchWarning();
                 }
             })
-            .catch(function () {});
+            .catch(function () {
+                notifyStudentError('connection');
+            });
     }
-
-    (function () {
-        if (c.proctoringTabSwitch === false) return;
-        var NEW_TAB_ZONE_PX = 80;
-        var showDelay = null;
-        function isInsideCameraOverlay(el) {
-            if (!el) return false;
-            return el.closest && (el.closest('.quiz-proctoring-camera-overlay') || el.closest('#live-camera-frame') || el.closest('#quiz-mobile-camera-overlay'));
-        }
-        document.addEventListener('mousemove', function (e) {
-            if (isInsideCameraOverlay(e.target)) {
-                if (showDelay) { clearTimeout(showDelay); showDelay = null; }
-                if (window.QuizSnapQuiz && window.QuizSnapQuiz.hideNewTabZoneWarning) window.QuizSnapQuiz.hideNewTabZoneWarning();
-                return;
-            }
-            if (e.clientY < NEW_TAB_ZONE_PX) {
-                if (showDelay) return;
-                showDelay = setTimeout(function () {
-                    showDelay = null;
-                    if (window.QuizSnapQuiz && window.QuizSnapQuiz.showNewTabZoneWarning) {
-                        window.QuizSnapQuiz.showNewTabZoneWarning();
-                    }
-                }, 400);
-            } else {
-                if (showDelay) {
-                    clearTimeout(showDelay);
-                    showDelay = null;
-                }
-                if (window.QuizSnapQuiz && window.QuizSnapQuiz.hideNewTabZoneWarning) {
-                    window.QuizSnapQuiz.hideNewTabZoneWarning();
-                }
-            }
-        });
-        document.addEventListener('touchstart', function (e) {
-            if (isInsideCameraOverlay(e.target)) {
-                if (showDelay) { clearTimeout(showDelay); showDelay = null; }
-                if (window.QuizSnapQuiz && window.QuizSnapQuiz.hideNewTabZoneWarning) window.QuizSnapQuiz.hideNewTabZoneWarning();
-                return;
-            }
-            if (e.touches && e.touches[0] && e.touches[0].clientY < NEW_TAB_ZONE_PX) {
-                if (showDelay) return;
-                showDelay = setTimeout(function () {
-                    showDelay = null;
-                    if (window.QuizSnapQuiz && window.QuizSnapQuiz.showNewTabZoneWarning) {
-                        window.QuizSnapQuiz.showNewTabZoneWarning();
-                    }
-                }, 400);
-            } else {
-                if (showDelay) { clearTimeout(showDelay); showDelay = null; }
-                if (window.QuizSnapQuiz && window.QuizSnapQuiz.hideNewTabZoneWarning) {
-                    window.QuizSnapQuiz.hideNewTabZoneWarning();
-                }
-            }
-        }, { passive: true });
-    })();
-
-    document.addEventListener('copy', function (e) {
         if (c.proctoringBlockCopyPaste === false) return;
         e.preventDefault();
         recordViolation('copy_paste');
@@ -1332,62 +1293,6 @@
                     }
                 }
 
-                // Proctor feed: spaced frames, one request in flight at a time (avoids piling up on slow phones / networks)
-                var proctorFeedUrl = c.proctorFeedUrl;
-                if (proctorFeedUrl && c.liveProctorEnabled !== false && monitorVideo.videoWidth > 0) {
-                    var proctorCanvas = document.createElement('canvas');
-                    var proctorCtx = proctorCanvas.getContext('2d');
-                    var proctorFeedMs = constrainedDevice ? 5500 : 3200;
-                    var proctorMaxW = constrainedDevice ? 400 : 640;
-                    var proctorJpegQ = constrainedDevice ? 0.52 : 0.68;
-                    var minBrightness = 18;
-                    function isFrameTooDark(ctx, w, h) {
-                        try {
-                            var cx = Math.floor(w / 2);
-                            var cy = Math.floor(h / 2);
-                            var size = 20;
-                            var x0 = Math.max(0, cx - size);
-                            var y0 = Math.max(0, cy - size);
-                            var x1 = Math.min(w, cx + size);
-                            var y1 = Math.min(h, cy + size);
-                            var data = ctx.getImageData(x0, y0, x1 - x0, y1 - y0);
-                            var sum = 0;
-                            var n = data.data.length / 4;
-                            for (var i = 0; i < data.data.length; i += 4) {
-                                sum += (data.data[i] + data.data[i + 1] + data.data[i + 2]) / 3;
-                            }
-                            return n > 0 && sum / n < minBrightness;
-                        } catch (e) { return false; }
-                    }
-                    function sendProctorFrame() {
-                        if (remainingSeconds <= 0 || isUnloading || !cameraStream || proctorFeedInFlight) return;
-                        var track = cameraStream.getVideoTracks()[0];
-                        if (!track || track.readyState !== 'live') return;
-                        if (monitorVideo.readyState < 2 || monitorVideo.videoWidth <= 0) return;
-                        try {
-                            var vw = monitorVideo.videoWidth;
-                            var vh = monitorVideo.videoHeight;
-                            var tw = Math.min(vw, proctorMaxW);
-                            var th = Math.max(1, Math.round(vh * (tw / vw)));
-                            proctorCanvas.width = tw;
-                            proctorCanvas.height = th;
-                            proctorCtx.drawImage(monitorVideo, 0, 0, tw, th);
-                            if (isFrameTooDark(proctorCtx, tw, th)) return;
-                            var dataUrl = proctorCanvas.toDataURL('image/jpeg', proctorJpegQ);
-                            proctorFeedInFlight = true;
-                            fetch(proctorFeedUrl, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf(), 'Accept': 'application/json' },
-                                body: JSON.stringify({ image_base64: dataUrl }),
-                            })
-                                .catch(function () {})
-                                .finally(function () { proctorFeedInFlight = false; });
-                        } catch (e) { proctorFeedInFlight = false; }
-                    }
-                    if (proctorFeedInterval) clearInterval(proctorFeedInterval);
-                    proctorFeedInterval = setInterval(sendProctorFrame, proctorFeedMs);
-                    setTimeout(sendProctorFrame, 1200);
-                }
             }
 
             monitorVideo.play().then(startTfMonitoring).catch(function () {
@@ -1429,7 +1334,6 @@
             releaseWakeLock();
             stopCameraProtection();
             if (cameraCheckInterval) clearInterval(cameraCheckInterval);
-            if (proctorFeedInterval) { clearInterval(proctorFeedInterval); proctorFeedInterval = null; }
             if (window.QuizSnapObjectMonitor && window.QuizSnapObjectMonitor.stop) {
                 window.QuizSnapObjectMonitor.stop();
             }

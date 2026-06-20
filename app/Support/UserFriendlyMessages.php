@@ -7,6 +7,8 @@ namespace App\Support;
  */
 final class UserFriendlyMessages
 {
+    public const CONNECTION = 'We could not reach the server. Check your connection and try again.';
+
     public const GENERIC = 'Something went wrong. Please try again.';
 
     public const NOT_FOUND = 'We could not find what you were looking for.';

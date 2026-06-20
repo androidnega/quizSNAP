@@ -17,10 +17,15 @@
         $supportContext = array_filter([
             'name' => $student->display_name ?? null,
             'index_number' => $student->index_number ?? null,
+            'page' => 'Dashboard',
         ]);
     }
-    $supportWhatsAppUrl = SupportContact::whatsAppUrl($supportContext);
     $supportCallE164 = SupportContact::callNumber();
+    $supportTriggerContext = array_filter([
+        'name' => $supportContext['name'] ?? null,
+        'index_number' => $supportContext['index_number'] ?? null,
+        'page' => $supportContext['page'] ?? null,
+    ], fn ($v) => $v !== null && $v !== '');
 @endphp
 <style>
     .sd-nav-fab-wrap {
@@ -253,12 +258,13 @@
             </a>
             @endforeach
             <div class="sd-nav-fab-divider" style="--fab-i: {{ count($fabItems) }}" role="separator" aria-hidden="true"></div>
-            <a href="{{ $supportWhatsAppUrl }}"
+            <a href="#"
+               role="menuitem"
+               data-qs-support-whatsapp
+               data-support-context='@json($supportTriggerContext)'
                class="sd-nav-fab-item sd-nav-fab-item--support"
                style="--fab-i: {{ count($fabItems) + 1 }}"
-               role="menuitem"
-               target="_blank"
-               rel="noopener noreferrer">
+               aria-label="Contact support on WhatsApp">
                 <span class="sd-nav-fab-item-icon sd-nav-fab-item-icon--whatsapp" aria-hidden="true">
                     <i class="fas fa-headset"></i>
                 </span>

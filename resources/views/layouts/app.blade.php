@@ -324,11 +324,15 @@
     
     </div><!-- /#quizsnap-app -->
     <script src="{{ asset('js/quizsnap-guard.js') }}"></script>
+    <script src="{{ asset('js/student-feedback.js') }}?v={{ filemtime(public_path('js/student-feedback.js')) }}"></script>
     <script src="{{ asset('js/quizsnap-presence.js') }}?v={{ filemtime(public_path('js/quizsnap-presence.js')) }}" defer></script>
     @yield('copy_restriction_script')
     <script src="{{ asset('js/app.js') }}" defer></script>
     <script>window.QuizSnapLive=window.QuizSnapLive||{refreshers:[],registerRefresher:function(fn){if(typeof fn==='function')this.refreshers.push(fn);}};</script>
     @stack('scripts')
+    @include('partials.support-issue-modal')
+    <script>window.QuizSnapSupportConfig = @json(\App\Support\SupportContact::clientConfig());</script>
+    <script src="{{ asset('js/support-contact.js') }}?v={{ filemtime(public_path('js/support-contact.js')) }}"></script>
 
     @if(($reverbClientConfig = \App\Services\ReverbClientConfig::clientConfig()) !== null)
     <!-- Real-time: Reverb WebSocket + page refresh hooks -->

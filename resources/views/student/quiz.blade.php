@@ -369,7 +369,6 @@ window.QuizSnapQuiz = {
     violationUrl: "{{ route('student.quiz.violation') }}",
     violationCaptureUrl: "{{ route('student.quiz.violation.capture') }}",
     heartbeatUrl: "{{ route('student.quiz.heartbeat') }}",
-    proctorFeedUrl: "{{ route('student.quiz.proctor-feed') }}",
     finalPhotoUrl: "{{ route('student.final-photo.capture') }}",
     finalizeUrl: "{{ route('student.quiz.finalize') }}",
     timeSyncUrl: "{{ route('student.quiz.time-sync') }}",
@@ -388,7 +387,6 @@ window.QuizSnapQuiz = {
     proctoringObjectDetect: {{ ($proctoringObjectDetect ?? true) ? 'true' : 'false' }},
     proctoringBlockRightClick: {{ ($proctoringBlockRightClick ?? true) ? 'true' : 'false' }},
     proctoringBlockCopyPaste: {{ ($proctoringBlockCopyPaste ?? true) ? 'true' : 'false' }},
-    liveProctorEnabled: {{ ($liveProctorEnabled ?? true) ? 'true' : 'false' }},
     questionIds: @json($questions->pluck('id')->values()->all()),
     studentIndex: @json($session->student_index ?? null),
     studentName: @json($matchedStudentName ?? null),
@@ -633,60 +631,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     updateAnsweredSummary();
 
-    // Examiner voice: subscribe to live-proctor-voice.{sessionId} and play received audio
-    (function() {
-        var sessionId = window.QuizSnapQuiz && window.QuizSnapQuiz.sessionId;
-        if (!sessionId) return;
-        function initVoice() {
-            if (!window.QuizSnapReverb || !window.QuizSnapReverb.isEnabled()) return;
-            var audioQueue = [];
-            var playing = false;
-            function playNext() {
-                if (playing || audioQueue.length === 0) return;
-                var chunk = audioQueue.shift();
-                if (!chunk) { playing = false; return; }
-                try {
-                    var binary = atob(chunk);
-                    var bytes = new Uint8Array(binary.length);
-                    for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-                    var blob = new Blob([bytes], { type: 'audio/webm' });
-                    var url = URL.createObjectURL(blob);
-                    var audio = new Audio();
-                    playing = true;
-                    audio.addEventListener('ended', function() {
-                        URL.revokeObjectURL(url);
-                        playing = false;
-                        playNext();
-                    });
-                    audio.addEventListener('error', function() {
-                        URL.revokeObjectURL(url);
-                        playing = false;
-                        playNext();
-                    });
-                    audio.src = url;
-                    audio.play().catch(function() {
-                        URL.revokeObjectURL(url);
-                        playing = false;
-                        playNext();
-                    });
-                } catch (e) {
-                    playing = false;
-                    playNext();
-                }
-            }
-            window.QuizSnapReverb.bind('live-proctor-voice.' + sessionId, 'ExaminerVoice', function(data) {
-                if (data && data.chunk) {
-                    audioQueue.push(data.chunk);
-                    playNext();
-                }
-            });
-        }
-        if (window.QuizSnapReverb && window.QuizSnapReverb.isEnabled()) {
-            initVoice();
-        } else {
-            window.addEventListener('quizsnap-reverb-connected', initVoice, { once: true });
-        }
-    })();
 });
 </script>
 @endpush

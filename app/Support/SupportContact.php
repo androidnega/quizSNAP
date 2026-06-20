@@ -24,7 +24,14 @@ final class SupportContact
     }
 
     /**
-     * @param  array{index_number?: string, name?: string, issue?: string}  $context
+     * @param  array{
+     *     index_number?: string,
+     *     name?: string,
+     *     issue?: string,
+     *     description?: string,
+     *     system_error?: string,
+     *     page?: string,
+     * }  $context
      */
     public static function whatsAppPrefillMessage(array $context = []): string
     {
@@ -32,6 +39,10 @@ final class SupportContact
         if ($appName === '') {
             $appName = 'QuizSnap';
         }
+
+        $description = trim((string) ($context['description'] ?? $context['issue'] ?? ''));
+        $systemError = trim((string) ($context['system_error'] ?? ''));
+        $page = trim((string) ($context['page'] ?? ''));
 
         $lines = ["Hello {$appName} Support,", ''];
 
@@ -41,17 +52,21 @@ final class SupportContact
         if (! empty($context['index_number'])) {
             $lines[] = 'Index: '.$context['index_number'];
         }
-        if (! empty($context['issue'])) {
-            $lines[] = 'Issue: '.$context['issue'];
+        if ($page !== '') {
+            $lines[] = 'Page: '.$page;
         }
 
-        if (! empty($context['name']) || ! empty($context['index_number']) || ! empty($context['issue'])) {
+        if (! empty($context['name']) || ! empty($context['index_number']) || $page !== '') {
             $lines[] = '';
         }
 
-        $lines[] = 'I need assistance with:';
-        $lines[] = '';
-        $lines[] = '[Please describe your issue here]';
+        if ($systemError !== '') {
+            $lines[] = 'System message: '.$systemError;
+            $lines[] = '';
+        }
+
+        $lines[] = 'What I need help with:';
+        $lines[] = $description !== '' ? $description : '(No description provided)';
         $lines[] = '';
         $lines[] = 'Thank you.';
 
@@ -67,17 +82,23 @@ final class SupportContact
     }
 
     /**
-     * JSON-safe template for client-side WhatsApp links (login errors, etc.).
+     * JSON-safe config for client-side WhatsApp links and the support modal.
      *
-     * @return array{number: string, appName: string}
+     * @param  array{index_number?: string, name?: string, page?: string}  $context
+     * @return array{number: string, appName: string, defaultContext: array<string, string>}
      */
-    public static function clientConfig(): array
+    public static function clientConfig(array $context = []): array
     {
         $appName = trim((string) Setting::getValue(Setting::KEY_APP_NAME, config('app.name', 'QuizSnap')));
 
         return [
             'number' => self::whatsAppNumber(),
             'appName' => $appName !== '' ? $appName : 'QuizSnap',
+            'defaultContext' => array_filter([
+                'name' => isset($context['name']) ? trim((string) $context['name']) : null,
+                'index_number' => isset($context['index_number']) ? trim((string) $context['index_number']) : null,
+                'page' => isset($context['page']) ? trim((string) $context['page']) : null,
+            ], fn ($v) => $v !== null && $v !== ''),
         ];
     }
 }

@@ -110,7 +110,6 @@ Route::middleware(['throttle:240,1'])->group(function () {
     Route::post('/quiz/violation/capture', [StudentQuizController::class, 'captureViolation'])->name('student.quiz.violation.capture');
     Route::post('/quiz/auto-submit', [StudentQuizController::class, 'autoSubmit'])->name('student.quiz.auto-submit');
     Route::post('/quiz/heartbeat', [StudentQuizController::class, 'heartbeat'])->name('student.quiz.heartbeat');
-    Route::post('/quiz/proctor-feed', [StudentQuizController::class, 'proctorFeed'])->name('student.quiz.proctor-feed');
     Route::post('/quiz/finalize', [StudentQuizController::class, 'finalize'])->name('student.quiz.finalize');
     Route::get('/quiz/complete', [StudentQuizController::class, 'quizComplete'])->name('student.quiz.complete');
     Route::get('/quiz/result', [StudentQuizController::class, 'result'])->name('student.result');
@@ -248,14 +247,6 @@ Route::middleware('admin.auth')->group(function () {
         Route::post('/quizzes/{quizId}/sessions/{quizSession}/reset-ip', [QuizManagementController::class, 'resetSessionIp'])->name('quizzes.sessions.reset-ip');
         Route::post('/quizzes/{quizId}/sessions/{quizSession}/clear-withheld', [QuizManagementController::class, 'clearWithheldResult'])->name('quizzes.sessions.clear-withheld');
         Route::post('/quizzes/{quizId}/sessions/{quizSession}/kill', [QuizManagementController::class, 'killSession'])->name('quizzes.sessions.kill');
-        Route::get('/quizzes/live-proctor-all', [QuizManagementController::class, 'liveProctorAll'])->name('quizzes.live-proctor-all');
-        Route::get('/quizzes/live-proctor-all/sessions', [QuizManagementController::class, 'liveProctorAllSessions'])->name('quizzes.live-proctor-all.sessions');
-        Route::post('/quizzes/live-proctor-voice', [QuizManagementController::class, 'broadcastExaminerVoice'])->name('quizzes.live-proctor-voice');
-        Route::get('/quizzes/{quiz}/live-proctor', [QuizManagementController::class, 'liveProctor'])->name('quizzes.live-proctor');
-        Route::get('/quizzes/{quiz}/live-sessions', [QuizManagementController::class, 'liveSessions'])->name('quizzes.live-sessions');
-        Route::get('/quizzes/{quiz}/sessions/{quizSession}/proctor-frame', [QuizManagementController::class, 'proctorFrame'])->name('quizzes.sessions.proctor-frame');
-        Route::post('/quizzes/{quiz}/sessions/{quizSession}/end-by-examiner', [QuizManagementController::class, 'endSessionByExaminer'])->name('quizzes.sessions.end-by-examiner');
-
         // Quizzes — examiner only
         Route::middleware('examiner.only')->group(function () {
             Route::get('/quizzes-ping', fn () => response('OK', 200, ['Content-Type' => 'text/plain; charset=utf-8']))->name('quizzes.ping');

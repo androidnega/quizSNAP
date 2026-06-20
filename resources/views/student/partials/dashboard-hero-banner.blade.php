@@ -32,7 +32,7 @@
 @if($mode === 'image' && ($usesBundledBanner || ! empty($bannerImageUrl)))
 {{-- Wide hero banner (1024×394): responsive WebP with JPEG fallback --}}
 <section aria-label="Dashboard banner" class="w-full min-w-0">
-    <figure class="relative m-0 w-full min-w-0 overflow-hidden rounded-2xl lg:rounded-3xl bg-[#fef9e7] aspect-[999/291]">
+    <figure class="relative m-0 w-full min-w-0 overflow-hidden rounded-2xl lg:rounded-3xl bg-[#fef9e7] aspect-[999/291] xl:aspect-[999/220]">
         @if($usesBundledBanner)
         <picture>
             <source type="image/webp"

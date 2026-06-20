@@ -59,6 +59,28 @@
         .glance-card__body { padding: 1rem 1rem 1.125rem; gap: 0.875rem; }
     }
 
+    @media (min-width: 1280px) {
+        .sd-home-compact .glance-grid {
+            grid-template-columns: 1fr;
+            gap: 0.625rem;
+        }
+        .sd-home-compact .glance-card__body {
+            padding: 0.75rem 0.875rem 0.875rem;
+            gap: 0.625rem;
+        }
+        .sd-home-compact .glance-card__icon {
+            width: 2rem;
+            height: 2rem;
+            font-size: 0.8125rem;
+        }
+        .sd-home-compact .glance-card__value {
+            font-size: 1.125rem;
+        }
+        .sd-home-compact .glance-card__value--sm {
+            font-size: 0.9375rem;
+        }
+    }
+
     .glance-card__icon {
         display: inline-flex;
         align-items: center;

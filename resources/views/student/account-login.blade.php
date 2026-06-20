@@ -23,7 +23,7 @@
                 <div id="index-error" class="hidden">
                     <div class="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800" id="index-error-text"></div>
                     <p id="index-error-support-wrap" class="hidden mt-2 text-sm text-gray-600">
-                        <a id="index-error-support" href="#" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline font-medium">Get in touch</a>
+                        <a id="index-error-support" href="#" data-qs-support-whatsapp data-support-page="Account login" class="text-blue-600 hover:underline font-medium">Get in touch</a>
                     </p>
                 </div>
                 <button type="button" id="btn-index" class="w-full py-2.5 px-4 text-sm font-semibold rounded-lg text-white bg-primary-600 hover:bg-primary-700 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">Continue</button>
@@ -261,19 +261,6 @@
         return false;
     }
 
-    var supportConfig = @json(\App\Support\SupportContact::clientConfig());
-    function supportMessage(errorText, indexNumber) {
-        var lines = ['Hello ' + supportConfig.appName + ' Support,', ''];
-        if (indexNumber) lines.push('Index: ' + indexNumber);
-        if (errorText) lines.push('Issue: ' + errorText);
-        if (indexNumber || errorText) lines.push('');
-        lines.push('I need assistance with:');
-        lines.push('');
-        lines.push('[Please describe your issue here]');
-        lines.push('');
-        lines.push('Thank you.');
-        return encodeURIComponent(lines.join('\n'));
-    }
     function showError(elId, text) {
         var wrap = document.getElementById(elId);
         var textEl = document.getElementById(elId + '-text');
@@ -284,9 +271,12 @@
         var supportLink = document.getElementById('index-error-support');
         if (supportWrap && supportLink && elId === 'index-error') {
             if (text) {
-                supportLink.href = 'https://wa.me/' + supportConfig.number + '?text=' + supportMessage(text, (indexInput && indexInput.value) ? indexInput.value.trim() : '');
+                supportLink.dataset.supportHint = text;
+                supportLink.dataset.supportIndex = (indexInput && indexInput.value) ? indexInput.value.trim() : '';
                 supportWrap.classList.remove('hidden');
             } else {
+                delete supportLink.dataset.supportHint;
+                delete supportLink.dataset.supportIndex;
                 supportWrap.classList.add('hidden');
             }
         }

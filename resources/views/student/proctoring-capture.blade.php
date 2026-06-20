@@ -90,14 +90,14 @@
 
 <style>
 #proctoring-capture-root .face-status-pending {
-    border-color: var(--theme-primary-200, #bfdbfe);
-    background-color: color-mix(in srgb, var(--theme-primary-50, #eff6ff) 80%, white);
-    color: var(--theme-primary-800, #1e40af);
+    border-color: #fecaca;
+    background-color: #fef2f2;
+    color: #991b1b;
 }
 #proctoring-capture-root .face-status-ok {
-    border-color: var(--theme-primary-300, #93c5fd);
-    background-color: color-mix(in srgb, var(--theme-primary-100, #dbeafe) 70%, white);
-    color: var(--theme-primary-900, #1e3a8a);
+    border-color: #86efac;
+    background-color: #f0fdf4;
+    color: #166534;
 }
 #proctoring-capture-root .face-status-error {
     border-color: #fecaca;
@@ -105,12 +105,33 @@
     color: #991b1b;
 }
 #proctoring-capture-root #video-container.face-frame-ok {
-    border-color: var(--theme-primary-500, #3b82f6) !important;
+    border-color: #22c55e !important;
     border-width: 3px;
+    box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.25);
 }
 #proctoring-capture-root #video-container.face-frame-error {
-    border-color: #f87171 !important;
-    border-width: 2px;
+    border-color: #ef4444 !important;
+    border-width: 3px;
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+}
+#proctoring-capture-root #capture-btn.capture-btn--ready {
+    background-color: #16a34a !important;
+    border-color: #15803d !important;
+    color: #fff !important;
+}
+#proctoring-capture-root #capture-btn.capture-btn--ready:hover:not(:disabled) {
+    background-color: #15803d !important;
+}
+#proctoring-capture-root #capture-btn.capture-btn--waiting {
+    background-color: #dc2626 !important;
+    border-color: #b91c1c !important;
+    color: #fff !important;
+    opacity: 0.92;
+}
+#proctoring-capture-root #capture-btn.capture-btn--neutral {
+    background-color: var(--theme-primary-600, #2563eb);
+    border-color: transparent;
+    color: #fff;
 }
 </style>
 

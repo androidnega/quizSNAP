@@ -823,7 +823,7 @@
         </div>
     </main>
 
-    @include('student.partials.support-fab')
+    @include('student.partials.support-fab', ['supportPage' => 'Home'])
 </div>
 @endsection
 

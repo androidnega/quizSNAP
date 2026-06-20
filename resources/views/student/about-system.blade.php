@@ -248,7 +248,7 @@
         </div>
     </main>
 
-    @include('student.partials.support-fab')
+    @include('student.partials.support-fab', ['supportPage' => 'About'])
 </div>
 @endsection
 

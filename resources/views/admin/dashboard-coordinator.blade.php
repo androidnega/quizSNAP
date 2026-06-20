@@ -99,7 +99,6 @@
             <a href="{{ route('dashboard.class-groups.index') }}" class="inline-flex items-center px-2.5 py-1.5 text-xs font-medium text-gray-800 bg-action-100 rounded border border-action-200 hover:bg-action-200">Class groups</a>
             <a href="{{ route('dashboard.courses.index') }}" class="inline-flex items-center px-2.5 py-1.5 text-xs font-medium text-gray-800 bg-primary-50 rounded border border-primary-200 hover:bg-primary-100">Courses</a>
             <a href="{{ route('dashboard.exam-calendar.index') }}" class="inline-flex items-center px-2.5 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 rounded border border-gray-200 hover:bg-gray-100">Exam calendar</a>
-            <a href="{{ route('dashboard.quizzes.live-proctor-all') }}" class="inline-flex items-center px-2.5 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 rounded border border-gray-200 hover:bg-gray-100">Live proctor</a>
         </div>
     </section>
 

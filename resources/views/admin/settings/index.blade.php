@@ -497,23 +497,8 @@
                 @if($can_manage_proctoring ?? false)
                 <!-- Tab: Proctoring (Super Admin only) -->
                 <div class="settings-tab-content p-6 hidden" data-tab-content="proctoring" id="tab-content-proctoring">
-                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Quiz Proctoring &amp; Live View</p>
-                <p class="text-sm text-gray-500 mb-5">Enable or disable quiz proctoring features and the live examiner view. When disabled, the system will not enforce that feature. All options are on by default.</p>
-
-                <div class="rounded-lg border border-gray-200 bg-gray-50/60 p-4 mb-5">
-                    <p class="text-xs font-medium text-gray-500 mb-1">Live examiner view</p>
-                    <p class="text-xs text-gray-500 mb-3">When on, examiners can open the &quot;Live proctor&quot; tab to see which students are actively writing (index numbers only; no camera feed). When off, the Live proctor tab and route are hidden.</p>
-                    <div class="flex flex-wrap items-center gap-4">
-                        <label class="flex items-center gap-2 cursor-pointer">
-                            <input type="radio" name="live_proctor_enabled" value="1" {{ old('live_proctor_enabled', $live_proctor_enabled ?? true) ? 'checked' : '' }} class="h-4 w-4 rounded-full border-gray-300 text-gray-600 focus:ring-gray-300">
-                            <span class="text-sm text-gray-700">On</span>
-                        </label>
-                        <label class="flex items-center gap-2 cursor-pointer">
-                            <input type="radio" name="live_proctor_enabled" value="0" {{ old('live_proctor_enabled', $live_proctor_enabled ?? true) ? '' : 'checked' }} class="h-4 w-4 rounded-full border-gray-300 text-gray-600 focus:ring-gray-300">
-                            <span class="text-sm text-gray-600">Off</span>
-                        </label>
-                    </div>
-                </div>
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Quiz Proctoring</p>
+                <p class="text-sm text-gray-500 mb-5">Enable or disable quiz proctoring features. When disabled, the system will not enforce that feature. All options are on by default.</p>
 
                 <div class="rounded-lg border border-gray-200 bg-gray-50/60 p-4 mb-5">
                     <p class="text-xs font-medium text-gray-500 mb-1">Violation image storage</p>

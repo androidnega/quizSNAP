@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
 use App\Events\DataUpdated;
-use App\Events\ProctorFrameUpdated;
 use App\Jobs\GenerateWrongAnswerExplanationsJob;
 use App\Jobs\SendQuizResultReadyNotification;
 use App\Services\StudentNotificationService;
@@ -278,8 +277,6 @@ class StudentQuizController extends Controller
         $proctoringBlockRightClick = $proctoring[Setting::KEY_PROCTORING_BLOCK_RIGHT_CLICK];
         $proctoringBlockCopyPaste = $proctoring[Setting::KEY_PROCTORING_BLOCK_COPY_PASTE];
         $fullscreenEnforcement = $this->isFullscreenEnforcementEnabled($proctoring);
-        // Live proctoring feed removed from session: do not send camera frames to examiner during quiz.
-        $liveProctorEnabled = false;
         $matchedStudent = Student::findByIndex($session->student_index, ['index_number', 'student_name']);
         $matchedStudentName = $matchedStudent && trim((string) $matchedStudent->student_name) !== ''
             ? trim((string) $matchedStudent->student_name)
@@ -328,7 +325,6 @@ class StudentQuizController extends Controller
                 'proctoringBlockRightClick' => $proctoringBlockRightClick,
                 'proctoringBlockCopyPaste' => $proctoringBlockCopyPaste,
                 'fullscreenEnforcement' => $fullscreenEnforcement,
-                'liveProctorEnabled' => $liveProctorEnabled,
                 'matchedStudentName' => $matchedStudentName,
                 'studentNameLinked' => $studentNameLinked,
                 'outOfFrameCount' => $outOfFrameCount,
@@ -359,7 +355,6 @@ class StudentQuizController extends Controller
                 'proctoringBlockRightClick' => $proctoringBlockRightClick,
                 'proctoringBlockCopyPaste' => $proctoringBlockCopyPaste,
                 'fullscreenEnforcement' => $fullscreenEnforcement,
-                'liveProctorEnabled' => $liveProctorEnabled,
                 'matchedStudentName' => $matchedStudentName,
                 'studentNameLinked' => $studentNameLinked,
                 'outOfFrameCount' => $outOfFrameCount,
@@ -958,85 +953,6 @@ class StudentQuizController extends Controller
     }
 
     /**
-     * Proctor feed: student sends a camera frame for the examiner's live view. Updates last_heartbeat_at.
-     */
-    public function proctorFeed(Request $request): JsonResponse
-    {
-        $token = session('quiz_session_token');
-        if (!$token) {
-            return response()->json(['success' => false, 'message' => 'No active session.'], 401);
-        }
-
-        $session = QuizSession::where('session_token', $token)->first();
-        if (!$session || $session->ended_at) {
-            return response()->json(['success' => false, 'message' => 'Session not found or ended.'], 403);
-        }
-        if (Setting::getValue(Setting::KEY_LIVE_PROCTOR_ENABLED, '1') !== '1') {
-            return response()->json(['success' => false, 'message' => 'Live examiner view is disabled.'], 403);
-        }
-
-        $request->validate([
-            'image_base64' => 'required|string',
-        ]);
-
-        $data = $request->image_base64;
-        if (!Str::startsWith($data, 'data:image')) {
-            return response()->json(['success' => false, 'message' => 'Invalid image.'], 422);
-        }
-
-        $parts = explode(',', $data, 2);
-        if (count($parts) !== 2) {
-            return response()->json(['success' => false, 'message' => 'Invalid image.'], 422);
-        }
-        $binary = base64_decode($parts[1], true);
-        if ($binary === false || strlen($binary) > 2 * 1024 * 1024) {
-            return response()->json(['success' => false, 'message' => 'Invalid or oversized image.'], 422);
-        }
-
-        // Resize to max 320px width for lighter streaming (optional; requires GD)
-        $maxWidth = 320;
-        if (function_exists('imagecreatefromstring') && function_exists('imagejpeg')) {
-            $img = @imagecreatefromstring($binary);
-            if ($img !== false) {
-                $w = imagesx($img);
-                $h = imagesy($img);
-                if ($w > $maxWidth && $w > 0) {
-                    $newW = $maxWidth;
-                    $newH = (int) round($h * ($maxWidth / $w));
-                    $scaled = imagescale($img, $newW, $newH === 0 ? -1 : $newH);
-                    if ($scaled !== false) {
-                        ob_start();
-                        imagejpeg($scaled, null, 78);
-                        $binary = ob_get_clean();
-                        imagedestroy($scaled);
-                    }
-                }
-                imagedestroy($img);
-            }
-        }
-
-        try {
-            $path = 'proctor_feed/' . $session->id . '.jpg';
-            Storage::disk('local')->put($path, $binary);
-        } catch (\Throwable $e) {
-            report($e);
-            return response()->json(['success' => false, 'message' => 'Failed to save frame.'], 500);
-        }
-
-        $this->concurrency->touchHeartbeat($session->id);
-
-        $throttle = (int) config('quiz-scale.proctor_broadcast_throttle_seconds', 3);
-        $broadcastKey = 'proctor_frame_broadcast:' . $session->id;
-        if (! Cache::has($broadcastKey)) {
-            Cache::put($broadcastKey, true, $throttle);
-            broadcast(new ProctorFrameUpdated($session->id))->toOthers();
-            broadcast(new DataUpdated('sessions'))->toOthers();
-        }
-
-        return response()->json(['success' => true]);
-    }
-
-    /**
      * Finalize quiz: compute score, create result. Session resolved from HttpOnly session only.
      */
     public function finalize(Request $request): JsonResponse
@@ -1119,6 +1035,9 @@ class StudentQuizController extends Controller
     {
         if ($session->ended_at === null) {
             $session->update(['ended_at' => now()]);
+        }
+        if (! $session->participatedInExam()) {
+            return;
         }
         $assignedIds = collect($session->assigned_question_ids ?? [])
             ->map(fn ($id) => (int) $id)

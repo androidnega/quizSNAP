@@ -4,7 +4,7 @@
 @php $dashboardTitle = 'Dashboard'; @endphp
 
 @section('dashboard_content')
-<div class="space-y-6 lg:space-y-10">
+<div class="space-y-5 lg:space-y-10">
 <header>
     <h1 class="text-xl sm:text-2xl lg:text-[1.75rem] xl:text-3xl font-bold text-slate-900 tracking-tight">{{ $greeting ?? 'Hello' }}, {{ $displayName ?? $student?->first_name ?? 'User' }}</h1>
     <p class="text-sm lg:text-base text-slate-600 mt-1.5 lg:mt-2">Your quiz history and quick actions.</p>
@@ -14,9 +14,11 @@
 
 @include('student.partials.dashboard-pill-nav', ['class' => 'hidden lg:block'])
 
+@include('student.partials.dashboard-pill-nav', ['class' => 'lg:hidden mb-3', 'compact' => true])
+
 <section aria-label="At a glance">
-    <h2 class="text-[10px] sm:text-xs lg:text-sm font-semibold text-slate-500 mb-2.5 lg:mb-4 uppercase tracking-wider">At a glance</h2>
-    <div class="grid grid-cols-3 gap-2.5 sm:gap-3 lg:gap-4">
+    <h2 class="text-[10px] sm:text-xs lg:text-sm font-semibold text-slate-500 mb-2 lg:mb-4 uppercase tracking-wider">At a glance</h2>
+    <div class="grid grid-cols-3 gap-2 sm:gap-3 lg:gap-4">
         @if($student && ($hasQuizAccess ?? true))
         <a href="{{ route('dashboard.my-quizzes') }}" class="group glance-card glance-card--blue no-underline">
             <span class="glance-card__glow" aria-hidden="true"></span>
@@ -37,11 +39,19 @@
         @php
             $hasScheduled = isset($scheduledQuiz) && $scheduledQuiz;
             $hasScheduledResult = isset($scheduledQuizSession) && $scheduledQuizSession?->result;
-            $scheduledUpcoming = $hasScheduled && $scheduledQuiz->starts_at && $scheduledQuiz->starts_at->isFuture();
-            $scheduledActive = $hasScheduled && !$hasScheduledResult && !$scheduledUpcoming;
-            $showLastQuiz = isset($lastQuiz) && $lastQuiz && $lastQuiz->result && !$scheduledActive;
+            $scheduledInProgress = $hasScheduled && ! empty($scheduledOpenSession);
+            $scheduledUpcoming = $hasScheduled && ! $scheduledInProgress && $scheduledQuiz->starts_at && $scheduledQuiz->starts_at->isFuture();
+            $scheduledReady = $hasScheduled && ! $hasScheduledResult && ! $scheduledUpcoming && ! $scheduledInProgress;
+            $showLastQuiz = isset($lastQuiz) && $lastQuiz && $lastQuiz->result && ! $scheduledReady && ! $scheduledInProgress && ! $scheduledUpcoming;
+            $countdownSeconds = $scheduledUpcoming ? max(0, (int) $scheduledQuiz->starts_at->diffInSeconds(now())) : 0;
+            $countdownHours = intdiv($countdownSeconds, 3600);
+            $countdownMinutes = intdiv($countdownSeconds % 3600, 60);
+            $countdownSecs = $countdownSeconds % 60;
+            $countdownInitial = $countdownHours > 0
+                ? sprintf('%d:%02d:%02d', $countdownHours, $countdownMinutes, $countdownSecs)
+                : sprintf('%d:%02d', $countdownMinutes, $countdownSecs);
         @endphp
-        <div class="glance-card glance-card--emerald group relative">
+        <div class="glance-card glance-card--emerald group relative {{ ($scheduledReady || $scheduledUpcoming) ? 'glance-card--actionable' : '' }}">
             @if($showLastQuiz)
             <a href="{{ route('dashboard.my-quizzes.show', ['sessionId' => $lastQuiz->id]) }}" class="glance-card__body no-underline text-inherit min-w-0">
                 <span class="glance-card__glow" aria-hidden="true"></span>
@@ -57,6 +67,8 @@
             @else
             <a href="@if($hasScheduled && $hasScheduledResult)
                       {{ route('dashboard.my-quizzes.show', ['sessionId' => $scheduledQuizSession->id]) }}
+                  @elseif($scheduledInProgress)
+                      {{ route('student.rules.show.quiz', ['token' => $scheduledQuiz->link_token]) }}
                   @elseif($scheduledUpcoming)
                       {{ route('student.quiz-will-start', ['token' => $scheduledQuiz->link_token]) }}
                   @elseif($hasScheduled)
@@ -81,20 +93,19 @@
                     <span class="glance-card__label">
                         @if(isset($scheduledQuizSession) && $scheduledQuizSession?->result)
                             Score: {{ number_format($scheduledQuizSession->result->score, 1) }}%
+                        @elseif($scheduledInProgress)
+                            <span class="glance-card__status glance-card__status--continue">Continue</span>
                         @elseif($scheduledUpcoming)
-                            <span id="quiz-countdown-{{ $scheduledQuiz->id }}" aria-live="polite">—</span>
-                        @elseif($scheduledActive)
-                            Ready to take
+                            <span class="glance-card__status glance-card__status--countdown" id="quiz-countdown-{{ $scheduledQuiz->id }}" aria-live="polite">Starts in {{ $countdownInitial }}</span>
+                        @elseif($scheduledReady)
+                            <span class="glance-card__status glance-card__status--start">Start</span>
                         @else
                             View quizzes
                         @endif
                     </span>
                 </div>
-                <span class="glance-card__chevron" aria-hidden="true"><i class="fas fa-arrow-right"></i></span>
+                <span class="glance-card__chevron glance-card__chevron--emerald" aria-hidden="true"><i class="fas fa-arrow-right"></i></span>
             </a>
-            @if($scheduledActive && $scheduledQuiz)
-            <a href="{{ route('student.rules.show.quiz', ['token' => $scheduledQuiz->link_token]) }}" class="glance-card__action">Start quiz</a>
-            @endif
             @endif
         </div>
         @endif
@@ -236,6 +247,50 @@
         letter-spacing: 0.01em;
     }
 
+    .glance-card__status {
+        display: inline-flex;
+        align-items: center;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: 0.02em;
+    }
+
+    .glance-card__status--start,
+    .glance-card__status--continue {
+        color: #059669;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        font-size: 0.625rem;
+    }
+
+    .glance-card__status--countdown {
+        color: #0f766e;
+        font-weight: 600;
+        font-size: 0.625rem;
+    }
+
+    .glance-card__chevron--emerald {
+        background: #ecfdf5;
+        color: #059669;
+        opacity: 1;
+        transform: none;
+    }
+
+    .glance-card--actionable .glance-card__chevron--emerald {
+        opacity: 1;
+    }
+
+    @media (min-width: 640px) {
+        .glance-card__status--start,
+        .glance-card__status--continue {
+            font-size: 0.6875rem;
+        }
+
+        .glance-card__status--countdown {
+            font-size: 0.6875rem;
+        }
+    }
+
     @media (min-width: 640px) {
         .glance-card__label { font-size: 0.6875rem; }
     }
@@ -268,35 +323,95 @@
     .glance-card--emerald:hover .glance-card__chevron { background: #ecfdf5; color: #059669; }
     .glance-card--violet:hover .glance-card__chevron { background: #f5f3ff; color: #7c3aed; }
 
-    .glance-card__action {
-        position: relative;
-        z-index: 2;
-        margin: 0 0.875rem 0.875rem;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        align-self: flex-start;
-        padding: 0.375rem 0.75rem;
-        border-radius: 9999px;
-        font-size: 0.625rem;
-        font-weight: 700;
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-        text-decoration: none;
-        color: #422006;
-        background: linear-gradient(135deg, #fcd34d 0%, #fbbf24 100%);
-        box-shadow: 0 4px 12px rgba(251, 191, 36, 0.35);
-        transition: transform 0.15s ease, box-shadow 0.15s ease;
-    }
+    @media (max-width: 639px) {
+        .glance-card {
+            border-radius: 0.875rem;
+            box-shadow:
+                0 1px 2px rgba(15, 23, 42, 0.03),
+                0 2px 10px rgba(15, 23, 42, 0.04);
+        }
 
-    .glance-card__action:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 6px 16px rgba(251, 191, 36, 0.42);
+        .glance-card__body {
+            flex-direction: row;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5625rem 0.625rem;
+        }
+
+        .glance-card__icon {
+            width: 1.75rem;
+            height: 1.75rem;
+            border-radius: 0.5625rem;
+            font-size: 0.6875rem;
+            flex-shrink: 0;
+            box-shadow: 0 4px 10px rgba(15, 23, 42, 0.1);
+        }
+
+        .glance-card__content {
+            flex: 1;
+            min-width: 0;
+            gap: 0.0625rem;
+        }
+
+        .glance-card__value {
+            font-size: 1.125rem;
+            line-height: 1.1;
+        }
+
+        .glance-card__value--sm {
+            font-size: 0.6875rem;
+            line-height: 1.25;
+        }
+
+        .glance-card__label {
+            font-size: 0.5625rem;
+            line-height: 1.3;
+        }
+
+        .glance-card__status--start,
+        .glance-card__status--continue {
+            font-size: 0.5625rem;
+        }
+
+        .glance-card__status--countdown {
+            font-size: 0.5625rem;
+        }
+
+        .glance-card__chevron {
+            position: static;
+            flex-shrink: 0;
+            width: 1.125rem;
+            height: 1.125rem;
+            margin-left: auto;
+            opacity: 0.45;
+            transform: none;
+            background: transparent;
+            font-size: 0.5rem;
+        }
+
+        a.glance-card:hover .glance-card__chevron,
+        .glance-card:has(a.glance-card__body:hover) .glance-card__chevron {
+            opacity: 0.65;
+            transform: none;
+        }
+
+        .glance-card__chevron--emerald {
+            opacity: 1;
+            background: #ecfdf5;
+            color: #059669;
+        }
+
+        .glance-card__glow {
+            width: 3.5rem;
+            height: 3.5rem;
+            top: -1rem;
+            right: -1rem;
+            opacity: 0.4;
+        }
     }
 </style>
 @endpush
 
-@include('student.partials.dashboard-pill-nav', ['class' => 'lg:hidden mt-4', 'compact' => true])
 </div>
 
 @if($student)
@@ -309,18 +424,41 @@
     var el = document.getElementById('quiz-countdown-{{ $scheduledQuiz->id }}');
     if (!el) return;
     var cardLink = el.closest('a');
+    var card = cardLink && cardLink.closest('.glance-card');
     var rulesUrl = cardLink && cardLink.getAttribute('data-rules-url');
+
+    function formatCountdown(totalSeconds) {
+        var h = Math.floor(totalSeconds / 3600);
+        var m = Math.floor((totalSeconds % 3600) / 60);
+        var s = totalSeconds % 60;
+        if (h > 0) {
+            return h + ':' + (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+        }
+        return m + ':' + (s < 10 ? '0' : '') + s;
+    }
+
+    function setStartState() {
+        el.textContent = 'Start';
+        el.classList.remove('glance-card__status--countdown');
+        el.classList.add('glance-card__status--start');
+        if (cardLink && rulesUrl) {
+            cardLink.href = rulesUrl;
+        }
+        if (card) {
+            card.classList.add('glance-card--actionable');
+        }
+    }
+
     function update() {
         var now = Date.now();
         var left = Math.max(0, Math.floor((startMs - now) / 1000));
         if (left <= 0) {
-            el.textContent = 'Start';
-            if (cardLink && rulesUrl) cardLink.href = rulesUrl;
+            setStartState();
             return;
         }
-        var h = Math.floor(left / 3600), m = Math.floor((left % 3600) / 60), s = left % 60;
-        el.textContent = (h > 0 ? h + ':' : '') + (m < 10 && h > 0 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+        el.textContent = 'Starts in ' + formatCountdown(left);
     }
+
     update();
     setInterval(update, 1000);
 })();

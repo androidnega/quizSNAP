@@ -261,6 +261,49 @@
         opacity: 1;
     }
 
+    @media (max-width: 1023px) {
+        .sd-segment-nav {
+            margin-left: -0.25rem;
+            margin-right: -0.25rem;
+            padding-left: 0.25rem;
+            padding-right: 0.25rem;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .sd-segment-nav__track {
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            overscroll-behavior-x: contain;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            scroll-snap-type: x proximity;
+        }
+
+        .sd-segment-nav__track::-webkit-scrollbar {
+            display: none;
+        }
+
+        .sd-segment-nav__track--compact {
+            padding: 0.125rem;
+            gap: 0.0625rem;
+            background: #fff;
+            border-color: rgba(226, 232, 240, 0.95);
+            box-shadow:
+                0 1px 2px rgba(15, 23, 42, 0.04),
+                0 2px 8px rgba(15, 23, 42, 0.04);
+        }
+
+        .sd-segment-nav__track--compact .sd-segment-nav__item {
+            padding: 0.3125rem 0.5625rem;
+            font-size: 0.6875rem;
+            scroll-snap-align: start;
+        }
+
+        .sd-segment-nav__track--compact .sd-segment-nav__item i {
+            font-size: 0.625rem;
+        }
+    }
+
     .sd-sidebar-nav__item {
         display: flex;
         align-items: center;

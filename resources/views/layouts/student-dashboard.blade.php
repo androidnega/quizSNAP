@@ -141,7 +141,7 @@
                         <span>Back to dashboard</span>
                     </a>
                 </div>
-                @include('student.partials.dashboard-pill-nav', ['class' => 'lg:hidden mb-5', 'compact' => true])
+                @include('student.partials.dashboard-pill-nav', ['class' => 'lg:hidden mb-4', 'compact' => true])
             @endif
 
             @yield('dashboard_content')

@@ -121,17 +121,26 @@ class StudentDashboardController extends Controller
 
         $scheduledQuiz = null;
         $scheduledQuizSession = null;
+        $scheduledOpenSession = null;
         if ($classGroupIds !== []) {
             $candidates = $this->publishedQuizCandidates($classGroupIds);
             $ready = $candidates->filter(fn (Quiz $q) => $q->hasEnoughApprovedQuestions() && (($q->starts_at && $q->starts_at->isFuture()) || $q->isActive()));
             $scheduledQuiz = $ready->sortBy(fn (Quiz $q) => $q->starts_at && $q->starts_at->isFuture() ? $q->starts_at->timestamp : PHP_INT_MAX)->first();
 
             if ($scheduledQuiz) {
-                $scheduledQuizSession = QuizSession::where('quiz_id', $scheduledQuiz->id)
+                $scheduledOpenSession = QuizSession::where('quiz_id', $scheduledQuiz->id)
                     ->where('student_index', $student->index_number)
-                    ->whereNotNull('ended_at')
-                    ->with('result')
+                    ->whereNull('ended_at')
+                    ->latest('id')
                     ->first();
+
+                if (! $scheduledOpenSession) {
+                    $scheduledQuizSession = QuizSession::where('quiz_id', $scheduledQuiz->id)
+                        ->where('student_index', $student->index_number)
+                        ->whereNotNull('ended_at')
+                        ->with('result')
+                        ->first();
+                }
             }
         }
 
@@ -146,6 +155,7 @@ class StudentDashboardController extends Controller
             'recentSessions' => $recentSessions,
             'scheduledQuiz' => $scheduledQuiz,
             'scheduledQuizSession' => $scheduledQuizSession,
+            'scheduledOpenSession' => $scheduledOpenSession,
             'lastQuiz' => $lastQuiz,
             'greeting' => $greeting,
             'displayName' => $student->first_name,

@@ -67,6 +67,9 @@
                 ? route('student.rules.show.quiz', ['token' => $scheduledQuiz->link_token])
                 : null;
             $showMobileQuizBar = ! $showLastQuiz && ($scheduledInProgress || $scheduledUpcoming || $scheduledReady);
+            $scheduledQuizCourse = $hasScheduled ? ($scheduledQuiz->course?->name ?? null) : null;
+            $scheduledQuizTypeLabel = $hasScheduled ? $scheduledQuiz->getExamTypeLabel() : null;
+            $scheduledQuizExamType = $hasScheduled ? ($scheduledQuiz->exam_type ?? \App\Models\Quiz::EXAM_TYPE_QUIZ) : null;
         @endphp
         <div class="glance-card glance-card--emerald group relative {{ ($scheduledReady || $scheduledUpcoming || $scheduledInProgress) ? 'glance-card--actionable glance-card--has-cta' : '' }}">
             @if($showLastQuiz)
@@ -138,14 +141,21 @@
     @if($student && ($showMobileQuizBar ?? false))
     <a href="{{ $quizActionHref }}"
        @if(($scheduledUpcoming ?? false) && ($quizRulesUrl ?? null)) data-rules-url="{{ $quizRulesUrl }}" @endif
-       class="glance-mobile-quiz-action lg:hidden @if($scheduledInProgress) glance-mobile-quiz-action--continue @elseif($scheduledUpcoming) glance-mobile-quiz-action--countdown @else glance-mobile-quiz-action--start @endif">
-        @if($scheduledInProgress)
-            Continue quiz
-        @elseif($scheduledUpcoming)
-            <span data-quiz-countdown="{{ $scheduledQuiz->id }}" aria-live="polite">Starts in {{ $countdownInitial }}</span>
-        @else
-            Start quiz
-        @endif
+       class="glance-mobile-quiz-panel lg:hidden @if($scheduledInProgress) glance-mobile-quiz-panel--continue @elseif($scheduledUpcoming) glance-mobile-quiz-panel--countdown @else glance-mobile-quiz-panel--start @endif">
+        <div class="glance-mobile-quiz-panel__head">
+            <span class="glance-mobile-quiz-panel__course">{{ $scheduledQuizCourse ?: 'Course' }}</span>
+            <span class="glance-mobile-quiz-panel__type glance-mobile-quiz-panel__type--{{ $scheduledQuizExamType }}">{{ $scheduledQuizTypeLabel ?: 'Quiz' }}</span>
+        </div>
+        <p class="glance-mobile-quiz-panel__title">{{ $scheduledQuiz->title }}</p>
+        <span class="glance-mobile-quiz-panel__cta @if($scheduledInProgress) glance-mobile-quiz-panel__cta--continue @elseif($scheduledUpcoming) glance-mobile-quiz-panel__cta--countdown @else glance-mobile-quiz-panel__cta--start @endif">
+            @if($scheduledInProgress)
+                Continue quiz
+            @elseif($scheduledUpcoming)
+                <span data-quiz-countdown="{{ $scheduledQuiz->id }}" aria-live="polite">Starts in {{ $countdownInitial }}</span>
+            @else
+                Start quiz
+            @endif
+        </span>
     </a>
     @endif
 </section>
@@ -276,42 +286,122 @@
         font-size: 0.5625rem;
     }
 
-    .glance-mobile-quiz-action {
+    .glance-mobile-quiz-panel {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+        width: 100%;
+        margin-top: 0.75rem;
+        padding: 0.8125rem 0.875rem 0.875rem;
+        border-radius: 0.9375rem;
+        text-decoration: none;
+        background: #fff;
+        border: 1px solid rgba(226, 232, 240, 0.95);
+        box-shadow:
+            0 1px 2px rgba(15, 23, 42, 0.04),
+            0 6px 18px rgba(15, 23, 42, 0.06);
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .glance-mobile-quiz-panel:active {
+        transform: scale(0.99);
+    }
+
+    .glance-mobile-quiz-panel__head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        min-width: 0;
+    }
+
+    .glance-mobile-quiz-panel__course {
+        flex: 1;
+        min-width: 0;
+        font-size: 0.625rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #64748b;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .glance-mobile-quiz-panel__type {
+        flex-shrink: 0;
+        display: inline-flex;
+        align-items: center;
+        padding: 0.1875rem 0.4375rem;
+        border-radius: 9999px;
+        font-size: 0.5625rem;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        line-height: 1.2;
+    }
+
+    .glance-mobile-quiz-panel__type--quiz {
+        color: #1d4ed8;
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+    }
+
+    .glance-mobile-quiz-panel__type--midsem {
+        color: #b45309;
+        background: #fffbeb;
+        border: 1px solid #fde68a;
+    }
+
+    .glance-mobile-quiz-panel__type--end_of_semester {
+        color: #334155;
+        background: #f1f5f9;
+        border: 1px solid #cbd5e1;
+    }
+
+    .glance-mobile-quiz-panel__title {
+        margin: 0;
+        font-size: 0.8125rem;
+        font-weight: 700;
+        line-height: 1.35;
+        letter-spacing: -0.02em;
+        color: #0f172a;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .glance-mobile-quiz-panel__cta {
         display: flex;
         align-items: center;
         justify-content: center;
         width: 100%;
-        margin-top: 0.625rem;
+        margin-top: 0.125rem;
         padding: 0.6875rem 1rem;
-        border-radius: 0.875rem;
+        border-radius: 0.6875rem;
         font-size: 0.8125rem;
         font-weight: 700;
         letter-spacing: 0.03em;
-        text-decoration: none;
         text-align: center;
         line-height: 1.25;
         font-variant-numeric: tabular-nums;
-        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
-        transition: transform 0.15s ease, box-shadow 0.15s ease;
     }
 
-    .glance-mobile-quiz-action:active {
-        transform: scale(0.98);
-    }
-
-    .glance-mobile-quiz-action--start {
+    .glance-mobile-quiz-panel__cta--start {
         color: #fff;
         background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-        box-shadow: 0 4px 16px rgba(5, 150, 105, 0.32);
+        box-shadow: 0 4px 14px rgba(5, 150, 105, 0.28);
     }
 
-    .glance-mobile-quiz-action--continue {
+    .glance-mobile-quiz-panel__cta--continue {
         color: #fff;
         background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-        box-shadow: 0 4px 16px rgba(37, 99, 235, 0.28);
+        box-shadow: 0 4px 14px rgba(37, 99, 235, 0.26);
     }
 
-    .glance-mobile-quiz-action--countdown {
+    .glance-mobile-quiz-panel__cta--countdown {
         color: #0f766e;
         background: linear-gradient(180deg, #ecfdf5 0%, #d1fae5 100%);
         border: 1px solid rgba(16, 185, 129, 0.32);
@@ -319,10 +409,12 @@
         letter-spacing: 0.02em;
     }
 
-    .glance-mobile-quiz-action--start.is-ready {
+    .glance-mobile-quiz-panel--countdown.is-ready .glance-mobile-quiz-panel__cta--countdown,
+    .glance-mobile-quiz-panel__cta--start {
         color: #fff;
         background: linear-gradient(135deg, #10b981 0%, #059669 100%);
         border-color: transparent;
+        box-shadow: 0 4px 14px rgba(5, 150, 105, 0.28);
     }
 
     .glance-card__cta {
@@ -409,7 +501,7 @@
     }
 
     @media (min-width: 640px) {
-        .glance-mobile-quiz-action {
+        .glance-mobile-quiz-panel {
             display: none !important;
         }
 
@@ -471,16 +563,16 @@
         .glance-card__body {
             flex-direction: row;
             align-items: center;
-            gap: 0.5625rem;
-            padding: 0.6875rem 0.75rem;
-            min-height: 4.125rem;
+            gap: 0.625rem;
+            padding: 0.8125rem 0.8125rem;
+            min-height: 4.625rem;
         }
 
         .glance-card__icon {
-            width: 1.875rem;
-            height: 1.875rem;
+            width: 2rem;
+            height: 2rem;
             border-radius: 0.625rem;
-            font-size: 0.75rem;
+            font-size: 0.78125rem;
             flex-shrink: 0;
             box-shadow: 0 4px 10px rgba(15, 23, 42, 0.1);
         }
@@ -488,21 +580,21 @@
         .glance-card__content {
             flex: 1;
             min-width: 0;
-            gap: 0.125rem;
+            gap: 0.1875rem;
         }
 
         .glance-card__value {
-            font-size: 1.1875rem;
+            font-size: 1.25rem;
             line-height: 1.1;
         }
 
         .glance-card__value--sm {
-            font-size: 0.71875rem;
-            line-height: 1.3;
+            font-size: 0.75rem;
+            line-height: 1.35;
         }
 
         .glance-card__label {
-            font-size: 0.59375rem;
+            font-size: 0.625rem;
             line-height: 1.35;
         }
 
@@ -552,10 +644,11 @@
     var startMs = new Date(startsAt).getTime();
     var countdownNodes = document.querySelectorAll('[data-quiz-countdown="{{ $scheduledQuiz->id }}"]');
     if (!countdownNodes.length) return;
-    var mobileAction = document.querySelector('.glance-mobile-quiz-action--countdown');
+    var mobilePanel = document.querySelector('.glance-mobile-quiz-panel--countdown');
+    var mobileCta = mobilePanel && mobilePanel.querySelector('.glance-mobile-quiz-panel__cta');
     var cardLink = document.querySelector('.glance-card--emerald .glance-card__body[data-rules-url]')
         || document.querySelector('.glance-card--emerald .glance-card__body');
-    var rulesUrl = (mobileAction && mobileAction.getAttribute('data-rules-url'))
+    var rulesUrl = (mobilePanel && mobilePanel.getAttribute('data-rules-url'))
         || (cardLink && cardLink.getAttribute('data-rules-url'));
 
     function formatCountdown(totalSeconds) {
@@ -575,12 +668,17 @@
             node.classList.remove('glance-card__cta--countdown');
             node.classList.add('glance-card__cta--start');
         });
-        if (mobileAction) {
-            mobileAction.textContent = label;
-            mobileAction.classList.remove('glance-mobile-quiz-action--countdown');
-            mobileAction.classList.add('glance-mobile-quiz-action--start', 'is-ready');
+        if (mobileCta) {
+            mobileCta.textContent = label;
+            mobileCta.classList.remove('glance-mobile-quiz-panel__cta--countdown');
+            mobileCta.classList.add('glance-mobile-quiz-panel__cta--start');
+        }
+        if (mobilePanel) {
+            mobilePanel.classList.add('is-ready');
+            mobilePanel.classList.remove('glance-mobile-quiz-panel--countdown');
+            mobilePanel.classList.add('glance-mobile-quiz-panel--start');
             if (rulesUrl) {
-                mobileAction.href = rulesUrl;
+                mobilePanel.href = rulesUrl;
             }
         }
         if (cardLink && rulesUrl) {
@@ -599,8 +697,11 @@
         countdownNodes.forEach(function(node) {
             node.textContent = text;
         });
-        if (mobileAction) {
-            mobileAction.textContent = text;
+        if (mobileCta) {
+            var mobileCountdown = mobileCta.querySelector('[data-quiz-countdown="{{ $scheduledQuiz->id }}"]');
+            if (mobileCountdown) {
+                mobileCountdown.textContent = text;
+            }
         }
     }
 

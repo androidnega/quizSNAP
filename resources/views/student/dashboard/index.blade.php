@@ -14,7 +14,7 @@
 
 @include('student.partials.dashboard-pill-nav', ['class' => 'hidden lg:block'])
 
-@include('student.partials.dashboard-pill-nav', ['class' => 'lg:hidden mb-3', 'compact' => true])
+@include('student.partials.dashboard-pill-nav', ['class' => 'lg:hidden mb-3', 'compact' => true, 'mobile' => true])
 
 <section aria-label="At a glance">
     <h2 class="text-[10px] sm:text-xs lg:text-sm font-semibold text-slate-500 mb-2 lg:mb-4 uppercase tracking-wider">At a glance</h2>

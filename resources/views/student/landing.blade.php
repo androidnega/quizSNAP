@@ -228,6 +228,10 @@
         font-weight: 600;
     }
 
+    .qs-hero-sub--mobile {
+        display: none;
+    }
+
     .qs-cta-row {
         display: flex;
         flex-wrap: wrap;
@@ -425,47 +429,58 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        min-height: 14rem;
-        padding: 0.5rem 0;
+        min-height: 16rem;
+        padding: 0;
     }
 
     .qs-blob {
         position: absolute;
         border-radius: 9999px;
-        filter: blur(48px);
-        opacity: 0.5;
+        filter: blur(56px);
+        opacity: 0.55;
         pointer-events: none;
     }
 
     .qs-blob-1 {
-        width: 16rem;
-        height: 16rem;
+        width: 18rem;
+        height: 18rem;
         background: #fde68a;
-        top: 8%;
-        right: 0;
+        top: 4%;
+        right: -2%;
     }
 
     .qs-blob-2 {
-        width: 12rem;
-        height: 12rem;
+        width: 14rem;
+        height: 14rem;
         background: #fef3c7;
-        bottom: 0;
-        left: 4%;
+        bottom: -4%;
+        left: 0;
     }
 
     .qs-hero-photo {
         position: relative;
         z-index: 1;
-        width: min(100%, 28rem);
+        width: 100%;
+        max-width: 36rem;
         margin: 0;
-        border-radius: 1.25rem;
+        border-radius: 1.375rem;
         overflow: hidden;
         background: #fff;
         border: 1px solid rgba(226, 232, 240, 0.95);
         box-shadow:
             0 1px 2px rgba(15, 23, 42, 0.04),
-            0 20px 40px -16px rgba(245, 158, 11, 0.22);
+            0 0 0 1px rgba(255, 255, 255, 0.6) inset,
+            0 24px 48px -20px rgba(245, 158, 11, 0.28);
         transition: transform 0.35s ease, box-shadow 0.35s ease;
+    }
+
+    .qs-hero-photo::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        pointer-events: none;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
     }
 
     .qs-hero-photo img {
@@ -480,22 +495,29 @@
     @media (min-width: 768px) {
         .qs-hero-visual {
             justify-content: flex-end;
-            min-height: 18rem;
-            padding: 0;
+            align-self: stretch;
+            min-height: 22rem;
+        }
+
+        .qs-hero-photo {
+            max-width: none;
+            width: 100%;
         }
 
         .qs-hero-photo:hover {
-            transform: translateY(-3px);
+            transform: translateY(-4px);
             box-shadow:
                 0 2px 4px rgba(15, 23, 42, 0.05),
-                0 28px 52px -18px rgba(245, 158, 11, 0.3);
+                0 0 0 1px rgba(255, 255, 255, 0.6) inset,
+                0 32px 64px -22px rgba(245, 158, 11, 0.34);
         }
     }
 
     @media (min-width: 768px) {
         .qs-hero-grid {
-            grid-template-columns: 1.05fr 0.95fr;
-            gap: 2.5rem;
+            grid-template-columns: 0.92fr 1.08fr;
+            gap: 2.75rem;
+            align-items: center;
         }
         .qs-main { padding: 2rem 0 1.5rem; }
     }
@@ -511,7 +533,7 @@
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
             align-items: flex-start;
-            padding-top: 1rem;
+            padding-top: 0;
         }
         .qs-hero-grid {
             display: flex;
@@ -521,38 +543,69 @@
         .qs-hero-copy {
             display: contents;
         }
-        .qs-hero-head {
-            order: 1;
-        }
         .qs-hero-visual {
-            order: 2;
+            order: 1;
             min-height: 0;
-            margin: 0 0 1.25rem;
-            padding: 0;
+            align-self: stretch;
+            margin: 0 calc(-1 * max(1rem, env(safe-area-inset-right))) 1.25rem calc(-1 * max(1rem, env(safe-area-inset-left)));
+            width: auto;
+            max-width: none;
+        }
+        .qs-hero-head {
+            order: 2;
         }
         .qs-hero-copy > :not(.qs-hero-head) {
             order: 3;
         }
-        .qs-hero-sub {
+        .qs-hero-sub--desktop {
             display: none;
         }
+        .qs-hero-sub--mobile {
+            display: block;
+            font-size: 0.9375rem;
+            line-height: 1.55;
+            margin-bottom: 1rem;
+        }
         .qs-hero-title {
-            margin-bottom: 0.75rem;
+            margin-bottom: 0.625rem;
+        }
+        .qs-badge {
+            margin-bottom: 0.875rem;
         }
         .qs-hero-photo {
             width: 100%;
             max-width: none;
-            border-radius: 1rem;
+            border-radius: 0 0 1.25rem 1.25rem;
+            border-top: none;
+            box-shadow:
+                0 16px 40px -18px rgba(15, 23, 42, 0.14),
+                0 0 0 1px rgba(226, 232, 240, 0.7) inset;
         }
         .qs-hero-photo img {
-            aspect-ratio: auto;
-            max-height: 11rem;
+            aspect-ratio: 720 / 479;
+            max-height: none;
+            min-height: 12.5rem;
             object-fit: cover;
         }
         .qs-hero-photo--banner img {
-            max-height: 9rem;
+            aspect-ratio: 21 / 9;
+            min-height: 10rem;
         }
-        .qs-blob { display: none; }
+        .qs-blob {
+            opacity: 0.35;
+        }
+        .qs-blob-1 {
+            width: 12rem;
+            height: 12rem;
+            top: auto;
+            bottom: 0;
+            right: 8%;
+        }
+        .qs-blob-2 {
+            width: 9rem;
+            height: 9rem;
+            left: 6%;
+        }
     }
 
     /* Support FAB */
@@ -728,13 +781,21 @@
                         <span class="accent">Built for your institution.</span>
                     </h1>
 
-                    <p class="qs-hero-sub">
+                    <p class="qs-hero-sub qs-hero-sub--desktop">
                     @if($institutionName)
                         <strong>{{ $institutionName }}</strong> uses {{ $appName }} for proctored quizzes and student dashboards.
                     @else
                         {{ $appName }} is a secure assessment platform for proctored quizzes and student dashboards.
                     @endif
                     Enter your quiz token from your lecturer to begin.
+                    </p>
+
+                    <p class="qs-hero-sub qs-hero-sub--mobile">
+                    @if($institutionName)
+                        <strong>{{ $institutionName }}</strong> uses {{ $appName }} for secure, proctored assessments.
+                    @else
+                        Secure proctored quizzes and student dashboards — enter your token to begin.
+                    @endif
                     </p>
                 </div>
 

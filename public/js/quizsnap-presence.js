@@ -4,7 +4,7 @@
 (function () {
     'use strict';
 
-    var PING_INTERVAL_MS = 60000;
+    var PING_INTERVAL_MS = 45000;
     var STORAGE_KEY = 'quizsnap_visitor_id';
 
     function visitorId() {

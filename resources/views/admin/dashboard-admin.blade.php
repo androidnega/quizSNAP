@@ -10,7 +10,7 @@
     </div>
 
     {{-- Update mode: very slim height, clean, no animation; countdown mm:ss, no overflow --}}
-    <section class="rounded border px-2.5 py-1.5 min-w-0 overflow-hidden {{ ($update_mode ?? false) ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50' }}">
+    <section class="rounded-lg border px-2.5 py-1.5 min-w-0 overflow-hidden {{ ($update_mode ?? false) ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50' }}">
         <div class="flex flex-wrap items-center justify-between gap-2">
             <div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
                 <h2 class="text-xs font-semibold {{ ($update_mode ?? false) ? 'text-green-900' : 'text-gray-900' }}">Update mode</h2>
@@ -39,58 +39,78 @@
         </div>
     </section>
 
-    {{-- Live activity (real-time, not cached) --}}
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 min-w-0">
-        <div id="live-visitors-card" class="live-stat-card rounded-xl bg-gradient-to-br from-rose-600 to-rose-800 p-4 sm:p-5 shadow-sm min-w-0 relative overflow-hidden">
-            <span class="live-stat-pulse absolute top-3 right-3 h-2.5 w-2.5 rounded-full bg-white/90" aria-hidden="true"></span>
-            <p class="text-xs sm:text-sm font-medium text-rose-100 truncate flex items-center gap-2">
-                <span class="inline-flex h-2 w-2 rounded-full bg-emerald-300 animate-pulse" aria-hidden="true"></span>
-                Live on site
-            </p>
-            <p id="live-visitors-count" class="mt-1 text-3xl sm:text-4xl font-bold tabular-nums text-white">{{ (int) ($liveVisitors ?? 0) }}</p>
-            <p class="mt-1 text-xs text-rose-100/90">Visitors active in the last 90 seconds</p>
+    {{-- Live activity (real-time; polled from server, not page-cached) --}}
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-0">
+        <div id="live-visitors-card" class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm min-w-0">
+            <div class="flex items-start gap-3">
+                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700" aria-hidden="true">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                </span>
+                <div class="min-w-0 flex-1">
+                    <p class="text-xs font-medium text-gray-500">Live on site</p>
+                    <p id="live-visitors-count" class="mt-0.5 text-2xl sm:text-3xl font-bold tabular-nums text-gray-900">{{ (int) ($liveVisitors ?? 0) }}</p>
+                    <p class="mt-1 text-xs text-gray-500">Visitors active in the last 90 seconds</p>
+                </div>
+            </div>
         </div>
-        <div id="live-quiz-takers-card" class="live-stat-card rounded-xl bg-gradient-to-br from-indigo-600 to-indigo-800 p-4 sm:p-5 shadow-sm min-w-0 relative overflow-hidden">
-            <span class="live-stat-pulse live-stat-pulse--delay absolute top-3 right-3 h-2.5 w-2.5 rounded-full bg-white/90" aria-hidden="true"></span>
-            <p class="text-xs sm:text-sm font-medium text-indigo-100 truncate flex items-center gap-2">
-                <span class="inline-flex h-2 w-2 rounded-full bg-emerald-300 animate-pulse" aria-hidden="true"></span>
-                Writing quiz now
-            </p>
-            <p id="live-quiz-takers-count" class="mt-1 text-3xl sm:text-4xl font-bold tabular-nums text-white">{{ (int) ($liveQuizTakers ?? 0) }}</p>
-            <p class="mt-1 text-xs text-indigo-100/90">Students with an active quiz session</p>
+        <div id="live-quiz-takers-card" class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm min-w-0">
+            <div class="flex items-start gap-3">
+                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-700" aria-hidden="true">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                </span>
+                <div class="min-w-0 flex-1">
+                    <p class="text-xs font-medium text-gray-500">Writing quiz now</p>
+                    <p id="live-quiz-takers-count" class="mt-0.5 text-2xl sm:text-3xl font-bold tabular-nums text-gray-900">{{ (int) ($liveQuizTakers ?? 0) }}</p>
+                    <p class="mt-1 text-xs text-gray-500">Students with a live quiz heartbeat (90s)</p>
+                </div>
+            </div>
         </div>
     </div>
 
-    <style>
-    @keyframes live-card-breathe {
-        0%, 100% { transform: scale(1); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-        50% { transform: scale(1.012); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15); }
-    }
-    @keyframes live-dot-breathe {
-        0%, 100% { opacity: 0.55; transform: scale(1); }
-        50% { opacity: 1; transform: scale(1.35); }
-    }
-    .live-stat-card { animation: live-card-breathe 3.5s ease-in-out infinite; }
-    .live-stat-pulse { animation: live-dot-breathe 2s ease-in-out infinite; }
-    .live-stat-pulse--delay { animation-delay: 0.8s; }
-    </style>
-
-    <div class="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4 min-w-0">
-        <div class="rounded-lg bg-sky-700 p-3 sm:p-4 shadow-sm min-w-0">
-            <p class="text-xs sm:text-sm font-medium text-sky-100 truncate">Staff users</p>
-            <p class="mt-1 text-xl sm:text-2xl font-bold tabular-nums text-white">{{ $overview['users'] ?? 0 }}</p>
+    <div class="grid grid-cols-2 gap-3 md:grid-cols-4 min-w-0">
+        <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm min-w-0">
+            <div class="flex items-start gap-3">
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sky-50 text-sky-700" aria-hidden="true">
+                    <svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                </span>
+                <div class="min-w-0">
+                    <p class="text-xs font-medium text-gray-500 truncate">Staff users</p>
+                    <p class="mt-0.5 text-xl sm:text-2xl font-bold tabular-nums text-gray-900">{{ $overview['users'] ?? 0 }}</p>
+                </div>
+            </div>
         </div>
-        <div class="rounded-lg bg-emerald-700 p-3 sm:p-4 shadow-sm min-w-0">
-            <p class="text-xs sm:text-sm font-medium text-emerald-100 truncate">Courses</p>
-            <p class="mt-1 text-xl sm:text-2xl font-bold tabular-nums text-white">{{ $overview['courses'] ?? 0 }}</p>
+        <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm min-w-0">
+            <div class="flex items-start gap-3">
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700" aria-hidden="true">
+                    <svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                </span>
+                <div class="min-w-0">
+                    <p class="text-xs font-medium text-gray-500 truncate">Courses</p>
+                    <p class="mt-0.5 text-xl sm:text-2xl font-bold tabular-nums text-gray-900">{{ $overview['courses'] ?? 0 }}</p>
+                </div>
+            </div>
         </div>
-        <div class="rounded-lg bg-violet-700 p-3 sm:p-4 shadow-sm min-w-0">
-            <p class="text-xs sm:text-sm font-medium text-violet-100 truncate">Class groups</p>
-            <p class="mt-1 text-xl sm:text-2xl font-bold tabular-nums text-white">{{ $overview['class_groups'] ?? 0 }}</p>
+        <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm min-w-0">
+            <div class="flex items-start gap-3">
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-50 text-violet-700" aria-hidden="true">
+                    <svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                </span>
+                <div class="min-w-0">
+                    <p class="text-xs font-medium text-gray-500 truncate">Class groups</p>
+                    <p class="mt-0.5 text-xl sm:text-2xl font-bold tabular-nums text-gray-900">{{ $overview['class_groups'] ?? 0 }}</p>
+                </div>
+            </div>
         </div>
-        <div class="rounded-lg bg-amber-700 p-3 sm:p-4 shadow-sm min-w-0">
-            <p class="text-xs sm:text-sm font-medium text-amber-100 truncate">Students</p>
-            <p class="mt-1 text-xl sm:text-2xl font-bold tabular-nums text-white">{{ $overview['students'] ?? 0 }}</p>
+        <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm min-w-0">
+            <div class="flex items-start gap-3">
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-700" aria-hidden="true">
+                    <svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/></svg>
+                </span>
+                <div class="min-w-0">
+                    <p class="text-xs font-medium text-gray-500 truncate">Students</p>
+                    <p class="mt-0.5 text-xl sm:text-2xl font-bold tabular-nums text-gray-900">{{ $overview['students'] ?? 0 }}</p>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -125,7 +145,7 @@
     if (!visitorsEl && !quizEl) return;
 
     var liveStatsUrl = @json(route('dashboard.live-stats'));
-    var pollMs = 20000;
+    var pollMs = 12000;
     var pollTimer = null;
 
     function applyStats(data) {
@@ -141,7 +161,12 @@
     function fetchLiveStats() {
         fetch(liveStatsUrl, {
             credentials: 'same-origin',
-            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            cache: 'no-store',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Cache-Control': 'no-cache',
+            },
         })
             .then(function (r) { return r.ok ? r.json() : null; })
             .then(applyStats)

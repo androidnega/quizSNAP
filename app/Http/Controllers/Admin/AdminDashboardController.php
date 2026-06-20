@@ -64,11 +64,15 @@ class AdminDashboardController extends Controller
             return response()->json(['success' => false], 403);
         }
 
-        return response()->json([
-            'success' => true,
-            'visitors' => app(SitePresenceService::class)->countActive(),
-            'quiz_takers' => app(LiveQuizSessionService::class)->countActive(),
-        ]);
+        return response()
+            ->json([
+                'success' => true,
+                'visitors' => app(SitePresenceService::class)->countActive(),
+                'quiz_takers' => app(LiveQuizSessionService::class)->countActive(),
+                'as_of' => now()->toIso8601String(),
+            ])
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+            ->header('Pragma', 'no-cache');
     }
 
     /** Examiner dashboard: my class groups, my quizzes, recent sessions. */

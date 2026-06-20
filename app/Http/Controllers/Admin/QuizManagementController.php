@@ -1056,6 +1056,7 @@ class QuizManagementController extends Controller
 
         // Delete the session (DB cascade deletes result, answers, violations).
         // Route quizId may be stale after migrations; session binding is authoritative.
+        app(\App\Services\QuizConcurrencyService::class)->clearLiveSession((int) $quizSession->id);
         $quizSession->delete();
 
         $this->broadcastDataUpdatedSafe('dashboard');

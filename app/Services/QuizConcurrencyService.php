@@ -10,6 +10,11 @@ class QuizConcurrencyService
 {
     private const PENDING_SET = 'quizsnap:heartbeats:pending';
 
+    /** Sorted set of session ids with a recent quiz heartbeat (same window as site presence). */
+    private const LIVE_SESSIONS_KEY = 'quizsnap:live_quiz_sessions';
+
+    public const LIVE_WINDOW_SECONDS = 90;
+
     public function redisAvailable(): bool
     {
         if (! config('quiz-scale.defer_heartbeat_writes', true)) {
@@ -34,6 +39,12 @@ class QuizConcurrencyService
      */
     public function touchHeartbeat(int $sessionId): void
     {
+        if ($sessionId < 1) {
+            return;
+        }
+
+        $this->markLiveSession($sessionId);
+
         if (! $this->redisAvailable()) {
             QuizSession::whereKey($sessionId)->update(['last_heartbeat_at' => now()]);
 
@@ -43,6 +54,76 @@ class QuizConcurrencyService
         $redis = Redis::connection();
         $redis->setex('quizsnap:heartbeat:ts:' . $sessionId, 7200, (string) now()->timestamp);
         $redis->sadd(self::PENDING_SET, (string) $sessionId);
+    }
+
+    /**
+     * Count students actively writing a quiz (recent heartbeat, session started, not ended).
+     * Uses Redis live set when available so counts are not inflated by stale MySQL heartbeats.
+     */
+    public function countLiveQuizSessions(): int
+    {
+        if ($this->redisAvailable()) {
+            return $this->countLiveQuizSessionsFromRedis();
+        }
+
+        return $this->countLiveQuizSessionsFromDatabase();
+    }
+
+    public function clearLiveSession(int $sessionId): void
+    {
+        if ($sessionId < 1 || ! $this->redisAvailable()) {
+            return;
+        }
+
+        Redis::connection()->zrem(self::LIVE_SESSIONS_KEY, (string) $sessionId);
+    }
+
+    private function markLiveSession(int $sessionId): void
+    {
+        if (! $this->redisAvailable()) {
+            return;
+        }
+
+        $now = time();
+        $redis = Redis::connection();
+        $redis->zadd(self::LIVE_SESSIONS_KEY, $now, (string) $sessionId);
+        $redis->zremrangebyscore(self::LIVE_SESSIONS_KEY, '-inf', $now - self::LIVE_WINDOW_SECONDS);
+        $redis->expire(self::LIVE_SESSIONS_KEY, 300);
+    }
+
+    private function countLiveQuizSessionsFromRedis(): int
+    {
+        $now = time();
+        $cutoff = $now - self::LIVE_WINDOW_SECONDS;
+        $redis = Redis::connection();
+        $redis->zremrangebyscore(self::LIVE_SESSIONS_KEY, '-inf', $cutoff);
+        $ids = $redis->zrangebyscore(self::LIVE_SESSIONS_KEY, $cutoff, '+inf');
+        if ($ids === [] || $ids === false) {
+            return 0;
+        }
+
+        $sessionIds = array_values(array_filter(array_map('intval', $ids), fn ($id) => $id > 0));
+        if ($sessionIds === []) {
+            return 0;
+        }
+
+        return (int) QuizSession::query()
+            ->whereIn('id', $sessionIds)
+            ->whereNotNull('start_time')
+            ->whereNull('ended_at')
+            ->count();
+    }
+
+    private function countLiveQuizSessionsFromDatabase(): int
+    {
+        $cutoff = now()->subSeconds(self::LIVE_WINDOW_SECONDS);
+
+        return (int) QuizSession::query()
+            ->whereNotNull('start_time')
+            ->whereNull('ended_at')
+            ->whereNotNull('last_heartbeat_at')
+            ->where('last_heartbeat_at', '>=', $cutoff)
+            ->count();
     }
 
     /**

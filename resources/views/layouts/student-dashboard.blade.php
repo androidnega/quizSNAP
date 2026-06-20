@@ -260,24 +260,13 @@
         }
 
         function ensurePushRegistration() {
-            if (window.QuizSnapCacheConsent && window.QuizSnapCacheConsent.isAccepted()) {
-                window.QuizSnapCacheConsent.registerServiceWorker().then(function(registration) {
-                    if (registration) initPush(registration);
-                });
-                return;
-            }
             navigator.serviceWorker.register('{{ asset('sw.js') }}', { scope: '/' }).then(initPush).catch(function(err) { console.warn('SW register:', err); });
         }
 
-        if (window.QuizSnapCacheConsent) {
-            ensurePushRegistration();
-        } else {
+        if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', ensurePushRegistration);
-            document.addEventListener('quizsnap-cache-consent', function(e) {
-                if (e.detail && e.detail.accepted) {
-                    ensurePushRegistration();
-                }
-            });
+        } else {
+            ensurePushRegistration();
         }
     }
 })();

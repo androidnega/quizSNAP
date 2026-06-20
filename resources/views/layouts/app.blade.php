@@ -359,6 +359,5 @@
         setTimeout(function() { container.remove(); }, 4000);
     })();
     </script>
-    @include('partials.cache-consent')
 </body>
 </html>

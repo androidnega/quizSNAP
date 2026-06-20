@@ -1036,6 +1036,7 @@ class StudentQuizController extends Controller
         if ($session->ended_at === null) {
             $session->update(['ended_at' => now()]);
         }
+        $this->concurrency->clearLiveSession((int) $session->id);
         if (! $session->participatedInExam()) {
             return;
         }

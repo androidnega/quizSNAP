@@ -29,7 +29,7 @@
                     'href' => route('dashboard'),
                     'size' => 'sm',
                     'variant' => 'on-brand',
-                    'class' => 'truncate min-w-0',
+                    'class' => 'shrink-0',
                 ])
             </div>
             @include('partials.brand-logo', [

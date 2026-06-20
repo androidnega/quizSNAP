@@ -14,8 +14,8 @@
         @continue
     @endif
     <a href="{{ route($item['route']) }}"
-       class="flex items-center gap-3 px-3 xl:px-4 py-2.5 text-sm font-medium no-underline transition-colors {{ $item['active'] ? 'bg-amber-100/90 text-slate-900 rounded-r-xl -mr-px border-l-[3px] border-amber-400' : 'text-slate-600 hover:bg-slate-200/50 hover:text-slate-900 rounded-xl mx-1' }}">
-        <i class="fas {{ $item['icon'] }} w-5 text-center {{ $item['active'] ? 'text-amber-600' : 'text-slate-500' }}"></i>
+       class="sd-sidebar-nav__item {{ $item['active'] ? 'is-active' : '' }}">
+        <i class="fas {{ $item['icon'] }}" aria-hidden="true"></i>
         <span>{{ $item['label'] }}</span>
     </a>
 @endforeach

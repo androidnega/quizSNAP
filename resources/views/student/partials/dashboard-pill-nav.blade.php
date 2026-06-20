@@ -9,23 +9,17 @@
         ['route' => 'dashboard.my-profile', 'label' => 'Profile', 'icon' => 'fa-user', 'active' => request()->routeIs('dashboard.my-profile')],
         ['route' => 'dashboard.my-quizzes', 'label' => 'Results', 'icon' => 'fa-file-alt', 'active' => false, 'student_only' => true],
     ];
-    $pillBase = $compact
-        ? 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold border transition-colors whitespace-nowrap no-underline'
-        : 'inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold border transition-colors whitespace-nowrap no-underline';
-    $pillActive = 'theme-pill-active shadow-sm';
-    $pillInactive = 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300';
-    $iconMr = $compact ? 'text-[10px]' : 'mr-1.5 text-xs';
 @endphp
-<nav class="{{ $class ?? '' }}" aria-label="Dashboard sections">
-    <div class="flex flex-wrap items-center {{ $compact ? 'gap-1.5' : 'gap-2.5' }}">
+<nav class="sd-segment-nav {{ $class ?? '' }}" aria-label="Dashboard sections">
+    <div class="sd-segment-nav__track {{ $compact ? 'sd-segment-nav__track--compact' : '' }}">
         @foreach($pillItems as $item)
             @if(!empty($item['student_only']) && !($student ?? null))
                 @continue
             @endif
             <a href="{{ route($item['route']) }}"
-               class="{{ $pillBase }} {{ $item['active'] ? $pillActive : $pillInactive }}">
-                <i class="fas {{ $item['icon'] }} {{ $iconMr }} shrink-0"></i>
-                {{ $item['label'] }}
+               class="sd-segment-nav__item {{ $item['active'] ? 'is-active' : '' }}">
+                <i class="fas {{ $item['icon'] }}" aria-hidden="true"></i>
+                <span>{{ $item['label'] }}</span>
             </a>
         @endforeach
     </div>

@@ -160,6 +160,7 @@ class StudentDashboardController extends Controller
             'greeting' => $greeting,
             'displayName' => $student->first_name,
             'dashboardBanner' => \App\Models\Setting::getStudentDashboardBannerConfig(),
+            'studentDashboardMobileLayout' => \App\Models\Setting::getStudentDashboardMobileLayout(),
         ]);
     }
 

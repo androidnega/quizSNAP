@@ -64,6 +64,7 @@ class SettingsController extends Controller
             Setting::KEY_STUDENT_DASHBOARD_BANNER_TITLE_ACCENT => 'Achieve More.',
             Setting::KEY_STUDENT_DASHBOARD_BANNER_SUBTITLE => 'Take quizzes, track progress and achieve your goals every day.',
             Setting::KEY_STUDENT_DASHBOARD_BANNER_IMAGES => '[]',
+            Setting::KEY_STUDENT_DASHBOARD_MOBILE_LAYOUT => 'classic',
             Setting::KEY_SUPABASE_SIGNED_URL_TTL => '60',
             Setting::KEY_PROCTORING_CAMERA_REQUIRED => '1',
             Setting::KEY_PROCTORING_FACE_MONITOR => '1',
@@ -148,6 +149,7 @@ class SettingsController extends Controller
             'student_dashboard_banner_subtitle' => $settings[Setting::KEY_STUDENT_DASHBOARD_BANNER_SUBTITLE] ?? 'Take quizzes, track progress and achieve your goals every day.',
             'student_dashboard_banner_image' => is_array($bannerImages) ? ($bannerImages[0] ?? '') : '',
             'student_dashboard_banner_images' => is_array($bannerImages) ? $bannerImages : [],
+            'student_dashboard_mobile_layout' => Setting::getStudentDashboardMobileLayout(),
             'supabase_url' => $settings[Setting::KEY_SUPABASE_URL] ?? '',
             'supabase_bucket' => $settings[Setting::KEY_SUPABASE_BUCKET] ?? '',
             'supabase_ttl' => $settings[Setting::KEY_SUPABASE_SIGNED_URL_TTL] ?? '60',
@@ -314,6 +316,7 @@ class SettingsController extends Controller
                 'student_dashboard_banner_subtitle' => 'nullable|string|max:500',
                 'student_dashboard_banner_image_url' => 'nullable|string|max:2048',
                 'student_dashboard_banner_image_file' => 'nullable|image|max:5120',
+                'student_dashboard_mobile_layout' => 'nullable|string|in:classic,modern',
             ]) : $rules,
             'backup' => $canManageBackup ? array_merge($rules, [
                 'notify_digest_recipient' => 'nullable|email|max:255',
@@ -542,6 +545,12 @@ class SettingsController extends Controller
         }
         Setting::setValue(Setting::KEY_STUDENT_DASHBOARD_BANNER_IMAGES, json_encode($imageUrl !== '' ? [$imageUrl] : []));
 
+        $mobileLayout = $request->input('student_dashboard_mobile_layout', 'classic');
+        Setting::setValue(
+            Setting::KEY_STUDENT_DASHBOARD_MOBILE_LAYOUT,
+            in_array($mobileLayout, ['classic', 'modern'], true) ? $mobileLayout : 'classic'
+        );
+
         foreach ([
             Setting::KEY_STUDENT_DASHBOARD_BANNER_ENABLED,
             Setting::KEY_STUDENT_DASHBOARD_BANNER_MODE,
@@ -549,6 +558,7 @@ class SettingsController extends Controller
             Setting::KEY_STUDENT_DASHBOARD_BANNER_TITLE_ACCENT,
             Setting::KEY_STUDENT_DASHBOARD_BANNER_SUBTITLE,
             Setting::KEY_STUDENT_DASHBOARD_BANNER_IMAGES,
+            Setting::KEY_STUDENT_DASHBOARD_MOBILE_LAYOUT,
         ] as $key) {
             Cache::forget('setting:' . $key);
         }

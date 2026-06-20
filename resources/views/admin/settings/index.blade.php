@@ -634,6 +634,34 @@
                 <!-- Tab: Student dashboard banner -->
                 <div class="settings-tab-content p-6 hidden" data-tab-content="student-dashboard" id="tab-content-student-dashboard">
                     <div class="mb-6">
+                        <h2 class="text-base font-semibold text-gray-900 mb-1">Student dashboard</h2>
+                        <p class="text-sm text-gray-600">Banner and mobile layout for the student overview page.</p>
+                    </div>
+                    @php
+                        $mobileLayout = old('student_dashboard_mobile_layout', $student_dashboard_mobile_layout ?? 'classic');
+                    @endphp
+                    <div class="rounded-lg border border-gray-200 bg-gray-50/50 p-5 space-y-4 mb-6">
+                        <h3 class="text-sm font-semibold text-gray-800">Mobile layout</h3>
+                        <p class="text-xs text-gray-500">Phones use this layout on the overview page. Desktop always uses the compact grid.</p>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <label class="flex items-start gap-3 cursor-pointer rounded-lg border {{ $mobileLayout === 'classic' ? 'border-primary-400 ring-1 ring-primary-200' : 'border-gray-200' }} bg-white p-4 hover:border-primary-300 transition-colors">
+                                <input type="radio" name="student_dashboard_mobile_layout" value="classic" {{ $mobileLayout === 'classic' ? 'checked' : '' }} class="mt-1 text-primary-600 border-gray-300 focus:ring-primary-500">
+                                <span>
+                                    <span class="block text-sm font-medium text-gray-900">Classic</span>
+                                    <span class="block text-xs text-gray-500 mt-0.5">Compact three-card grid with the quiz action panel below.</span>
+                                </span>
+                            </label>
+                            <label class="flex items-start gap-3 cursor-pointer rounded-lg border {{ $mobileLayout === 'modern' ? 'border-primary-400 ring-1 ring-primary-200' : 'border-gray-200' }} bg-white p-4 hover:border-primary-300 transition-colors">
+                                <input type="radio" name="student_dashboard_mobile_layout" value="modern" {{ $mobileLayout === 'modern' ? 'checked' : '' }} class="mt-1 text-primary-600 border-gray-300 focus:ring-primary-500">
+                                <span>
+                                    <span class="block text-sm font-medium text-gray-900">Modern cards</span>
+                                    <span class="block text-xs text-gray-500 mt-0.5">LMS-style greeting, featured promo, course card, and quick-link tiles using your theme colors.</span>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="mb-6">
                         <h2 class="text-base font-semibold text-gray-900 mb-1">Student dashboard banner</h2>
                         <p class="text-sm text-gray-600">Banner on the student overview page. Choose image only, or image with text (text left, image right).</p>
                     </div>

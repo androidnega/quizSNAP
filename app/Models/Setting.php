@@ -143,6 +143,7 @@ class Setting extends Model
             self::KEY_STUDENT_DASHBOARD_BANNER_TITLE_ACCENT,
             self::KEY_STUDENT_DASHBOARD_BANNER_SUBTITLE,
             self::KEY_STUDENT_DASHBOARD_BANNER_IMAGES,
+            self::KEY_STUDENT_DASHBOARD_MOBILE_LAYOUT,
             self::KEY_SUPABASE_URL,
             self::KEY_SUPABASE_SERVICE_KEY,
             self::KEY_SUPABASE_BUCKET,
@@ -176,6 +177,7 @@ class Setting extends Model
                 self::KEY_STUDENT_DASHBOARD_BANNER_TITLE_ACCENT,
                 self::KEY_STUDENT_DASHBOARD_BANNER_SUBTITLE,
                 self::KEY_STUDENT_DASHBOARD_BANNER_IMAGES,
+                self::KEY_STUDENT_DASHBOARD_MOBILE_LAYOUT,
             ], true)) {
             app(PageCacheService::class)->bumpVersion();
         }
@@ -255,6 +257,16 @@ class Setting extends Model
         ];
     }
 
+    /**
+     * Mobile dashboard layout for student overview (phones only). Desktop always uses classic.
+     */
+    public static function getStudentDashboardMobileLayout(): string
+    {
+        $layout = self::getValue(self::KEY_STUDENT_DASHBOARD_MOBILE_LAYOUT, 'classic');
+
+        return in_array($layout, ['classic', 'modern'], true) ? $layout : 'classic';
+    }
+
     public const KEY_OPENAI_API = 'openai_api_key';
     public const KEY_GEMINI_API = 'gemini_api_key';
     public const KEY_DEEPSEEK_API = 'deepseek_api_key';
@@ -284,6 +296,8 @@ class Setting extends Model
     public const KEY_STUDENT_DASHBOARD_BANNER_SUBTITLE = 'student_dashboard_banner_subtitle';
     /** JSON array; first entry is the banner image URL. */
     public const KEY_STUDENT_DASHBOARD_BANNER_IMAGES = 'student_dashboard_banner_images';
+    /** Mobile overview layout: classic (compact grid) or modern (LMS-style cards). */
+    public const KEY_STUDENT_DASHBOARD_MOBILE_LAYOUT = 'student_dashboard_mobile_layout';
     public const KEY_INSTITUTION_NAME = 'institution_name';
     public const KEY_INSTITUTION_LOGO = 'institution_logo';
 

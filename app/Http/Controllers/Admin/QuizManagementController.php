@@ -30,6 +30,7 @@ use App\Support\UserFriendlyMessages;
 use App\Services\AiTopicExtractorService;
 use App\Services\LocalUploadService;
 use App\Services\QuizBackupService;
+use App\Services\StudentNotificationService;
 use App\Services\DocumentTextExtractor;
 use App\Support\QuestionTypes;
 use App\Events\ExaminerVoice;
@@ -1332,6 +1333,12 @@ class QuizManagementController extends Controller
             'submission_reason' => 'withheld_cleared_by_examiner',
         ]);
 
+        try {
+            app(StudentNotificationService::class)->notifyResultReleased($quizSession);
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
         $this->broadcastDataUpdatedSafe('dashboard');
 
         return redirect()->route($this->staffRoutePrefix() . '.quizzes.sessions.show', [$quiz, $quizSession])
@@ -1496,6 +1503,12 @@ class QuizManagementController extends Controller
         }
         $quiz->update(['is_published' => true, 'status' => Quiz::STATUS_PUBLISHED]);
         $this->broadcastDataUpdatedSafe('quizzes');
+        try {
+            $quiz->load('course');
+            app(StudentNotificationService::class)->notifyQuizPublished($quiz);
+        } catch (\Throwable $e) {
+            report($e);
+        }
         try {
             QuizBackupService::sendIfConfigured($quiz);
         } catch (\Throwable $e) {

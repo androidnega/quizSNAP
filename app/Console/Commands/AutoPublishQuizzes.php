@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Quiz;
+use App\Services\StudentNotificationService;
 use Illuminate\Console\Command;
 
 class AutoPublishQuizzes extends Command
@@ -45,7 +46,14 @@ class AutoPublishQuizzes extends Command
             if ($quiz->hasEnoughApprovedQuestions()) {
                 $quiz->update(['is_published' => true]);
                 $publishedCount++;
-                
+
+                try {
+                    $quiz->load('course');
+                    app(StudentNotificationService::class)->notifyQuizPublished($quiz);
+                } catch (\Throwable $e) {
+                    report($e);
+                }
+
                 $this->info("Auto-published quiz: {$quiz->title} (ID: {$quiz->id})");
             } else {
                 $this->warn("Quiz '{$quiz->title}' (ID: {$quiz->id}) start time has passed but doesn't have enough approved questions ({$quiz->questions->count()}/{$quiz->getQuestionsPerStudent()})");

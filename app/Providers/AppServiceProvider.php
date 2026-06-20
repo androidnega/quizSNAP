@@ -92,6 +92,15 @@ class AppServiceProvider extends ServiceProvider
                 'greeting' => $greeting,
                 'vapidPublicKey' => config('services.webpush.vapid_public'),
             ]);
+
+            if ($student) {
+                $notificationService = app(\App\Services\StudentNotificationService::class);
+                $view->with([
+                    'studentNotificationUnread' => $notificationService->unreadCount($student->index_number),
+                    'studentNotifications' => $notificationService->recentForStudent($student->index_number, 20),
+                    'studentDashboardMobileLayout' => \App\Models\Setting::getStudentDashboardMobileLayout(),
+                ]);
+            }
         });
     }
 

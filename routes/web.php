@@ -163,6 +163,9 @@ Route::middleware(['dashboard.auth', 'student.auth', 'student.has-level'])->pref
     Route::put('/my-profile', [\App\Http\Controllers\Student\StudentDashboardController::class, 'updateProfile'])->name('my-profile.update');
     Route::get('/course-materials', [\App\Http\Controllers\Student\StudentDashboardController::class, 'courseMaterials'])->name('course-materials');
     Route::get('/calendar', [\App\Http\Controllers\Student\StudentDashboardController::class, 'calendar'])->name('calendar');
+    Route::get('/notifications', [\App\Http\Controllers\Student\StudentNotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/read-all', [\App\Http\Controllers\Student\StudentNotificationController::class, 'markAllRead'])->name('notifications.read-all');
+    Route::post('/notifications/{notificationId}/read', [\App\Http\Controllers\Student\StudentNotificationController::class, 'markRead'])->name('notifications.read');
     Route::post('/push-subscribe', [\App\Http\Controllers\Student\PushSubscribeController::class, 'store'])->name('push-subscribe');
 });
 
@@ -228,6 +231,9 @@ Route::middleware('admin.auth')->group(function () {
         Route::get('/exam-calendar/{examCalendar}/edit', [ExamCalendarController::class, 'edit'])->name('exam-calendar.edit');
         Route::put('/exam-calendar/{examCalendar}', [ExamCalendarController::class, 'update'])->name('exam-calendar.update');
         Route::delete('/exam-calendar/{examCalendar}', [ExamCalendarController::class, 'destroy'])->name('exam-calendar.destroy');
+
+        Route::get('/student-notifications/create', [\App\Http\Controllers\Admin\StaffStudentNotificationController::class, 'create'])->name('student-notifications.create');
+        Route::post('/student-notifications', [\App\Http\Controllers\Admin\StaffStudentNotificationController::class, 'store'])->name('student-notifications.store');
 
         // Quiz session detail — all staff (examiners + super admins) so session/student data always shows
         // Keep quiz ID in URL for readability, but resolve by quizSession in controller

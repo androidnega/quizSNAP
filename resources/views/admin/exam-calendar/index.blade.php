@@ -7,9 +7,12 @@
 <div class="w-full space-y-4">
     <div class="flex items-center justify-between flex-wrap gap-3">
         <p class="text-sm text-gray-600">Midsem and end-of-semester exams by class group. Students see these on their dashboard.</p>
+        <div class="flex items-center gap-2">
+            <a href="{{ route('dashboard.student-notifications.create') }}" class="inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-300">Message students</a>
         @can('create', \App\Models\ExamCalendar::class)
         <a href="{{ route('dashboard.exam-calendar.create') }}" class="inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium text-gray-900 bg-yellow-400 hover:bg-yellow-500 border border-yellow-600/30 shadow-sm">Add exam</a>
         @endcan
+        </div>
     </div>
 
     <form method="get" action="{{ route('dashboard.exam-calendar.index') }}" id="exam_calendar_filter_form" class="flex flex-wrap items-end gap-4 rounded-lg border border-gray-200 bg-white p-4">

@@ -7,6 +7,7 @@ use App\Events\DataUpdated;
 use App\Events\ProctorFrameUpdated;
 use App\Jobs\GenerateWrongAnswerExplanationsJob;
 use App\Jobs\SendQuizResultReadyNotification;
+use App\Services\StudentNotificationService;
 use App\Models\Answer;
 use App\Models\Question;
 use App\Models\Quiz;
@@ -1158,6 +1159,15 @@ class StudentQuizController extends Controller
             SendQuizResultReadyNotification::dispatch($session->id);
         } catch (\Throwable $e) {
             report($e);
+        }
+
+        $session->refresh();
+        if ($session->isResultWithheld()) {
+            try {
+                app(StudentNotificationService::class)->notifyResultHeld($session);
+            } catch (\Throwable $e) {
+                report($e);
+            }
         }
     }
 

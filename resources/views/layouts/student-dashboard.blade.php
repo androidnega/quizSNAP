@@ -134,6 +134,12 @@
 
     <main class="flex-1 w-full min-w-0 overflow-x-hidden pb-24 lg:pb-12 pt-[max(1rem,env(safe-area-inset-top))] lg:pt-0">
         <div class="mx-auto w-full max-w-none lg:max-w-4xl xl:max-w-5xl min-w-0 px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
+            @if(isset($student) && $student && !request()->routeIs('dashboard'))
+            <div class="lg:hidden flex justify-end mb-2">
+                @include('student.partials.dashboard-student-notifications')
+            </div>
+            @endif
+
             @if(!request()->routeIs('dashboard'))
                 <div class="hidden lg:flex items-center text-xs font-medium text-slate-500 gap-1 mb-6">
                     <a href="{{ route('dashboard') }}" class="inline-flex items-center gap-1 px-2 py-1 rounded-full border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 text-slate-700 no-underline">

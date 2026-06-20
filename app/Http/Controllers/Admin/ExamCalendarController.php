@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\Concerns\InteractsWithAdminSession;
 use App\Models\ClassGroup;
 use App\Models\Course;
 use App\Models\ExamCalendar;
+use App\Services\StudentNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -84,7 +85,7 @@ class ExamCalendarController extends Controller
             ? $course->examiners->map(fn ($e) => $e->name ?: $e->username)->join(', ')
             : null;
 
-        ExamCalendar::create([
+        $entry = ExamCalendar::create([
             'class_group_id' => $request->class_group_id,
             'course_id' => $courseId,
             'course_name' => null,
@@ -95,6 +96,13 @@ class ExamCalendarController extends Controller
             'mode' => $request->mode,
             'venue' => $request->filled('venue') ? trim($request->venue) : null,
         ]);
+
+        try {
+            $entry->load('course');
+            app(StudentNotificationService::class)->notifyTimetableEntry($entry, false);
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         return redirect()->route('dashboard.exam-calendar.index')->with('success', 'Exam calendar entry created.');
     }
@@ -153,6 +161,13 @@ class ExamCalendarController extends Controller
             'mode' => $request->mode,
             'venue' => $request->filled('venue') ? trim($request->venue) : null,
         ]);
+
+        try {
+            $examCalendar->load('course');
+            app(StudentNotificationService::class)->notifyTimetableEntry($examCalendar, true);
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         return redirect()->route('dashboard.exam-calendar.index')->with('success', 'Exam calendar entry updated.');
     }

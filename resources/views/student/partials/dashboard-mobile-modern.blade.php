@@ -58,9 +58,9 @@
             </div>
         </div>
         <div class="md-dash__header-actions">
-            <a href="{{ route('dashboard.my-quizzes') }}" class="md-dash__icon-btn" aria-label="My quizzes">
-                <i class="fas fa-search" aria-hidden="true"></i>
-            </a>
+            @if($student ?? null)
+            @include('student.partials.dashboard-student-notifications')
+            @endif
             <a href="{{ route('dashboard.calendar') }}" class="md-dash__icon-btn" aria-label="Calendar">
                 <i class="fas fa-calendar-alt" aria-hidden="true"></i>
             </a>

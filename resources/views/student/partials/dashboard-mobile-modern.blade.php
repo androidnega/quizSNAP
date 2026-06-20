@@ -230,15 +230,15 @@
         }
 
         body.sd-home-mobile-modern .md-dash__banner-media {
-            aspect-ratio: 999 / 258;
+            aspect-ratio: 999 / 278;
         }
 
         body.sd-home-mobile-modern .md-dash__banner-img {
-            object-position: center 42%;
+            object-position: center 38%;
         }
 
         body.sd-home-mobile-modern .md-dash__tile {
-            min-height: 6.25rem;
+            min-height: 6rem;
         }
     }
 

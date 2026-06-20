@@ -28,6 +28,19 @@ class ProctoringCaptureController extends Controller
     {
         $quizId = session('quiz_id');
         $indexNumber = session('index_number');
+        $sessionToken = session('quiz_session_token');
+        if ((! $quizId || ! $indexNumber) && is_string($sessionToken) && $sessionToken !== '') {
+            $tokenSession = QuizSession::where('session_token', $sessionToken)->whereNull('ended_at')->first();
+            if ($tokenSession) {
+                $quizId = $tokenSession->quiz_id;
+                $indexNumber = $tokenSession->student_index;
+                session([
+                    'quiz_id' => $quizId,
+                    'index_number' => $indexNumber,
+                    'rules_accepted' => true,
+                ]);
+            }
+        }
         if (!$quizId || !$indexNumber) {
             $quizToken = session('quiz_link_token');
             if ($quizToken) {

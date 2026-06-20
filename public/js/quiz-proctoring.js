@@ -1,6 +1,6 @@
 /**
- * StudentQuiz: Timer, auto-save, tab blur (instant violation on tab switch), offline-safe saves.
- * No auto-submit on refresh or network failure. Tab switch triggers immediate violation and server may auto-submit.
+ * StudentQuiz: Timer, auto-save, tab blur (two-strike tab switch policy), offline-safe saves.
+ * No auto-submit on refresh or network failure. Tab switch warns once, auto-submits on second confirmed leave.
  */
 (function () {
     const c = window.QuizSnapQuiz || {};
@@ -438,14 +438,12 @@
     var criticalTypes = [
         'phone_detected',
         'screenshot_attempt',
-        'tab_switch',
-        'multiple_faces',
-        'multiple_faces_during_quiz',
         'window_resize',
-        'blur',
         'copy_paste',
         'multiple_ip'
     ];
+
+    var tabSwitchStrikeTypes = ['tab_switch', 'blur'];
 
     function addViolationMessage(text, isError) {
         var list = document.getElementById('live-camera-violations-list');
@@ -470,7 +468,8 @@
         var body = { type: type };
         if (metadata) body.metadata = typeof metadata === 'string' ? metadata : JSON.stringify(metadata);
         var label = type.replace(/_/g, ' ');
-        addViolationMessage(label, criticalTypes.indexOf(type) !== -1);
+        var isTabSwitchStrike = tabSwitchStrikeTypes.indexOf(type) !== -1;
+        addViolationMessage(label, criticalTypes.indexOf(type) !== -1 || isTabSwitchStrike);
         if (criticalTypes.indexOf(type) !== -1) {
             setCriticalViolationDisplay(1);
             sendCriticalEvidenceSnapshot(type, metadata || {});
@@ -502,7 +501,9 @@
                         showNeutralPageThenRedirect(null);
                     }
                 } else if (data.show_major_warning) {
-                    if (window.QuizSnapQuiz && typeof window.QuizSnapQuiz.showTabSwitchWarning === 'function') {
+                    if (isTabSwitchStrike && window.QuizSnapQuiz && typeof window.QuizSnapQuiz.showTabSwitchWarning === 'function') {
+                        window.QuizSnapQuiz.showTabSwitchWarning();
+                    } else if (window.QuizSnapQuiz && typeof window.QuizSnapQuiz.showTabSwitchWarning === 'function' && (data.tab_switch_strikes || 0) > 0) {
                         window.QuizSnapQuiz.showTabSwitchWarning();
                     } else {
                         var el = document.getElementById('blur-warning');
@@ -726,7 +727,20 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf(), 'Accept': 'application/json' },
             body: JSON.stringify({}),
-        }).catch(function () {});
+        })
+            .then(function (r) {
+                if (!r.ok) return null;
+                var ct = r.headers.get('content-type') || '';
+                if (ct.indexOf('application/json') === -1) return null;
+                return r.json();
+            })
+            .then(function (data) {
+                if (!data || !data.show_tab_switch_warning) return;
+                if (window.QuizSnapQuiz && typeof window.QuizSnapQuiz.showTabSwitchWarning === 'function') {
+                    window.QuizSnapQuiz.showTabSwitchWarning();
+                }
+            })
+            .catch(function () {});
     }
 
     (function () {

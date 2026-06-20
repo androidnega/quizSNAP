@@ -35,7 +35,12 @@ body.quiz-fs-blocked { overflow: hidden; }
     padding: 1rem 1rem 2rem 1rem;
 }
 @media (min-width: 1024px) {
-    .quiz-main-content { margin-left: 280px; width: calc(100% - 300px); padding: 1rem 1.5rem 2rem 0; }
+    .quiz-main-content {
+        margin-left: 280px;
+        width: calc(100% - 280px);
+        max-width: none;
+        padding: 1rem 1rem 2rem 1rem;
+    }
 }
 
 /* Live camera frame border states (synced with intelligentFaceMonitor) */
@@ -104,7 +109,7 @@ body.quiz-fs-blocked { overflow: hidden; }
     <div id="tab-switch-once-warning" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900/80 px-4">
         <div class="bg-white border border-gray-200 rounded-xl shadow-lg p-5 max-w-md w-full">
             <h4 class="font-semibold text-gray-900 mb-1">You left this tab</h4>
-            <p class="text-sm text-gray-600 mb-4">If you switch tabs again, your quiz will be auto-submitted immediately with no further warning. Stay on this tab to continue.</p>
+            <p class="text-sm text-gray-600 mb-4">This is your first warning — <strong>one warning left</strong>. If you switch tabs again, your quiz will be auto-submitted immediately with no further warning. Stay on this tab to continue.</p>
             <button type="button" id="tab-switch-once-warning-ok" class="w-full py-2.5 px-5 text-sm font-semibold rounded-lg text-white bg-gray-900 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 transition-colors">OK</button>
         </div>
     </div>
@@ -470,6 +475,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (radio) return true;
         var ta = form.querySelector('textarea[name="' + name + '"]');
         if (ta && ta.value && ta.value.trim() !== '') return true;
+        var select = form.querySelector('select[name="' + name + '"]');
+        if (select && select.value && select.value.trim() !== '') return true;
         return false;
     }
 
@@ -593,6 +600,13 @@ document.addEventListener('DOMContentLoaded', function() {
     if (form) {
         form.addEventListener('change', updateAnsweredSummary);
         form.addEventListener('input', updateAnsweredSummary);
+        form.addEventListener('click', function (e) {
+            var target = e.target;
+            if (!target) return;
+            if (target.matches && (target.matches('input[type="radio"]') || target.closest('label'))) {
+                setTimeout(updateAnsweredSummary, 0);
+            }
+        });
     }
     showPage(currentPage);
     if (totalPages > 1) {

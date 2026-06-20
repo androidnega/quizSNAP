@@ -32,6 +32,7 @@ class StudentQuizController extends Controller
 {
     private const MAX_QUIZ_VIOLATION_CAPTURES = 5;
     private const NORMAL_VIOLATION_LIMIT = 10;
+    private const TAB_SWITCH_STRIKE_LIMIT = 2;
     private const HEAD_DIRECTION_LIMIT = 12;
     /** Out-of-frame duration (ms) above which we auto-submit immediately (e.g. 15+ seconds). */
     private const OUT_OF_FRAME_CRITICAL_DURATION_MS = 15000;
@@ -73,6 +74,16 @@ class StudentQuizController extends Controller
             report($e);
         }
     }
+
+    private function syncQuizSessionContext(QuizSession $session): void
+    {
+        session([
+            'quiz_session_token' => $session->session_token,
+            'quiz_id' => $session->quiz_id,
+            'index_number' => $session->student_index,
+            'rules_accepted' => true,
+        ]);
+    }
     /**
      * System readiness screen after pre-quiz face capture.
      */
@@ -83,6 +94,7 @@ class StudentQuizController extends Controller
             return redirect()->route('student.landing')->with('error', UserFriendlyMessages::GENERIC);
         }
         $session = QuizSession::with('quiz.course')->where('session_token', $token)->firstOrFail();
+        $this->syncQuizSessionContext($session);
         if ($session->ended_at) {
             return redirect()->to($this->quizCompleteUrl());
         }
@@ -155,6 +167,7 @@ class StudentQuizController extends Controller
             }
             return redirect()->route('student.landing')->with('error', UserFriendlyMessages::GENERIC);
         }
+        $this->syncQuizSessionContext($session);
         if ($session->ended_at) {
             if ($request->expectsJson()) {
                 return response()->json(['success' => false, 'message' => 'Session already ended.'], 403);
@@ -194,6 +207,7 @@ class StudentQuizController extends Controller
             return redirect()->route('student.landing')->with('error', UserFriendlyMessages::GENERIC);
         }
         $session = QuizSession::with(['quiz', 'quiz.classGroup'])->where('session_token', $token)->firstOrFail();
+        $this->syncQuizSessionContext($session);
         if ($session->ended_at) {
             return redirect()->to($this->quizCompleteUrl());
         }
@@ -706,21 +720,30 @@ class StudentQuizController extends Controller
         $violationAggregates = $this->concurrency->violationAggregates($session);
         $violationByType = $violationAggregates['by_type'];
         $outOfFrameCount = (int) ($violationByType['face_out_of_frame'] ?? 0);
+        $focusLeaveCount = (int) ($violationByType['tab_switch'] ?? 0) + (int) ($violationByType['blur'] ?? 0);
         $autoSubmitted = false;
-        $criticalAutoSubmitTypes = [
+        $immediateCriticalTypes = [
             'phone_detected',
             'screenshot_attempt',
-            'tab_switch',
-            'multiple_faces',
-            'multiple_faces_pre_quiz',
-            'multiple_faces_during_quiz',
             'window_resize',
-            'blur', // includes minimize/opening external window cases captured by browser focus change
             'copy_paste',
             'multiple_ip',
         ];
-        // Critical violations: immediate auto-submit on first occurrence (mobile & desktop).
-        if (in_array($type, $criticalAutoSubmitTypes, true)) {
+        // Tab switch / blur: warn on first leave, auto-submit on second.
+        if (in_array($type, ['tab_switch', 'blur'], true)) {
+            if ($focusLeaveCount >= self::TAB_SWITCH_STRIKE_LIMIT) {
+                $session->update([
+                    'post_face_skipped_at' => now(),
+                    'post_face_skipped_reason' => 'auto_submit',
+                    'auto_submit_after' => null,
+                    'auto_submitted' => true,
+                    'submission_reason' => 'critical_violation_auto_submit',
+                ]);
+                $this->finalizeQuiz($session);
+                $autoSubmitted = true;
+            }
+        } elseif (in_array($type, $immediateCriticalTypes, true)) {
+            // Critical violations: immediate auto-submit on first occurrence (mobile & desktop).
             $session->update([
                 'post_face_skipped_at' => now(),
                 'post_face_skipped_reason' => 'auto_submit',
@@ -786,7 +809,11 @@ class StudentQuizController extends Controller
 
         $response = ['success' => true, 'auto_submitted' => $autoSubmitted];
         $warningTypes = ['camera_disconnected', 'no_face', 'challenge_failed', 'face_out_of_frame', 'head_turn', 'static_face_detected', 'brief_face_loss'];
-        if (!$autoSubmitted && in_array($type, $warningTypes, true)) {
+        if (!$autoSubmitted && in_array($type, ['tab_switch', 'blur'], true)) {
+            $response['show_major_warning'] = true;
+            $response['tab_switch_strikes'] = $focusLeaveCount;
+            $response['tab_switch_remaining'] = max(0, self::TAB_SWITCH_STRIKE_LIMIT - $focusLeaveCount);
+        } elseif (!$autoSubmitted && in_array($type, $warningTypes, true)) {
             $response['show_major_warning'] = true;
         }
         if ($autoSubmitted) {
@@ -902,6 +929,7 @@ class StudentQuizController extends Controller
         if (!$session || $session->ended_at) {
             return response()->json(['success' => true]);
         }
+        $this->syncQuizSessionContext($session);
         $hadScheduledSubmit = $session->auto_submit_after !== null;
         $needsDeviceCapture = $session->device_type === null || $session->user_agent === null;
         if ($hadScheduledSubmit || $needsDeviceCapture) {

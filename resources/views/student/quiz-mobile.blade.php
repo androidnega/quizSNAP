@@ -90,7 +90,7 @@
     <div id="tab-switch-once-warning" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900/90 px-4">
         <div class="bg-amber-50 border border-amber-400 rounded-xl p-4 max-w-md w-full text-center">
             <h4 class="font-semibold text-amber-800 mb-1">You left this tab</h4>
-            <p class="text-sm text-amber-800 mb-3">If you switch tabs again, your quiz may be auto-submitted. Stay on this tab to continue.</p>
+            <p class="text-sm text-amber-800 mb-3">This is your first warning — <strong>one warning left</strong>. If you switch tabs again, your quiz will be auto-submitted. Stay on this tab to continue.</p>
             <button type="button" onclick="this.closest('#tab-switch-once-warning').classList.add('hidden')" class="btn btn-action py-2.5 px-5 text-sm font-semibold">OK</button>
         </div>
     </div>
@@ -560,6 +560,16 @@ document.addEventListener('DOMContentLoaded', function() {
         form.addEventListener('input', function() {
             saveAnswersToStorage();
             updateAnsweredSummary();
+        });
+        form.addEventListener('click', function(e) {
+            var target = e.target;
+            if (!target) return;
+            if (target.matches && (target.matches('input[type="radio"]') || target.closest('label'))) {
+                setTimeout(function() {
+                    saveAnswersToStorage();
+                    updateAnsweredSummary();
+                }, 0);
+            }
         });
     }
 

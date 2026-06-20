@@ -64,6 +64,53 @@ document.addEventListener('DOMContentLoaded', function () {
     if (window.QuizSnapFullscreenGate) {
         window.QuizSnapFullscreenGate.init({ required: {{ ($fullscreenRequired ?? true) ? 'true' : 'false' }} });
     }
+
+    var startForm = document.getElementById('quiz-start-form');
+    var startBtn = document.getElementById('start-quiz-btn');
+    if (startForm && startBtn) {
+        startForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            if (startBtn.disabled) return;
+            startBtn.disabled = true;
+            var originalText = startBtn.textContent;
+            startBtn.textContent = 'Starting...';
+
+            fetch(startForm.action, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify({}),
+            })
+                .then(function (response) {
+                    if (response.status === 419) {
+                        throw new Error('Session expired. Please refresh this page and try again.');
+                    }
+                    if (!response.ok) {
+                        return response.json().catch(function () { return {}; }).then(function (data) {
+                            throw new Error(data.message || 'Could not start the quiz. Please try again.');
+                        });
+                    }
+                    return response.json();
+                })
+                .then(function (data) {
+                    if (data.redirect) {
+                        window.location.href = data.redirect;
+                        return;
+                    }
+                    window.location.href = '{{ route('student.quiz.show') }}';
+                })
+                .catch(function (err) {
+                    startBtn.disabled = false;
+                    startBtn.textContent = originalText;
+                    alert(err && err.message ? err.message : 'Could not start the quiz. Please try again.');
+                });
+        });
+    }
 });
 </script>
 @endpush

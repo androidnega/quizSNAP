@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Student\Concerns\IssuesStudentLoginSmsOtp;
 use App\Models\ClassGroupStudent;
 use App\Models\Otp;
+use App\Models\QuizAcceptance;
 use App\Models\Student;
 use App\Services\StudentUniversalOtp;
 use App\Services\StudentAuthAuditLogger;
@@ -834,8 +835,29 @@ class StudentAccountController extends Controller
 
     private function studentLoginRedirect(Student $student): string
     {
-        if (session()->has('quiz_id')) {
-            session()->forget('quiz_id');
+        $quizId = session('quiz_id') ?? session('quiz_id_for_login');
+        if ($quizId) {
+            $indexNumber = strtoupper(trim((string) ($student->index_number ?? session('index_number') ?? session('student_index') ?? '')));
+            session([
+                'quiz_id' => (int) $quizId,
+                'index_number' => $indexNumber,
+                'rules_accepted' => true,
+            ]);
+            session()->forget('quiz_id_for_login');
+
+            if ($indexNumber !== '') {
+                QuizAcceptance::updateOrCreate(
+                    [
+                        'quiz_id' => (int) $quizId,
+                        'index_number' => $indexNumber,
+                    ],
+                    [
+                        'ip_address' => request()->ip(),
+                        'accepted_at' => now(),
+                    ]
+                );
+            }
+
             return route('student.proctoring.capture');
         }
         if ($student->level === null || $student->level === '') {

@@ -18,10 +18,24 @@ class EnsureRulesAccepted
      */
     public function handle(Request $request, Closure $next): Response
     {
+        $sessionToken = session('quiz_session_token');
+        if (is_string($sessionToken) && $sessionToken !== '') {
+            $activeSession = QuizSession::where('session_token', $sessionToken)
+                ->whereNull('ended_at')
+                ->first();
+            if ($activeSession) {
+                session([
+                    'quiz_id' => $activeSession->quiz_id,
+                    'index_number' => $activeSession->student_index,
+                    'rules_accepted' => true,
+                ]);
+
+                return $next($request);
+            }
+        }
+
         $quizId = $this->resolveQuizId($request);
         $indexNumber = session('student_index') ?? session('index_number');
-
-        // Enforcement: when we have both index and quiz, verify against database
         if ($quizId !== null && $indexNumber !== null && $indexNumber !== '') {
             $hasAcceptance = QuizAcceptance::where('quiz_id', $quizId)
                 ->where('index_number', $indexNumber)

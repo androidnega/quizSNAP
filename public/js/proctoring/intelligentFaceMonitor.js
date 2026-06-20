@@ -82,11 +82,11 @@
     const OUT_OF_FRAME_CONFIRM_MS = 500;
     const QUIZ_START_GRACE_MS = 12000; // Allow monitor/camera to stabilize before counting violations
     // Require this many consecutive frames with 2+ faces before recording (reduces false positives)
-    const MULTIPLE_FACES_CONSECUTIVE_THRESHOLD = 3; // 3 consecutive frames to confirm multiple faces
+    const MULTIPLE_FACES_CONSECUTIVE_THRESHOLD = 6; // consecutive frames before confirming multiple faces
     // Second face smaller than this ratio of primary face area is ignored (reflection/noise/calculator etc.)
-    const MULTIPLE_FACES_MIN_SECOND_RATIO = 0.45;
+    const MULTIPLE_FACES_MIN_SECOND_RATIO = 0.58;
     // Minimum confidence + area ratio for a BlazeFace detection to be treated as a real face
-    const MIN_FACE_CONFIDENCE_BLAZE = 0.88;
+    const MIN_FACE_CONFIDENCE_BLAZE = 0.92;
     const MIN_FACE_AREA_RATIO_BLAZE = 0.05; // 5% of frame area
     // Within this window after a phone detection, suppress multiple-faces auto-submit to avoid double-logging
     const PHONE_SUPPRESS_MULTIPLE_FACES_MS = 6000;

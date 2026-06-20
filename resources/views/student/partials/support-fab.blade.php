@@ -1,10 +1,13 @@
 @php
-    $supportWhatsAppE164 = $supportWhatsAppE164 ?? '233541069241';
-    $supportCallE164 = $supportCallE164 ?? '+233257940791';
-    $supportWhatsAppMessage = $supportWhatsAppMessage ?? '[QuizSnap Support | Landing Page] Hi, I need help with: ';
-    $supportWhatsAppUrl = $supportWhatsAppUrl ?? ('https://wa.me/' . $supportWhatsAppE164 . '?text=' . rawurlencode($supportWhatsAppMessage));
+    use App\Support\SupportContact;
+
+    $supportContext = $supportContext ?? [];
+    $supportWhatsAppE164 = SupportContact::whatsAppNumber();
+    $supportCallE164 = SupportContact::callNumber();
+    $supportWhatsAppUrl = $supportWhatsAppUrl ?? SupportContact::whatsAppUrl($supportContext);
+    $fabWrapClass = trim('qs-support-fab-wrap ' . ($fabWrapClass ?? ''));
 @endphp
-<div class="qs-support-fab-wrap" id="qs-support-fab-wrap">
+<div class="{{ $fabWrapClass }}" id="qs-support-fab-wrap">
     <div class="qs-support-backdrop" id="qs-support-backdrop" aria-hidden="true"></div>
     <div class="qs-support-fab" id="qs-support-fab">
         <div class="qs-support-menu" id="qs-support-menu" aria-hidden="true">
@@ -21,7 +24,7 @@
                 Call
             </a>
         </div>
-        <button type="button" class="qs-support-toggle" id="qs-support-toggle" aria-label="Open support options" aria-expanded="false" aria-controls="qs-support-menu">
+        <button type="button" class="qs-support-toggle" id="qs-support-toggle" aria-label="Get in touch with support" aria-expanded="false" aria-controls="qs-support-menu">
             <svg class="qs-support-icon-open" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
             <svg class="qs-support-icon-close" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
         </button>

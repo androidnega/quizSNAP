@@ -4,8 +4,19 @@
 @section('body_class', 'theme-bg')
 @section('body_extra_class', 'min-h-screen')
 
+@push('styles')
+<style>
+@include('partials.support-fab-styles')
+@media (max-width: 1023px) {
+    #student-dashboard-support-fab { display: none !important; }
+}
+</style>
+@endpush
+
 @section('content')
 @php
+    use App\Support\SupportContact;
+
     $studentNavHome = request()->routeIs('dashboard') && !request()->routeIs('dashboard.my-*') && !request()->routeIs('dashboard.course-materials') && !request()->routeIs('dashboard.calendar');
     $breadcrumbLabel = 'Dashboard';
     if (request()->routeIs('dashboard.my-quizzes*')) { $breadcrumbLabel = 'Quizzes'; }
@@ -15,6 +26,14 @@
     $appName = trim((string) \App\Models\Setting::getValue(\App\Models\Setting::KEY_APP_NAME, 'QuizSnap'));
     if ($appName === '') {
         $appName = 'QuizSnap';
+    }
+
+    $supportContext = [];
+    if (isset($student) && $student) {
+        $supportContext = array_filter([
+            'name' => $student->display_name ?? null,
+            'index_number' => $student->index_number ?? null,
+        ]);
     }
 @endphp
 <div class="min-h-screen flex flex-col theme-bg" id="student-dashboard-wrap">
@@ -130,6 +149,10 @@
     </main>
 
     @include('student.partials.dashboard-bottom-nav')
+
+    <div id="student-dashboard-support-fab" class="hidden lg:block">
+        @include('student.partials.support-fab', ['supportContext' => $supportContext])
+    </div>
 </div>
 <script>
 (function(){
@@ -179,6 +202,7 @@
 </script>
 @endsection
 @push('scripts')
+@include('student.partials.marketing-support-scripts')
 <script>
 (function() {
     var vapidPublicKey = @json($vapidPublicKey);

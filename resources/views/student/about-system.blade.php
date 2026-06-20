@@ -2,10 +2,6 @@
 
 @php
     $appName = \App\Models\Setting::getValue(\App\Models\Setting::KEY_APP_NAME, config('app.name', 'QuizSnap'));
-    $supportWhatsAppE164 = '233541069241';
-    $supportCallE164 = '+233257940791';
-    $supportWhatsAppMessage = '[QuizSnap Support | About Page] Hi, I need help with: ';
-    $supportWhatsAppUrl = 'https://wa.me/' . $supportWhatsAppE164 . '?text=' . rawurlencode($supportWhatsAppMessage);
 @endphp
 
 @section('title', 'About ' . $appName)
@@ -252,10 +248,7 @@
         </div>
     </main>
 
-    @include('student.partials.support-fab', [
-        'supportWhatsAppUrl' => $supportWhatsAppUrl,
-        'supportCallE164' => $supportCallE164,
-    ])
+    @include('student.partials.support-fab')
 </div>
 @endsection
 

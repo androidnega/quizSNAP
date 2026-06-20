@@ -1,4 +1,6 @@
 @php
+    use App\Support\SupportContact;
+
     $studentNavHome = request()->routeIs('dashboard') && !request()->routeIs('dashboard.my-*') && !request()->routeIs('dashboard.course-materials') && !request()->routeIs('dashboard.calendar');
     $fabItems = [
         ['route' => 'dashboard', 'label' => 'Home', 'icon' => 'fa-home', 'active' => $studentNavHome],
@@ -9,6 +11,16 @@
     $fabItems = array_values(array_filter($fabItems, function ($item) use ($student) {
         return empty($item['student_only']) || ($student ?? null);
     }));
+
+    $supportContext = [];
+    if (isset($student) && $student) {
+        $supportContext = array_filter([
+            'name' => $student->display_name ?? null,
+            'index_number' => $student->index_number ?? null,
+        ]);
+    }
+    $supportWhatsAppUrl = SupportContact::whatsAppUrl($supportContext);
+    $supportCallE164 = SupportContact::callNumber();
 @endphp
 <style>
     .sd-nav-fab-wrap {
@@ -81,6 +93,8 @@
     .sd-nav-fab-wrap.is-open .sd-nav-fab-item:nth-child(2) { transition-delay: 0.06s; }
     .sd-nav-fab-wrap.is-open .sd-nav-fab-item:nth-child(3) { transition-delay: 0.09s; }
     .sd-nav-fab-wrap.is-open .sd-nav-fab-item:nth-child(4) { transition-delay: 0.12s; }
+    .sd-nav-fab-wrap.is-open .sd-nav-fab-item:nth-child(6) { transition-delay: 0.15s; }
+    .sd-nav-fab-wrap.is-open .sd-nav-fab-item:nth-child(7) { transition-delay: 0.18s; }
     .sd-nav-fab-item.is-active {
         background: var(--theme-brand);
         border-color: var(--theme-brand-dark);
@@ -101,6 +115,29 @@
     .sd-nav-fab-item.is-active .sd-nav-fab-item-icon {
         background: var(--theme-text);
         color: var(--theme-brand);
+    }
+    .sd-nav-fab-divider {
+        width: 2.5rem;
+        height: 1px;
+        background: #e2e8f0;
+        margin: 0.125rem 0;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(0.5rem);
+        transition: opacity 0.22s ease, transform 0.22s ease, visibility 0.22s;
+    }
+    .sd-nav-fab-wrap.is-open .sd-nav-fab-divider {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
+    .sd-nav-fab-item-icon--whatsapp {
+        background: linear-gradient(135deg, #25d366 0%, #128c7e 100%) !important;
+        color: #fff !important;
+    }
+    .sd-nav-fab-item-icon--call {
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+        color: #fff !important;
     }
     .sd-nav-fab-toggle {
         width: 3.5rem;
@@ -146,6 +183,25 @@
                 {{ $item['label'] }}
             </a>
             @endforeach
+            <div class="sd-nav-fab-divider" role="separator" aria-hidden="true"></div>
+            <a href="{{ $supportWhatsAppUrl }}"
+               class="sd-nav-fab-item sd-nav-fab-item--support"
+               role="menuitem"
+               target="_blank"
+               rel="noopener noreferrer">
+                <span class="sd-nav-fab-item-icon sd-nav-fab-item-icon--whatsapp" aria-hidden="true">
+                    <i class="fab fa-whatsapp"></i>
+                </span>
+                WhatsApp
+            </a>
+            <a href="tel:{{ $supportCallE164 }}"
+               class="sd-nav-fab-item sd-nav-fab-item--support"
+               role="menuitem">
+                <span class="sd-nav-fab-item-icon sd-nav-fab-item-icon--call" aria-hidden="true">
+                    <i class="fas fa-phone-alt"></i>
+                </span>
+                Call
+            </a>
         </div>
         <button type="button"
                 class="sd-nav-fab-toggle"

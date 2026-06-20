@@ -8,7 +8,6 @@
     if (!wrap || !fab || !toggle || !menu) return;
 
     function setOpen(open) {
-        fab.classList.toggle('is-open', open);
         wrap.classList.toggle('is-open', open);
         toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
         toggle.setAttribute('aria-label', open ? 'Close support options' : 'Get in touch with support');
@@ -17,7 +16,7 @@
 
     toggle.addEventListener('click', function(e) {
         e.stopPropagation();
-        setOpen(!fab.classList.contains('is-open'));
+        setOpen(!wrap.classList.contains('is-open'));
     });
 
     if (backdrop) {

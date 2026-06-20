@@ -641,13 +641,31 @@
 
     .qs-landing-shell .qs-support-toggle {
         color: var(--qs-text);
-        background: var(--qs-brand);
-        box-shadow: 0 16px 36px -14px rgba(245, 158, 11, 0.55);
+        background: linear-gradient(145deg, var(--qs-brand) 0%, var(--qs-brand-dark) 100%);
+        box-shadow:
+            0 1px 2px rgba(15, 23, 42, 0.06),
+            0 16px 36px -14px rgba(245, 158, 11, 0.55);
+    }
+
+    .qs-landing-shell .qs-support-fab-wrap:not(.is-open) .qs-support-toggle {
+        animation: qs-fab-glow-amber 3s ease-in-out infinite;
+    }
+
+    @keyframes qs-fab-glow-amber {
+        0%, 100% {
+            box-shadow:
+                0 1px 2px rgba(15, 23, 42, 0.06),
+                0 14px 32px -14px rgba(245, 158, 11, 0.5);
+        }
+        50% {
+            box-shadow:
+                0 2px 6px rgba(15, 23, 42, 0.08),
+                0 18px 40px -10px rgba(245, 158, 11, 0.68);
+        }
     }
 
     .qs-landing-shell .qs-support-toggle:hover {
-        background: var(--qs-brand-dark);
-        box-shadow: 0 20px 40px -14px rgba(245, 158, 11, 0.65);
+        background: linear-gradient(145deg, var(--qs-brand-dark) 0%, var(--qs-brand-deep) 100%);
     }
 </style>
 @endpush

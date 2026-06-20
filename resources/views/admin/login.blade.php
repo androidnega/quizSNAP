@@ -14,13 +14,6 @@
     <div class="w-full max-w-[400px]">
         <div class="bg-white border border-gray-200 rounded-3xl shadow-sm">
             <div class="px-6 pt-6 pb-1 text-center">
-                <div class="mb-4 flex justify-center">
-                    @include('partials.brand-logo', [
-                        'appName' => $appName,
-                        'size' => 'lg',
-                        'variant' => 'default',
-                    ])
-                </div>
                 @if($institutionLogo !== '')
                     <img
                         src="{{ $institutionLogo }}"

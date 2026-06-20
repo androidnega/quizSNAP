@@ -199,15 +199,55 @@ class Quiz extends Model
     /**
      * Whether the quiz has enough approved questions for students to take it.
      * Approved count must be >= questions_per_student.
-     * Uses eager-loaded questions_count when present to avoid N+1.
      */
     public function hasEnoughApprovedQuestions(): bool
     {
-        $count = $this->getAttribute('questions_count');
-        if ($count !== null) {
-            return (int) $count >= $this->getQuestionsPerStudent();
+        if ($this->relationLoaded('questions')) {
+            return $this->questions->count() >= $this->getQuestionsPerStudent();
         }
+
         return $this->questions()->count() >= $this->getQuestionsPerStudent();
+    }
+
+    public function hasOpenSessionForStudent(?string $indexNumber): bool
+    {
+        $indexNumber = strtoupper(trim((string) $indexNumber));
+        if ($indexNumber === '') {
+            return false;
+        }
+
+        return $this->sessions()
+            ->whereRaw('UPPER(TRIM(student_index)) = ?', [$indexNumber])
+            ->whereNull('ended_at')
+            ->exists();
+    }
+
+    /**
+     * Whether students can access this quiz from the public link flow.
+     * This allows either legacy is_active or published status, while still
+     * enforcing question readiness and schedule window checks.
+     * Students with an open attempt can always re-enter via the link.
+     */
+    public function isAvailableForStudent(bool $requireStarted = true, ?string $indexNumber = null): bool
+    {
+        if ($indexNumber && $this->hasOpenSessionForStudent($indexNumber)) {
+            return true;
+        }
+
+        if (! $this->is_published && ! $this->is_active) {
+            return false;
+        }
+        if (! $this->hasEnoughApprovedQuestions()) {
+            return false;
+        }
+        if ($this->ends_at && $this->ends_at->isPast()) {
+            return false;
+        }
+        if ($requireStarted && $this->starts_at && $this->starts_at->isFuture()) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -227,28 +267,6 @@ class Quiz extends Model
             return false;
         }
         if ($this->ends_at && $now->gt($this->ends_at)) {
-            return false;
-        }
-        return true;
-    }
-
-    /**
-     * Whether students can access this quiz from the public link flow.
-     * This allows either legacy is_active or published status, while still
-     * enforcing question readiness and schedule window checks.
-     */
-    public function isAvailableForStudent(bool $requireStarted = true): bool
-    {
-        if (!$this->is_published && !$this->is_active) {
-            return false;
-        }
-        if (!$this->hasEnoughApprovedQuestions()) {
-            return false;
-        }
-        if ($this->ends_at && $this->ends_at->isPast()) {
-            return false;
-        }
-        if ($requireStarted && $this->starts_at && $this->starts_at->isFuture()) {
             return false;
         }
         return true;

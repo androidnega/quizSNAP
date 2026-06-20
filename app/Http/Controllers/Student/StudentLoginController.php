@@ -51,7 +51,7 @@ class StudentLoginController extends Controller
                 ->with('error', 'Your quiz session expired. Please open your quiz link again.');
         }
         $quiz = Quiz::find($quizId);
-        if (!$quiz || !$quiz->isAvailableForStudent()) {
+        if (! $quiz || ! $quiz->isAvailableForStudent(false)) {
             if ($quiz && $quiz->starts_at && $quiz->starts_at->isFuture()) {
                 return redirect()->route('student.quiz-will-start', ['token' => $quiz->link_token]);
             }
@@ -102,7 +102,7 @@ class StudentLoginController extends Controller
         }
 
         $quiz = Quiz::with('classGroup')->find($quizId);
-        if (!$quiz || !$quiz->isAvailableForStudent()) {
+        if (! $quiz || ! $quiz->isAvailableForStudent(false, $indexNumber)) {
             return response()->json([
                 'success' => false,
                 'message' => 'This quiz is no longer available.',

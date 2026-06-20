@@ -19,7 +19,7 @@ class EnsureRulesAccepted
     public function handle(Request $request, Closure $next): Response
     {
         $quizId = $this->resolveQuizId($request);
-        $indexNumber = session('student_index');
+        $indexNumber = session('student_index') ?? session('index_number');
 
         // Enforcement: when we have both index and quiz, verify against database
         if ($quizId !== null && $indexNumber !== null && $indexNumber !== '') {

@@ -7,6 +7,7 @@ use App\Models\Quiz;
 use App\Models\QuizSession;
 use App\Models\Setting;
 use App\Services\QuestionAssignmentService;
+use App\Services\QuizLinkService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
@@ -16,7 +17,8 @@ use Illuminate\Support\Str;
 class ProctoringCaptureController extends Controller
 {
     public function __construct(
-        private QuestionAssignmentService $assignmentService
+        private QuestionAssignmentService $assignmentService,
+        private QuizLinkService $quizLinks,
     ) {}
 
     /**
@@ -35,7 +37,8 @@ class ProctoringCaptureController extends Controller
             return redirect()->route('student.landing')->with('error', 'Your quiz session expired. Please open your quiz link again.');
         }
         $quiz = Quiz::find($quizId);
-        if (!$quiz || !$quiz->isAvailableForStudent()) {
+        $studentIndex = strtoupper(trim((string) $indexNumber));
+        if (! $quiz || ! $quiz->isAvailableForStudent(false, $studentIndex)) {
             if ($quiz && $quiz->starts_at && $quiz->starts_at->isFuture()) {
                 return redirect()->route('student.quiz-will-start', ['token' => $quiz->link_token]);
             }
@@ -43,11 +46,11 @@ class ProctoringCaptureController extends Controller
                 return redirect()->route('student.rules.show.quiz', ['token' => $quiz->link_token])
                     ->with('error', 'This quiz is not currently available.');
             }
+
             return redirect()->route('student.landing')->with('error', 'This quiz is not currently available.');
         }
         $ip = $request->ip();
-        $studentIndex = strtoupper(trim((string) $indexNumber));
-        
+
         if ($this->isIpDeviceRestrictionEnabled()) {
             // Check if IP was used by a different student for this quiz (ignore reset sessions)
             $ipUsedByOther = QuizSession::where('quiz_id', $quiz->id)
@@ -142,11 +145,11 @@ class ProctoringCaptureController extends Controller
             'face_image' => 'required|string', // base64 data URL
         ]);
         $quiz = Quiz::with('questions')->findOrFail($request->quiz_id);
-        if (!$quiz->isAvailableForStudent()) {
+        $studentIndex = strtoupper(trim((string) $request->index_number));
+        if (! $quiz->isAvailableForStudent(false, $studentIndex)) {
             return response()->json(['success' => false, 'message' => 'Quiz is no longer available. Please try again from the quiz link.'], 403);
         }
         $ip = $request->ip();
-        $studentIndex = strtoupper(trim((string) $request->index_number));
 
         // Guard against second-tab/session duplication.
         $existingSession = QuizSession::where('quiz_id', $quiz->id)

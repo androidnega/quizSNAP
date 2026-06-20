@@ -8,6 +8,7 @@ use App\Http\Controllers\RunMigrationsAutoController;
 use App\Http\Controllers\RunMigrationsController;
 use App\Http\Controllers\Student\LandingPageController;
 use App\Models\Quiz;
+use App\Services\QuizLinkService;
 use App\Models\QuizSession;
 use App\Http\Controllers\Student\ProctoringCaptureController;
 use App\Http\Controllers\Student\StudentQuizController;
@@ -61,27 +62,20 @@ Route::get('/about-system', function () {
 Route::post('/student/validate-token', [TokenValidationController::class, 'validateToken'])->name('student.validate-token');
 Route::post('/student/start-quiz', function (\Illuminate\Http\Request $request) {
     $request->validate(['link' => 'required|string|max:2048']);
-    $input = trim($request->input('link', ''));
-    $token = null;
-    if (preg_match('#/t/([a-zA-Z0-9_-]+)#', $input, $m)) {
-        $token = $m[1];
-    } elseif (preg_match('#^([a-zA-Z0-9_-]{8,64})$#', $input, $m)) {
-        $token = $m[1];
-    }
-    if (!$token) {
+    $quizLinks = app(QuizLinkService::class);
+    $token = $quizLinks->extractToken(trim($request->input('link', '')));
+    if (! $token) {
         return redirect()->route('student.link-expired');
     }
-    $quiz = Quiz::where('link_token', $token)->first();
-    if (!$quiz || (!$quiz->is_published && !$quiz->is_active) || !$quiz->hasEnoughApprovedQuestions()) {
+
+    $student = $quizLinks->resolveStudent();
+    $indexNumber = $quizLinks->normalizedIndex($student);
+    $destination = $quizLinks->publicLinkDestination($token, $indexNumber);
+    if (! $destination) {
         return redirect()->route('student.link-expired');
     }
-    if ($quiz->ends_at && $quiz->ends_at->isPast()) {
-        return redirect()->route('student.link-expired');
-    }
-    if ($quiz->starts_at && $quiz->starts_at->isFuture()) {
-        return redirect()->route('student.quiz-will-start', ['token' => $token]);
-    }
-    return redirect()->route('student.rules.show.quiz', ['token' => $token]);
+
+    return redirect()->route($destination['route'], $destination['params']);
 })->name('student.start-quiz');
 
 Route::get('/student/link-expired', fn () => view('student.link-expired'))->name('student.link-expired');

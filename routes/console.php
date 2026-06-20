@@ -11,7 +11,7 @@ Artisan::command('inspire', function () {
 // Auto-publish quizzes when their start time arrives
 Schedule::command('quizzes:auto-publish')->everyMinute();
 
-// Auto-end quizzes when Ends At is reached or when all students have participated
+// Auto-end quizzes only when a scheduled Ends At time is reached
 Schedule::command('quizzes:auto-end')->everyMinute();
 
 // Auto-submit quiz sessions scheduled via auto_submit_after (legacy tab-switch delay)

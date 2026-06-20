@@ -1523,7 +1523,7 @@ class QuizManagementController extends Controller
     public function endQuiz(Quiz $quiz): RedirectResponse
     {
         $this->authorize('update', $quiz);
-        $quiz->update(['ends_at' => now()]);
+        $quiz->update(['ends_at' => now(), 'is_active' => false]);
         $this->broadcastDataUpdatedSafe('quizzes');
         return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)->with('success', 'Ended');
     }

@@ -54,7 +54,7 @@
                 ? sprintf('%d:%02d:%02d', $countdownHours, $countdownMinutes, $countdownSecs)
                 : sprintf('%d:%02d', $countdownMinutes, $countdownSecs);
         @endphp
-        <div class="glance-card glance-card--emerald group relative {{ ($scheduledReady || $scheduledUpcoming) ? 'glance-card--actionable' : '' }}">
+        <div class="glance-card glance-card--emerald group relative {{ ($scheduledReady || $scheduledUpcoming || $scheduledInProgress) ? 'glance-card--actionable glance-card--has-cta' : '' }}">
             @if($showLastQuiz)
             <a href="{{ route('dashboard.my-quizzes.show', ['sessionId' => $lastQuiz->id]) }}" class="glance-card__body no-underline text-inherit min-w-0">
                 <span class="glance-card__glow" aria-hidden="true"></span>
@@ -93,21 +93,21 @@
                             No active quiz
                         @endif
                     </span>
-                    <span class="glance-card__label">
-                        @if(isset($scheduledQuizSession) && $scheduledQuizSession?->result)
-                            Score: {{ number_format($scheduledQuizSession->result->score, 1) }}%
-                        @elseif($scheduledInProgress)
-                            <span class="glance-card__status glance-card__status--continue">Continue</span>
-                        @elseif($scheduledUpcoming)
-                            <span class="glance-card__status glance-card__status--countdown" id="quiz-countdown-{{ $scheduledQuiz->id }}" aria-live="polite">Starts in {{ $countdownInitial }}</span>
-                        @elseif($scheduledReady)
-                            <span class="glance-card__status glance-card__status--start">Start</span>
-                        @else
-                            View quizzes
-                        @endif
-                    </span>
+                    @if(isset($scheduledQuizSession) && $scheduledQuizSession?->result)
+                        <span class="glance-card__label">Score: {{ number_format($scheduledQuizSession->result->score, 1) }}%</span>
+                    @elseif($scheduledInProgress)
+                        <span class="glance-card__cta glance-card__cta--continue">Continue</span>
+                    @elseif($scheduledUpcoming)
+                        <span class="glance-card__cta glance-card__cta--countdown" id="quiz-countdown-{{ $scheduledQuiz->id }}" aria-live="polite">Starts in {{ $countdownInitial }}</span>
+                    @elseif($scheduledReady)
+                        <span class="glance-card__cta glance-card__cta--start">Start quiz</span>
+                    @else
+                        <span class="glance-card__label">View quizzes</span>
+                    @endif
                 </div>
+                @if(! $scheduledInProgress && ! $scheduledUpcoming && ! $scheduledReady)
                 <span class="glance-card__chevron glance-card__chevron--emerald" aria-hidden="true"><i class="fas fa-arrow-right"></i></span>
+                @endif
             </a>
             @endif
         </div>
@@ -250,26 +250,56 @@
         letter-spacing: 0.01em;
     }
 
-    .glance-card__status {
+    .glance-card__cta {
         display: inline-flex;
         align-items: center;
-        font-variant-numeric: tabular-nums;
-        letter-spacing: 0.02em;
-    }
-
-    .glance-card__status--start,
-    .glance-card__status--continue {
-        color: #059669;
+        justify-content: center;
+        align-self: flex-start;
+        margin-top: 0.375rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.5625rem;
         font-weight: 700;
+        letter-spacing: 0.05em;
         text-transform: uppercase;
-        letter-spacing: 0.06em;
-        font-size: 0.625rem;
+        line-height: 1.2;
+        white-space: nowrap;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
     }
 
-    .glance-card__status--countdown {
+    a.glance-card__body:hover .glance-card__cta--start,
+    .glance-card:has(a.glance-card__body:hover) .glance-card__cta--start {
+        transform: translateY(-1px);
+        box-shadow: 0 5px 14px rgba(5, 150, 105, 0.35);
+    }
+
+    a.glance-card__body:hover .glance-card__cta--continue,
+    .glance-card:has(a.glance-card__body:hover) .glance-card__cta--continue {
+        transform: translateY(-1px);
+        box-shadow: 0 5px 14px rgba(37, 99, 235, 0.28);
+    }
+
+    .glance-card__cta--start {
+        color: #fff;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        box-shadow: 0 3px 10px rgba(5, 150, 105, 0.28);
+    }
+
+    .glance-card__cta--continue {
+        color: #fff;
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        box-shadow: 0 3px 10px rgba(37, 99, 235, 0.25);
+    }
+
+    .glance-card__cta--countdown {
         color: #0f766e;
-        font-weight: 600;
-        font-size: 0.625rem;
+        background: linear-gradient(180deg, #ecfdf5 0%, #d1fae5 100%);
+        border: 1px solid rgba(16, 185, 129, 0.28);
+        box-shadow: 0 2px 6px rgba(16, 185, 129, 0.12);
+        font-variant-numeric: tabular-nums;
+        text-transform: none;
+        letter-spacing: 0.02em;
+        font-size: 0.5625rem;
     }
 
     .glance-card__chevron--emerald {
@@ -283,14 +313,23 @@
         opacity: 1;
     }
 
+    .glance-card--has-cta .glance-card__body {
+        align-items: flex-start;
+    }
+
+    .glance-card--has-cta .glance-card__content {
+        width: 100%;
+    }
+
     @media (min-width: 640px) {
-        .glance-card__status--start,
-        .glance-card__status--continue {
-            font-size: 0.6875rem;
+        .glance-card__cta {
+            margin-top: 0.5rem;
+            padding: 0.4375rem 0.875rem;
+            font-size: 0.625rem;
         }
 
-        .glance-card__status--countdown {
-            font-size: 0.6875rem;
+        .glance-card__cta--countdown {
+            font-size: 0.625rem;
         }
     }
 
@@ -371,13 +410,31 @@
             line-height: 1.3;
         }
 
-        .glance-card__status--start,
-        .glance-card__status--continue {
-            font-size: 0.5625rem;
+        .glance-card--has-cta .glance-card__body {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.375rem;
+            padding: 0.625rem 0.6875rem;
         }
 
-        .glance-card__status--countdown {
-            font-size: 0.5625rem;
+        .glance-card--has-cta .glance-card__icon {
+            width: 1.625rem;
+            height: 1.625rem;
+            font-size: 0.625rem;
+        }
+
+        .glance-card--has-cta .glance-card__content {
+            gap: 0.25rem;
+        }
+
+        .glance-card__cta {
+            margin-top: 0.25rem;
+            padding: 0.3125rem 0.625rem;
+            font-size: 0.5rem;
+        }
+
+        .glance-card__cta--countdown {
+            font-size: 0.5rem;
         }
 
         .glance-card__chevron {
@@ -441,14 +498,14 @@
     }
 
     function setStartState() {
-        el.textContent = 'Start';
-        el.classList.remove('glance-card__status--countdown');
-        el.classList.add('glance-card__status--start');
+        el.textContent = 'Start quiz';
+        el.classList.remove('glance-card__cta--countdown');
+        el.classList.add('glance-card__cta--start');
         if (cardLink && rulesUrl) {
             cardLink.href = rulesUrl;
         }
         if (card) {
-            card.classList.add('glance-card--actionable');
+            card.classList.add('glance-card--actionable', 'glance-card--has-cta');
         }
     }
 

@@ -21,6 +21,7 @@ use App\Jobs\GenerateQuizQuestionsJob;
 use App\Jobs\SendQuizResultReadyNotification;
 use App\Models\QuestionPool;
 use App\Models\Setting;
+use App\Models\User;
 use App\Exports\QuizScoresExport;
 use App\Services\AiQuestionService;
 use App\Services\AiQuizGenerationProgress;

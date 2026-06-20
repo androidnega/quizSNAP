@@ -50,7 +50,7 @@
 
 <div class="md-dash lg:hidden" aria-label="Mobile dashboard overview">
     <header class="md-dash__header">
-        <a href="{{ route('dashboard.my-profile') }}" class="md-dash__profile md-dash__profile-link">
+        <a href="{{ route('dashboard.my-profile') }}" class="md-dash__profile md-dash__profile-link" aria-label="Open profile">
             <span class="md-dash__avatar" aria-hidden="true">{{ $initials ?: 'U' }}</span>
             <div class="md-dash__greeting min-w-0">
                 <span class="md-dash__hello">{{ $greeting ?? 'Hello' }},</span>
@@ -167,6 +167,11 @@
             <h2 class="md-dash__section-title">Quick links</h2>
         </div>
         <div class="md-dash__grid">
+            <a href="{{ route('dashboard.my-profile') }}" class="md-dash__tile md-dash__tile--profile">
+                <span class="md-dash__tile-icon" aria-hidden="true"><i class="fas fa-user"></i></span>
+                <span class="md-dash__tile-label">Profile</span>
+                <span class="md-dash__tile-hint">Account</span>
+            </a>
             @if($student && ($hasQuizAccess ?? true))
             <a href="{{ route('dashboard.my-quizzes') }}" class="md-dash__tile md-dash__tile--primary">
                 <span class="md-dash__tile-icon" aria-hidden="true"><i class="fas fa-clipboard-list"></i></span>
@@ -174,20 +179,15 @@
                 <span class="md-dash__tile-label">Quizzes taken</span>
             </a>
             @endif
-            <a href="{{ route('dashboard.my-quizzes') }}" class="md-dash__tile md-dash__tile--brand">
-                <span class="md-dash__tile-icon" aria-hidden="true"><i class="fas fa-file-alt"></i></span>
-                <span class="md-dash__tile-label">Results</span>
-                <span class="md-dash__tile-hint">History</span>
-            </a>
             <a href="{{ route('dashboard.calendar') }}" class="md-dash__tile md-dash__tile--accent">
                 <span class="md-dash__tile-icon" aria-hidden="true"><i class="fas fa-calendar-alt"></i></span>
                 <span class="md-dash__tile-label">Calendar</span>
                 <span class="md-dash__tile-hint">Exams</span>
             </a>
-            <a href="{{ route('dashboard.my-profile') }}" class="md-dash__tile">
-                <span class="md-dash__tile-icon" aria-hidden="true"><i class="fas fa-user"></i></span>
-                <span class="md-dash__tile-label">Profile</span>
-                <span class="md-dash__tile-hint">Account</span>
+            <a href="{{ route('dashboard.my-quizzes') }}" class="md-dash__tile md-dash__tile--brand">
+                <span class="md-dash__tile-icon" aria-hidden="true"><i class="fas fa-file-alt"></i></span>
+                <span class="md-dash__tile-label">Results</span>
+                <span class="md-dash__tile-hint">History</span>
             </a>
         </div>
     </section>
@@ -203,6 +203,11 @@
     }
 
     @media (max-width: 1023px) {
+        .md-dash {
+            padding-bottom: 5.25rem;
+            padding-right: 0.25rem;
+        }
+
         body.sd-home-mobile-modern {
             overflow: hidden;
         }
@@ -226,7 +231,15 @@
         body.sd-home-mobile-modern .md-dash {
             gap: 0.875rem;
             max-height: calc(100dvh - 7rem - env(safe-area-inset-top));
-            overflow: hidden;
+            overflow-x: hidden;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+
+        body.sd-home-mobile-modern .md-dash::-webkit-scrollbar {
+            display: none;
         }
 
         body.sd-home-mobile-modern .md-dash__banner-media {
@@ -247,6 +260,8 @@
         align-items: center;
         justify-content: space-between;
         gap: 0.75rem;
+        position: relative;
+        z-index: 12;
     }
 
     .md-dash__profile-link {
@@ -256,6 +271,10 @@
         flex: 1;
         border-radius: 0.875rem;
         transition: background 0.15s ease;
+        cursor: pointer;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: rgba(15, 23, 42, 0.08);
+        min-height: 2.75rem;
     }
 
     .md-dash__profile-link:active {
@@ -565,6 +584,7 @@
 
     .md-dash__tile {
         position: relative;
+        z-index: 2;
         display: flex;
         flex-direction: column;
         justify-content: flex-end;
@@ -577,6 +597,13 @@
         background: var(--theme-surface);
         border: 1px solid var(--theme-border);
         transition: border-color 0.15s ease, background 0.15s ease;
+        cursor: pointer;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: rgba(15, 23, 42, 0.08);
+    }
+
+    .md-dash__tile--profile {
+        background: var(--theme-bg);
     }
 
     .md-dash__tile:active {

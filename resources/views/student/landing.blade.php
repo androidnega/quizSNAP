@@ -129,6 +129,9 @@
         text-decoration: none;
         border: 1px solid var(--qs-border);
         transition: border-color 0.15s, background 0.15s;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: rgba(15, 23, 42, 0.08);
+        cursor: pointer;
     }
 
     .qs-btn-outline:hover {
@@ -345,6 +348,14 @@
         flex-wrap: wrap;
         gap: 0.75rem;
         margin-top: 1.25rem;
+        position: relative;
+        z-index: 2;
+    }
+
+    .qs-hero-actions a,
+    .qs-hero-actions button {
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: rgba(15, 23, 42, 0.08);
     }
 
     .qs-hero-actions--row {
@@ -431,6 +442,8 @@
         align-items: center;
         min-height: 16rem;
         padding: 0;
+        overflow: hidden;
+        isolation: isolate;
     }
 
     .qs-blob {
@@ -519,6 +532,14 @@
             gap: 2.75rem;
             align-items: center;
         }
+        .qs-hero-copy {
+            grid-column: 1;
+            grid-row: 1;
+        }
+        .qs-hero-visual {
+            grid-column: 2;
+            grid-row: 1;
+        }
         .qs-main { padding: 2rem 0 1.5rem; }
     }
 
@@ -534,28 +555,20 @@
             -webkit-overflow-scrolling: touch;
             align-items: flex-start;
             padding-top: 0;
-        }
-        .qs-hero-grid {
-            display: flex;
-            flex-direction: column;
-            gap: 0;
-        }
-        .qs-hero-copy {
-            display: contents;
+            padding-bottom: max(5.5rem, calc(1.5rem + env(safe-area-inset-bottom)));
         }
         .qs-hero-visual {
-            order: 1;
             min-height: 0;
             align-self: stretch;
             margin: 0 calc(-1 * max(1rem, env(safe-area-inset-right))) 1.25rem calc(-1 * max(1rem, env(safe-area-inset-left)));
             width: auto;
             max-width: none;
         }
-        .qs-hero-head {
-            order: 2;
-        }
-        .qs-hero-copy > :not(.qs-hero-head) {
-            order: 3;
+        .qs-hero-copy {
+            position: relative;
+            z-index: 2;
+            max-width: none;
+            width: 100%;
         }
         .qs-hero-sub--desktop {
             display: none;
@@ -571,6 +584,24 @@
         }
         .qs-badge {
             margin-bottom: 0.875rem;
+        }
+        .qs-hero-actions,
+        .qs-hero-actions--row {
+            flex-direction: column;
+            align-items: stretch;
+            max-width: none;
+        }
+        .qs-hero-actions .qs-btn-outline,
+        .qs-hero-actions .qs-btn-hero-secondary,
+        .qs-hero-actions .qs-btn-hero,
+        .qs-hero-actions--row .qs-btn-outline,
+        .qs-hero-actions--row .qs-btn-hero-secondary,
+        .qs-hero-actions--row .qs-btn-hero {
+            width: 100%;
+            min-height: 3rem;
+        }
+        .qs-hero-actions--row {
+            display: flex;
         }
         .qs-hero-photo {
             width: 100%;
@@ -739,12 +770,14 @@
         background: transparent;
         opacity: 0;
         visibility: hidden;
+        pointer-events: none;
         transition: opacity 0.2s ease, visibility 0.2s;
     }
 
     .qs-support-fab-wrap.is-open .qs-support-backdrop {
         opacity: 1;
         visibility: visible;
+        pointer-events: auto;
     }
 
     @media (min-width: 768px) {
@@ -772,6 +805,24 @@
 
     <main class="qs-main">
         <div class="qs-container qs-hero-grid">
+            <div class="qs-hero-visual">
+                <div class="qs-blob qs-blob-1" aria-hidden="true"></div>
+                <div class="qs-blob qs-blob-2" aria-hidden="true"></div>
+                <figure class="qs-hero-photo @if($mobileHeroImage !== '') qs-hero-photo--banner @endif">
+                    <picture>
+                        <source media="(max-width: 767px)" srcset="{{ e($mobileHeroImage !== '' ? $mobileHeroImage : asset('images/landing/hero-student-mobile.webp')) }}">
+                        <img
+                            src="{{ asset('images/landing/hero-student.webp') }}"
+                            alt="Student using {{ $appName }} for online assessments"
+                            width="720"
+                            height="479"
+                            loading="eager"
+                            decoding="async"
+                            fetchpriority="high">
+                    </picture>
+                </figure>
+            </div>
+
             <div class="qs-hero-copy">
                 <div class="qs-hero-head">
                     <span class="qs-badge">Secure · Proctored · Reliable</span>
@@ -842,24 +893,6 @@
                     <a href="{{ route('about-system') }}" class="qs-btn-outline">About us</a>
                 </div>
                 @endif
-            </div>
-
-            <div class="qs-hero-visual">
-                <div class="qs-blob qs-blob-1" aria-hidden="true"></div>
-                <div class="qs-blob qs-blob-2" aria-hidden="true"></div>
-                <figure class="qs-hero-photo @if($mobileHeroImage !== '') qs-hero-photo--banner @endif">
-                    <picture>
-                        <source media="(max-width: 767px)" srcset="{{ e($mobileHeroImage !== '' ? $mobileHeroImage : asset('images/landing/hero-student-mobile.webp')) }}">
-                        <img
-                            src="{{ asset('images/landing/hero-student.webp') }}"
-                            alt="Student using {{ $appName }} for online assessments"
-                            width="720"
-                            height="479"
-                            loading="eager"
-                            decoding="async"
-                            fetchpriority="high">
-                    </picture>
-                </figure>
             </div>
         </div>
     </main>

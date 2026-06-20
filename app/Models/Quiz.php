@@ -46,6 +46,12 @@ class Quiz extends Model
         return static::create(SchemaColumnFilter::forModel(static::class, $attributes));
     }
 
+    /** @param array<string, mixed> $attributes */
+    public function updateFromAttributes(array $attributes): bool
+    {
+        return $this->update(SchemaColumnFilter::forModel($this, $attributes));
+    }
+
     protected static function booted(): void
     {
         static::creating(function (Quiz $quiz) {

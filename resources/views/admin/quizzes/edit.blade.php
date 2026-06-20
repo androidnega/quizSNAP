@@ -21,6 +21,12 @@
 @section('dashboard_content')
 <div class="w-full max-w-4xl mx-auto space-y-6">
     <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 md:p-8">
+            @if(session('success'))
+                <div class="alert alert-success mb-6" role="alert">
+                    {{ session('success') }}
+                </div>
+            @endif
+
             @if(session('error'))
                 <div class="alert alert-error mb-6" role="alert">
                     <strong>Error:</strong> {{ session('error') }}
@@ -66,20 +72,34 @@
                 <!-- Class group (read-only); Course (within class group) -->
                 <div class="border border-gray-200 rounded-lg p-4 bg-gray-50/80 mb-6">
                     <p class="text-sm font-medium text-gray-700 mb-1">Class group</p>
-                    <p class="text-gray-900">{{ $quiz->classGroup?->name ?? '—' }}</p>
-                    <p class="text-xs text-gray-500 mt-1">Class group cannot be changed. You can only change the course below (from this class group’s attached courses).</p>
+                    <p class="text-gray-900">{{ $quiz->classGroup?->name ?? 'QuizSnap (no class group)' }}</p>
+                    <p class="text-xs text-gray-500 mt-1">
+                        @if($quiz->classGroup)
+                            Class group cannot be changed. You can only change the course below (from this class group’s attached courses).
+                        @else
+                            This quiz uses QuizSnap academic context. Course can be updated below.
+                        @endif
+                    </p>
                 </div>
                 <div class="grid md:grid-cols-2 gap-6">
                     <div>
                         <label for="course_id" class="block text-sm font-medium text-gray-700 mb-1.5">Course *</label>
                         <select id="course_id" name="course_id" required class="{{ $inputClass }}">
-                            @foreach($courses as $c)
+                            @forelse($courses as $c)
                                 <option value="{{ $c->id }}" {{ old('course_id', $quiz->course_id) == $c->id ? 'selected' : '' }}>
                                     {{ $c->name }}
                                 </option>
-                            @endforeach
+                            @empty
+                                <option value="{{ $quiz->course_id }}" selected>{{ $quiz->course?->name ?? 'Course #' . $quiz->course_id }}</option>
+                            @endforelse
                         </select>
-                        <p class="text-xs text-gray-500 mt-1">Only courses attached to this quiz’s class group are listed.</p>
+                        <p class="text-xs text-gray-500 mt-1">
+                            @if($quiz->classGroup)
+                                Only courses attached to this quiz’s class group are listed.
+                            @else
+                                Course linked to this quiz.
+                            @endif
+                        </p>
                     </div>
 
                     <p class="text-sm font-semibold text-gray-800 mb-3 md:col-span-2">Question pool &amp; per student</p>
@@ -174,24 +194,36 @@
                 <div class="border-t border-gray-200 pt-6">
                     <h3 class="text-base font-semibold text-gray-900 mb-2">Source for AI questions (optional)</h3>
                     <p class="text-sm text-gray-500 mb-4">Choose one: <strong>Topics only</strong> (uses the topics field above), <strong>Paste script</strong> (optional text), or <strong>Upload file</strong> (optional file). If you leave script or file empty, topics are used. Leave all empty to skip AI generation.</p>
+                    @php
+                        $defaultSourceMode = old('source_mode');
+                        if (! $defaultSourceMode) {
+                            if (! empty($quiz->script_url)) {
+                                $defaultSourceMode = 'file';
+                            } elseif (! empty($quiz->script_text)) {
+                                $defaultSourceMode = 'paste';
+                            } else {
+                                $defaultSourceMode = 'topics';
+                            }
+                        }
+                    @endphp
                     <div class="flex flex-wrap gap-4 mb-4" role="tablist">
                         <label class="flex items-center gap-2 cursor-pointer">
-                            <input type="radio" name="source_mode" value="topics" class="w-4 h-4 text-primary-600 border-gray-300" {{ old('source_mode', 'topics') === 'topics' ? 'checked' : '' }}>
+                            <input type="radio" name="source_mode" value="topics" class="w-4 h-4 text-primary-600 border-gray-300" {{ $defaultSourceMode === 'topics' ? 'checked' : '' }}>
                             <span class="text-sm font-medium text-gray-700">Topics only</span>
                         </label>
                         <label class="flex items-center gap-2 cursor-pointer">
-                            <input type="radio" name="source_mode" value="paste" class="w-4 h-4 text-primary-600 border-gray-300" {{ old('source_mode') === 'paste' ? 'checked' : '' }}>
+                            <input type="radio" name="source_mode" value="paste" class="w-4 h-4 text-primary-600 border-gray-300" {{ $defaultSourceMode === 'paste' ? 'checked' : '' }}>
                             <span class="text-sm font-medium text-gray-700">Paste script</span>
                         </label>
                         <label class="flex items-center gap-2 cursor-pointer">
-                            <input type="radio" name="source_mode" value="file" class="w-4 h-4 text-primary-600 border-gray-300" {{ old('source_mode') === 'file' ? 'checked' : '' }}>
+                            <input type="radio" name="source_mode" value="file" class="w-4 h-4 text-primary-600 border-gray-300" {{ $defaultSourceMode === 'file' ? 'checked' : '' }}>
                             <span class="text-sm font-medium text-gray-700">Upload file</span>
                         </label>
                     </div>
                     <div id="source-paste-wrap" class="hidden mb-4">
                         <label for="source_script" class="block text-sm font-medium text-gray-700 mb-1">Paste your content (optional)</label>
                         <p class="text-xs text-gray-500 mb-2">Paste lecture notes or any text. Leave empty to use topics only.</p>
-                        <textarea id="source_script" name="source_script" rows="6" class="{{ $inputClass }} font-mono text-sm min-h-[8rem] max-h-80 overflow-y-auto resize-y break-words whitespace-pre-wrap" placeholder="Paste your script or notes here...">{{ old('source_script') }}</textarea>
+                        <textarea id="source_script" name="source_script" rows="6" class="{{ $inputClass }} font-mono text-sm min-h-[8rem] max-h-80 overflow-y-auto resize-y break-words whitespace-pre-wrap" placeholder="Paste your script or notes here...">{{ old('source_script', $quiz->script_text ?? '') }}</textarea>
                     </div>
                     <div id="source-file-wrap" class="hidden">
                         @if(!empty($quiz->script_url))

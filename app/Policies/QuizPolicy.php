@@ -27,16 +27,19 @@ class QuizPolicy
             return true;
         }
         $classGroup = $quiz->classGroup;
-        if (! $classGroup) {
-            return false;
+        if ($classGroup) {
+            if ((int) $classGroup->examiner_id === (int) $user->id) {
+                return true;
+            }
+            if ($user->isCoordinator() && in_array((int) $classGroup->id, $user->classGroupIds(), true)) {
+                return true;
+            }
+            // Lecturer assigned to any course in this class group (e.g. for live proctor)
+            if (\Illuminate\Support\Facades\Schema::hasColumn('class_group_course', 'examiner_id')) {
+                return $classGroup->courses()->wherePivot('examiner_id', $user->id)->exists();
+            }
         }
-        if ((int) $classGroup->examiner_id === (int) $user->id) {
-            return true;
-        }
-        // Lecturer assigned to any course in this class group (e.g. for live proctor)
-        if (\Illuminate\Support\Facades\Schema::hasColumn('class_group_course', 'examiner_id')) {
-            return $classGroup->courses()->wherePivot('examiner_id', $user->id)->exists();
-        }
+
         return false;
     }
 
@@ -57,7 +60,14 @@ class QuizPolicy
             return true;
         }
         $classGroup = $quiz->classGroup;
-        return $classGroup && (int) $classGroup->examiner_id === (int) $user->id;
+        if (! $classGroup) {
+            return false;
+        }
+        if ((int) $classGroup->examiner_id === (int) $user->id) {
+            return true;
+        }
+
+        return $user->isCoordinator() && in_array((int) $classGroup->id, $user->classGroupIds(), true);
     }
 
     public function delete(User $user, Quiz $quiz): bool

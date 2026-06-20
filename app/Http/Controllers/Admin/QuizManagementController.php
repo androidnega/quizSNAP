@@ -1725,26 +1725,38 @@ class QuizManagementController extends Controller
 
     public function edit(Quiz $quiz): View|RedirectResponse
     {
-        $this->authorize('view', $quiz);
+        $this->authorize('update', $quiz);
         if ($quiz->hasStarted()) {
-            return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)->with('error', UserFriendlyMessages::GENERIC);
+            return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)
+                ->with('error', 'This quiz cannot be edited because at least one student has already started it.');
         }
         $quiz->load('classGroup.courses', 'course');
         $courses = $quiz->classGroup
             ? $quiz->classGroup->courses()->orderBy('name')->get()
             : ($quiz->course_id ? Course::where('id', $quiz->course_id)->orderBy('name')->get() : collect());
+        if ($quiz->course_id && ! $courses->contains('id', $quiz->course_id)) {
+            $currentCourse = Course::find($quiz->course_id);
+            if ($currentCourse) {
+                $courses = $courses->push($currentCourse)->sortBy('name')->values();
+            }
+        }
         $user = $this->adminUser();
         $aiApiAvailable = app(AiQuestionService::class)->hasApiKey();
+        $aiGenerationEnabled = AiQuestionService::isGenerationEnabled();
         $aiTokenStatus = $user ? app(AiQuizTokenService::class)->getStatus($user) : null;
-        return view('admin.quizzes.edit', compact('quiz', 'courses', 'aiApiAvailable', 'aiTokenStatus'));
+
+        return view('admin.quizzes.edit', compact('quiz', 'courses', 'aiApiAvailable', 'aiGenerationEnabled', 'aiTokenStatus'));
     }
 
     public function update(Request $request, Quiz $quiz): RedirectResponse
     {
         $this->authorize('update', $quiz);
         if ($quiz->hasStarted()) {
-            return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)->with('error', UserFriendlyMessages::GENERIC);
+            return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)
+                ->with('error', 'This quiz cannot be edited because at least one student has already started it.');
         }
+
+        try {
         $request->validate([
             'title' => 'required|string|max:255',
             'exam_type' => 'nullable|in:quiz,midsem,end_of_semester',
@@ -1757,7 +1769,7 @@ class QuizManagementController extends Controller
             'source_file' => 'nullable|file|mimes:txt,pdf,docx|max:10240',
             'is_active' => 'boolean',
             'starts_at' => 'nullable|date',
-            'ends_at' => 'nullable|date',
+            'ends_at' => 'nullable|date|after_or_equal:starts_at',
             'result_visibility' => 'nullable|in:score_only,full_review_after_end,disabled',
             'allowed_devices' => 'nullable|in:desktop,mobile,both',
             'include_mcq' => 'nullable|boolean',
@@ -1835,9 +1847,32 @@ class QuizManagementController extends Controller
                 ? $reqAllowed
                 : ($quiz->getAttribute('allowed_devices') ?? Quiz::ALLOWED_DEVICES_DESKTOP);
         }
-        $quiz->update($updateData);
+        $quiz->updateFromAttributes($updateData);
         $this->broadcastDataUpdatedSafe('quizzes');
+
         return redirect()->route($this->staffRoutePrefix() . '.quizzes.edit', $quiz)->with('success', 'Saved. On the quiz overview, use "Generate questions with AI" to add more questions.');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            Log::error('Quiz update failed', [
+                'quiz_id' => $quiz->id,
+                'exception' => $e::class,
+                'message' => $e->getMessage(),
+            ]);
+
+            $userMessage = 'Could not update quiz. ';
+            if ($e instanceof \Illuminate\Database\QueryException && str_contains($e->getMessage(), 'Unknown column')) {
+                $userMessage .= 'Database schema is outdated — on the server run: php artisan migrate --force';
+            } elseif (config('app.debug')) {
+                $userMessage .= $e->getMessage();
+            } else {
+                $userMessage .= 'Please try again or contact support if the problem persists.';
+            }
+
+            return redirect()->route($this->staffRoutePrefix() . '.quizzes.edit', $quiz)
+                ->withInput()
+                ->with('error', $userMessage);
+        }
     }
 
     /**

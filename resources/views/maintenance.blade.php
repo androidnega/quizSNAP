@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
     <title>Site Under Update</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-    <link rel="alternate icon" href="/favicon.ico" type="image/x-icon">
+    <link rel="apple-touch-icon" href="/favicon.svg">
+    <meta name="theme-color" content="#f59e0b">
     <style>
         * { box-sizing: border-box; }
         html { touch-action: manipulation; -ms-touch-action: manipulation; text-size-adjust: 100%; -webkit-text-size-adjust: 100%; }

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" role="img" aria-label="QuizSnap Admin">
+  <rect width="32" height="32" rx="8" fill="#f59e0b"/>
+  <text x="16" y="21" font-family="system-ui,-apple-system,sans-serif" font-size="15" font-weight="800" fill="#ffffff" text-anchor="middle">Q</text>
+  <circle cx="24" cy="24" r="7.25" fill="#1e293b"/>
+  <rect x="21.35" y="23.15" width="5.3" height="4.6" rx="1.1" fill="#fbbf24"/>
+  <path d="M22.35 23.15v-1.75a1.85 1.85 0 0 1 3.7 0v1.75" stroke="#fbbf24" stroke-width="1.45" stroke-linecap="round" fill="none"/>
+</svg>

@@ -8,8 +8,9 @@
     @php
         $theme = $theme ?? app(\App\Services\ThemeService::class)->activePreset();
         $themePrimary = $theme['primary'] ?? [];
+        $faviconThemeColor = \App\Support\Favicon::themeColor();
     @endphp
-    <meta name="theme-color" content="{{ $theme['theme_color'] ?? '#fafaf9' }}">
+    <meta name="theme-color" content="{{ $faviconThemeColor }}">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">

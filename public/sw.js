@@ -61,8 +61,8 @@ self.addEventListener('push', function (event) {
     var body = data.body || 'You have an exam soon.';
     var options = {
         body: body,
-        icon: '/favicon.ico',
-        badge: '/favicon.ico',
+        icon: '/favicon.svg',
+        badge: '/favicon.svg',
         tag: 'exam-reminder',
         renotify: true,
     };

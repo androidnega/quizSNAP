@@ -33,10 +33,10 @@
 
     .qs-container {
         width: 100%;
-        max-width: 72rem;
+        max-width: 80rem;
         margin: 0 auto;
-        padding-left: max(1rem, env(safe-area-inset-left));
-        padding-right: max(1rem, env(safe-area-inset-right));
+        padding-left: max(1.25rem, env(safe-area-inset-left));
+        padding-right: max(1.25rem, env(safe-area-inset-right));
     }
 
     /* Header — matches student dashboard amber bar */
@@ -438,51 +438,47 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        min-height: 16rem;
+        min-height: 18rem;
         padding: 0;
-        overflow: hidden;
+        overflow: visible;
         isolation: isolate;
     }
 
     .qs-blob {
         position: absolute;
         border-radius: 9999px;
-        filter: blur(56px);
-        opacity: 0.55;
+        filter: blur(64px);
+        opacity: 0.28;
         pointer-events: none;
     }
 
     .qs-blob-1 {
-        width: 18rem;
-        height: 18rem;
+        width: 16rem;
+        height: 16rem;
         background: #fde68a;
-        top: 4%;
-        right: -2%;
+        top: 8%;
+        right: 4%;
     }
 
     .qs-blob-2 {
-        width: 14rem;
-        height: 14rem;
+        width: 12rem;
+        height: 12rem;
         background: #fef3c7;
-        bottom: -4%;
-        left: 0;
+        bottom: 0;
+        left: 4%;
     }
 
     .qs-hero-photo {
         position: relative;
         z-index: 1;
         width: 100%;
-        max-width: 32rem;
+        max-width: none;
         margin: 0;
-        border-radius: 1.375rem;
+        border-radius: 1.25rem;
         overflow: hidden;
         background: #fff;
-        border: 1px solid rgba(226, 232, 240, 0.95);
-        box-shadow:
-            0 1px 2px rgba(15, 23, 42, 0.04),
-            0 0 0 1px rgba(255, 255, 255, 0.6) inset,
-            0 24px 48px -20px rgba(245, 158, 11, 0.28);
-        transition: transform 0.35s ease, box-shadow 0.35s ease;
+        border: 1px solid rgba(226, 232, 240, 0.85);
+        box-shadow: 0 24px 56px -28px rgba(15, 23, 42, 0.14);
         user-select: none;
         -webkit-user-select: none;
     }
@@ -508,7 +504,7 @@
         display: block;
         width: 100%;
         height: auto;
-        aspect-ratio: 720 / 479;
+        aspect-ratio: 960 / 639;
         object-fit: cover;
         vertical-align: middle;
         -webkit-user-drag: none;
@@ -520,27 +516,29 @@
         .qs-hero-visual {
             justify-content: flex-end;
             align-self: stretch;
-            min-height: 20rem;
+            min-height: 26rem;
         }
 
         .qs-hero-photo {
-            max-width: 28rem;
             width: 100%;
+            max-width: 46rem;
+        }
+    }
+
+    @media (min-width: 1024px) {
+        .qs-hero-visual {
+            min-height: 28rem;
         }
 
-        .qs-hero-photo:hover {
-            transform: translateY(-4px);
-            box-shadow:
-                0 2px 4px rgba(15, 23, 42, 0.05),
-                0 0 0 1px rgba(255, 255, 255, 0.6) inset,
-                0 32px 64px -22px rgba(245, 158, 11, 0.34);
+        .qs-hero-photo {
+            max-width: 52rem;
         }
     }
 
     @media (min-width: 768px) {
         .qs-hero-grid {
-            grid-template-columns: 0.92fr 1.08fr;
-            gap: 2.75rem;
+            grid-template-columns: minmax(0, 0.84fr) minmax(0, 1.16fr);
+            gap: 3rem;
             align-items: center;
         }
         .qs-hero-copy {
@@ -551,7 +549,12 @@
             grid-column: 2;
             grid-row: 1;
         }
-        .qs-main { padding: 2rem 0 1.5rem; }
+        .qs-main { padding: 2.5rem 0 2rem; }
+    }
+
+    @media (min-width: 1024px) {
+        .qs-main { padding: 3rem 0 2.5rem; }
+        .qs-hero-grid { gap: 3.5rem; }
     }
 
     @media (max-width: 767px) {
@@ -617,21 +620,15 @@
         .qs-hero-photo {
             width: 100%;
             max-width: none;
-            border-radius: 0 0 1.25rem 1.25rem;
+            border-radius: 0 0 1.5rem 1.5rem;
             border-top: none;
-            box-shadow:
-                0 16px 40px -18px rgba(15, 23, 42, 0.14),
-                0 0 0 1px rgba(226, 232, 240, 0.7) inset;
+            box-shadow: 0 20px 48px -24px rgba(15, 23, 42, 0.12);
         }
         .qs-hero-photo img {
-            aspect-ratio: 720 / 479;
+            aspect-ratio: 960 / 639;
             max-height: none;
-            min-height: 12.5rem;
+            min-height: 15rem;
             object-fit: cover;
-        }
-        .qs-hero-photo--banner img {
-            aspect-ratio: 21 / 9;
-            min-height: 10rem;
         }
         .qs-blob {
             opacity: 0.35;
@@ -684,7 +681,14 @@
 @endpush
 
 @section('content')
-@php $mobileHeroImage = trim($landingHeroImage ?? ''); @endphp
+@php
+    $heroDesktopPath = public_path('images/landing/hero-student-home.webp');
+    $heroMobilePath = public_path('images/landing/hero-student-home-mobile.webp');
+    $heroDesktopVer = is_file($heroDesktopPath) ? (string) filemtime($heroDesktopPath) : '1';
+    $heroMobileVer = is_file($heroMobilePath) ? (string) filemtime($heroMobilePath) : '1';
+    $heroDesktopUrl = asset('images/landing/hero-student-home.webp').'?v='.$heroDesktopVer;
+    $heroMobileUrl = asset('images/landing/hero-student-home-mobile.webp').'?v='.$heroMobileVer;
+@endphp
 <div class="qs-landing-shell">
     @include('student.partials.marketing-header', [
         'appName' => $appName,
@@ -697,14 +701,14 @@
             <div class="qs-hero-visual">
                 <div class="qs-blob qs-blob-1" aria-hidden="true"></div>
                 <div class="qs-blob qs-blob-2" aria-hidden="true"></div>
-                <figure class="qs-hero-photo @if($mobileHeroImage !== '') qs-hero-photo--banner @endif" oncontextmenu="return false;">
+                <figure class="qs-hero-photo" oncontextmenu="return false;">
                     <picture>
-                        <source media="(max-width: 767px)" srcset="{{ e($mobileHeroImage !== '' ? $mobileHeroImage : asset('images/landing/hero-student-mobile.webp')) }}" type="image/webp">
+                        <source media="(max-width: 767px)" srcset="{{ $heroMobileUrl }}" type="image/webp">
                         <img
-                            src="{{ asset('images/landing/hero-student.webp') }}"
+                            src="{{ $heroDesktopUrl }}"
                             alt="Student using {{ $appName }} for online assessments"
-                            width="720"
-                            height="479"
+                            width="960"
+                            height="639"
                             loading="eager"
                             decoding="async"
                             fetchpriority="high"

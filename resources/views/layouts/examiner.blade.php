@@ -21,7 +21,7 @@
                     @include('partials.brand-logo', [
                         'href' => route('dashboard'),
                         'size' => 'sm',
-                        'variant' => 'default',
+                        'variant' => 'plain',
                         'class' => 'min-w-0',
                     ])
                 </a>

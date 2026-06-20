@@ -4,18 +4,22 @@
     $variant = $variant ?? 'default';
     $href = $href ?? null;
     $showMark = $showMark ?? true;
+    $showWordmark = $showWordmark ?? ($variant !== 'plain');
     $surfaceClass = $variant === 'default' ? ' quizsnap-brand-logo--surface' : '';
-    $class = trim('quizsnap-brand-logo' . $surfaceClass . ' ' . ($class ?? ''));
+    $plainClass = $variant === 'plain' ? ' quizsnap-brand-logo--plain' : '';
+    $class = trim('quizsnap-brand-logo' . $surfaceClass . $plainClass . ' ' . ($class ?? ''));
     $tag = $href ? 'a' : 'span';
 @endphp
 <{{ $tag }} @if($href) href="{{ $href }}" aria-label="{{ $appName }} home" @endif class="{{ $class }}" @if($href && !$showMark) title="{{ $appName }}" @endif>
     @if($showMark)
-        @include('partials.brand-mark', ['size' => $size])
+        @include('partials.brand-mark', ['size' => $size, 'variant' => $variant])
     @endif
-    @include('partials.brand-wordmark', [
-        'appName' => $appName,
-        'size' => $size,
-        'variant' => $variant,
-        'class' => 'quizsnap-brand-logo__wordmark',
-    ])
+    @if($showWordmark)
+        @include('partials.brand-wordmark', [
+            'appName' => $appName,
+            'size' => $size,
+            'variant' => $variant,
+            'class' => 'quizsnap-brand-logo__wordmark',
+        ])
+    @endif
 </{{ $tag }}>

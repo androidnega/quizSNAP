@@ -139,6 +139,31 @@
         stroke: rgba(255, 255, 255, 0.38);
     }
 
+    /* Admin sidebar — plain Q only, no pill or shadow */
+    .quizsnap-brand-logo--plain {
+        gap: 0;
+        padding: 0;
+        background: none;
+        box-shadow: none;
+    }
+
+    .quizsnap-brand-mark--plain {
+        width: auto;
+        height: auto;
+        border-radius: 0;
+        background: none;
+        box-shadow: none;
+        color: #0f172a;
+        font-family: system-ui, -apple-system, sans-serif;
+        font-weight: 800;
+        letter-spacing: -0.04em;
+        line-height: 1;
+    }
+
+    .quizsnap-brand-mark--plain.quizsnap-brand-mark--sm { font-size: 1.25rem; }
+    .quizsnap-brand-mark--plain.quizsnap-brand-mark--md { font-size: 1.375rem; }
+    .quizsnap-brand-mark--plain.quizsnap-brand-mark--lg { font-size: 1.5rem; }
+
     /* Colored headers — flat white logo on brand bar */
     .theme-header .quizsnap-brand-logo {
         background: transparent;

@@ -492,21 +492,6 @@
         }
     }
 
-    /* Mobile hero image from settings */
-    .qs-mobile-hero {
-        display: none;
-        width: 100%;
-        overflow: hidden;
-        flex-shrink: 0;
-    }
-
-    .qs-mobile-hero img {
-        display: block;
-        width: 100%;
-        height: 9rem;
-        object-fit: cover;
-    }
-
     @media (min-width: 768px) {
         .qs-hero-grid {
             grid-template-columns: 1.05fr 0.95fr;
@@ -528,9 +513,46 @@
             align-items: flex-start;
             padding-top: 1rem;
         }
-        .qs-hero-visual { min-height: 10rem; margin-top: 0.75rem; }
-        .qs-hero-photo { width: min(100%, 20rem); border-radius: 1rem; }
-        .qs-landing-shell.has-mobile-hero .qs-mobile-hero { display: block; }
+        .qs-hero-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+        .qs-hero-copy {
+            display: contents;
+        }
+        .qs-hero-head {
+            order: 1;
+        }
+        .qs-hero-visual {
+            order: 2;
+            min-height: 0;
+            margin: 0 0 1.25rem;
+            padding: 0;
+        }
+        .qs-hero-copy > :not(.qs-hero-head) {
+            order: 3;
+        }
+        .qs-hero-sub {
+            display: none;
+        }
+        .qs-hero-title {
+            margin-bottom: 0.75rem;
+        }
+        .qs-hero-photo {
+            width: 100%;
+            max-width: none;
+            border-radius: 1rem;
+        }
+        .qs-hero-photo img {
+            aspect-ratio: auto;
+            max-height: 11rem;
+            object-fit: cover;
+        }
+        .qs-hero-photo--banner img {
+            max-height: 9rem;
+        }
+        .qs-blob { display: none; }
     }
 
     /* Support FAB */
@@ -687,40 +709,34 @@
 @endpush
 
 @section('content')
-<div class="qs-landing-shell @if($landingHeroEnabled ?? true) has-mobile-hero @endif">
+@php $mobileHeroImage = trim($landingHeroImage ?? ''); @endphp
+<div class="qs-landing-shell">
     @include('student.partials.marketing-header', [
         'appName' => $appName,
         'student' => $student ?? null,
         'showGetStarted' => $landingShowQuizToken ?? false,
     ])
 
-    @if($landingHeroEnabled ?? true)
-        @php $mobileHeroImage = trim($landingHeroImage ?? ''); @endphp
-        @if($mobileHeroImage !== '')
-            <div class="qs-mobile-hero md:hidden">
-                <img src="{{ e($mobileHeroImage) }}" alt="" width="800" height="144" loading="eager" decoding="async" referrerpolicy="no-referrer">
-            </div>
-        @endif
-    @endif
-
     <main class="qs-main">
         <div class="qs-container qs-hero-grid">
             <div class="qs-hero-copy">
-                <span class="qs-badge">Secure · Proctored · Reliable</span>
+                <div class="qs-hero-head">
+                    <span class="qs-badge">Secure · Proctored · Reliable</span>
 
-                <h1 class="qs-hero-title">
-                    Secure online assessments.
-                    <span class="accent">Built for your institution.</span>
-                </h1>
+                    <h1 class="qs-hero-title">
+                        Secure online assessments.
+                        <span class="accent">Built for your institution.</span>
+                    </h1>
 
-                <p class="qs-hero-sub">
+                    <p class="qs-hero-sub">
                     @if($institutionName)
                         <strong>{{ $institutionName }}</strong> uses {{ $appName }} for proctored quizzes and student dashboards.
                     @else
                         {{ $appName }} is a secure assessment platform for proctored quizzes and student dashboards.
                     @endif
                     Enter your quiz token from your lecturer to begin.
-                </p>
+                    </p>
+                </div>
 
                 @if(($landingShowQuizToken ?? false) || (isset($student) && $student))
                 @if($landingShowQuizToken ?? false)
@@ -770,9 +786,9 @@
             <div class="qs-hero-visual">
                 <div class="qs-blob qs-blob-1" aria-hidden="true"></div>
                 <div class="qs-blob qs-blob-2" aria-hidden="true"></div>
-                <figure class="qs-hero-photo">
+                <figure class="qs-hero-photo @if($mobileHeroImage !== '') qs-hero-photo--banner @endif">
                     <picture>
-                        <source media="(max-width: 767px)" srcset="{{ asset('images/landing/hero-student-mobile.webp') }}" type="image/webp">
+                        <source media="(max-width: 767px)" srcset="{{ e($mobileHeroImage !== '' ? $mobileHeroImage : asset('images/landing/hero-student-mobile.webp')) }}">
                         <img
                             src="{{ asset('images/landing/hero-student.webp') }}"
                             alt="Student using {{ $appName }} for online assessments"

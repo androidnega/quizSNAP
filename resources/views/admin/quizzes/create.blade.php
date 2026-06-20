@@ -1163,6 +1163,40 @@
     var pollStartedAt = 0;
     var lastPollGenerated = -1;
     var stuckPollCount = 0;
+    var csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+    function parseJsonResponse(r) {
+        return r.text().then(function(text) {
+            var data = {};
+            if (text) {
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    var msg = 'Unexpected server response.';
+                    if (r.status === 419 || (text && text.indexOf('Page Expired') !== -1)) {
+                        msg = 'Session expired. Refresh the page and try again.';
+                    } else if (r.status === 401 || r.status === 403) {
+                        msg = 'You are not signed in or lack permission. Refresh the page and sign in again.';
+                    } else if (r.status >= 500) {
+                        msg = 'Server error (HTTP ' + r.status + '). Try again or contact support.';
+                    } else if (r.status === 422) {
+                        msg = 'Could not start generation. Check the form and try again.';
+                    }
+                    return { ok: false, status: r.status, data: { error: msg } };
+                }
+            }
+            return { ok: r.ok, status: r.status, data: data };
+        });
+    }
+
+    function jsonFetchHeaders() {
+        var headers = {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        };
+        if (csrfToken) headers['X-CSRF-TOKEN'] = csrfToken;
+        return headers;
+    }
 
     function isAiMode() {
         var checked = document.querySelector('.question-source-radio:checked');
@@ -1219,9 +1253,14 @@
     }
 
     function pollStatus(statusUrl, redirectUrl) {
-        fetch(statusUrl, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } })
-            .then(function(r) { return r.json(); })
-            .then(function(data) {
+        fetch(statusUrl, { headers: jsonFetchHeaders() })
+            .then(parseJsonResponse)
+            .then(function(res) {
+                if (!res.ok) {
+                    showError(res.data.error || ('Could not read generation status (HTTP ' + res.status + ').'));
+                    return;
+                }
+                var data = res.data;
                 var status = data.status || 'idle';
                 var target = Math.max(1, parseInt(data.target, 10) || 1);
                 var generated = parseInt(data.generated, 10) || 0;
@@ -1266,6 +1305,9 @@
         if (!isAiMode() || generating) return;
 
         syncCourseBeforeSubmit();
+        if (window.QuizQuestionTypes && typeof window.QuizQuestionTypes.syncPoolTotalFromTypes === 'function') {
+            window.QuizQuestionTypes.syncPoolTotalFromTypes();
+        }
         var courseIdInput = document.getElementById('course_id_input');
         if (!courseIdInput || !courseIdInput.value.trim()) {
             var msg = document.getElementById('quiz-create-course-required');
@@ -1305,22 +1347,16 @@
 
         var formData = new FormData(form);
         formData.set('question_source', 'ai');
+        if (csrfToken && !formData.get('_token')) {
+            formData.set('_token', csrfToken);
+        }
 
         fetch(form.action, {
             method: 'POST',
             body: formData,
-            headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            }
+            headers: jsonFetchHeaders()
         })
-            .then(function(r) {
-                return r.json().then(function(data) {
-                    return { ok: r.ok, status: r.status, data: data };
-                }).catch(function() {
-                    return { ok: false, status: r.status, data: { error: 'Unexpected server response.' } };
-                });
-            })
+            .then(parseJsonResponse)
             .then(function(res) {
                 if (!res.ok || !res.data.success) {
                     var errMsg = res.data.error || res.data.message;
@@ -1331,19 +1367,20 @@
                     if (progressWrap) progressWrap.classList.add('hidden');
                     return;
                 }
-                if (res.data.multiple) {
-                    setProgress(100, 0, 0, res.data.message || 'Quizzes created.', false);
+                var data = res.data;
+                if (data.multiple) {
+                    setProgress(100, 0, 0, data.message || 'Quizzes created.', false);
                     setTimeout(function() {
-                        window.location.href = res.data.redirect_url || @json(route('dashboard.quizzes.index'));
+                        window.location.href = data.redirect_url || @json(route('dashboard.quizzes.index'));
                     }, 900);
                     return;
                 }
-                var target = res.data.target || 0;
+                var target = data.target || 0;
                 pollStartedAt = Date.now();
                 lastPollGenerated = -1;
                 stuckPollCount = 0;
-                setProgress(0, 0, target, res.data.message || 'Generating questions…', false);
-                pollStatus(res.data.status_url, res.data.redirect_url);
+                setProgress(0, 0, target, data.message || 'Generating questions…', false);
+                pollStatus(data.status_url, data.redirect_url);
             })
             .catch(function() {
                 showError('Network error. Check your connection and try again.');

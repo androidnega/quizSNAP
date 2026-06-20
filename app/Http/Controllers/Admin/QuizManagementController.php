@@ -248,14 +248,19 @@ class QuizManagementController extends Controller
         return response()->json($progress);
     }
 
-    /** @return RedirectResponse|JsonResponse */
-    private function createQuizFormError(Request $request, string $error, ?array $fieldErrors = null): RedirectResponse|JsonResponse
+    private function wantsJsonResponse(Request $request): bool
     {
-        if ($request->expectsJson()) {
+        return $request->expectsJson() || $request->ajax();
+    }
+
+    /** @return RedirectResponse|JsonResponse */
+    private function createQuizFormError(Request $request, string $error, ?array $fieldErrors = null, int $status = 422): RedirectResponse|JsonResponse
+    {
+        if ($this->wantsJsonResponse($request)) {
             return response()->json([
                 'error' => $error,
                 'errors' => $fieldErrors ?? ['form' => [$error]],
-            ], 422);
+            ], $status);
         }
 
         $redirect = redirect()->route($this->staffRoutePrefix() . '.quizzes.create')->withInput();
@@ -272,7 +277,7 @@ class QuizManagementController extends Controller
         $statusUrl = route($this->staffRoutePrefix() . '.quizzes.ai-generation-status', $quiz);
         $redirectUrl = route($this->staffRoutePrefix() . '.quizzes.show', ['quiz' => $quiz->id]);
 
-        if ($request->expectsJson()) {
+        if ($this->wantsJsonResponse($request)) {
             return response()->json([
                 'success' => true,
                 'quiz_id' => $quiz->id,
@@ -383,11 +388,20 @@ class QuizManagementController extends Controller
 
         $indexUrl = route($this->staffRoutePrefix() . '.quizzes.index');
         if (count($quizzes) === 1) {
+            if ($this->wantsJsonResponse($request)) {
+                return response()->json([
+                    'success' => true,
+                    'quiz_id' => $quizzes[0]->id,
+                    'redirect_url' => route($this->staffRoutePrefix() . '.quizzes.show', ['quiz' => $quizzes[0]->id]),
+                    'message' => $message,
+                ]);
+            }
+
             return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', ['quiz' => $quizzes[0]->id])
                 ->with('success', $message);
         }
 
-        if ($request->expectsJson()) {
+        if ($this->wantsJsonResponse($request)) {
             return response()->json([
                 'success' => true,
                 'multiple' => true,
@@ -405,8 +419,12 @@ class QuizManagementController extends Controller
         try {
             $user = $this->adminUser();
             if (!$user) {
-                return redirect()->route('login')
-                    ->with('error', UserFriendlyMessages::GENERIC);
+                return $this->createQuizFormError(
+                    $request,
+                    'Your session has expired. Refresh the page and sign in again.',
+                    null,
+                    401
+                );
             }
 
             $request->validate([
@@ -455,27 +473,23 @@ class QuizManagementController extends Controller
                 $allowedGroupIds = $this->classGroupIds();
                 foreach ($classGroupIds as $classGroupId) {
                     if (! $user->isSuperAdmin() && ! in_array($classGroupId, $allowedGroupIds, true)) {
-                        return redirect()->route($this->staffRoutePrefix() . '.quizzes.create')
-                            ->withInput()
-                            ->with('error', UserFriendlyMessages::NOT_FOUND);
+                        return $this->createQuizFormError($request, UserFriendlyMessages::NOT_FOUND);
                     }
                     $classGroup = ClassGroup::find($classGroupId);
                     if (! $classGroup) {
-                        return redirect()->route($this->staffRoutePrefix() . '.quizzes.create')
-                            ->withInput()
-                            ->with('error', UserFriendlyMessages::NOT_FOUND);
+                        return $this->createQuizFormError($request, UserFriendlyMessages::NOT_FOUND);
                     }
                     $groupError = $this->validateClassGroupForQuiz($user, $classGroup, $requestCourseId);
                     if ($groupError !== null) {
-                        return redirect()->route($this->staffRoutePrefix() . '.quizzes.create')
-                            ->withInput()
-                            ->with('error', $groupError);
+                        return $this->createQuizFormError($request, $groupError);
                     }
                 }
             } elseif (! $usesQuizSnapFlow) {
-                return redirect()->route($this->staffRoutePrefix() . '.quizzes.create')
-                    ->withInput()
-                    ->with('error', 'Select at least one class group, or use QuizSnap academic context (Category, Level, Semester, Class, Academic Year).');
+                return $this->createQuizFormError(
+                    $request,
+                    'Select at least one class group, or use QuizSnap academic context (Category, Level, Semester, Class, Academic Year).',
+                    ['class_group_ids' => ['Select at least one class group, or complete the QuizSnap academic fields.']]
+                );
             }
 
             $topics = $request->topics;
@@ -489,9 +503,7 @@ class QuizManagementController extends Controller
 
             $typeCountsOrError = $this->questionTypeCountsOrError($request);
             if (is_string($typeCountsOrError)) {
-                return redirect()->route($this->staffRoutePrefix() . '.quizzes.create')
-                    ->withInput()
-                    ->with('error', $typeCountsOrError);
+                return $this->createQuizFormError($request, $typeCountsOrError);
             }
             $typeCounts = $typeCountsOrError;
             $poolTotal = QuestionTypes::total($typeCounts);
@@ -534,16 +546,22 @@ class QuizManagementController extends Controller
 
             if ($questionSource === 'json') {
                 if (! $request->filled('ai_json')) {
-                    return redirect()->route($this->staffRoutePrefix() . '.quizzes.create')
-                        ->withInput()
-                        ->withErrors(['ai_json' => ['Paste and validate your question JSON, or choose Generate with AI instead.']]);
+                    return $this->createQuizFormError(
+                        $request,
+                        'Paste and validate your question JSON, or choose Generate with AI instead.',
+                        ['ai_json' => ['Paste and validate your question JSON, or choose Generate with AI instead.']]
+                    );
                 }
                 $expectedCount = $poolTotal;
                 $result = $aiService->validateAiJson($request->input('ai_json'), $expectedCount, $typeCounts);
                 if (! $result['valid']) {
-                    return redirect()->route($this->staffRoutePrefix() . '.quizzes.create')
-                        ->withInput()
-                        ->withErrors(['ai_json' => $result['errors']]);
+                    $jsonErrors = is_array($result['errors']) ? $result['errors'] : [$result['errors']];
+
+                    return $this->createQuizFormError(
+                        $request,
+                        implode(' ', $jsonErrors),
+                        ['ai_json' => $jsonErrors]
+                    );
                 }
                 $createdQuizzes = [];
                 foreach ($quizTargets as $classGroupId) {
@@ -552,9 +570,7 @@ class QuizManagementController extends Controller
                         : $baseCreateData;
                     $quiz = Quiz::createFromAttributes($createData);
                     if (! $quiz || ! $quiz->id) {
-                        return redirect()->route($this->staffRoutePrefix() . '.quizzes.create')
-                            ->withInput()
-                            ->with('error', 'Failed to create quiz.');
+                        return $this->createQuizFormError($request, 'Failed to create quiz.');
                     }
                     $aiService->createPoolsFromValidatedJson($quiz, $result['parsed']);
                     $createdQuizzes[] = $quiz;
@@ -687,7 +703,7 @@ class QuizManagementController extends Controller
                 $userMessage .= 'Please try again or contact support if the problem persists.';
             }
 
-            if ($request->expectsJson()) {
+            if ($this->wantsJsonResponse($request)) {
                 return response()->json(['error' => $userMessage], 500);
             }
 

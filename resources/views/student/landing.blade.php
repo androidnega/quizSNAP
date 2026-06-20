@@ -67,39 +67,7 @@
     }
 
     .qs-logo {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.75rem;
-        text-decoration: none;
-        color: inherit;
         min-width: 0;
-    }
-
-    .qs-logo-mark {
-        width: 2.125rem;
-        height: 2.125rem;
-        border-radius: 0.5rem;
-        background: #fff;
-        color: var(--qs-text);
-        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
-        display: grid;
-        place-items: center;
-        flex-shrink: 0;
-    }
-
-    .qs-logo-mark svg {
-        width: 1.125rem;
-        height: 1.125rem;
-    }
-
-    .qs-logo-text {
-        font-family: var(--font-display);
-        font-size: 1.125rem;
-        font-weight: 800;
-        letter-spacing: -0.03em;
-        line-height: 1;
-        color: var(--qs-text);
-        white-space: nowrap;
     }
 
     .qs-header-right {
@@ -139,21 +107,6 @@
     }
 
     @media (min-width: 640px) {
-        .qs-logo-mark {
-            width: 2.375rem;
-            height: 2.375rem;
-            border-radius: 0.5625rem;
-        }
-
-        .qs-logo-mark svg {
-            width: 1.25rem;
-            height: 1.25rem;
-        }
-
-        .qs-logo-text {
-            font-size: 1.25rem;
-        }
-
         .qs-btn-get-started {
             padding: 0.75rem 1.5rem;
             font-size: 0.75rem;

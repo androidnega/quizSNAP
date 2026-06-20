@@ -215,8 +215,15 @@
         min-width: 4.5rem !important;
     }
     .examiner-sidebar.examiner-sidebar--collapsed .examiner-sidebar-brand-text,
-    .examiner-sidebar[data-collapsed="true"] .examiner-sidebar-brand-text {
+    .examiner-sidebar[data-collapsed="true"] .examiner-sidebar-brand-text,
+    .examiner-sidebar.examiner-sidebar--collapsed .quizsnap-wordmark,
+    .examiner-sidebar[data-collapsed="true"] .quizsnap-wordmark {
         display: none !important;
+    }
+    .examiner-sidebar.examiner-sidebar--collapsed .quizsnap-brand-logo,
+    .examiner-sidebar[data-collapsed="true"] .quizsnap-brand-logo {
+        justify-content: center;
+        width: 100%;
     }
     .examiner-sidebar.examiner-sidebar--collapsed .examiner-sidebar-nav .examiner-nav-text,
     .examiner-sidebar[data-collapsed="true"] .examiner-sidebar-nav .examiner-nav-text {

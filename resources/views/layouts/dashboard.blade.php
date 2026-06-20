@@ -28,11 +28,14 @@
                         <span class="examiner-sidebar-brand-text truncate text-lg font-bold">Coordinator</span>
                     @else
                         @if($inst && $inst->logo_url)
-                            <img src="{{ $inst->logo_url }}" alt="{{ Str::upper($inst->name ?? '') }}" class="h-12 w-12 flex-shrink-0 object-contain rounded-lg border border-gray-200 bg-white">
+                            <img src="{{ $inst->logo_url }}" alt="{{ Str::upper($inst->name ?? '') }}" class="h-9 w-9 flex-shrink-0 object-contain rounded-lg border border-gray-200 bg-white opacity-90" aria-hidden="true">
                         @endif
-                        <span class="examiner-sidebar-brand-text truncate text-lg font-extrabold tracking-tight ml-1">
-                            @include('partials.brand-wordmark', ['size' => 'sm'])
-                        </span>
+                        @include('partials.brand-logo', [
+                            'href' => route('dashboard'),
+                            'size' => 'sm',
+                            'variant' => 'default',
+                            'class' => 'min-w-0',
+                        ])
                     @endif
                 </a>
                 <button type="button" id="examiner-sidebar-toggle-inner" data-examiner-collapse class="examiner-sidebar-chevron flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-gray-700 hover:bg-gray-200 hover:text-gray-900 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-300 md:flex" aria-label="Collapse sidebar" title="Collapse sidebar (desktop)">

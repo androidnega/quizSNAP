@@ -16,11 +16,14 @@
                 <a href="{{ route('dashboard') }}" class="examiner-sidebar-brand flex min-w-0 flex-shrink-0 items-center gap-3 overflow-hidden transition-opacity hover:opacity-80">
                     @php $user = auth()->user(); $inst = $user?->institution; @endphp
                     @if($inst && $inst->logo_url)
-                        <img src="{{ $inst->logo_url }}" alt="{{ $inst->name }}" class="h-12 w-12 flex-shrink-0 object-contain rounded-lg border border-gray-200 bg-white">
+                        <img src="{{ $inst->logo_url }}" alt="{{ $inst->name }}" class="h-9 w-9 flex-shrink-0 object-contain rounded-lg border border-gray-200 bg-white opacity-90" aria-hidden="true">
                     @endif
-                    <span class="examiner-sidebar-brand-text truncate text-lg font-extrabold tracking-tight ml-1">
-                        @include('partials.brand-wordmark', ['size' => 'sm'])
-                    </span>
+                    @include('partials.brand-logo', [
+                        'href' => route('dashboard'),
+                        'size' => 'sm',
+                        'variant' => 'default',
+                        'class' => 'min-w-0',
+                    ])
                 </a>
                 <button type="button" id="examiner-sidebar-toggle-inner" data-examiner-collapse class="examiner-sidebar-chevron flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-primary-300 md:flex" aria-label="Collapse sidebar" title="Collapse sidebar (desktop)">
                     <svg class="h-5 w-5 transition-transform hidden md:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">

@@ -7,6 +7,9 @@
 <div class="min-h-[100dvh] min-h-screen flex items-center justify-center px-4 py-8">
     <div class="max-w-md w-full">
         <div class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+            <div class="mb-5 flex justify-center">
+                @include('partials.brand-logo', ['size' => 'md', 'variant' => 'default'])
+            </div>
             <h1 class="text-2xl font-bold text-gray-800 mb-2">Student login</h1>
             <p class="text-gray-600 text-sm mb-6">@if(!empty($password_login_enabled))Enter your index number. First-time sign-in: verify your phone by SMS, then create a password, add your name and email. After that, sign in with your password only.@else Use your index number and phone to sign in. We'll send a one-time code by SMS. Keep this page open while you complete the steps.@endif</p>
 

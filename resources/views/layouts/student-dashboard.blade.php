@@ -24,11 +24,21 @@
                 <button type="button" id="student-mobile-menu-btn" class="shrink-0 flex h-10 w-10 items-center justify-center rounded-xl theme-header-text theme-header-hover focus:outline-none focus:ring-2 focus:ring-slate-700 focus:ring-offset-2 focus:ring-offset-[var(--theme-brand)]" aria-label="Open menu" aria-expanded="false" aria-controls="student-mobile-sidebar">
                     <i class="fas fa-bars text-base"></i>
                 </button>
-                <a href="{{ route('dashboard') }}" class="truncate">@include('partials.brand-wordmark', ['appName' => $appName, 'size' => 'sm'])</a>
+                @include('partials.brand-logo', [
+                    'appName' => $appName,
+                    'href' => route('dashboard'),
+                    'size' => 'sm',
+                    'variant' => 'on-brand',
+                    'class' => 'truncate min-w-0',
+                ])
             </div>
-            <a href="{{ route('dashboard') }}" class="hidden lg:flex items-center gap-2 shrink-0 no-underline" title="Dashboard">
-                @include('partials.brand-wordmark', ['appName' => $appName, 'size' => 'lg'])
-            </a>
+            @include('partials.brand-logo', [
+                'appName' => $appName,
+                'href' => route('dashboard'),
+                'size' => 'lg',
+                'variant' => 'on-brand',
+                'class' => 'hidden lg:inline-flex shrink-0',
+            ])
 
             <nav class="hidden lg:flex items-center gap-1 flex-1 justify-center min-w-0" aria-label="Dashboard navigation">
                 <a href="{{ route('dashboard') }}" class="px-3 xl:px-4 py-2 rounded-xl text-sm font-semibold transition-colors theme-header-text {{ $studentNavHome ? 'theme-nav-active' : 'theme-nav-idle' }}"><i class="fas fa-home mr-1.5 xl:mr-2 text-xs"></i>Home</a>

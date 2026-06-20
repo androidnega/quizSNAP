@@ -54,6 +54,80 @@
         font-family: var(--font-display);
     }
 
+    /* QuizSnap brand logo — always high contrast */
+    .quizsnap-brand-logo {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.625rem;
+        min-width: 0;
+        text-decoration: none;
+        color: inherit;
+        flex-shrink: 0;
+    }
+
+    a.quizsnap-brand-logo:hover {
+        opacity: 0.92;
+    }
+
+    .quizsnap-brand-mark {
+        flex-shrink: 0;
+        display: grid;
+        place-items: center;
+        color: var(--theme-brand-dark);
+        border-radius: 0.5rem;
+        box-shadow:
+            0 2px 8px rgba(15, 23, 42, 0.14),
+            0 0 0 1px rgba(15, 23, 42, 0.08);
+    }
+
+    .quizsnap-brand-mark--sm { width: 2rem; height: 2rem; border-radius: 0.4375rem; }
+    .quizsnap-brand-mark--md { width: 2.25rem; height: 2.25rem; border-radius: 0.5rem; }
+    .quizsnap-brand-mark--lg { width: 2.625rem; height: 2.625rem; border-radius: 0.5625rem; }
+
+    .quizsnap-brand-mark svg {
+        width: 100%;
+        height: 100%;
+        display: block;
+    }
+
+    .quizsnap-wordmark {
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        line-height: 1;
+        white-space: nowrap;
+    }
+
+    .quizsnap-wordmark--sm { font-size: 1.125rem; }
+    .quizsnap-wordmark--md { font-size: 1.25rem; }
+    .quizsnap-wordmark--lg { font-size: 1.5rem; }
+
+    @media (min-width: 1024px) {
+        .quizsnap-wordmark--lg { font-size: 1.625rem; }
+    }
+
+    /* Default — light/white backgrounds */
+    .quizsnap-wordmark--default .quizsnap-wordmark-a { color: var(--theme-wordmark-a); }
+    .quizsnap-wordmark--default .quizsnap-wordmark-b { color: var(--theme-wordmark-b); }
+
+    /* Colored brand header — Snap must not blend into amber bar */
+    .quizsnap-wordmark--on-brand .quizsnap-wordmark-a {
+        color: #0f172a;
+        text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
+    }
+
+    .quizsnap-wordmark--on-brand .quizsnap-wordmark-b {
+        color: #1d4ed8;
+        text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+    }
+
+    .theme-header .quizsnap-brand-mark {
+        background: #fff;
+        color: var(--theme-brand-dark);
+        box-shadow:
+            0 3px 10px rgba(15, 23, 42, 0.16),
+            0 0 0 1px rgba(255, 255, 255, 0.65);
+    }
+
     .theme-header {
         background-color: var(--theme-brand);
         border-bottom: 1px solid var(--theme-brand-border);

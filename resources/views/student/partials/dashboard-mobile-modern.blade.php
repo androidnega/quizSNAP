@@ -1,10 +1,36 @@
 @php
     $banner = $dashboardBanner ?? \App\Models\Setting::getStudentDashboardBannerConfig();
-    $displayName = $displayName ?? $student?->first_name ?? 'User';
-    $initials = $student?->initials ?? strtoupper(substr(trim($displayName), 0, 1));
+    $bannerMode = $banner['mode'] ?? 'image';
+    $bannerImage = $banner['image'] ?? null;
+    if (empty($bannerImage) && ! empty($banner['images'][0] ?? null)) {
+        $bannerImage = $banner['images'][0];
+    }
+    if (empty($bannerImage)) {
+        $fallback = trim((string) \App\Models\Setting::getValue(\App\Models\Setting::KEY_LOGIN_HERO_IMAGE, ''));
+        if ($fallback !== '' && $bannerMode === 'image_text') {
+            $bannerImage = $fallback;
+        }
+    }
+    $bannerImageUrl = $bannerImage;
+    if (is_string($bannerImageUrl) && $bannerImageUrl !== '' && ! preg_match('#^https?://#i', $bannerImageUrl)) {
+        $bannerImageUrl = asset(ltrim($bannerImageUrl, '/'));
+    }
+    $bundledSlug = 'student-dashboard-midsem-exams-good-luck-banner';
+    $usesBundledBanner = $bannerMode === 'image' && (
+        empty($bannerImage)
+        || str_contains((string) $bannerImage, $bundledSlug)
+    );
+    $bundledBase = asset('images/' . $bundledSlug);
+    $bannerAlt = 'Dashboard banner';
+    $showMobileBanner = ! empty($banner['enabled']) && (
+        ($bannerMode === 'image' && ($usesBundledBanner || ! empty($bannerImageUrl)))
+        || $bannerMode === 'image_text'
+    );
     $promoTitle = $banner['title'] ?? 'Challenge Yourself.';
     $promoAccent = $banner['title_accent'] ?? 'Achieve More.';
     $promoSubtitle = trim($banner['subtitle'] ?? '');
+    $displayName = $displayName ?? $student?->first_name ?? 'User';
+    $initials = $student?->initials ?? strtoupper(substr(trim($displayName), 0, 1));
     $myQuizTitle = $hasScheduled ? $scheduledQuiz->title : ($lastQuiz?->quiz?->title ?? 'Browse quizzes');
     $myQuizMeta = '';
     if ($scheduledInProgress) {
@@ -36,22 +62,66 @@
                 <i class="fas fa-search" aria-hidden="true"></i>
             </a>
             <a href="{{ route('dashboard.calendar') }}" class="md-dash__icon-btn" aria-label="Calendar">
-                <i class="fas fa-sliders-h" aria-hidden="true"></i>
+                <i class="fas fa-calendar-alt" aria-hidden="true"></i>
             </a>
         </div>
     </header>
 
-    @if(! empty($banner['enabled']))
-    <section class="md-dash__promo" aria-label="Featured">
-        <div class="md-dash__promo-copy">
-            <h2 class="md-dash__promo-title">{{ $promoTitle }}<br><span>{{ $promoAccent }}</span></h2>
-            @if($promoSubtitle !== '')
-            <p class="md-dash__promo-sub">{{ $promoSubtitle }}</p>
+    @if($showMobileBanner)
+    <section class="md-dash__banner" aria-label="Dashboard banner">
+        @if($bannerMode === 'image' && ($usesBundledBanner || ! empty($bannerImageUrl)))
+        <figure class="md-dash__banner-media">
+            @if($usesBundledBanner)
+            <picture>
+                <source type="image/webp"
+                        srcset="{{ $bundledBase }}-640.webp 640w, {{ $bundledBase }}.webp 1024w"
+                        sizes="100vw">
+                <source type="image/jpeg"
+                        srcset="{{ $bundledBase }}-640.jpg 640w, {{ $bundledBase }}.jpg 1024w"
+                        sizes="100vw">
+                <img src="{{ $bundledBase }}.jpg"
+                     alt="{{ $bannerAlt }}"
+                     class="md-dash__banner-img"
+                     width="999"
+                     height="291"
+                     loading="eager"
+                     decoding="async"
+                     fetchpriority="high">
+            </picture>
+            @else
+            <img src="{{ e($bannerImageUrl) }}"
+                 alt="{{ $bannerAlt }}"
+                 class="md-dash__banner-img"
+                 width="999"
+                 height="291"
+                 loading="eager"
+                 decoding="async"
+                 fetchpriority="high">
             @endif
+        </figure>
+        @elseif($bannerMode === 'image_text')
+        <div class="md-dash__banner-card">
+            @if(! empty($bannerImageUrl))
+            <figure class="md-dash__banner-media md-dash__banner-media--compact">
+                <img src="{{ e($bannerImageUrl) }}"
+                     alt=""
+                     class="md-dash__banner-img"
+                     loading="eager"
+                     decoding="async"
+                     referrerpolicy="no-referrer">
+            </figure>
+            @endif
+            <div class="md-dash__banner-copy">
+                <h2 class="md-dash__banner-title">
+                    {{ $promoTitle }}
+                    <span class="md-dash__banner-accent">{{ $promoAccent }}</span>
+                </h2>
+                @if($promoSubtitle !== '')
+                <p class="md-dash__banner-sub">{{ $promoSubtitle }}</p>
+                @endif
+            </div>
         </div>
-        <div class="md-dash__promo-art" aria-hidden="true">
-            <i class="fas fa-graduation-cap"></i>
-        </div>
+        @endif
     </section>
     @endif
 
@@ -63,14 +133,14 @@
 
         <a href="{{ $quizActionHref }}"
            @if($scheduledUpcoming && $quizRulesUrl) data-rules-url="{{ $quizRulesUrl }}" @endif
-           class="md-dash__course-card md-dash__course-card--quiz @if($scheduledUpcoming) md-dash__course-card--countdown @elseif($scheduledReady) md-dash__course-card--ready @elseif($scheduledInProgress) md-dash__course-card--active @endif">
+           class="md-dash__course-card @if($scheduledUpcoming) md-dash__course-card--countdown @elseif($scheduledReady) md-dash__course-card--ready @elseif($scheduledInProgress) md-dash__course-card--active @endif">
             <div class="md-dash__course-top">
                 <span class="md-dash__course-icon" aria-hidden="true"><i class="fas fa-book-open"></i></span>
                 <div class="md-dash__course-info min-w-0">
                     @if($scheduledQuizCourse)
                     <span class="md-dash__course-label truncate">{{ $scheduledQuizCourse }}</span>
                     @endif
-                    <span class="md-dash__course-title truncate">{{ $myQuizTitle }}</span>
+                    <span class="md-dash__course-title">{{ $myQuizTitle }}</span>
                 </div>
                 @if($scheduledQuizTypeLabel)
                 <span class="md-dash__course-badge">{{ $scheduledQuizTypeLabel }}</span>
@@ -107,17 +177,17 @@
             <a href="{{ route('dashboard.my-quizzes') }}" class="md-dash__tile md-dash__tile--brand">
                 <span class="md-dash__tile-icon" aria-hidden="true"><i class="fas fa-file-alt"></i></span>
                 <span class="md-dash__tile-label">Results</span>
-                <span class="md-dash__tile-star" aria-hidden="true"><i class="fas fa-star"></i> History</span>
+                <span class="md-dash__tile-hint">History</span>
             </a>
             <a href="{{ route('dashboard.calendar') }}" class="md-dash__tile md-dash__tile--accent">
                 <span class="md-dash__tile-icon" aria-hidden="true"><i class="fas fa-calendar-alt"></i></span>
                 <span class="md-dash__tile-label">Calendar</span>
-                <span class="md-dash__tile-star" aria-hidden="true"><i class="fas fa-star"></i> Exams</span>
+                <span class="md-dash__tile-hint">Exams</span>
             </a>
-            <a href="{{ route('dashboard.my-profile') }}" class="md-dash__tile md-dash__tile--soft">
+            <a href="{{ route('dashboard.my-profile') }}" class="md-dash__tile">
                 <span class="md-dash__tile-icon" aria-hidden="true"><i class="fas fa-user"></i></span>
                 <span class="md-dash__tile-label">Profile</span>
-                <span class="md-dash__tile-star" aria-hidden="true"><i class="fas fa-star"></i> Account</span>
+                <span class="md-dash__tile-hint">Account</span>
             </a>
         </div>
     </section>
@@ -128,7 +198,7 @@
     .md-dash {
         display: flex;
         flex-direction: column;
-        gap: 1.25rem;
+        gap: 1.125rem;
         padding-bottom: 0.25rem;
     }
 
@@ -151,15 +221,14 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 2.625rem;
-        height: 2.625rem;
-        border-radius: 0.875rem;
-        background: linear-gradient(145deg, var(--theme-primary-500) 0%, var(--theme-primary-700) 100%);
+        width: 2.5rem;
+        height: 2.5rem;
+        border-radius: 0.75rem;
+        background: var(--theme-primary-600);
         color: #fff;
         font-size: 0.8125rem;
         font-weight: 800;
         letter-spacing: 0.02em;
-        box-shadow: 0 8px 20px color-mix(in srgb, var(--theme-primary-600) 35%, transparent);
         flex-shrink: 0;
     }
 
@@ -195,90 +264,81 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 2.375rem;
-        height: 2.375rem;
+        width: 2.25rem;
+        height: 2.25rem;
         border-radius: 0.75rem;
         background: var(--theme-surface);
         border: 1px solid var(--theme-border);
         color: var(--theme-text);
         text-decoration: none;
-        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
-        transition: transform 0.15s ease, box-shadow 0.15s ease;
+        transition: background 0.15s ease, border-color 0.15s ease;
     }
 
     .md-dash__icon-btn:active {
-        transform: scale(0.96);
+        background: var(--theme-primary-50);
+        border-color: var(--theme-primary-200);
     }
 
-    .md-dash__promo {
+    .md-dash__banner-media {
         position: relative;
-        display: flex;
-        align-items: stretch;
-        justify-content: space-between;
-        gap: 0.75rem;
-        min-height: 7.5rem;
-        padding: 1.125rem 1rem 1.125rem 1.125rem;
-        border-radius: 1.625rem;
-        overflow: hidden;
-        background: linear-gradient(135deg, var(--theme-primary-500) 0%, var(--theme-primary-700) 55%, var(--theme-brand-deep) 100%);
-        box-shadow:
-            0 10px 28px color-mix(in srgb, var(--theme-primary-600) 42%, transparent),
-            inset 0 1px 0 rgba(255, 255, 255, 0.12);
-        text-decoration: none;
-        color: #fff;
-    }
-
-    .md-dash__promo-copy {
-        position: relative;
-        z-index: 1;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        min-width: 0;
-        flex: 1;
-        padding-right: 0.5rem;
-    }
-
-    .md-dash__promo-title {
         margin: 0;
-        font-size: 1.125rem;
+        overflow: hidden;
+        border-radius: 1rem;
+        border: 1px solid var(--theme-border);
+        background: var(--theme-surface);
+        aspect-ratio: 999 / 291;
+    }
+
+    .md-dash__banner-media--compact {
+        aspect-ratio: 16 / 9;
+        border-radius: 0;
+        border: none;
+        border-bottom: 1px solid var(--theme-border);
+    }
+
+    .md-dash__banner-img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center;
+    }
+
+    .md-dash__banner-card {
+        overflow: hidden;
+        border-radius: 1rem;
+        border: 1px solid var(--theme-border);
+        background: var(--theme-surface);
+    }
+
+    .md-dash__banner-copy {
+        padding: 0.875rem 1rem 1rem;
+    }
+
+    .md-dash__banner-title {
+        margin: 0;
+        font-size: 1rem;
         font-weight: 800;
-        line-height: 1.25;
-        letter-spacing: -0.03em;
+        line-height: 1.3;
+        letter-spacing: -0.02em;
+        color: var(--theme-text);
     }
 
-    .md-dash__promo-title span {
-        display: inline-block;
-        margin-top: 0.125rem;
-        opacity: 0.92;
+    .md-dash__banner-accent {
+        color: var(--theme-brand-dark);
     }
 
-    .md-dash__promo-sub {
+    .md-dash__banner-sub {
         margin: 0.375rem 0 0;
-        font-size: 0.6875rem;
+        font-size: 0.75rem;
         line-height: 1.45;
-        opacity: 0.88;
-        max-width: 14rem;
-    }
-
-    .md-dash__promo-art {
-        position: relative;
-        z-index: 1;
-        display: flex;
-        align-items: flex-end;
-        justify-content: center;
-        width: 5.5rem;
-        flex-shrink: 0;
-        font-size: 3.25rem;
-        opacity: 0.92;
-        filter: drop-shadow(0 10px 18px rgba(15, 23, 42, 0.22));
-        transform: translateY(0.35rem) rotate(-8deg);
+        color: var(--theme-muted);
     }
 
     .md-dash__section {
         display: flex;
         flex-direction: column;
-        gap: 0.75rem;
+        gap: 0.625rem;
     }
 
     .md-dash__section-head {
@@ -290,7 +350,7 @@
 
     .md-dash__section-title {
         margin: 0;
-        font-size: 1rem;
+        font-size: 0.9375rem;
         font-weight: 800;
         letter-spacing: -0.02em;
         color: var(--theme-text);
@@ -307,19 +367,18 @@
         display: flex;
         flex-direction: column;
         gap: 0.625rem;
-        padding: 1rem;
-        border-radius: 1.375rem;
+        padding: 0.9375rem;
+        border-radius: 1rem;
         text-decoration: none;
-        color: #fff;
-        background: linear-gradient(135deg, var(--theme-brand) 0%, var(--theme-brand-deep) 100%);
-        box-shadow:
-            0 12px 28px color-mix(in srgb, var(--theme-brand) 45%, transparent),
-            inset 0 1px 0 rgba(255, 255, 255, 0.1);
-        transition: transform 0.15s ease;
+        color: var(--theme-text);
+        background: var(--theme-surface);
+        border: 1px solid var(--theme-border);
+        transition: border-color 0.15s ease, background 0.15s ease;
     }
 
     .md-dash__course-card:active {
-        transform: scale(0.99);
+        background: var(--theme-primary-50);
+        border-color: var(--theme-primary-200);
     }
 
     .md-dash__course-top {
@@ -333,11 +392,12 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 2.375rem;
-        height: 2.375rem;
-        border-radius: 0.875rem;
-        background: rgba(255, 255, 255, 0.16);
-        font-size: 0.9375rem;
+        width: 2.25rem;
+        height: 2.25rem;
+        border-radius: 0.625rem;
+        background: var(--theme-primary-50);
+        color: var(--theme-primary-600);
+        font-size: 0.875rem;
         flex-shrink: 0;
     }
 
@@ -354,14 +414,18 @@
         font-weight: 700;
         letter-spacing: 0.05em;
         text-transform: uppercase;
-        opacity: 0.82;
+        color: var(--theme-muted);
     }
 
     .md-dash__course-title {
-        font-size: 0.9375rem;
-        font-weight: 800;
+        font-size: 0.875rem;
+        font-weight: 700;
         letter-spacing: -0.02em;
-        line-height: 1.3;
+        line-height: 1.35;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
     }
 
     .md-dash__course-badge {
@@ -372,15 +436,16 @@
         font-weight: 700;
         letter-spacing: 0.04em;
         text-transform: uppercase;
-        background: rgba(255, 255, 255, 0.18);
-        border: 1px solid rgba(255, 255, 255, 0.22);
+        color: var(--theme-primary-700);
+        background: var(--theme-primary-50);
+        border: 1px solid var(--theme-primary-200);
     }
 
     .md-dash__progress {
         position: relative;
-        height: 0.4375rem;
+        height: 0.375rem;
         border-radius: 9999px;
-        background: rgba(255, 255, 255, 0.22);
+        background: var(--theme-primary-100);
         overflow: hidden;
     }
 
@@ -388,8 +453,7 @@
         display: block;
         height: 100%;
         border-radius: inherit;
-        background: #fff;
-        box-shadow: 0 0 10px rgba(255, 255, 255, 0.45);
+        background: var(--theme-primary-600);
         transition: width 0.35s ease;
     }
 
@@ -397,7 +461,7 @@
         margin: 0;
         font-size: 0.6875rem;
         font-weight: 600;
-        opacity: 0.88;
+        color: var(--theme-muted);
         line-height: 1.35;
     }
 
@@ -407,42 +471,43 @@
         justify-content: center;
         width: 100%;
         margin-top: 0.125rem;
-        padding: 0.6875rem 1rem;
-        border-radius: 0.875rem;
+        padding: 0.625rem 1rem;
+        border-radius: 0.75rem;
         font-size: 0.8125rem;
-        font-weight: 800;
+        font-weight: 700;
         letter-spacing: 0.02em;
         font-variant-numeric: tabular-nums;
     }
 
     .md-dash__course-cta--start,
     .md-dash__course-cta--continue {
-        color: var(--theme-brand-deep);
-        background: #fff;
-        box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
+        color: #fff;
+        background: var(--theme-primary-600);
+        border: 1px solid var(--theme-primary-700);
     }
 
     .md-dash__course-cta--countdown {
-        color: var(--theme-brand-deep);
-        background: rgba(255, 255, 255, 0.92);
-        border: 1px solid rgba(255, 255, 255, 0.5);
+        color: var(--theme-primary-700);
+        background: var(--theme-primary-50);
+        border: 1px solid var(--theme-primary-200);
     }
 
     .md-dash__course-cta--muted {
-        color: #fff;
-        background: rgba(255, 255, 255, 0.14);
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: var(--theme-text);
+        background: var(--theme-bg);
+        border: 1px solid var(--theme-border);
     }
 
     .md-dash__course-card--countdown.is-ready .md-dash__course-cta--countdown {
-        color: var(--theme-brand-deep);
-        background: #fff;
+        color: #fff;
+        background: var(--theme-primary-600);
+        border-color: var(--theme-primary-700);
     }
 
     .md-dash__grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 0.75rem;
+        gap: 0.625rem;
     }
 
     .md-dash__tile {
@@ -450,70 +515,69 @@
         display: flex;
         flex-direction: column;
         justify-content: flex-end;
-        gap: 0.25rem;
-        min-height: 7.75rem;
-        padding: 0.875rem;
-        border-radius: 1.375rem;
+        gap: 0.1875rem;
+        min-height: 6.75rem;
+        padding: 0.8125rem;
+        border-radius: 1rem;
         text-decoration: none;
-        color: #fff;
-        overflow: hidden;
-        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
-        transition: transform 0.15s ease;
+        color: var(--theme-text);
+        background: var(--theme-surface);
+        border: 1px solid var(--theme-border);
+        transition: border-color 0.15s ease, background 0.15s ease;
     }
 
     .md-dash__tile:active {
-        transform: scale(0.98);
+        background: var(--theme-bg);
     }
 
     .md-dash__tile--primary {
-        background: linear-gradient(145deg, var(--theme-primary-500) 0%, var(--theme-primary-800) 100%);
+        background: var(--theme-primary-50);
+        border-color: var(--theme-primary-200);
     }
 
     .md-dash__tile--brand {
-        background: linear-gradient(145deg, color-mix(in srgb, var(--theme-brand) 88%, #fff) 0%, var(--theme-brand-deep) 100%);
+        background: var(--theme-brand-soft);
+        border-color: var(--theme-brand-border);
     }
 
     .md-dash__tile--accent {
-        background: linear-gradient(145deg, var(--theme-primary-400) 0%, var(--theme-primary-700) 100%);
-    }
-
-    .md-dash__tile--soft {
-        background: linear-gradient(145deg, color-mix(in srgb, var(--theme-brand-soft) 70%, var(--theme-primary-300)) 0%, var(--theme-primary-600) 100%);
-        color: var(--theme-text);
+        background: var(--theme-surface);
+        border-color: var(--theme-primary-300);
     }
 
     .md-dash__tile-icon {
         position: absolute;
-        top: 0.875rem;
-        right: 0.875rem;
-        font-size: 1.625rem;
-        opacity: 0.28;
+        top: 0.8125rem;
+        right: 0.8125rem;
+        font-size: 1.125rem;
+        color: var(--theme-primary-500);
+        opacity: 0.55;
+    }
+
+    .md-dash__tile--brand .md-dash__tile-icon {
+        color: var(--theme-brand-dark);
     }
 
     .md-dash__tile-value {
-        font-size: 1.625rem;
+        font-size: 1.5rem;
         font-weight: 800;
         letter-spacing: -0.03em;
         line-height: 1;
         font-variant-numeric: tabular-nums;
+        color: var(--theme-primary-700);
     }
 
     .md-dash__tile-label {
         font-size: 0.8125rem;
-        font-weight: 800;
+        font-weight: 700;
         letter-spacing: -0.02em;
         line-height: 1.25;
     }
 
-    .md-dash__tile-star {
+    .md-dash__tile-hint {
         font-size: 0.625rem;
-        font-weight: 700;
-        opacity: 0.88;
-    }
-
-    .md-dash__tile-star i {
-        font-size: 0.5625rem;
-        margin-right: 0.125rem;
+        font-weight: 600;
+        color: var(--theme-muted);
     }
 </style>
 @endpush

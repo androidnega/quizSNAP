@@ -915,6 +915,13 @@ class StudentQuizController extends Controller
             $session->update($updatePayload);
         }
         $this->concurrency->touchHeartbeat($session->id);
+
+        $broadcastKey = 'session_heartbeat_broadcast:' . $session->id;
+        if (! \Illuminate\Support\Facades\Cache::has($broadcastKey)) {
+            \Illuminate\Support\Facades\Cache::put($broadcastKey, true, 15);
+            $this->broadcastDataUpdatedSafe('sessions');
+        }
+
         return response()->json([
             'success' => true,
             'show_tab_switch_warning' => $hadScheduledSubmit,

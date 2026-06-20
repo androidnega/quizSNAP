@@ -32,7 +32,7 @@
         </div>
         <div id="live-proctor-all-empty" class="hidden text-center py-12 text-gray-500">
             <p class="text-sm">No students are currently writing any of your quizzes.</p>
-            <p class="text-xs mt-1">This list refreshes every 5 seconds.</p>
+            <p class="text-xs mt-1">This list updates automatically when students join or finish.</p>
         </div>
         <div id="live-proctor-all-loading" class="text-center py-8 text-gray-500 text-sm">Loading…</div>
     </div>
@@ -224,7 +224,10 @@
     }
 
     fetchSessions();
-    setInterval(fetchSessions, 30000);
+
+    window.addEventListener('quizsnap-reverb-disconnected', function () {
+        fetchSessions();
+    });
 })();
 </script>
 @endpush

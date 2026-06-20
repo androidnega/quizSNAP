@@ -19,8 +19,29 @@ class ReverbClientConfig
         }
 
         $key = (string) config('broadcasting.connections.reverb.key', '');
+        if ($key === '') {
+            return false;
+        }
 
-        return $key !== '' && ! str_contains($key, 'CHANGE_ME');
+        return ! self::isPlaceholder($key);
+    }
+
+    public static function isPlaceholder(string $value): bool
+    {
+        $lower = strtolower(trim($value));
+
+        if ($lower === '') {
+            return true;
+        }
+
+        $needles = ['change_me', 'change-me', 'your-domain', 'example.com', 'replace_me', 'replace-me'];
+        foreach ($needles as $needle) {
+            if (str_contains($lower, $needle)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /** @return array{key: string, host: string, port: int, scheme: string}|null */
@@ -31,22 +52,29 @@ class ReverbClientConfig
         }
 
         $host = (string) config('broadcasting.connections.reverb.options.host', '');
-        if ($host === '' || str_contains($host, 'example.com')) {
+        if ($host === '' || self::isPlaceholder($host)) {
             $appHost = parse_url((string) config('app.url'), PHP_URL_HOST);
-            if (is_string($appHost) && $appHost !== '') {
+            if (is_string($appHost) && $appHost !== '' && ! self::isPlaceholder($appHost)) {
                 $host = $appHost;
             }
         }
 
-        if ($host === '') {
+        if ($host === '' || self::isPlaceholder($host)) {
             return null;
+        }
+
+        $scheme = (string) (config('broadcasting.connections.reverb.options.scheme') ?? 'https');
+        $port = (int) config('broadcasting.connections.reverb.options.port', $scheme === 'https' ? 443 : 8080);
+
+        if ($scheme === 'http' && $port === 443) {
+            $port = 8080;
         }
 
         return [
             'key' => (string) config('broadcasting.connections.reverb.key'),
             'host' => $host,
-            'port' => (int) config('broadcasting.connections.reverb.options.port', 443),
-            'scheme' => (string) (config('broadcasting.connections.reverb.options.scheme') ?? 'https'),
+            'port' => $port,
+            'scheme' => $scheme,
         ];
     }
 }

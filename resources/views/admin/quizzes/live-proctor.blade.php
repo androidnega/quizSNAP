@@ -90,7 +90,10 @@
     }
 
     fetchLiveSessions();
-    setInterval(fetchLiveSessions, 30000);
+
+    window.addEventListener('quizsnap-reverb-disconnected', function () {
+        fetchLiveSessions();
+    });
 })();
 </script>
 @endpush

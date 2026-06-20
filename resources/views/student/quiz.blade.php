@@ -623,65 +623,55 @@ document.addEventListener('DOMContentLoaded', function() {
     (function() {
         var sessionId = window.QuizSnapQuiz && window.QuizSnapQuiz.sessionId;
         if (!sessionId) return;
-        var c = window.REVERB_CONFIG;
-        if (!c || !c.key) return;
-        function init() {
-            if (typeof Pusher === 'undefined') return;
-            try {
-                var pusher = new Pusher(c.key, {
-                    wsHost: c.host,
-                    wsPort: parseInt(c.port, 10) || 8080,
-                    wssPort: 443,
-                    forceTLS: (c.scheme || 'http') === 'https',
-                    disableStats: true,
-                    enabledTransports: ['ws', 'wss'],
-                    cluster: 'mt1'
-                });
-                var channel = pusher.subscribe('live-proctor-voice.' + sessionId);
-                var audioQueue = [];
-                var playing = false;
-                function playNext() {
-                    if (playing || audioQueue.length === 0) return;
-                    var chunk = audioQueue.shift();
-                    if (!chunk) { playing = false; return; }
-                    try {
-                        var binary = atob(chunk);
-                        var bytes = new Uint8Array(binary.length);
-                        for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-                        var blob = new Blob([bytes], { type: 'audio/webm' });
-                        var url = URL.createObjectURL(blob);
-                        var audio = new Audio();
-                        playing = true;
-                        audio.addEventListener('ended', function() {
-                            URL.revokeObjectURL(url);
-                            playing = false;
-                            playNext();
-                        });
-                        audio.addEventListener('error', function() {
-                            URL.revokeObjectURL(url);
-                            playing = false;
-                            playNext();
-                        });
-                        audio.src = url;
-                        audio.play().catch(function() {
-                            URL.revokeObjectURL(url);
-                            playing = false;
-                            playNext();
-                        });
-                    } catch (e) {
+        function initVoice() {
+            if (!window.QuizSnapReverb || !window.QuizSnapReverb.isEnabled()) return;
+            var audioQueue = [];
+            var playing = false;
+            function playNext() {
+                if (playing || audioQueue.length === 0) return;
+                var chunk = audioQueue.shift();
+                if (!chunk) { playing = false; return; }
+                try {
+                    var binary = atob(chunk);
+                    var bytes = new Uint8Array(binary.length);
+                    for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+                    var blob = new Blob([bytes], { type: 'audio/webm' });
+                    var url = URL.createObjectURL(blob);
+                    var audio = new Audio();
+                    playing = true;
+                    audio.addEventListener('ended', function() {
+                        URL.revokeObjectURL(url);
                         playing = false;
                         playNext();
-                    }
-                }
-                channel.bind('ExaminerVoice', function(data) {
-                    if (data && data.chunk) {
-                        audioQueue.push(data.chunk);
+                    });
+                    audio.addEventListener('error', function() {
+                        URL.revokeObjectURL(url);
+                        playing = false;
                         playNext();
-                    }
-                });
-            } catch (e) { console.warn('Examiner voice:', e); }
+                    });
+                    audio.src = url;
+                    audio.play().catch(function() {
+                        URL.revokeObjectURL(url);
+                        playing = false;
+                        playNext();
+                    });
+                } catch (e) {
+                    playing = false;
+                    playNext();
+                }
+            }
+            window.QuizSnapReverb.bind('live-proctor-voice.' + sessionId, 'ExaminerVoice', function(data) {
+                if (data && data.chunk) {
+                    audioQueue.push(data.chunk);
+                    playNext();
+                }
+            });
         }
-        if (typeof Pusher !== 'undefined') init(); else window.addEventListener('load', init);
+        if (window.QuizSnapReverb && window.QuizSnapReverb.isEnabled()) {
+            initVoice();
+        } else {
+            window.addEventListener('quizsnap-reverb-connected', initVoice, { once: true });
+        }
     })();
 });
 </script>

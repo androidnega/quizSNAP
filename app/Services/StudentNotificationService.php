@@ -9,14 +9,34 @@ use App\Models\QuizSession;
 use App\Models\Student;
 use App\Models\StudentNotification;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 
 class StudentNotificationService
 {
+    private ?bool $tableReady = null;
+
+    private function isTableReady(): bool
+    {
+        if ($this->tableReady === null) {
+            try {
+                $this->tableReady = Schema::hasTable('student_notifications');
+            } catch (\Throwable) {
+                $this->tableReady = false;
+            }
+        }
+
+        return $this->tableReady;
+    }
+
     /**
      * @return Collection<int, StudentNotification>
      */
     public function recentForStudent(string $indexNumber, int $limit = 20): Collection
     {
+        if (! $this->isTableReady()) {
+            return collect();
+        }
+
         $index = $this->normalizeIndex($indexNumber);
         if ($index === '') {
             return collect();
@@ -31,6 +51,10 @@ class StudentNotificationService
 
     public function unreadCount(string $indexNumber): int
     {
+        if (! $this->isTableReady()) {
+            return 0;
+        }
+
         $index = $this->normalizeIndex($indexNumber);
         if ($index === '') {
             return 0;
@@ -44,6 +68,10 @@ class StudentNotificationService
 
     public function markRead(int $notificationId, string $indexNumber): bool
     {
+        if (! $this->isTableReady()) {
+            return false;
+        }
+
         $index = $this->normalizeIndex($indexNumber);
         if ($index === '') {
             return false;
@@ -60,6 +88,10 @@ class StudentNotificationService
 
     public function markAllRead(string $indexNumber): int
     {
+        if (! $this->isTableReady()) {
+            return 0;
+        }
+
         $index = $this->normalizeIndex($indexNumber);
         if ($index === '') {
             return 0;
@@ -110,6 +142,10 @@ class StudentNotificationService
         ?array $meta = null,
         bool $dedupe = true,
     ): bool {
+        if (! $this->isTableReady()) {
+            return false;
+        }
+
         $index = $this->normalizeIndex($indexNumber);
         if ($index === '' || trim($title) === '') {
             return false;

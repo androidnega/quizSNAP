@@ -84,6 +84,16 @@ class FixPullController extends Controller
         $body .= implode("\n", array_slice($outComposer, -8)) . "\n";
         $body .= "Exit code: {$codeComposer}\n\n";
 
+        // Step 2c: run pending migrations (new tables/columns after pull)
+        $body .= "Step 2c: php artisan migrate --force\n";
+        try {
+            \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+            $migrateOut = trim(\Illuminate\Support\Facades\Artisan::output());
+            $body .= ($migrateOut !== '' ? $migrateOut : 'Nothing to migrate.') . "\n\n";
+        } catch (\Throwable $e) {
+            $body .= 'Migration error: ' . $e->getMessage() . "\n\n";
+        }
+
         // Step 3: clear Laravel caches (config, route, view, cache)
         $body .= "Step 3: Clear caches\n";
         try {

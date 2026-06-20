@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\SchemaColumnFilter;
 use App\Casts\EncryptedNullable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,6 +15,12 @@ class QuestionPool extends Model
         'quiz_id', 'question_text', 'type', 'options', 'correct_answer', 'topic', 'is_approved',
         'explanation_wrong', 'explanation_correct',
     ];
+
+    /** @param array<string, mixed> $attributes */
+    public static function createFromAttributes(array $attributes): self
+    {
+        return static::create(SchemaColumnFilter::forModel(static::class, $attributes));
+    }
 
     protected function casts(): array
     {

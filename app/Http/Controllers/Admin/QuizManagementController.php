@@ -549,7 +549,7 @@ class QuizManagementController extends Controller
                     $createData = $classGroupId
                         ? $this->quizCreateDataForClassGroup($baseCreateData, (int) $classGroupId, $request)
                         : $baseCreateData;
-                    $quiz = Quiz::create($createData);
+                    $quiz = Quiz::createFromAttributes($createData);
                     if (! $quiz || ! $quiz->id) {
                         return redirect()->route($this->staffRoutePrefix() . '.quizzes.create')
                             ->withInput()
@@ -575,11 +575,11 @@ class QuizManagementController extends Controller
                 return $this->quizzesCreatedResponse($request, $createdQuizzes, $message);
             }
 
-                try {
-                    Cache::forget('setting:' . \App\Models\Setting::KEY_DEEPSEEK_API);
-                } catch (\Throwable $e) {
-                    report($e);
-                }
+            try {
+                Cache::forget('setting:' . \App\Models\Setting::KEY_DEEPSEEK_API);
+            } catch (\Throwable $e) {
+                report($e);
+            }
             if (! $aiService->hasApiKey()) {
                 return $this->createQuizFormError(
                     $request,
@@ -609,11 +609,20 @@ class QuizManagementController extends Controller
 
             if (empty($topics) && $hasOutline) {
                 $course = Course::find($requestCourseId);
-                $extractResult = app(AiTopicExtractorService::class)->extractFromText(
-                    $scriptText,
-                    $course?->code,
-                    $course?->name
-                );
+                try {
+                    $extractResult = app(AiTopicExtractorService::class)->extractFromText(
+                        $scriptText,
+                        $course?->code,
+                        $course?->name
+                    );
+                } catch (\Throwable $e) {
+                    report($e);
+
+                    return $this->createQuizFormError(
+                        $request,
+                        'Could not extract topics from the outline. Add topics manually or try again.'
+                    );
+                }
                 if (! empty($extractResult['topics'])) {
                     $topics = array_map(fn ($t) => ['name' => $t], $extractResult['topics']);
                     $baseCreateData['topics'] = json_encode(array_values($topics));
@@ -633,7 +642,7 @@ class QuizManagementController extends Controller
                 $createData = $classGroupId
                     ? $this->quizCreateDataForClassGroup($baseCreateData, (int) $classGroupId, $request)
                     : $baseCreateData;
-                $quiz = Quiz::create($createData);
+                $quiz = Quiz::createFromAttributes($createData);
                 if (! $quiz || ! $quiz->id) {
                     return $this->createQuizFormError($request, 'Failed to create quiz.');
                 }
@@ -654,12 +663,24 @@ class QuizManagementController extends Controller
             throw $e;
         } catch (\Throwable $e) {
             Log::error('Quiz create failed', [
+                'exception' => $e::class,
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
             ]);
 
             $userMessage = 'Could not create quiz. ';
-            if (config('app.debug')) {
+            if ($e instanceof \Illuminate\Database\QueryException) {
+                if (str_contains($e->getMessage(), 'Unknown column')) {
+                    $userMessage .= 'Database schema is outdated — on the server run: php artisan migrate --force';
+                } elseif (str_contains($e->getMessage(), 'foreign key constraint')) {
+                    $userMessage .= 'A selected course or class group is no longer valid. Refresh the page and try again.';
+                } elseif (config('app.debug')) {
+                    $userMessage .= $e->getMessage();
+                } else {
+                    $userMessage .= 'A database error occurred. Contact support if this continues.';
+                }
+            } elseif (config('app.debug')) {
                 $userMessage .= $e->getMessage();
             } else {
                 $userMessage .= 'Please try again or contact support if the problem persists.';

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Support\QuestionTypes;
+use App\Support\SchemaColumnFilter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -38,6 +39,12 @@ class Quiz extends Model
     public const STATUS_SCHEDULED = 'Scheduled';
     /** Display status: published and window open (between starts_at and ends_at). */
     public const STATUS_ACTIVE = 'Active';
+
+    /** @param array<string, mixed> $attributes */
+    public static function createFromAttributes(array $attributes): self
+    {
+        return static::create(SchemaColumnFilter::forModel(static::class, $attributes));
+    }
 
     protected static function booted(): void
     {

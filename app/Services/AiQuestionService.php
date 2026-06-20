@@ -10,6 +10,7 @@ use App\Models\Setting;
 use App\Support\QuestionTypes;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class AiQuestionService
@@ -276,13 +277,19 @@ class AiQuestionService
     public function countExistingByType(Quiz $quiz): array
     {
         $counts = QuestionTypes::normalizeCounts(null);
-        foreach ($quiz->questionPools()->get(['type']) as $pool) {
-            $type = QuestionTypes::normalize((string) ($pool->type ?? QuestionTypes::MCQ));
+        $poolHasType = Schema::hasColumn('question_pools', 'type');
+        $questionHasType = Schema::hasColumn('questions', 'type');
+        foreach ($quiz->questionPools()->get($poolHasType ? ['type'] : ['id']) as $pool) {
+            $type = $poolHasType
+                ? QuestionTypes::normalize((string) ($pool->type ?? QuestionTypes::MCQ))
+                : QuestionTypes::MCQ;
             $counts[$type]++;
         }
-        foreach ($quiz->questions()->get(['type']) as $question) {
-            $type = QuestionTypes::normalize((string) ($question->type ?? QuestionTypes::MCQ));
-            $counts[$type]++;
+        if ($questionHasType) {
+            foreach ($quiz->questions()->get(['type']) as $question) {
+                $type = QuestionTypes::normalize((string) ($question->type ?? QuestionTypes::MCQ));
+                $counts[$type]++;
+            }
         }
 
         return $counts;
@@ -344,7 +351,7 @@ class AiQuestionService
             if ($correct === '') {
                 return null;
             }
-            $pool = QuestionPool::create([
+            $pool = QuestionPool::createFromAttributes([
                 'quiz_id' => $quiz->id,
                 'question_text' => $text,
                 'type' => $type,
@@ -361,7 +368,7 @@ class AiQuestionService
 
         if ($type === QuestionTypes::TRUE_FALSE) {
             $correct = QuestionTypes::normalizeTrueFalseCorrect($rawCorrect ?? 'True');
-            $pool = QuestionPool::create([
+            $pool = QuestionPool::createFromAttributes([
                 'quiz_id' => $quiz->id,
                 'question_text' => $text,
                 'type' => $type,
@@ -382,7 +389,7 @@ class AiQuestionService
             $correct = 'A';
         }
         $options = $this->normalizeOptions($opts, $topicFallback);
-        $pool = QuestionPool::create([
+        $pool = QuestionPool::createFromAttributes([
             'quiz_id' => $quiz->id,
             'question_text' => $text,
             'type' => QuestionTypes::MCQ,
@@ -609,7 +616,7 @@ class AiQuestionService
         $opts = $item['options'] ?? $item['choices'] ?? [];
         $correct = $item['correct'] ?? $item['correct_answer'] ?? 'A';
         $options = $this->normalizeOptions($opts, $topicNames);
-        $pool = QuestionPool::create([
+        $pool = QuestionPool::createFromAttributes([
             'quiz_id' => $quiz->id,
             'question_text' => $text,
             'options' => $options,
@@ -657,7 +664,7 @@ class AiQuestionService
             $opts = $item['options'] ?? $item['choices'] ?? [];
             $correct = $item['correct'] ?? $item['correct_answer'] ?? 'A';
             $options = $this->normalizeOptions($opts, $topicNames);
-            $pool = QuestionPool::create([
+            $pool = QuestionPool::createFromAttributes([
                 'quiz_id' => $quiz->id,
                 'question_text' => $text,
                 'options' => $options,

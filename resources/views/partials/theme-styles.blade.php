@@ -54,7 +54,7 @@
         font-family: var(--font-display);
     }
 
-    /* QuizSnap brand logo — always high contrast */
+    /* QuizSnap brand logo — white, clean, readable on any surface */
     .quizsnap-brand-logo {
         display: inline-flex;
         align-items: center;
@@ -66,7 +66,7 @@
     }
 
     a.quizsnap-brand-logo:hover {
-        opacity: 0.94;
+        opacity: 0.92;
     }
 
     .quizsnap-brand-logo__wordmark {
@@ -77,11 +77,8 @@
         flex-shrink: 0;
         display: grid;
         place-items: center;
-        color: var(--theme-brand-dark);
         border-radius: 0.5rem;
-        box-shadow: none;
-        border: none;
-        background: transparent;
+        color: rgba(255, 255, 255, 0.28);
     }
 
     .quizsnap-brand-mark--sm { width: 2rem; height: 2rem; border-radius: 0.4375rem; }
@@ -92,6 +89,16 @@
         width: 100%;
         height: 100%;
         display: block;
+    }
+
+    .quizsnap-brand-mark__bg {
+        fill: currentColor;
+        stroke: rgba(255, 255, 255, 0.42);
+        stroke-width: 1;
+    }
+
+    .quizsnap-brand-mark__letter {
+        fill: #ffffff;
     }
 
     .quizsnap-wordmark {
@@ -109,26 +116,47 @@
         .quizsnap-wordmark--lg { font-size: 1.625rem; }
     }
 
-    /* Default — light/white backgrounds */
-    .quizsnap-wordmark--default .quizsnap-wordmark-a { color: var(--theme-wordmark-a); }
-    .quizsnap-wordmark--default .quizsnap-wordmark-b { color: var(--theme-wordmark-b); }
-
-    /* Colored brand header — theme wordmark, no glow/stroke */
-    .quizsnap-wordmark--on-brand .quizsnap-wordmark-a {
-        color: var(--theme-wordmark-a);
-        text-shadow: none;
+    .quizsnap-wordmark--default .quizsnap-wordmark-a,
+    .quizsnap-wordmark--default .quizsnap-wordmark-b,
+    .quizsnap-wordmark--on-brand .quizsnap-wordmark-a,
+    .quizsnap-wordmark--on-brand .quizsnap-wordmark-b {
+        color: #ffffff;
     }
 
-    .quizsnap-wordmark--on-brand .quizsnap-wordmark-b {
-        color: var(--theme-text);
-        text-shadow: none;
+    /* Light surfaces — brand pill keeps the white logo visible */
+    .quizsnap-brand-logo--surface {
+        background: linear-gradient(145deg, var(--theme-brand-dark), var(--theme-brand-deep));
+        padding: 0.4375rem 0.8125rem 0.4375rem 0.4375rem;
+        border-radius: 0.8125rem;
+        box-shadow: 0 2px 12px rgba(15, 23, 42, 0.12);
+    }
+
+    .quizsnap-brand-logo--surface .quizsnap-brand-mark {
+        color: rgba(255, 255, 255, 0.22);
+    }
+
+    .quizsnap-brand-logo--surface .quizsnap-brand-mark__bg {
+        stroke: rgba(255, 255, 255, 0.38);
+    }
+
+    /* Colored headers — flat white logo on brand bar */
+    .theme-header .quizsnap-brand-logo {
+        background: transparent;
+        box-shadow: none;
+        padding: 0;
     }
 
     .theme-header .quizsnap-brand-mark {
-        background: transparent;
-        color: var(--theme-brand-deep);
-        box-shadow: none;
-        border: none;
+        color: rgba(255, 255, 255, 0.2);
+    }
+
+    .theme-header .quizsnap-brand-mark__bg {
+        stroke: rgba(255, 255, 255, 0.45);
+    }
+
+    .quizsnap-brand-logo .theme-wordmark-a,
+    .quizsnap-brand-logo .theme-wordmark-b {
+        color: #ffffff;
     }
 
     .theme-header {

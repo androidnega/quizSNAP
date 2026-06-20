@@ -4,7 +4,8 @@
     $variant = $variant ?? 'default';
     $href = $href ?? null;
     $showMark = $showMark ?? true;
-    $class = trim('quizsnap-brand-logo ' . ($class ?? ''));
+    $surfaceClass = $variant === 'default' ? ' quizsnap-brand-logo--surface' : '';
+    $class = trim('quizsnap-brand-logo' . $surfaceClass . ' ' . ($class ?? ''));
     $tag = $href ? 'a' : 'span';
 @endphp
 <{{ $tag }} @if($href) href="{{ $href }}" aria-label="{{ $appName }} home" @endif class="{{ $class }}" @if($href && !$showMark) title="{{ $appName }}" @endif>

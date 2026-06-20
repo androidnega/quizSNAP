@@ -37,13 +37,16 @@
 
         @if($student)
         @php
+            $scheduledOpenSession = $scheduledOpenSession ?? null;
             $hasScheduled = isset($scheduledQuiz) && $scheduledQuiz;
             $hasScheduledResult = isset($scheduledQuizSession) && $scheduledQuizSession?->result;
-            $scheduledInProgress = $hasScheduled && ! empty($scheduledOpenSession);
+            $scheduledInProgress = $hasScheduled && $scheduledOpenSession !== null;
             $scheduledUpcoming = $hasScheduled && ! $scheduledInProgress && $scheduledQuiz->starts_at && $scheduledQuiz->starts_at->isFuture();
             $scheduledReady = $hasScheduled && ! $hasScheduledResult && ! $scheduledUpcoming && ! $scheduledInProgress;
             $showLastQuiz = isset($lastQuiz) && $lastQuiz && $lastQuiz->result && ! $scheduledReady && ! $scheduledInProgress && ! $scheduledUpcoming;
-            $countdownSeconds = $scheduledUpcoming ? max(0, (int) $scheduledQuiz->starts_at->diffInSeconds(now())) : 0;
+            $countdownSeconds = ($scheduledUpcoming && $scheduledQuiz->starts_at)
+                ? max(0, $scheduledQuiz->starts_at->getTimestamp() - now()->getTimestamp())
+                : 0;
             $countdownHours = intdiv($countdownSeconds, 3600);
             $countdownMinutes = intdiv($countdownSeconds % 3600, 60);
             $countdownSecs = $countdownSeconds % 60;

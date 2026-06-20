@@ -53,11 +53,12 @@ class FixPullController extends Controller
         if (! is_executable($git)) {
             $git = 'git';
         }
+        $git = $this->gitWithSafeDirectory($git, $basePath);
 
         $body = "QuizSnap: Reset + Update from remote (no merge)\n====================================\n\n";
 
         // Step 1: fetch from remote
-        $cmdFetch = sprintf('cd %s && %s fetch origin 2>&1', escapeshellarg($basePath), escapeshellcmd($git));
+        $cmdFetch = sprintf('cd %s && %s fetch origin 2>&1', escapeshellarg($basePath), $git);
         $outFetch = [];
         exec($cmdFetch, $outFetch, $codeFetch);
         $body .= "Step 1: git fetch origin\n";
@@ -66,9 +67,9 @@ class FixPullController extends Controller
 
         // Step 2: get current branch, then reset hard to origin (discards local changes so pull never conflicts)
         $outBranch = [];
-        exec(sprintf('cd %s && %s rev-parse --abbrev-ref HEAD 2>&1', escapeshellarg($basePath), escapeshellcmd($git)), $outBranch, $codeBranch);
+        exec(sprintf('cd %s && %s rev-parse --abbrev-ref HEAD 2>&1', escapeshellarg($basePath), $git), $outBranch, $codeBranch);
         $branch = trim(implode('', $outBranch)) ?: 'main';
-        $cmdReset = sprintf('cd %s && %s reset --hard origin/%s 2>&1', escapeshellarg($basePath), escapeshellcmd($git), escapeshellarg($branch));
+        $cmdReset = sprintf('cd %s && %s reset --hard origin/%s 2>&1', escapeshellarg($basePath), $git, escapeshellarg($branch));
         $outReset = [];
         exec($cmdReset, $outReset, $codeReset);
         $body .= "Step 2: git reset --hard origin/{$branch}\n";
@@ -78,11 +79,8 @@ class FixPullController extends Controller
         // Step 3: clear Laravel caches (config, route, view, cache)
         $body .= "Step 3: Clear caches\n";
         try {
-            \Illuminate\Support\Facades\Artisan::call('config:clear');
-            \Illuminate\Support\Facades\Artisan::call('route:clear');
-            \Illuminate\Support\Facades\Artisan::call('view:clear');
-            \Illuminate\Support\Facades\Artisan::call('cache:clear');
-            $body .= "Caches cleared.\n\n";
+            \Illuminate\Support\Facades\Artisan::call('optimize:clear');
+            $body .= "Caches cleared (optimize:clear).\n\n";
         } catch (\Throwable $e) {
             $body .= "Cache clear error: " . $e->getMessage() . "\n\n";
         }
@@ -208,5 +206,10 @@ SH;
             'Content-Type' => 'application/x-sh; charset=utf-8',
             'Content-Disposition' => 'attachment; filename="fix-pull-on-server.sh"',
         ]);
+    }
+
+    private function gitWithSafeDirectory(string $git, string $basePath): string
+    {
+        return sprintf('%s -c safe.directory=%s', escapeshellcmd($git), escapeshellarg($basePath));
     }
 }

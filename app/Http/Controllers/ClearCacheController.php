@@ -31,14 +31,9 @@ class ClearCacheController extends Controller
         $lines[] = '';
 
         try {
-            $lines[] = 'Running: config:clear';
-            Artisan::call('config:clear');
-            $lines[] = 'Running: route:clear';
-            Artisan::call('route:clear');
-            $lines[] = 'Running: view:clear';
-            Artisan::call('view:clear');
-            $lines[] = 'Running: cache:clear';
-            Artisan::call('cache:clear');
+            $lines[] = 'Running: optimize:clear';
+            Artisan::call('optimize:clear');
+            $lines[] = trim(Artisan::output()) ?: 'All caches cleared.';
             $lines[] = '';
             $lines[] = 'Fixing storage permissions...';
             $perm = StoragePermissions::fix(base_path());

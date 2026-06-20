@@ -842,6 +842,7 @@
     var windowResizeLimit = (window.QuizSnapQuiz && window.QuizSnapQuiz.windowResizeLimit) || 3;
     var fullscreenEnforced = c.fullscreenEnforcement !== false;
     var ws = window.QuizSnapWindowState || {};
+    var fsDebug = ws.fsDebug || function () {};
     var isFullscreenOrMaximized = ws.isFullscreenOrMaximized
         ? ws.isFullscreenOrMaximized.bind(ws)
         : function () {
@@ -854,6 +855,37 @@
     // First time: show strong warning that next time will auto-submit.
     // Second time: record critical window_resize violation (server will auto-submit).
     var windowResizeExitCount = 0;
+    var fsEnterGraceUntil = 0;
+    var FS_ENTER_GRACE_MS = 2500;
+    var cameraStartDeferred = false;
+    var onFullscreenReadyCallback = null;
+
+    function markFullscreenEntered() {
+        wasFullscreenOrMaximized = isFullscreenOrMaximized();
+        fsEnterGraceUntil = Date.now() + FS_ENTER_GRACE_MS;
+        fsDebug('fullscreen entered / confirmed', {
+            active: wasFullscreenOrMaximized,
+            graceUntil: fsEnterGraceUntil
+        });
+        if (wasFullscreenOrMaximized) {
+            hideResizeBlur();
+            tryStartCameraWhenAllowed('after-fullscreen-entered');
+        }
+    }
+
+    function tryStartCameraWhenAllowed(reason) {
+        if (!cameraRequired || cameraStream) return;
+        if (fullscreenEnforced && !isFullscreenOrMaximized()) {
+            cameraStartDeferred = true;
+            fsDebug('camera start deferred (waiting for fullscreen)', { reason: reason });
+            return;
+        }
+        cameraStartDeferred = false;
+        fsDebug('starting camera', { reason: reason });
+        if (typeof onFullscreenReadyCallback === 'function') {
+            onFullscreenReadyCallback(reason);
+        }
+    }
 
     function clearInvalidStateTimer() {
         if (invalidStateTimer) {
@@ -950,32 +982,69 @@
         }, true);
     }
 
-    function handleResizeOrFullscreenChange() {
-        if (c.proctoringTabSwitch === false) return;
-        if (remainingSeconds <= 0) return;
-        if (isFullscreenOrMaximized()) {
-            clearInvalidStateTimer();
-            wasFullscreenOrMaximized = true;
-            hideResizeBlur();
-        } else {
-            if (!wasFullscreenOrMaximized) return;
-            // Show overlay immediately while we confirm the user really left fullscreen/maximized.
-            showResizeBlur(false);
-            if (invalidStateTimer) return;
-            invalidStateTimer = setTimeout(function () {
-                invalidStateTimer = null;
-                if (!isFullscreenOrMaximized()) {
-                    onWindowResizeOrExitFullscreen();
-                }
-            }, INVALID_PERSISTENCE_MS);
+    function showProctorMessage(message, useAlert) {
+        if (useAlert && !isFullscreenOrMaximized()) {
+            alert(message);
+            return;
         }
+        if (resizeBlurOverlay && fullscreenEnforced && !isFullscreenOrMaximized()) {
+            if (resizeBlurTitle) resizeBlurTitle.textContent = 'Action required';
+            if (resizeBlurMessage) resizeBlurMessage.textContent = message;
+            showResizeBlur(false);
+            return;
+        }
+        if (cameraOffOverlay && cameraRequired) {
+            showCameraOffOverlay();
+        }
+        fsDebug('proctor message (no alert — would exit fullscreen)', { message: message });
+    }
+
+    function handleFullscreenChange(source) {
+        if (remainingSeconds <= 0) return;
+        var active = isFullscreenOrMaximized();
+        fsDebug('fullscreen state change', {
+            source: source || 'fullscreenchange',
+            active: active,
+            wasActive: wasFullscreenOrMaximized,
+            graceMsLeft: Math.max(0, fsEnterGraceUntil - Date.now())
+        });
+        if (active) {
+            clearInvalidStateTimer();
+            markFullscreenEntered();
+            return;
+        }
+        if (!wasFullscreenOrMaximized) return;
+        if (Date.now() < fsEnterGraceUntil) {
+            fsDebug('ignored fullscreen exit during grace (likely camera/layout churn)', { source: source });
+            setTimeout(checkWindowState, 400);
+            return;
+        }
+        fsDebug('confirmed fullscreen exit', { source: source });
+        showResizeBlur(false);
+        if (invalidStateTimer) return;
+        invalidStateTimer = setTimeout(function () {
+            invalidStateTimer = null;
+            if (!isFullscreenOrMaximized()) {
+                onWindowResizeOrExitFullscreen();
+            }
+        }, INVALID_PERSISTENCE_MS);
+    }
+
+    function handleWindowResizeForDebug() {
+        fsDebug('window resize (ignored for fullscreen enforcement)', {
+            w: window.innerWidth,
+            h: window.innerHeight,
+            fsActive: isFullscreenOrMaximized()
+        });
     }
 
     var windowStateCheckMs = constrainedDevice ? 1200 : 500;
     if (c.proctoringTabSwitch !== false) {
-        window.addEventListener('resize', handleResizeOrFullscreenChange);
-        document.addEventListener('fullscreenchange', handleResizeOrFullscreenChange);
-        document.addEventListener('webkitfullscreenchange', handleResizeOrFullscreenChange);
+        // Only fullscreenchange ends fullscreen — NOT window resize (resize fired on FS enter,
+        // camera attach, and viewport reflow; old maximized-window detection caused false exits).
+        document.addEventListener('fullscreenchange', function () { handleFullscreenChange('fullscreenchange'); });
+        document.addEventListener('webkitfullscreenchange', function () { handleFullscreenChange('webkitfullscreenchange'); });
+        window.addEventListener('resize', handleWindowResizeForDebug);
         document.addEventListener('visibilitychange', function () {
             if (document.visibilityState === 'visible') checkWindowState();
         });
@@ -984,7 +1053,6 @@
     } else if (fullscreenEnforced) {
         document.addEventListener('fullscreenchange', checkWindowState);
         document.addEventListener('webkitfullscreenchange', checkWindowState);
-        window.addEventListener('resize', checkWindowState);
         window.addEventListener('focus', checkWindowState);
         setInterval(checkWindowState, windowStateCheckMs);
     }
@@ -1014,17 +1082,14 @@
             ? ws.waitForBrowserFullscreen(5000)
             : (ws.waitForFullscreenOrMaximized ? ws.waitForFullscreenOrMaximized(5000) : Promise.resolve());
         return wait.then(function () {
-            wasFullscreenOrMaximized = isFullscreenOrMaximized();
-            if (wasFullscreenOrMaximized) {
-                hideResizeBlur();
-            }
+            markFullscreenEntered();
         });
     }
 
     if (enterFsBtn) {
         enterFsBtn.addEventListener('click', function() {
             requestQuizFullscreen().then(afterFullscreenEntered).catch(function() {
-                alert('Could not enter full screen. Click the button and allow full screen in your browser, or press F11 (Windows) / Ctrl+Cmd+F (Mac).');
+                showProctorMessage('Could not enter full screen. Click the button and allow full screen in your browser, or press F11 (Windows) / Ctrl+Cmd+F (Mac).', true);
             });
         });
     }
@@ -1032,12 +1097,13 @@
     // Block the quiz until the student is in browser full screen (fullscreen is lost on redirect from quiz-ready).
     if (fullscreenEnforced && !isFullscreenOrMaximized()) {
         wasFullscreenOrMaximized = false;
+        cameraStartDeferred = true;
         showResizeBlur(false);
         if (resizeBlurTitle) resizeBlurTitle.textContent = 'Full screen required';
         if (resizeBlurMessage) resizeBlurMessage.textContent = 'Your quiz runs in browser full screen so tabs and the address bar are hidden. Click below and choose Allow when your browser asks.';
+        fsDebug('quiz load: waiting for fullscreen before camera');
     } else if (fullscreenEnforced && isFullscreenOrMaximized()) {
-        wasFullscreenOrMaximized = true;
-        hideResizeBlur();
+        markFullscreenEntered();
     } else if (!fullscreenEnforced && c.proctoringTabSwitch === false) {
         hideResizeBlur();
     }
@@ -1067,13 +1133,13 @@
             // Check if page is loaded over HTTPS or localhost (required for camera access)
             if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
                 showCameraOffOverlay();
-                alert('Camera access requires HTTPS. Please access this page using https:// or contact your administrator.');
+                showProctorMessage('Camera access requires HTTPS. Please access this page using https:// or contact your administrator.', true);
                 return;
             }
-            
+
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
                 showCameraOffOverlay();
-                alert('Camera is not supported in this browser. Please use a modern browser like Chrome, Firefox, or Safari.');
+                showProctorMessage('Camera is not supported in this browser. Please use a modern browser like Chrome, Firefox, or Safari.', true);
                 return;
             }
             
@@ -1108,7 +1174,10 @@
                     } else if (err.name === 'NotReadableError') {
                         msg = 'Camera is in use by another app. Close it and click "Allow camera & continue" below.';
                     }
-                    alert(msg);
+                    if (resizeBlurMessage && fullscreenEnforced && isFullscreenOrMaximized()) {
+                        resizeBlurMessage.textContent = msg;
+                    }
+                    showProctorMessage(msg, !isFullscreenOrMaximized());
                 });
         }
 
@@ -1269,12 +1338,23 @@
             cameraCheckInterval = setInterval(checkCameraStatus, 2000);
         }
 
-        // Try to start camera immediately (user already allowed on proctoring capture); only show overlay if that fails
+        // Start camera only after fullscreen is active (getUserMedia can exit fullscreen on some browsers).
         var cameraOffAllowBtn = document.getElementById('camera-off-allow-btn');
         if (cameraOffAllowBtn) {
-            cameraOffAllowBtn.addEventListener('click', requestCameraAndContinue);
+            cameraOffAllowBtn.addEventListener('click', function () {
+                requestCameraAndContinue();
+            });
         }
-        requestCameraAndContinue();
+        onFullscreenReadyCallback = function (reason) {
+            if (cameraStream) return;
+            fsDebug('onFullscreenReadyCallback', { reason: reason });
+            requestCameraAndContinue();
+        };
+        if (!fullscreenEnforced || isFullscreenOrMaximized()) {
+            tryStartCameraWhenAllowed('quiz-load-no-fs-gate');
+        } else {
+            fsDebug('camera deferred on load until user enters fullscreen');
+        }
 
         if (navigator.mediaDevices && navigator.mediaDevices.ondevicechange !== undefined) {
             navigator.mediaDevices.addEventListener('devicechange', checkCameraStatus);

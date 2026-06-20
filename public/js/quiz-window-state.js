@@ -31,7 +31,13 @@
     }
 
     function requestFullscreen() {
+        if (isFullscreenOrMaximized()) {
+            fsDebug('requestFullscreen skipped (already active)');
+            return Promise.resolve();
+        }
+        fsDebug('requestFullscreen called');
         var candidates = [document.documentElement, document.body];
+        var options = { navigationUI: 'hide' };
         for (var i = 0; i < candidates.length; i++) {
             var el = candidates[i];
             if (!el) continue;
@@ -40,7 +46,15 @@
                 || el.mozRequestFullScreen
                 || el.msRequestFullscreen;
             if (fn) {
-                return Promise.resolve(fn.call(el));
+                try {
+                    return Promise.resolve(fn.call(el, options));
+                } catch (e1) {
+                    try {
+                        return Promise.resolve(fn.call(el));
+                    } catch (e2) {
+                        return Promise.reject(e2);
+                    }
+                }
             }
         }
         return Promise.reject(new Error('unsupported'));
@@ -82,16 +96,52 @@
         if (typeof onChange !== 'function') {
             return function () {};
         }
-        document.addEventListener('fullscreenchange', onChange);
-        document.addEventListener('webkitfullscreenchange', onChange);
-        document.addEventListener('mozfullscreenchange', onChange);
-        document.addEventListener('MSFullscreenChange', onChange);
+        function wrapped() {
+            fsDebug('fullscreenchange', { active: isFullscreenOrMaximized() });
+            onChange();
+        }
+        document.addEventListener('fullscreenchange', wrapped);
+        document.addEventListener('webkitfullscreenchange', wrapped);
+        document.addEventListener('mozfullscreenchange', wrapped);
+        document.addEventListener('MSFullscreenChange', wrapped);
         return function () {
-            document.removeEventListener('fullscreenchange', onChange);
-            document.removeEventListener('webkitfullscreenchange', onChange);
-            document.removeEventListener('mozfullscreenchange', onChange);
-            document.removeEventListener('MSFullscreenChange', onChange);
+            document.removeEventListener('fullscreenchange', wrapped);
+            document.removeEventListener('webkitfullscreenchange', wrapped);
+            document.removeEventListener('mozfullscreenchange', wrapped);
+            document.removeEventListener('MSFullscreenChange', wrapped);
         };
+    }
+
+    function fsDebugEnabled() {
+        try {
+            if (window.QuizSnapFsDebug === true) return true;
+            if (sessionStorage.getItem('quizsnap_fs_debug') === '1') return true;
+            return /(?:\?|&)fsdebug=1(?:&|$)/.test(window.location.search || '');
+        } catch (e) {
+            return false;
+        }
+    }
+
+    function fsDebug(message, detail) {
+        if (!fsDebugEnabled()) return;
+        var payload = detail !== undefined ? detail : '';
+        console.log('[QuizSnap FS]', message, payload);
+        try {
+            var hud = document.getElementById('quizsnap-fs-debug-hud');
+            if (!hud) {
+                hud = document.createElement('div');
+                hud.id = 'quizsnap-fs-debug-hud';
+                hud.setAttribute('aria-hidden', 'true');
+                hud.style.cssText = 'position:fixed;bottom:8px;left:8px;z-index:99999;max-width:90vw;padding:6px 8px;font:11px/1.35 monospace;background:rgba(0,0,0,.82);color:#a7f3d0;border-radius:6px;pointer-events:none;white-space:pre-wrap;';
+                document.body.appendChild(hud);
+            }
+            var line = message + (payload && typeof payload === 'object' ? ' ' + JSON.stringify(payload) : (payload ? ' ' + payload : ''));
+            hud.textContent = line + '\n' + (hud.textContent || '').split('\n').slice(0, 4).join('\n');
+        } catch (e) { /* ignore */ }
+    }
+
+    if (fsDebugEnabled()) {
+        console.log('[QuizSnap FS] Debug logging enabled (?fsdebug=1 or sessionStorage quizsnap_fs_debug=1)');
     }
 
     window.QuizSnapWindowState = {
@@ -101,6 +151,7 @@
         requestMaximizeOrFullscreen: requestMaximizeOrFullscreen,
         waitForBrowserFullscreen: waitForBrowserFullscreen,
         waitForFullscreenOrMaximized: waitForFullscreenOrMaximized,
-        bindFullscreenSync: bindFullscreenSync
+        bindFullscreenSync: bindFullscreenSync,
+        fsDebug: fsDebug
     };
 })();

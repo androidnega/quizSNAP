@@ -16,6 +16,7 @@
         }
 
         var ws = window.QuizSnapWindowState || {};
+        var fsDebug = ws.fsDebug || function () {};
         var gate = document.getElementById(options.gateId || 'quiz-fs-gate');
         var gateBtn = document.getElementById(options.gateBtnId || 'quiz-fs-gate-btn');
         var gateHint = document.getElementById(options.gateHintId || 'quiz-fs-gate-hint');
@@ -75,11 +76,41 @@
         }
 
         function syncGate() {
+            fsDebug('quiz-ready syncGate', { ok: isOk() });
             if (isOk()) {
                 unlockStart();
             } else {
                 lockStart();
             }
+        }
+
+        function startQuizSession() {
+            if (!startForm) return Promise.reject(new Error('no form'));
+            var formData = new FormData(startForm);
+            var csrf = formData.get('_token') || '';
+            fsDebug('quiz-ready starting session via fetch');
+            return fetch(startForm.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': csrf
+                }
+            })
+                .then(function (r) {
+                    return r.json().then(function (data) {
+                        return { ok: r.ok, data: data };
+                    });
+                })
+                .then(function (res) {
+                    if (!res.ok || !res.data.success) {
+                        throw new Error(res.data.message || 'Could not start quiz.');
+                    }
+                    if (startBtn) startBtn.disabled = true;
+                    fsDebug('quiz-ready session started, navigating (fullscreen will reset on navigation)');
+                    window.location.href = res.data.redirect || startForm.action;
+                });
         }
 
         if (gateBtn) {
@@ -96,22 +127,18 @@
 
         if (startForm) {
             startForm.addEventListener('submit', function (e) {
+                e.preventDefault();
                 if (!isOk()) {
-                    e.preventDefault();
                     lockStart();
                     alert('You must be in browser full screen before starting the quiz. Click "Enter full screen" first.');
                     return;
                 }
-                e.preventDefault();
-                requestFs()
-                    .then(waitReady)
-                    .then(function () {
-                        HTMLFormElement.prototype.submit.call(startForm);
-                    })
-                    .catch(function () {
-                        alert('Could not enter full screen. Click "Enter full screen" and allow it in your browser, then try Start Quiz again.');
-                        syncGate();
-                    });
+                if (startBtn) startBtn.disabled = true;
+                startQuizSession().catch(function (err) {
+                    if (startBtn) startBtn.disabled = false;
+                    alert(err && err.message ? err.message : 'Could not start quiz. Try again.');
+                    syncGate();
+                });
             });
         }
 

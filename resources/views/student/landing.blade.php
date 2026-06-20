@@ -472,7 +472,7 @@
         position: relative;
         z-index: 1;
         width: 100%;
-        max-width: 36rem;
+        max-width: 32rem;
         margin: 0;
         border-radius: 1.375rem;
         overflow: hidden;
@@ -483,12 +483,22 @@
             0 0 0 1px rgba(255, 255, 255, 0.6) inset,
             0 24px 48px -20px rgba(245, 158, 11, 0.28);
         transition: transform 0.35s ease, box-shadow 0.35s ease;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+
+    .qs-hero-photo__shield {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        cursor: default;
     }
 
     .qs-hero-photo::after {
         content: '';
         position: absolute;
         inset: 0;
+        z-index: 3;
         border-radius: inherit;
         pointer-events: none;
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
@@ -501,17 +511,20 @@
         aspect-ratio: 720 / 479;
         object-fit: cover;
         vertical-align: middle;
+        -webkit-user-drag: none;
+        user-drag: none;
+        pointer-events: none;
     }
 
     @media (min-width: 768px) {
         .qs-hero-visual {
             justify-content: flex-end;
             align-self: stretch;
-            min-height: 22rem;
+            min-height: 20rem;
         }
 
         .qs-hero-photo {
-            max-width: none;
+            max-width: 28rem;
             width: 100%;
         }
 
@@ -684,9 +697,9 @@
             <div class="qs-hero-visual">
                 <div class="qs-blob qs-blob-1" aria-hidden="true"></div>
                 <div class="qs-blob qs-blob-2" aria-hidden="true"></div>
-                <figure class="qs-hero-photo @if($mobileHeroImage !== '') qs-hero-photo--banner @endif">
+                <figure class="qs-hero-photo @if($mobileHeroImage !== '') qs-hero-photo--banner @endif" oncontextmenu="return false;">
                     <picture>
-                        <source media="(max-width: 767px)" srcset="{{ e($mobileHeroImage !== '' ? $mobileHeroImage : asset('images/landing/hero-student-mobile.webp')) }}">
+                        <source media="(max-width: 767px)" srcset="{{ e($mobileHeroImage !== '' ? $mobileHeroImage : asset('images/landing/hero-student-mobile.webp')) }}" type="image/webp">
                         <img
                             src="{{ asset('images/landing/hero-student.webp') }}"
                             alt="Student using {{ $appName }} for online assessments"
@@ -694,8 +707,10 @@
                             height="479"
                             loading="eager"
                             decoding="async"
-                            fetchpriority="high">
+                            fetchpriority="high"
+                            draggable="false">
                     </picture>
+                    <span class="qs-hero-photo__shield" aria-hidden="true"></span>
                 </figure>
             </div>
 

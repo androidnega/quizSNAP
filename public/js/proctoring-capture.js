@@ -5,7 +5,9 @@
 (function () {
     const root = document.getElementById('proctoring-capture-root');
     const captureMain = document.getElementById('proctoring-capture-main');
-    const faceVerifiedPopup = document.getElementById('face-verified-popup');
+    const faceVerifiedPanel = document.getElementById('face-verified-panel');
+    const captureActions = document.getElementById('capture-actions');
+    const captureGuidance = document.getElementById('capture-guidance');
 
     function initLayout() {
         if (captureMain) {
@@ -95,38 +97,45 @@
         if (faceStatusTextEl) faceStatusTextEl.textContent = message || '';
         if (!faceStatusEl) return;
 
-        faceStatusEl.classList.remove('border-blue-200', 'bg-blue-50', 'border-green-200', 'bg-green-50', 'border-red-200', 'bg-red-50');
+        faceStatusEl.classList.remove('face-status-pending', 'face-status-ok', 'face-status-error');
         if (type === 'ok') {
-            faceStatusEl.classList.add('border-green-200', 'bg-green-50');
-            if (faceStatusTextEl) faceStatusTextEl.className = 'text-xs text-green-700';
-            // Solid green stroke when face is valid
+            faceStatusEl.classList.add('face-status-ok');
             if (videoContainer) {
-                videoContainer.classList.remove('border-gray-200', 'border-red-400');
-                videoContainer.classList.add('border-green-500');
-                videoContainer.style.boxShadow = 'none';
-                videoContainer.style.borderWidth = '3px';
+                videoContainer.classList.remove('border-gray-200', 'face-frame-error');
+                videoContainer.classList.add('face-frame-ok');
             }
         } else if (type === 'error') {
-            faceStatusEl.classList.add('border-red-200', 'bg-red-50');
-            if (faceStatusTextEl) faceStatusTextEl.className = 'text-xs text-red-700';
-            // Red border on video container
+            faceStatusEl.classList.add('face-status-error');
             if (videoContainer) {
-                videoContainer.classList.remove('border-gray-200', 'border-green-500');
-                videoContainer.classList.add('border-red-400');
-                videoContainer.style.boxShadow = 'none';
-                videoContainer.style.borderWidth = '2px';
+                videoContainer.classList.remove('border-gray-200', 'face-frame-ok');
+                videoContainer.classList.add('face-frame-error');
             }
         } else {
-            faceStatusEl.classList.add('border-blue-200', 'bg-blue-50');
-            if (faceStatusTextEl) faceStatusTextEl.className = 'text-xs text-blue-700';
-            // Default gray border
+            faceStatusEl.classList.add('face-status-pending');
             if (videoContainer) {
-                videoContainer.classList.remove('border-green-500', 'border-red-400');
+                videoContainer.classList.remove('face-frame-ok', 'face-frame-error');
                 videoContainer.classList.add('border-gray-200');
-                videoContainer.style.boxShadow = 'none';
                 videoContainer.style.borderWidth = '2px';
             }
         }
+    }
+
+    function showVerifiedState() {
+        if (faceVerifiedPanel) {
+            faceVerifiedPanel.classList.remove('hidden');
+            faceVerifiedPanel.classList.add('flex');
+        }
+        if (captureGuidance) captureGuidance.classList.add('hidden');
+        if (captureActions) captureActions.classList.add('hidden');
+    }
+
+    function hideVerifiedState() {
+        if (faceVerifiedPanel) {
+            faceVerifiedPanel.classList.add('hidden');
+            faceVerifiedPanel.classList.remove('flex');
+        }
+        if (captureGuidance) captureGuidance.classList.remove('hidden');
+        if (captureActions) captureActions.classList.remove('hidden');
     }
 
     function isVideoReady() {
@@ -137,30 +146,22 @@
         if (!captureBtn) return;
         if (!stream) {
             captureBtn.disabled = false;
-            captureBtn.classList.remove('bg-green-600', 'hover:bg-green-700', 'text-white', 'border-green-600');
-            captureBtn.classList.add('border-sky-400', 'bg-sky-50', 'text-sky-800');
             setButtonText('Allow camera & continue');
             hideLoading();
             return;
         }
         if (!videoReady) {
             captureBtn.disabled = true;
-            captureBtn.classList.remove('bg-green-600', 'hover:bg-green-700', 'text-white', 'border-green-600');
-            captureBtn.classList.add('border-sky-400', 'bg-sky-50', 'text-sky-800');
             setButtonText('Waiting for camera...');
             return;
         }
         if (!detectorReady) {
             captureBtn.disabled = true;
-            captureBtn.classList.remove('bg-green-600', 'hover:bg-green-700', 'text-white', 'border-green-600');
-            captureBtn.classList.add('border-sky-400', 'bg-sky-50', 'text-sky-800');
             setButtonText('Preparing verification...');
             return;
         }
         if (!liveFaceValid) {
             captureBtn.disabled = true;
-            captureBtn.classList.remove('bg-green-600', 'hover:bg-green-700', 'text-white', 'border-green-600');
-            captureBtn.classList.add('border-sky-400', 'bg-sky-50', 'text-sky-800');
             if (readySinceMs && detectorReady && videoReady) {
                 const heldMs = Date.now() - readySinceMs;
                 if (heldMs < STANDARD_HEADSHOT.stableHoldMs) {
@@ -174,19 +175,8 @@
             }
             return;
         }
-        // All checks passed - enable button and make it green
-        if (captureBtn) {
-            captureBtn.disabled = false;
-            captureBtn.classList.remove('border-sky-400', 'bg-sky-50', 'text-sky-800');
-            captureBtn.classList.add('bg-green-600', 'hover:bg-green-700', 'text-white', 'border-green-600');
-            setButtonText('Capture photo');
-            console.log('Button enabled - all conditions met:', {
-                liveFaceValid: liveFaceValid,
-                detectorReady: detectorReady,
-                videoReady: videoReady,
-                stream: !!stream
-            });
-        }
+        captureBtn.disabled = false;
+        setButtonText('Capture photo');
     }
 
     function analyzeDetections(predictions) {
@@ -636,7 +626,7 @@
             return;
         }
         if (!liveFaceValid) {
-            alert('Please center your face in the frame and wait for the green border before capturing.');
+            alert('Please center your face in the frame and wait for the highlighted border before capturing.');
             return;
         }
         if (!detectorReady || !model) {
@@ -660,11 +650,8 @@
                 return;
             }
 
-            setFaceStatus('Face verified. Sending...', 'ok');
-            if (faceVerifiedPopup) {
-                faceVerifiedPopup.classList.remove('hidden');
-                faceVerifiedPopup.classList.add('flex');
-            }
+            setFaceStatus('Face verified. Sending…', 'ok');
+            showVerifiedState();
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             const ctx = canvas.getContext('2d');
@@ -672,10 +659,6 @@
             const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
 
             function doSubmit() {
-                if (faceVerifiedPopup) {
-                    faceVerifiedPopup.classList.add('hidden');
-                    faceVerifiedPopup.classList.remove('flex');
-                }
                 fetch(config.storeUrl || '/student/proctoring/capture', {
                 method: 'POST',
                 headers: {
@@ -701,16 +684,20 @@
                         stopCamera();
                         window.location.href = data.redirect;
                     } else {
+                        hideVerifiedState();
                         showError(data.message || 'Failed to start quiz. Please try again.');
                         captureBtn.disabled = false;
                         setButtonText('Capture photo');
+                        setFaceStatus('Could not continue. Try again.', 'error');
                         startLiveFaceLoop();
                     }
                 })
                 .catch(function (err) {
+                    hideVerifiedState();
                     showError(err && err.message ? err.message : 'Network error. Check your connection and try again.');
                     captureBtn.disabled = false;
                     setButtonText('Capture photo');
+                    setFaceStatus('Could not continue. Try again.', 'error');
                     startLiveFaceLoop();
                 });
             }

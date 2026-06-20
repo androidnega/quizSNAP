@@ -76,9 +76,20 @@ class FixPullController extends Controller
         $body .= implode("\n", $outReset) . "\n";
         $body .= "Exit code: {$codeReset}\n\n";
 
+        // Step 2b: refresh Composer autoload (new classes after pull)
+        $cmdComposer = sprintf('cd %s && composer install --no-dev --optimize-autoloader --no-interaction 2>&1', escapeshellarg($basePath));
+        $outComposer = [];
+        exec($cmdComposer, $outComposer, $codeComposer);
+        $body .= "Step 2b: composer install --no-dev\n";
+        $body .= implode("\n", array_slice($outComposer, -8)) . "\n";
+        $body .= "Exit code: {$codeComposer}\n\n";
+
         // Step 3: clear Laravel caches (config, route, view, cache)
         $body .= "Step 3: Clear caches\n";
         try {
+            foreach (glob($basePath.'/bootstrap/cache/*.php') ?: [] as $cacheFile) {
+                @unlink($cacheFile);
+            }
             \Illuminate\Support\Facades\Artisan::call('optimize:clear');
             $body .= "Caches cleared (optimize:clear).\n\n";
         } catch (\Throwable $e) {

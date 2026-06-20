@@ -20,6 +20,7 @@ else
   fi
 fi
 
+$PHP_BIN artisan optimize:clear
 $PHP_BIN artisan config:cache
 $PHP_BIN artisan route:cache
 # Do not pre-compile views as root/deploy user — PHP-FPM (www-data) must write storage/framework/views at runtime.

@@ -31,10 +31,18 @@ class ClearCacheController extends Controller
         $lines[] = '';
 
         try {
+            $lines[] = 'Removing stale bootstrap cache files...';
+            $removed = $this->removeBootstrapCacheFiles();
+            $lines[] = $removed > 0
+                ? "Removed {$removed} file(s) from bootstrap/cache."
+                : 'No bootstrap cache files to remove.';
+            $lines[] = '';
+
             $lines[] = 'Running: optimize:clear';
             Artisan::call('optimize:clear');
             $lines[] = trim(Artisan::output()) ?: 'All caches cleared.';
             $lines[] = '';
+
             $lines[] = 'Fixing storage permissions...';
             $perm = StoragePermissions::fix(base_path());
             foreach ($perm['lines'] as $line) {
@@ -51,11 +59,34 @@ class ClearCacheController extends Controller
                 }
             }
         } catch (\Throwable $e) {
-            $lines[] = 'Something went wrong while clearing caches. Please try again or contact support.';
+            $lines[] = 'Artisan clear failed: '.$e->getMessage();
+            $lines[] = 'Attempting manual bootstrap cache cleanup...';
+            $removed = $this->removeBootstrapCacheFiles();
+            $lines[] = "Removed {$removed} bootstrap cache file(s). Reload the site.";
         }
 
         return response(implode("\n", $lines), 200, [
             'Content-Type' => 'text/plain; charset=utf-8',
         ]);
+    }
+
+    private function removeBootstrapCacheFiles(): int
+    {
+        $dir = base_path('bootstrap/cache');
+        if (! is_dir($dir)) {
+            return 0;
+        }
+
+        $removed = 0;
+        foreach (glob($dir.'/*.php') ?: [] as $file) {
+            if (! is_file($file)) {
+                continue;
+            }
+            if (@unlink($file)) {
+                $removed++;
+            }
+        }
+
+        return $removed;
     }
 }

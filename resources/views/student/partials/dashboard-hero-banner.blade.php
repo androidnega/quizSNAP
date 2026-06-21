@@ -31,8 +31,8 @@
 @if($showBanner)
 @if($mode === 'image' && ($usesBundledBanner || ! empty($bannerImageUrl)))
 {{-- Wide hero banner (1024×394): responsive WebP with JPEG fallback --}}
-<section aria-label="Dashboard banner" class="w-full min-w-0">
-    <figure class="relative m-0 w-full min-w-0 overflow-hidden rounded-2xl lg:rounded-3xl bg-[#fef9e7] aspect-[999/291] xl:aspect-[999/220]">
+<section aria-label="Dashboard banner" class="w-full min-w-0 h-full flex flex-col">
+    <figure class="relative m-0 w-full flex-1 min-h-[140px] overflow-hidden rounded-2xl lg:rounded-3xl bg-[#fef9e7] aspect-[999/291] lg:aspect-auto lg:min-h-[168px]">
         @if($usesBundledBanner)
         <picture>
             <source type="image/webp"
@@ -64,9 +64,9 @@
 </section>
 @elseif($mode === 'image_text')
 {{-- Image + text: text left, image right --}}
-<section aria-label="Dashboard banner" class="w-full min-w-0">
-    <div class="overflow-hidden rounded-2xl lg:rounded-3xl border border-slate-200 bg-white shadow-[0_4px_24px_rgba(15,23,42,0.08)]">
-        <div class="grid grid-cols-1 lg:grid-cols-2 lg:min-h-[152px] xl:min-h-[168px]">
+<section aria-label="Dashboard banner" class="w-full min-w-0 h-full flex flex-col">
+    <div class="overflow-hidden rounded-2xl lg:rounded-3xl border border-slate-200 bg-white shadow-[0_4px_24px_rgba(15,23,42,0.08)] h-full flex flex-col">
+        <div class="grid grid-cols-1 lg:grid-cols-2 flex-1 lg:min-h-[168px]">
             <div class="flex flex-col justify-center px-5 py-4 sm:px-6 sm:py-5 lg:px-8 lg:py-6 order-2 lg:order-1">
                 <h2 class="text-lg sm:text-xl lg:text-2xl xl:text-[1.65rem] font-extrabold text-slate-900 leading-snug tracking-tight">
                     {{ $banner['title'] }}

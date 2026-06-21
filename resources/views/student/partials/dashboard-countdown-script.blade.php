@@ -9,9 +9,11 @@
     var mobilePanel = document.querySelector('.glance-mobile-quiz-panel--countdown');
     var mobileCta = mobilePanel && mobilePanel.querySelector('.glance-mobile-quiz-panel__cta');
     var modernCard = document.querySelector('.md-dash__course-card--countdown');
+    var featuredCard = document.querySelector('.sd-featured-quiz__card--countdown');
     var cardLink = document.querySelector('.glance-card--emerald .glance-card__body[data-rules-url]')
         || document.querySelector('.glance-card--emerald .glance-card__body');
-    var rulesUrl = (modernCard && modernCard.getAttribute('data-rules-url'))
+    var rulesUrl = (featuredCard && featuredCard.getAttribute('data-rules-url'))
+        || (modernCard && modernCard.getAttribute('data-rules-url'))
         || (mobilePanel && mobilePanel.getAttribute('data-rules-url'))
         || (cardLink && cardLink.getAttribute('data-rules-url'));
 
@@ -28,6 +30,9 @@
     function setStartState() {
         var label = 'Start quiz';
         countdownNodes.forEach(function(node) {
+            if (node.classList.contains('sd-featured-quiz__countdown')) {
+                return;
+            }
             node.textContent = label;
             node.classList.remove('glance-card__cta--countdown', 'md-dash__course-cta--countdown');
             node.classList.add('glance-card__cta--start', 'md-dash__course-cta--start');
@@ -56,6 +61,13 @@
         if (cardLink && rulesUrl) {
             cardLink.href = rulesUrl;
         }
+        if (featuredCard) {
+            featuredCard.classList.remove('sd-featured-quiz__card--countdown');
+            featuredCard.classList.add('sd-featured-quiz__card--ready', 'is-ready');
+            if (rulesUrl) {
+                featuredCard.href = rulesUrl;
+            }
+        }
     }
 
     function update() {
@@ -66,8 +78,13 @@
             return;
         }
         var text = 'Starts in ' + formatCountdown(left);
+        var featuredTime = formatCountdown(left);
         countdownNodes.forEach(function(node) {
-            node.textContent = text;
+            if (node.classList.contains('sd-featured-quiz__countdown')) {
+                node.textContent = featuredTime;
+            } else {
+                node.textContent = text;
+            }
         });
         if (mobileCta) {
             var mobileCountdown = mobileCta.querySelector('[data-quiz-countdown="{{ $scheduledQuiz->id }}"]');

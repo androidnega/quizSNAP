@@ -34,3 +34,6 @@ composer.phar
 .vscode
 *.swp
 *.swo
+
+:memory:
+.phpunit.result.cache

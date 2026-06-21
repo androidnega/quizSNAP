@@ -15,6 +15,10 @@
         }, delayMs || 350);
     }
 
+    function isStudentDashboardPage() {
+        return !!document.getElementById('student-dashboard-wrap');
+    }
+
     function pageConfig() {
         var path = String(window.location.pathname || '');
 
@@ -29,8 +33,10 @@
             return null;
         }
 
-        if (/\/dashboard\/my-quizzes/.test(path)) {
-            return { reloadTypes: ['dashboard'] };
+        // Student dashboard (home, quizzes, profile, etc.): never full-page reload.
+        // Partial updates are handled in layouts/student-dashboard via registerRefresher.
+        if (isStudentDashboardPage()) {
+            return null;
         }
         if (/\/dashboard\/quizzes\/?$/.test(path)) {
             return { reloadTypes: ['quizzes', 'dashboard'] };

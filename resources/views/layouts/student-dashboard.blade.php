@@ -150,7 +150,9 @@
                 @include('student.partials.dashboard-pill-nav', ['class' => 'lg:hidden mb-4', 'compact' => true, 'mobile' => true])
             @endif
 
-            @yield('dashboard_content')
+            <div id="student-dashboard-live">
+                @yield('dashboard_content')
+            </div>
         </div>
     </main>
 
@@ -209,6 +211,76 @@
 @endsection
 @push('scripts')
 @include('student.partials.marketing-support-scripts')
+<script>
+(function () {
+    'use strict';
+
+    var liveRootId = 'student-dashboard-live';
+    var refreshTimer = null;
+
+    function shouldSoftRefresh(path) {
+        if (!document.getElementById('student-dashboard-wrap')) {
+            return false;
+        }
+        return /\/dashboard\/my-quizzes\/?$/.test(path);
+    }
+
+    function softRefreshContent() {
+        var root = document.getElementById(liveRootId);
+        if (!root) {
+            return;
+        }
+
+        fetch(window.location.href, {
+            credentials: 'same-origin',
+            cache: 'no-store',
+            headers: {
+                Accept: 'text/html',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Cache-Control': 'no-cache',
+            },
+        })
+            .then(function (response) {
+                return response.ok ? response.text() : null;
+            })
+            .then(function (html) {
+                if (!html) {
+                    return;
+                }
+                var doc = new DOMParser().parseFromString(html, 'text/html');
+                var next = doc.getElementById(liveRootId);
+                if (!next) {
+                    return;
+                }
+                root.innerHTML = next.innerHTML;
+            })
+            .catch(function () {});
+    }
+
+    function scheduleSoftRefresh() {
+        if (refreshTimer) {
+            return;
+        }
+        refreshTimer = setTimeout(function () {
+            refreshTimer = null;
+            softRefreshContent();
+        }, 500);
+    }
+
+    if (window.QuizSnapLive && typeof window.QuizSnapLive.registerRefresher === 'function') {
+        window.QuizSnapLive.registerRefresher(function (type) {
+            var path = String(window.location.pathname || '');
+            if (!shouldSoftRefresh(path)) {
+                return;
+            }
+            var eventType = String(type || '').toLowerCase();
+            if (eventType === 'dashboard' || eventType === 'quizzes' || eventType === 'sessions') {
+                scheduleSoftRefresh();
+            }
+        });
+    }
+})();
+</script>
 <script>
 (function() {
     var vapidPublicKey = @json($vapidPublicKey);

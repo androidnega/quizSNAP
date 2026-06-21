@@ -20,7 +20,8 @@ class SeedStudentQuizResultCommand extends Command
 {
     protected $signature = 'quiz:seed-student-result
         {index : Student index number, e.g. BC/ITS/24/023}
-        {--quiz-title=PRINCIPLES OF MANAGEMENT QUIZ JUNE 2026 : Quiz title to match}
+        {--quiz-title=PRINCIPLES OF MANAGEMENT QUIZ JUNE 2026 : Quiz title to match (ignored when --quiz-id is set)}
+        {--quiz-id= : Quiz database id (preferred when multiple quizzes share a similar title)}
         {--correct=17 : Number of correct answers}
         {--total=20 : Total questions for the attempt}
         {--head-turns=3 : Number of head_turn violations to record}
@@ -44,13 +45,18 @@ class SeedStudentQuizResultCommand extends Command
             return Command::FAILURE;
         }
 
-        $quiz = Quiz::query()
-            ->where(function ($query) use ($quizTitle): void {
-                $query->whereRaw('UPPER(TRIM(title)) = ?', [strtoupper($quizTitle)])
-                    ->orWhere('title', 'like', '%'.$quizTitle.'%');
-            })
-            ->orderByRaw('CASE WHEN UPPER(TRIM(title)) = ? THEN 0 ELSE 1 END', [strtoupper($quizTitle)])
-            ->first();
+        $quizId = $this->option('quiz-id');
+        if ($quizId !== null && $quizId !== '') {
+            $quiz = Quiz::query()->find((int) $quizId);
+        } else {
+            $quiz = Quiz::query()
+                ->where(function ($query) use ($quizTitle): void {
+                    $query->whereRaw('UPPER(TRIM(title)) = ?', [strtoupper($quizTitle)])
+                        ->orWhere('title', 'like', '%'.$quizTitle.'%');
+                })
+                ->orderByRaw('CASE WHEN UPPER(TRIM(title)) = ? THEN 0 ELSE 1 END', [strtoupper($quizTitle)])
+                ->first();
+        }
 
         if (! $quiz) {
             $this->error('Quiz not found: '.$quizTitle);
@@ -235,6 +241,7 @@ class SeedStudentQuizResultCommand extends Command
 
         $session = QuizSession::with('result')->findOrFail($sessionId);
         $this->info('Session #'.$session->id.' ready for '.$index.' on quiz #'.$quiz->id.' ('.$quiz->title.')');
+        $this->line('Admin URL: /dashboard/quizzes/'.$quiz->id.'/sessions/'.$session->id);
         $this->line('Score: '.$session->result?->correct_count.'/'.$session->result?->total_questions.' ('.round((float) $session->result?->score, 0).'%)');
         $this->line('Violations: '.$session->violations()->where('type', 'head_turn')->count().' head_turn');
 

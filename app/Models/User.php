@@ -140,6 +140,22 @@ class User extends Authenticatable
         ];
     }
 
+    /** Roles a Super Admin can assign when creating or editing staff accounts. */
+    public static function superAdminCreatableRoles(): array
+    {
+        return [
+            self::ROLE_SUPER_ADMIN => 'Admin',
+            self::ROLE_SYSTEM_ADMIN => 'System Monitor',
+            self::ROLE_EXAMINER => 'Examiner',
+            self::ROLE_COORDINATOR => 'Coordinator',
+        ];
+    }
+
+    public static function superAdminCreatableRoleKeys(): array
+    {
+        return array_keys(self::superAdminCreatableRoles());
+    }
+
     public function assignedCourseIds(): array
     {
         if ($this->isSuperAdmin() || $this->isCoordinator()) {

@@ -46,14 +46,26 @@
                 <div>
                     <label for="role" class="block text-xs font-medium text-gray-500 mb-0.5">Role</label>
                     <select name="role" id="role" required class="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:ring-1 focus:ring-gray-300 focus:outline-none @error('role') border-red-500 @enderror">
-                        <option value="super_admin" {{ old('role', $user->role) === 'super_admin' ? 'selected' : '' }}>Admin</option>
-                        <option value="examiner" {{ old('role', $user->role) === 'examiner' ? 'selected' : '' }}>Examiner</option>
-                        <option value="coordinator" {{ old('role', $user->role) === 'coordinator' ? 'selected' : '' }}>Coordinator</option>
+                        @foreach(\App\Models\User::superAdminCreatableRoles() as $roleValue => $roleLabel)
+                            <option value="{{ $roleValue }}" {{ old('role', $user->role) === $roleValue ? 'selected' : '' }}>{{ $roleLabel }}</option>
+                        @endforeach
                     </select>
                     @error('role')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
                 </div>
                 @else
                 <input type="hidden" name="role" value="{{ $user->role }}">
+                @endif
+                @if(auth()->user()->isSuperAdmin() && in_array($user->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_SYSTEM_ADMIN], true))
+                <div>
+                    <label for="password" class="block text-xs font-medium text-gray-500 mb-0.5">New password (leave blank to keep current)</label>
+                    <input type="password" name="password" id="password" placeholder="Set or reset password" minlength="8" autocomplete="new-password" class="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:ring-1 focus:ring-gray-300 focus:outline-none @error('password') border-red-500 @enderror">
+                    <p class="mt-1 text-xs text-gray-500">At least 8 characters, including one letter and one number.</p>
+                    @error('password')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label for="password_confirmation" class="block text-xs font-medium text-gray-500 mb-0.5">Confirm new password</label>
+                    <input type="password" name="password_confirmation" id="password_confirmation" class="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:ring-1 focus:ring-gray-300 focus:outline-none">
+                </div>
                 @endif
                 @else
                 <input type="hidden" name="username" value="{{ $user->username }}">
@@ -113,7 +125,7 @@
                     </select>
                     @error('institution_id')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
                 </div>
-                @elseif($user->role === \App\Models\User::ROLE_SUPER_ADMIN)
+                @elseif(in_array($user->role, [\App\Models\User::ROLE_SUPER_ADMIN, \App\Models\User::ROLE_SYSTEM_ADMIN], true))
                 <input type="hidden" name="institution_id" value="{{ $user->institution_id }}">
                 <input type="hidden" name="sms_allocation" value="{{ $user->sms_allocation ?? 0 }}">
                 @endif

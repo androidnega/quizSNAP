@@ -62,6 +62,7 @@ class UserManagementController extends Controller
             if ($user->id === $primarySuperAdminId) {
                 $query->whereIn('role', [
                     User::ROLE_SUPER_ADMIN,
+                    User::ROLE_SYSTEM_ADMIN,
                     User::ROLE_EXAMINER,
                     User::ROLE_COORDINATOR,
                 ]);
@@ -108,7 +109,17 @@ class UserManagementController extends Controller
         $faculties = collect();
         $departments = collect();
         $sendSmsOnStaffCreation = Setting::getValue(Setting::KEY_SEND_SMS_ON_STAFF_CREATION, '0') === '1';
-        return view('admin.users.create', compact('institutions', 'faculties', 'departments', 'isSuperAdmin', 'canCreateSuperAdmin', 'sendSmsOnStaffCreation'));
+        $creatableRoles = User::superAdminCreatableRoles();
+
+        return view('admin.users.create', compact(
+            'institutions',
+            'faculties',
+            'departments',
+            'isSuperAdmin',
+            'canCreateSuperAdmin',
+            'sendSmsOnStaffCreation',
+            'creatableRoles'
+        ));
     }
 
     public function store(Request $request): RedirectResponse
@@ -121,8 +132,9 @@ class UserManagementController extends Controller
             abort(403, UserFriendlyMessages::ADMIN_ONLY);
         }
         $primarySuperAdminId = User::where('role', User::ROLE_SUPER_ADMIN)->min('id');
+        $creatableRoles = User::superAdminCreatableRoleKeys();
         $canCreateSuperAdmin = $isSuperAdmin && $user;
-        
+
         $courseIds = $user ? $user->assignedCourseIds() : [];
         $role = $request->role;
         $isStaffRole = in_array($role, [User::ROLE_EXAMINER, User::ROLE_COORDINATOR], true);
@@ -134,7 +146,7 @@ class UserManagementController extends Controller
             'email' => 'nullable|email|max:255',
             'name' => 'nullable|string|max:255',
             'role' => $canCreateSuperAdmin
-                ? 'required|in:super_admin,examiner,coordinator'
+                ? 'required|in:' . implode(',', $creatableRoles)
                 : 'required|in:examiner,coordinator',
         ];
         if ($useSmsFlow) {
@@ -267,12 +279,11 @@ class UserManagementController extends Controller
         $currentUser = $this->adminUser();
         $isSuperAdmin = $currentUser && $currentUser->isSuperAdmin();
         
-        $allowedRoles = [User::ROLE_SUPER_ADMIN, User::ROLE_EXAMINER, User::ROLE_COORDINATOR];
-        if (! in_array($user->role, $allowedRoles, true)) {
+        if (! $this->isManageableStaffUser($user)) {
             return redirect()->route('dashboard.users.index')
                 ->with('error', UserFriendlyMessages::NOT_FOUND);
         }
-        
+
         // Examiners can only edit themselves (coordinators may edit examiners in scope for AI tokens)
         $isCoordinatorManager = $currentUser && $currentUser->isCoordinator() && ! $isSuperAdmin;
         if (! $isSuperAdmin && ! $isCoordinatorManager && $currentUser && $currentUser->id !== $user->id) {
@@ -281,7 +292,7 @@ class UserManagementController extends Controller
         if ($isCoordinatorManager && $currentUser->id !== $user->id && ! $this->canManageExaminerAiTokens($currentUser, $user)) {
             abort(403, UserFriendlyMessages::ACCESS_DENIED);
         }
-        
+
         $user->load(['courses', 'institution', 'faculty', 'department']);
         $courseIds = $currentUser ? $currentUser->assignedCourseIds() : [];
         $courses = Course::where('is_archived', false)
@@ -335,12 +346,11 @@ class UserManagementController extends Controller
         $currentUser = $this->adminUser();
         $isSuperAdmin = $currentUser && $currentUser->isSuperAdmin();
         
-        $allowedRoles = [User::ROLE_SUPER_ADMIN, User::ROLE_EXAMINER, User::ROLE_COORDINATOR];
-        if (! in_array($user->role, $allowedRoles, true)) {
+        if (! $this->isManageableStaffUser($user)) {
             return redirect()->route('dashboard.users.index')
                 ->with('error', UserFriendlyMessages::NOT_FOUND);
         }
-        
+
         // Examiners can only edit themselves (coordinators may edit examiners in scope for AI tokens)
         $isCoordinatorManager = $currentUser && $currentUser->isCoordinator() && ! $isSuperAdmin;
         if (! $isSuperAdmin && ! $isCoordinatorManager && $currentUser && $currentUser->id !== $user->id) {
@@ -377,7 +387,10 @@ class UserManagementController extends Controller
         
         // Only Super Admin can change roles
         if ($isSuperAdmin) {
-            $rules['role'] = 'required|in:super_admin,examiner,coordinator,student,leader';
+            $rules['role'] = 'required|in:' . implode(',', array_merge(
+                User::superAdminCreatableRoleKeys(),
+                ['student', 'leader']
+            ));
         }
         
         // Only Super Admin can assign institution, faculty, department, and SMS allocation (no courses)
@@ -421,8 +434,13 @@ class UserManagementController extends Controller
         if ($isSuperAdmin && $request->has('role')) {
             $user->role = $request->role;
         }
+        if ($user->role === User::ROLE_SYSTEM_ADMIN) {
+            $user->institution_id = null;
+            $user->faculty_id = null;
+            $user->department_id = null;
+        }
         // If examiner is updating, role is preserved via hidden input and not changed
-        
+
         if ($request->filled('password')) {
             $user->password = Hash::make($request->password);
         }
@@ -585,7 +603,7 @@ class UserManagementController extends Controller
         
         $primarySuperAdminId = User::where('role', User::ROLE_SUPER_ADMIN)->min('id');
         $isPrimary = $currentUser && $currentUser->id === $primarySuperAdminId;
-        $allowedForReset = [User::ROLE_EXAMINER, User::ROLE_COORDINATOR];
+        $allowedForReset = [User::ROLE_EXAMINER, User::ROLE_COORDINATOR, User::ROLE_SYSTEM_ADMIN];
         // Super admin: only primary can reset (themselves or another super admin)
         if ($user->role === User::ROLE_SUPER_ADMIN) {
             if (!$isPrimary) {
@@ -630,8 +648,7 @@ class UserManagementController extends Controller
             abort(403, UserFriendlyMessages::ADMIN_ONLY);
         }
 
-        $allowedRoles = [User::ROLE_SUPER_ADMIN, User::ROLE_EXAMINER, User::ROLE_COORDINATOR];
-        if (! in_array($user->role, $allowedRoles, true)) {
+        if (! $this->isManageableStaffUser($user)) {
             return redirect()->route('dashboard.users.index')
                 ->with('error', UserFriendlyMessages::NOT_FOUND);
         }
@@ -651,7 +668,7 @@ class UserManagementController extends Controller
     }
 
     /**
-     * Delete an examiner user. Cannot delete super admins or yourself.
+     * Delete a staff user. Cannot delete super admins or yourself.
      */
     public function destroy(User $user): RedirectResponse
     {
@@ -665,6 +682,11 @@ class UserManagementController extends Controller
         if ($user->role === User::ROLE_SUPER_ADMIN) {
             return redirect()->route('dashboard.users.index')
                 ->with('error', 'Administrator accounts cannot be removed this way.');
+        }
+
+        if ($user->role === User::ROLE_SYSTEM_ADMIN && $currentUser && $currentUser->id === $user->id) {
+            return redirect()->route('dashboard.users.index')
+                ->with('error', 'You cannot remove your own account.');
         }
 
         if ($currentUser && $currentUser->id === $user->id) {
@@ -774,6 +796,16 @@ class UserManagementController extends Controller
             'remaining' => $user->sms_remaining,
             'message' => 'SMS allocation updated successfully.',
         ]);
+    }
+
+    private function isManageableStaffUser(User $user): bool
+    {
+        return in_array($user->role, [
+            User::ROLE_SUPER_ADMIN,
+            User::ROLE_SYSTEM_ADMIN,
+            User::ROLE_EXAMINER,
+            User::ROLE_COORDINATOR,
+        ], true);
     }
 
     private function canReceiveAiTokens(User $user): bool

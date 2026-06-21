@@ -24,5 +24,7 @@ class MonitoringAccessTest extends TestCase
     {
         $this->assertSame('system_admin', User::ROLE_SYSTEM_ADMIN);
         $this->assertArrayHasKey(User::ROLE_SYSTEM_ADMIN, User::monitoringRoleLabels());
+        $this->assertArrayHasKey(User::ROLE_SYSTEM_ADMIN, User::superAdminCreatableRoles());
+        $this->assertSame('System Monitor', User::superAdminCreatableRoles()[User::ROLE_SYSTEM_ADMIN]);
     }
 }

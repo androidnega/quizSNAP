@@ -18,7 +18,7 @@
 
             <form action="{{ route('dashboard.users.store') }}" method="post" class="qs-form w-full min-w-0">
                 @csrf
-                <x-form.section title="Account details" description="For examiners and coordinators, also select institution, faculty, and department." :columns="2">
+                <x-form.section title="Account details" description="System monitors get Monitoring, Operations, and Intelligence access only. Examiners and coordinators also need institution, faculty, and department." :columns="2">
                     <x-form.input name="username" label="Username" required placeholder="e.g. j.doe or jdoe" />
                     <x-form.input name="email" type="email" label="Email" optional placeholder="user@example.com" hint="Optional. Used for password reset." />
                     <x-form.input name="name" label="Display name" optional placeholder="e.g. John Doe" />
@@ -33,11 +33,11 @@
                         @error('phone')<p class="qs-error">{{ $message }}</p>@enderror
                     </div>
                     <x-form.select name="role" label="Role" required placeholder="— Select role —">
-                        @if($canCreateSuperAdmin ?? false)
-                            <option value="super_admin" {{ old('role') === 'super_admin' ? 'selected' : '' }}>Admin</option>
-                        @endif
-                        <option value="examiner" {{ old('role') === 'examiner' ? 'selected' : '' }}>Examiner</option>
-                        <option value="coordinator" {{ old('role') === 'coordinator' ? 'selected' : '' }}>Coordinator</option>
+                        @foreach($creatableRoles ?? [] as $roleValue => $roleLabel)
+                            @if(($canCreateSuperAdmin ?? false) || ! in_array($roleValue, ['super_admin', 'system_admin'], true))
+                                <option value="{{ $roleValue }}" {{ old('role') === $roleValue ? 'selected' : '' }}>{{ $roleLabel }}</option>
+                            @endif
+                        @endforeach
                     </x-form.select>
 
                     <div id="institution-field" class="qs-field qs-field--full staff-scope-field" style="display: none;">

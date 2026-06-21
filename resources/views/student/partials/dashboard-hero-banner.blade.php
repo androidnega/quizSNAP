@@ -37,10 +37,10 @@
         <picture>
             <source type="image/webp"
                     srcset="{{ $bundledBase }}-640.webp 640w, {{ $bundledBase }}.webp 1024w"
-                    sizes="(max-width: 768px) 100vw, 1024px">
+                    sizes="(max-width: 768px) 100vw, 100vw">
             <source type="image/jpeg"
                     srcset="{{ $bundledBase }}-640.jpg 640w, {{ $bundledBase }}.jpg 1024w"
-                    sizes="(max-width: 768px) 100vw, 1024px">
+                    sizes="(max-width: 768px) 100vw, 100vw">
             <img src="{{ $bundledBase }}.jpg"
                  alt="{{ $bannerAlt }}"
                  class="absolute inset-0 block h-full w-full object-cover object-center"

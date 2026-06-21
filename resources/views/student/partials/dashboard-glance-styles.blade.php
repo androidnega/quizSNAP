@@ -61,12 +61,12 @@
 
     @media (min-width: 1280px) {
         .sd-home-compact .glance-grid {
-            grid-template-columns: 1fr;
-            gap: 0.625rem;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 1rem;
         }
         .sd-home-compact .glance-card__body {
-            padding: 0.75rem 0.875rem 0.875rem;
-            gap: 0.625rem;
+            padding: 0.875rem 1rem 1rem;
+            gap: 0.75rem;
         }
         .sd-home-compact .glance-card__icon {
             width: 2rem;

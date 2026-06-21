@@ -38,13 +38,11 @@ min-h-screen @if(($studentDashboardMobileLayout ?? \App\Models\Setting::getStude
         @include('student.partials.dashboard-mobile-modern')
     @endif
 
-    <div class="xl:grid xl:grid-cols-12 xl:gap-4 xl:items-start @if($isModernMobile) hidden lg:block @endif">
-        <div class="xl:col-span-7 space-y-3 @if($isModernMobile) hidden lg:block @endif">
-            <div class="@if($isModernMobile) hidden lg:block @endif">
-                @include('student.partials.dashboard-hero-banner')
-            </div>
+    <div class="space-y-4 lg:space-y-5 @if($isModernMobile) hidden lg:block @endif">
+        <div>
+            @include('student.partials.dashboard-hero-banner')
         </div>
-        <div class="xl:col-span-5 mt-4 xl:mt-0">
+        <div>
             @include('student.partials.dashboard-at-a-glance')
         </div>
     </div>

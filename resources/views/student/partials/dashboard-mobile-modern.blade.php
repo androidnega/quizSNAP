@@ -245,7 +245,7 @@
         }
 
         body.sd-home-mobile-modern .md-dash__banner-media {
-            aspect-ratio: 1024 / 395;
+            aspect-ratio: 1024 / 430;
         }
 
         body.sd-home-mobile-modern .md-dash__banner-img {
@@ -360,7 +360,7 @@
         border-radius: 1rem;
         border: 1px solid var(--theme-border);
         background: var(--theme-surface);
-        aspect-ratio: 1024 / 395;
+        aspect-ratio: 1024 / 430;
     }
 
     .md-dash__banner-media--compact {

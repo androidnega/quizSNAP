@@ -530,7 +530,23 @@
     .sd-featured-quiz {
         width: 100%;
         min-width: 0;
-        min-height: 200px;
+    }
+
+    @media (min-width: 1024px) {
+        .sd-hero-row > * {
+            display: flex;
+        }
+
+        .sd-hero-row .sd-featured-quiz,
+        .sd-hero-row .sd-hero-banner {
+            height: 100%;
+        }
+
+        .sd-hero-row .sd-featured-quiz__card {
+            flex: 1 1 auto;
+            min-height: 100%;
+            height: 100%;
+        }
     }
 
     .sd-featured-quiz__card {
@@ -539,7 +555,6 @@
         justify-content: space-between;
         width: 100%;
         height: 100%;
-        min-height: 200px;
         padding: 1rem 1.125rem 1.125rem;
         border-radius: 1rem;
         border: 1px solid #e2e8f0;

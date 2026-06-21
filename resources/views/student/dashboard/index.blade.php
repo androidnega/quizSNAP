@@ -39,7 +39,7 @@ min-h-screen @if(($studentDashboardMobileLayout ?? \App\Models\Setting::getStude
     @endif
 
     <div class="space-y-4 lg:space-y-5 @if($isModernMobile) hidden lg:block @endif">
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 lg:gap-4 items-stretch">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 lg:gap-4 items-stretch sd-hero-row">
             <div class="order-2 lg:order-1 min-w-0 flex">
                 @include('student.partials.dashboard-featured-quiz')
             </div>

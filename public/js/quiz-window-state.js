@@ -25,9 +25,9 @@
         }
     }
 
-    /** True only when the page is in browser full-screen mode. */
+    /** True only when the page is in browser full-screen mode (Fullscreen API). */
     function isFullscreenOrMaximized() {
-        return isBrowserFullscreen() || isDisplayModeFullscreen();
+        return isBrowserFullscreen();
     }
 
     function normalizePromise(value) {

@@ -872,11 +872,14 @@
         console.warn('[QuizSnap] quiz-window-state.js must load before quiz-proctoring.js');
     }
     var fsDebug = (ws && ws.fsDebug) ? ws.fsDebug : function () {};
-    var isFullscreenOrMaximized = (ws && ws.isFullscreenOrMaximized)
-        ? ws.isFullscreenOrMaximized.bind(ws)
+    var isBrowserFullscreen = (ws && ws.isBrowserFullscreen)
+        ? ws.isBrowserFullscreen.bind(ws)
         : function () {
             return !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement);
         };
+    var isFullscreenOrMaximized = (ws && ws.isFullscreenOrMaximized)
+        ? ws.isFullscreenOrMaximized.bind(ws)
+        : isBrowserFullscreen;
     var fullscreenDeniedMessage = (ws && ws.getFullscreenDeniedMessage)
         ? ws.getFullscreenDeniedMessage()
         : 'Could not enter full screen.';
@@ -891,15 +894,25 @@
     var FS_ENTER_GRACE_MS = 2500;
     var cameraStartDeferred = false;
     var onFullscreenReadyCallback = null;
+    /** Stays true until the student clicks "Enter full screen" on first load (blocks auto-dismiss). */
+    var initialFullscreenGatePending = false;
 
-    function markFullscreenEntered() {
+    function markFullscreenEntered(fromUserGesture) {
+        if (initialFullscreenGatePending && !fromUserGesture) {
+            fsDebug('initial gate: ignored automatic fullscreen detection');
+            return;
+        }
+        if (fromUserGesture) {
+            initialFullscreenGatePending = false;
+        }
         wasFullscreenOrMaximized = isFullscreenOrMaximized();
         fsEnterGraceUntil = Date.now() + FS_ENTER_GRACE_MS;
         fsDebug('fullscreen entered / confirmed', {
             active: wasFullscreenOrMaximized,
+            fromUserGesture: !!fromUserGesture,
             graceUntil: fsEnterGraceUntil
         });
-        if (wasFullscreenOrMaximized) {
+        if (fromUserGesture || wasFullscreenOrMaximized) {
             hideResizeBlur();
             tryStartCameraWhenAllowed('after-fullscreen-entered');
         }
@@ -990,6 +1003,7 @@
 
     function checkWindowState() {
         if (remainingSeconds <= 0) return;
+        if (initialFullscreenGatePending) return;
         var nowOk = isFullscreenOrMaximized();
         if (nowOk) {
             clearInvalidStateTimer();
@@ -1046,9 +1060,14 @@
         });
         if (active) {
             clearInvalidStateTimer();
-            markFullscreenEntered();
+            if (initialFullscreenGatePending) {
+                fsDebug('initial gate: ignored fullscreenchange while waiting for button click', { source: source });
+                return;
+            }
+            markFullscreenEntered(false);
             return;
         }
+        if (initialFullscreenGatePending) return;
         if (!wasFullscreenOrMaximized) return;
         if (Date.now() < fsEnterGraceUntil) {
             fsDebug('ignored fullscreen exit during grace (likely camera/layout churn)', { source: source });
@@ -1101,19 +1120,20 @@
     }
 
     document.addEventListener('quizsnap:fullscreen-entered', function () {
-        markFullscreenEntered();
+        markFullscreenEntered(true);
     });
 
-    // Block the quiz until the student is in browser full screen (fullscreen is lost on redirect from quiz-ready).
-    if (fullscreenEnforced && !isFullscreenOrMaximized()) {
+    // Block the quiz until the student clicks Enter full screen (fullscreen is lost on redirect from quiz-ready).
+    if (fullscreenEnforced && !isBrowserFullscreen()) {
+        initialFullscreenGatePending = true;
         wasFullscreenOrMaximized = false;
         cameraStartDeferred = true;
         showResizeBlur(false, true);
         if (resizeBlurTitle) resizeBlurTitle.textContent = 'Full screen required';
         if (resizeBlurMessage) resizeBlurMessage.textContent = 'Your quiz runs in browser full screen so tabs and the address bar are hidden. Click below and choose Allow when your browser asks.';
-        fsDebug('quiz load: waiting for fullscreen before camera');
-    } else if (fullscreenEnforced && isFullscreenOrMaximized()) {
-        markFullscreenEntered();
+        fsDebug('quiz load: waiting for user to click Enter full screen');
+    } else if (fullscreenEnforced && isBrowserFullscreen()) {
+        markFullscreenEntered(false);
     } else if (!fullscreenEnforced && c.proctoringTabSwitch === false) {
         hideResizeBlur();
     }

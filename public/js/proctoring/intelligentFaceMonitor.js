@@ -105,10 +105,9 @@
     const QUIZ_START_GRACE_MS = 12000; // Allow monitor/camera to stabilize before counting violations
     // Second face smaller than this ratio of primary face area is ignored (reflection/noise/calculator etc.)
     const MULTIPLE_FACES_MIN_SECOND_RATIO = 0.58;
-    // Light safety net on top of BlazeFace's own internal score threshold (~0.75): we only drop
-    // very-low-confidence blobs here, so dim-light faces are still detected (avoids false "not detected").
-    const MIN_FACE_CONFIDENCE_BLAZE = 0.5;
-    const MIN_FACE_AREA_RATIO_BLAZE = 0.04; // ~4% of frame area
+    // Minimum face size (fraction of frame). Generous so a normally-seated user — even leaning
+    // back a little — is still detected; BlazeFace's own threshold handles confidence.
+    const MIN_FACE_AREA_RATIO_BLAZE = 0.02; // ~2% of frame area
     // Within this window after a phone detection, suppress multiple-faces auto-submit to avoid double-logging
     const PHONE_SUPPRESS_MULTIPLE_FACES_MS = 6000;
 
@@ -527,13 +526,13 @@
 
         const boxes = Array.isArray(predictions) ? predictions : [];
 
-        // Filter out low-confidence / tiny detections (reduces reflections and noise).
-        // NOTE: BlazeFace may return box coords either as pixels OR normalized 0–1, so we use
-        // getFaceAreaRatio() which handles both — computing area against raw pixels here would
-        // reject every normalized detection and cause a permanent false "Face not detected".
+        // Match the PROVEN verification flow (proctoring-capture.js): rely on BlazeFace's own
+        // internal detection threshold and only require a sane minimum face size. We do NOT add an
+        // extra confidence cutoff here — that previously dropped valid faces. getFaceAreaRatio()
+        // handles both pixel and normalized (0–1) coordinate formats, so a visible face is always
+        // counted regardless of which format the browser's BlazeFace build returns.
         const boundingBoxes = boxes.filter(function (box) {
             if (!box || !box.topLeft || !box.bottomRight) return false;
-            if (faceScore(box) < MIN_FACE_CONFIDENCE_BLAZE) return false;
             return getFaceAreaRatio(box) >= MIN_FACE_AREA_RATIO_BLAZE;
         });
 

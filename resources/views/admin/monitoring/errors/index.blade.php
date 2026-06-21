@@ -2,10 +2,6 @@
 @php($pageTitle = 'Error Logs')
 @php($monitoringPage = 'errors')
 @section('monitoring_content')
-@php
-    $exportQuery = http_build_query(array_filter(request()->only(['search', 'severity', 'status'])));
-    $exportAllUrl = route('dashboard.monitoring.errors.export') . ($exportQuery ? '?' . $exportQuery : '');
-@endphp
 <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
     <form method="get" class="flex flex-wrap gap-2 flex-1 min-w-0">
         <input type="search" name="search" value="{{ request('search') }}" placeholder="Search errors..." class="rounded-lg border border-gray-300 px-3 py-2 text-sm min-w-[12rem]">
@@ -25,7 +21,13 @@
     </form>
     <div class="flex flex-wrap gap-2">
         <button type="button" id="copy-selected-errors" data-export-url="{{ route('dashboard.monitoring.errors.export') }}" class="btn btn-secondary btn-sm">Copy selected</button>
-        <button type="button" data-copy-error="all" data-export-url="{{ $exportAllUrl }}" class="btn btn-secondary btn-sm">Copy all (filtered)</button>
+        <button type="button" data-copy-error="all" data-export-url="{{ $exportAllUrl ?? route('dashboard.monitoring.errors.export') }}" class="btn btn-secondary btn-sm">Copy all (filtered)</button>
+        <form method="post" action="{{ route('dashboard.monitoring.maintenance.clear-logs') }}" onsubmit="return confirm('Clear all error logs? This cannot be undone.');">
+            @csrf
+            <input type="hidden" name="category" value="errors">
+            <input type="hidden" name="confirm" value="1">
+            <button type="submit" class="btn btn-danger btn-sm">Clear all errors</button>
+        </form>
     </div>
 </div>
 <div class="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">

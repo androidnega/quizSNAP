@@ -9,6 +9,9 @@ use Illuminate\Support\Str;
 
 class SessionMonitoringService
 {
+    /** Keep under DB column size (512) with byte-safe margin. */
+    private const BROWSER_MAX = 500;
+
     public function trackRequest(Request $request): void
     {
         if (! Schema::hasTable('monitoring_user_sessions')) {
@@ -22,24 +25,28 @@ class SessionMonitoringService
 
         try {
             $user = auth()->user();
-            MonitoringUserSession::query()->updateOrCreate(
-                ['session_id' => $sessionId],
-                [
-                    'user_id' => $user?->id,
-                    'user_name' => $user?->name,
-                    'user_role' => $user?->role ?? session('admin_role'),
-                    'actor_type' => session('student_id') ? 'student' : 'staff',
-                    'ip_address' => $request->ip(),
-                    'current_page' => Str::limit($request->fullUrl(), 500),
-                    'browser' => Str::limit((string) $request->userAgent(), 128),
-                    'device' => $request->header('Sec-CH-UA-Mobile') === '?1' ? 'Mobile' : 'Desktop',
-                    'is_active' => true,
-                    'last_activity_at' => now(),
-                    'started_at' => now(),
-                ]
-            );
-        } catch (\Throwable $e) {
-            report($e);
+            $userAgent = (string) $request->userAgent();
+
+            $session = MonitoringUserSession::query()->firstOrNew(['session_id' => $sessionId]);
+            if (! $session->exists) {
+                $session->started_at = now();
+            }
+
+            $session->fill([
+                'user_id' => $user?->id,
+                'user_name' => $user?->name,
+                'user_role' => $user?->role ?? session('admin_role'),
+                'actor_type' => session('student_id') ? 'student' : 'staff',
+                'ip_address' => $request->ip(),
+                'current_page' => Str::limit($request->fullUrl(), 500, ''),
+                'browser' => $this->normalizeBrowser($userAgent),
+                'device' => $this->detectDevice($request, $userAgent),
+                'is_active' => true,
+                'last_activity_at' => now(),
+            ]);
+            $session->save();
+        } catch (\Throwable) {
+            // Never report — avoids error-storm when session tracking fails.
         }
     }
 
@@ -59,10 +66,32 @@ class SessionMonitoringService
                 ->where('is_active', true)
                 ->where('last_activity_at', '>=', now()->subMinutes(15))
                 ->count();
-        } catch (\Throwable $e) {
-            report($e);
-
+        } catch (\Throwable) {
             return 0;
         }
+    }
+
+    protected function normalizeBrowser(string $userAgent): ?string
+    {
+        $userAgent = trim($userAgent);
+
+        return $userAgent === '' ? null : Str::limit($userAgent, self::BROWSER_MAX, '');
+    }
+
+    protected function detectDevice(Request $request, string $userAgent): string
+    {
+        if ($request->header('Sec-CH-UA-Mobile') === '?1') {
+            return 'Mobile';
+        }
+
+        if (preg_match('/Android|webOS|iPhone|iPod|iPad|Mobile|BlackBerry|IEMobile|Opera Mini/i', $userAgent)) {
+            return 'Mobile';
+        }
+
+        if (preg_match('/Tablet|iPad/i', $userAgent)) {
+            return 'Tablet';
+        }
+
+        return 'Desktop';
     }
 }

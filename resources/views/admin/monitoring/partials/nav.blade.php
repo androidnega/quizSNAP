@@ -27,20 +27,26 @@
     ];
 @endphp
 
-<div class="mb-4 rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
+<div class="mb-4 rounded-xl border p-3 shadow-sm {{ ($monitoringDark ?? false) ? 'monitoring-nav-dark border-slate-700 bg-slate-900/90' : 'border-gray-200 bg-white' }}">
     <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
         <div>
-            <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">System Monitoring</p>
-            <p class="text-sm text-gray-600">Enterprise operations center</p>
+            <p class="text-xs font-semibold uppercase tracking-wider {{ ($monitoringDark ?? false) ? 'text-slate-400' : 'text-gray-500' }}">System Monitoring</p>
+            <p class="text-sm {{ ($monitoringDark ?? false) ? 'text-slate-300' : 'text-gray-600' }}">Enterprise operations center</p>
         </div>
-        <span id="monitoring-live-indicator" class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
-            <span class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span> Live
+        <span id="monitoring-live-indicator" class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium {{ ($monitoringDark ?? false) ? 'bg-emerald-950/60 text-emerald-300' : 'bg-emerald-50 text-emerald-700' }}">
+            <span class="monitoring-breathe-dot monitoring-breathe-dot--xs" aria-hidden="true"></span> Live
         </span>
     </div>
     <div class="flex flex-wrap gap-2">
         @foreach($monitoringNav as $item)
+            @php
+                $active = request()->routeIs($item['route']) || request()->routeIs(str_replace('.index', '.*', $item['route']));
+                $dark = $monitoringDark ?? false;
+            @endphp
             <a href="{{ route($item['route']) }}"
-               class="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors {{ request()->routeIs($item['route']) || request()->routeIs(str_replace('.index', '.*', $item['route'])) ? 'border-primary-300 bg-primary-50 text-primary-700' : 'border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100' }}">
+               class="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors {{ $active
+                    ? ($dark ? 'border-cyan-500/50 bg-cyan-950/50 text-cyan-200' : 'border-primary-300 bg-primary-50 text-primary-700')
+                    : ($dark ? 'border-slate-700 bg-slate-800/60 text-slate-300 hover:bg-slate-800' : 'border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100') }}">
                 <i class="fas {{ $item['icon'] }} text-[10px]"></i>
                 {{ $item['label'] }}
             </a>

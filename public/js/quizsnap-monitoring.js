@@ -59,28 +59,46 @@
         };
 
         Object.keys(map).forEach(function (key) {
-            var el = document.querySelector('[data-monitoring-stat="' + key + '"] .text-2xl');
+            var card = document.querySelector('[data-monitoring-stat="' + key + '"]');
+            var el = card ? (card.querySelector('[data-monitoring-stat-value]') || card.querySelector('.text-2xl, .text-3xl')) : null;
             if (el && map[key] !== undefined) {
                 el.textContent = Number(map[key]).toLocaleString();
             }
         });
+
+        var syncEl = document.getElementById('monitoring-last-sync');
+        if (syncEl) {
+            syncEl.textContent = 'Updated ' + new Date().toLocaleTimeString();
+        }
     }
 
     function prependErrorFeed(payload) {
         var feed = document.getElementById('monitoring-error-feed') || document.getElementById('monitoring-recent-errors');
         if (!feed || !payload) return;
+        var dark = !!document.querySelector('.monitoring-command-center');
         var item = document.createElement('div');
-        item.className = 'rounded-xl border border-red-200 bg-red-50 p-3 shadow-sm';
-        item.innerHTML = '<div class="flex justify-between gap-2"><span class="text-xs font-semibold uppercase text-red-600">' + escapeHtml(payload.severity || 'error') + '</span><span class="text-xs text-gray-500">just now</span></div><p class="mt-1 text-sm text-gray-900">' + escapeHtml(payload.message || '') + '</p>';
+        if (dark) {
+            item.className = 'block rounded-lg border border-slate-700/80 bg-slate-800/50 px-3 py-2';
+            item.innerHTML = '<div class="flex justify-between gap-2"><span class="text-xs font-semibold uppercase text-rose-400">' + escapeHtml(payload.severity || 'error') + '</span><span class="text-xs text-slate-500">just now</span></div><p class="mt-1 text-sm text-slate-200 truncate">' + escapeHtml(payload.message || '') + '</p>';
+        } else {
+            item.className = 'rounded-xl border border-red-200 bg-red-50 p-3 shadow-sm';
+            item.innerHTML = '<div class="flex justify-between gap-2"><span class="text-xs font-semibold uppercase text-red-600">' + escapeHtml(payload.severity || 'error') + '</span><span class="text-xs text-gray-500">just now</span></div><p class="mt-1 text-sm text-gray-900">' + escapeHtml(payload.message || '') + '</p>';
+        }
         feed.prepend(item);
     }
 
     function prependActivity(payload) {
         var feed = document.getElementById('monitoring-activity-feed') || document.getElementById('monitoring-live-events');
         if (!feed || !payload) return;
+        var dark = !!document.querySelector('.monitoring-command-center');
         var item = document.createElement('div');
-        item.className = 'rounded-xl border border-gray-200 bg-white p-3 shadow-sm';
-        item.innerHTML = '<p class="text-sm"><strong>' + escapeHtml(payload.user_name || 'System') + '</strong> — ' + escapeHtml(payload.action || '') + '</p>';
+        if (dark) {
+            item.className = 'flex items-start gap-3 rounded-lg border border-slate-700/60 bg-slate-800/40 px-3 py-2';
+            item.innerHTML = '<span class="monitoring-breathe-dot monitoring-breathe-dot--xs monitoring-breathe-dot--cyan mt-1.5 shrink-0" aria-hidden="true"></span><div class="min-w-0"><p class="text-sm text-slate-200"><strong class="text-slate-100">' + escapeHtml(payload.user_name || 'System') + '</strong> — ' + escapeHtml(payload.action || '') + '</p></div>';
+        } else {
+            item.className = 'rounded-xl border border-gray-200 bg-white p-3 shadow-sm';
+            item.innerHTML = '<p class="text-sm"><strong>' + escapeHtml(payload.user_name || 'System') + '</strong> — ' + escapeHtml(payload.action || '') + '</p>';
+        }
         feed.prepend(item);
     }
 
@@ -148,6 +166,9 @@
     var chartInstances = {};
 
     function renderCharts(data) {
+        var dark = !!document.querySelector('.monitoring-command-center');
+        var tickColor = dark ? '#94a3b8' : '#6b7280';
+        var gridColor = dark ? 'rgba(51, 65, 85, 0.5)' : 'rgba(0,0,0,0.05)';
         var configs = {
             errorsChart: { key: 'errors', label: 'Errors', color: '#dc2626' },
             requestsChart: { key: 'requests', label: 'Requests', color: '#2563eb' },
@@ -183,8 +204,8 @@
                     maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: {
-                        x: { ticks: { color: '#6b7280', maxTicksLimit: 8 } },
-                        y: { ticks: { color: '#6b7280' }, beginAtZero: true },
+                        x: { ticks: { color: tickColor, maxTicksLimit: 8 }, grid: { color: gridColor } },
+                        y: { ticks: { color: tickColor }, grid: { color: gridColor }, beginAtZero: true },
                     },
                 },
             });
@@ -192,6 +213,11 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
+        if (document.querySelector('[data-monitoring-page="overview"]')) {
+            refreshLiveStats();
+            setInterval(refreshLiveStats, 15000);
+        }
+
         if (document.getElementById('monitoring-charts-root') && window.Chart) {
             loadCharts(document.getElementById('monitoring-chart-period')?.value || '24h');
             var periodSelect = document.getElementById('monitoring-chart-period');

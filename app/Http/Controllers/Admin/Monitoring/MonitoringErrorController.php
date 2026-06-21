@@ -16,6 +16,7 @@ class MonitoringErrorController extends Controller
         if (! \Illuminate\Support\Facades\Schema::hasTable('system_errors')) {
             return view('admin.monitoring.errors.index', [
                 'errors' => new \Illuminate\Pagination\LengthAwarePaginator([], 0, 25),
+                'exportAllUrl' => route('dashboard.monitoring.errors.export'),
             ]);
         }
 
@@ -37,6 +38,9 @@ class MonitoringErrorController extends Controller
 
         return view('admin.monitoring.errors.index', [
             'errors' => $query->paginate(25)->withQueryString(),
+            'exportAllUrl' => route('dashboard.monitoring.errors.export').(
+                ($q = http_build_query(array_filter($request->only(['search', 'severity', 'status'])))) ? '?'.$q : ''
+            ),
         ]);
     }
 

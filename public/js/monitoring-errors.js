@@ -1,5 +1,3 @@
-{{-- Copy error logs to clipboard --}}
-<script>
 (function () {
     'use strict';
 
@@ -60,4 +58,3 @@
         });
     }
 })();
-</script>

@@ -571,17 +571,16 @@
         width: 100%;
         height: 100%;
         padding: 1rem 1.125rem 1.125rem;
-        border-radius: 1rem;
-        border: 1px solid #e2e8f0;
+        border-radius: 0.75rem;
+        border: 1px solid #cbd5e1;
         background: #ffffff;
-        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-        transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+        box-shadow: none;
     }
 
     .sd-featured-quiz__card:hover {
-        transform: translateY(-2px);
+        transform: none;
         border-color: #cbd5e1;
-        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+        box-shadow: none;
     }
 
     .sd-featured-quiz__card--countdown {
@@ -618,7 +617,7 @@
         font-weight: 700;
         letter-spacing: 0.08em;
         text-transform: uppercase;
-        color: #64748b;
+        color: #334155;
     }
 
     .sd-featured-quiz__badge {
@@ -644,7 +643,7 @@
         font-weight: 700;
         letter-spacing: 0.04em;
         text-transform: uppercase;
-        color: #64748b;
+        color: #1e293b;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -667,7 +666,7 @@
         margin: 0.625rem 0 0;
         font-size: 0.6875rem;
         line-height: 1.45;
-        color: #64748b;
+        color: #475569;
     }
 
     .sd-featured-quiz__countdown {

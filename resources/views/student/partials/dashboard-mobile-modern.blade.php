@@ -442,17 +442,17 @@
         flex-direction: column;
         gap: 0.625rem;
         padding: 0.9375rem;
-        border-radius: 1rem;
+        border-radius: 0.75rem;
         text-decoration: none;
         color: var(--theme-text);
         background: var(--theme-surface);
         border: 1px solid var(--theme-border);
-        transition: border-color 0.15s ease, background 0.15s ease;
+        box-shadow: none;
     }
 
     .md-dash__course-card:active {
-        background: var(--theme-primary-50);
-        border-color: var(--theme-primary-200);
+        background: var(--theme-surface);
+        border-color: var(--theme-border);
     }
 
     .md-dash__course-top {
@@ -488,7 +488,7 @@
         font-weight: 700;
         letter-spacing: 0.05em;
         text-transform: uppercase;
-        color: var(--theme-muted);
+        color: #334155;
     }
 
     .md-dash__course-title {

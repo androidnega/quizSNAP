@@ -96,6 +96,52 @@ class StudentDashboardController extends Controller
         return $student;
     }
 
+    /**
+     * @param  array<int>  $classGroupIds
+     * @return array{scheduledQuiz: ?Quiz, scheduledQuizSession: ?QuizSession, scheduledOpenSession: ?QuizSession}
+     */
+    private function resolveDashboardScheduledQuiz(Student $student, array $classGroupIds): array
+    {
+        $scheduledQuiz = null;
+        $scheduledQuizSession = null;
+        $scheduledOpenSession = null;
+
+        if ($classGroupIds === []) {
+            return compact('scheduledQuiz', 'scheduledQuizSession', 'scheduledOpenSession');
+        }
+
+        $candidates = $this->publishedQuizCandidates($classGroupIds);
+        $ready = $candidates->filter(
+            fn (Quiz $q) => $q->hasEnoughApprovedQuestions() && (($q->starts_at && $q->starts_at->isFuture()) || $q->isActive())
+        );
+        $completedIds = $this->completedQuizIdMap($student, $ready);
+        $scheduledQuiz = $ready
+            ->reject(fn (Quiz $q) => isset($completedIds[$q->id]))
+            ->sortBy(fn (Quiz $q) => $q->starts_at && $q->starts_at->isFuture() ? $q->starts_at->timestamp : PHP_INT_MAX)
+            ->first();
+
+        if ($scheduledQuiz) {
+            $indexNumber = strtoupper(trim((string) $student->index_number));
+            $scheduledOpenSession = QuizSession::query()
+                ->where('quiz_id', $scheduledQuiz->id)
+                ->whereNull('ended_at')
+                ->whereRaw('UPPER(TRIM(student_index)) = ?', [$indexNumber])
+                ->latest('id')
+                ->first();
+
+            if (! $scheduledOpenSession) {
+                $scheduledQuizSession = QuizSession::query()
+                    ->where('quiz_id', $scheduledQuiz->id)
+                    ->whereNotNull('ended_at')
+                    ->whereRaw('UPPER(TRIM(student_index)) = ?', [$indexNumber])
+                    ->with('result')
+                    ->first();
+            }
+        }
+
+        return compact('scheduledQuiz', 'scheduledQuizSession', 'scheduledOpenSession');
+    }
+
     public function index(): View
     {
         $student = $this->student();
@@ -125,28 +171,11 @@ class StudentDashboardController extends Controller
         $scheduledQuizSession = null;
         $scheduledOpenSession = null;
         if ($classGroupIds !== []) {
-            $candidates = $this->publishedQuizCandidates($classGroupIds);
-            $ready = $candidates->filter(fn (Quiz $q) => $q->hasEnoughApprovedQuestions() && (($q->starts_at && $q->starts_at->isFuture()) || $q->isActive()));
-            $scheduledQuiz = $ready->sortBy(fn (Quiz $q) => $q->starts_at && $q->starts_at->isFuture() ? $q->starts_at->timestamp : PHP_INT_MAX)->first();
-
-            if ($scheduledQuiz) {
-                $indexNumber = strtoupper(trim((string) $student->index_number));
-                $scheduledOpenSession = QuizSession::query()
-                    ->where('quiz_id', $scheduledQuiz->id)
-                    ->whereNull('ended_at')
-                    ->whereRaw('UPPER(TRIM(student_index)) = ?', [$indexNumber])
-                    ->latest('id')
-                    ->first();
-
-                if (! $scheduledOpenSession) {
-                    $scheduledQuizSession = QuizSession::query()
-                        ->where('quiz_id', $scheduledQuiz->id)
-                        ->whereNotNull('ended_at')
-                        ->whereRaw('UPPER(TRIM(student_index)) = ?', [$indexNumber])
-                        ->with('result')
-                        ->first();
-                }
-            }
+            [
+                'scheduledQuiz' => $scheduledQuiz,
+                'scheduledQuizSession' => $scheduledQuizSession,
+                'scheduledOpenSession' => $scheduledOpenSession,
+            ] = $this->resolveDashboardScheduledQuiz($student, $classGroupIds);
         }
 
         $hour = (int) now()->format('G');

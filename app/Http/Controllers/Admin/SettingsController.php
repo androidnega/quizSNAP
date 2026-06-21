@@ -17,7 +17,6 @@ use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\View\View;
 
@@ -260,7 +259,21 @@ class SettingsController extends Controller
             ]),
             'email' => array_merge($rules, [
                 'mail_mailer' => 'nullable|string|max:50',
-                'mail_host' => 'nullable|string|max:255',
+                'mail_host' => [
+                    'nullable',
+                    'string',
+                    'max:255',
+                    function (string $attribute, mixed $value, \Closure $fail): void {
+                        if (! is_string($value) || trim($value) === '') {
+                            return;
+                        }
+
+                        $normalized = MailConfigService::normalizeSmtpHost($value);
+                        if ($normalized === null || $normalized === '' || str_contains($normalized, '@')) {
+                            $fail('Host must be a mail server hostname (e.g. mail.example.com), not an email address.');
+                        }
+                    },
+                ],
                 'mail_port' => 'nullable|string|max:10',
                 'mail_username' => 'nullable|string|max:255',
                 'mail_password' => 'nullable|string|max:512',
@@ -380,7 +393,12 @@ class SettingsController extends Controller
     private function saveEmailTabSettings(Request $request): void
     {
         Setting::setValue(Setting::KEY_MAIL_MAILER, $request->filled('mail_mailer') ? trim($request->mail_mailer) : null);
-        Setting::setValue(Setting::KEY_MAIL_HOST, $request->filled('mail_host') ? trim($request->mail_host) : null);
+        Setting::setValue(
+            Setting::KEY_MAIL_HOST,
+            $request->filled('mail_host')
+                ? MailConfigService::normalizeSmtpHost(trim($request->mail_host))
+                : null
+        );
         Setting::setValue(Setting::KEY_MAIL_PORT, $request->filled('mail_port') ? trim($request->mail_port) : null);
         Setting::setValue(Setting::KEY_MAIL_USERNAME, $request->filled('mail_username') ? trim($request->mail_username) : null);
         if ($request->filled('mail_password')) {
@@ -618,11 +636,13 @@ class SettingsController extends Controller
         }
 
         try {
-            $this->applyMailConfigFromSettings();
+            MailConfigService::applyFromSettings();
 
             $to = trim((string) $request->input('to'));
             $mailer = (string) Setting::getValue(Setting::KEY_MAIL_MAILER, (string) config('mail.default'));
-            $host = (string) Setting::getValue(Setting::KEY_MAIL_HOST, (string) config('mail.mailers.smtp.host'));
+            $host = (string) (MailConfigService::normalizeSmtpHost(
+                Setting::getValue(Setting::KEY_MAIL_HOST, (string) config('mail.mailers.smtp.host'))
+            ) ?? '');
             $port = (string) Setting::getValue(Setting::KEY_MAIL_PORT, (string) (config('mail.mailers.smtp.port') ?? ''));
             $encryption = (string) Setting::getValue(Setting::KEY_MAIL_ENCRYPTION, (string) (config('mail.mailers.smtp.encryption') ?? ''));
             $fromAddress = (string) Setting::getValue(Setting::KEY_MAIL_FROM_ADDRESS, (string) config('mail.from.address'));
@@ -679,27 +699,6 @@ class SettingsController extends Controller
         $status = $result['success'] ? 200 : (! empty($result['connection_error']) ? 503 : 422);
 
         return response()->json($result, $status);
-    }
-
-    private function applyMailConfigFromSettings(): void
-    {
-        $mailer = Setting::getValue(Setting::KEY_MAIL_MAILER, config('mail.default'));
-        $host = Setting::getValue(Setting::KEY_MAIL_HOST, config('mail.mailers.smtp.host'));
-        $port = (int) Setting::getValue(Setting::KEY_MAIL_PORT, (string) (config('mail.mailers.smtp.port') ?? 587));
-        $username = Setting::getValue(Setting::KEY_MAIL_USERNAME);
-        $password = Setting::getValue(Setting::KEY_MAIL_PASSWORD);
-        $encryption = Setting::getValue(Setting::KEY_MAIL_ENCRYPTION, (string) (config('mail.mailers.smtp.encryption') ?? 'tls'));
-        $fromAddress = Setting::getValue(Setting::KEY_MAIL_FROM_ADDRESS, config('mail.from.address'));
-        $fromName = Setting::getValue(Setting::KEY_MAIL_FROM_NAME, config('mail.from.name'));
-
-        Config::set('mail.default', $mailer);
-        Config::set('mail.from.address', $fromAddress ?: 'noreply@quizsnap.local');
-        Config::set('mail.from.name', $fromName ?: 'QuizSnap');
-        Config::set('mail.mailers.smtp.host', $host);
-        Config::set('mail.mailers.smtp.port', $port);
-        Config::set('mail.mailers.smtp.username', $username);
-        Config::set('mail.mailers.smtp.password', $password);
-        Config::set('mail.mailers.smtp.encryption', $encryption ?: null);
     }
 
     /**

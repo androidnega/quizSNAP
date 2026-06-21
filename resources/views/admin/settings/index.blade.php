@@ -230,7 +230,8 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label for="mail_host" class="block text-sm font-medium text-gray-700 mb-1.5">Host</label>
-                                    <input type="text" name="mail_host" id="mail_host" value="{{ old('mail_host', $mail_host ?? 'mail.ausweblabs.com') }}" placeholder="mail.ausweblabs.com" class="block w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 focus:outline-none">
+                                    <input type="text" name="mail_host" id="mail_host" value="{{ old('mail_host', $mail_host ?? 'mail.ausweblabs.com') }}" placeholder="mail.example.com" class="block w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 focus:outline-none">
+                                    <p class="text-xs text-gray-500 mt-1">Mail server hostname (e.g. mail.example.com), not your email address. If you enter an email here, it will be saved as mail.{domain}.</p>
                                 </div>
                                 <div>
                                     <label for="mail_port" class="block text-sm font-medium text-gray-700 mb-1.5">Port</label>

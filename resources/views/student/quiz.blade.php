@@ -418,9 +418,9 @@ window.QuizSnapQuiz = {
 };
 </script>
 <script src="{{ asset('js/quiz-proctoring.js') }}?v={{ filemtime(public_path('js/quiz-proctoring.js')) }}" defer></script>
-<script src="{{ asset('js/proctoring/intelligentFaceMonitor.js') }}" defer></script>
-<script src="{{ asset('js/proctoring/objectMonitor.js') }}" defer></script>
-<script src="{{ asset('js/proctoring/audioMonitor.js') }}" defer></script>
+<script src="{{ asset('js/proctoring/intelligentFaceMonitor.js') }}?v={{ filemtime(public_path('js/proctoring/intelligentFaceMonitor.js')) }}" defer></script>
+<script src="{{ asset('js/proctoring/objectMonitor.js') }}?v={{ filemtime(public_path('js/proctoring/objectMonitor.js')) }}" defer></script>
+<script src="{{ asset('js/proctoring/audioMonitor.js') }}?v={{ filemtime(public_path('js/proctoring/audioMonitor.js')) }}" defer></script>
 <script>
 // Configure intelligent face monitor for quiz monitoring
 window.QuizSnapIntelligentFaceMonitor = window.QuizSnapIntelligentFaceMonitor || {};

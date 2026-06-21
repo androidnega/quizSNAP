@@ -79,17 +79,19 @@
         return 15000;
     }
     function adaptiveDetectionIntervalMs() {
+        // ~3 detections/sec is plenty for proctoring and far lighter on the CPU than 5/sec,
+        // which keeps the quiz UI smooth (especially in fullscreen on weaker machines).
         try {
             var cores = navigator.hardwareConcurrency || 8;
             var mobileLike = (navigator.maxTouchPoints > 0 || 'ontouchstart' in window) && window.innerWidth < 900;
             if (navigator.connection && navigator.connection.saveData) {
-                return 600;
+                return 800;
             }
             if (cores <= 4 || mobileLike) {
-                return 480;
+                return 650;
             }
         } catch (e) { /* ignore */ }
-        return 200;
+        return 300;
     }
     const MONITORING_INTERVAL_MS = adaptiveMonitoringIntervalMs();
     const DETECTION_INTERVAL_MS = adaptiveDetectionIntervalMs();
@@ -97,14 +99,16 @@
     const FACE_TOO_FAR_RATIO = 0.04;
     const OUT_OF_FRAME_EVENT_LIMIT = 1;
     const NORMAL_VIOLATION_LIMIT = 10;
-    // Short settle so a single dropped detection frame doesn't flash the auto-submit countdown.
-    const OUT_OF_FRAME_GRACE_MS = 1000;
+    // Presence smoothing: a face seen within this window still counts as present, so brief
+    // detection dropouts (a blurred/half-frame) never flash "not detected" or start the timer.
+    const FACE_PRESENCE_HOLD_MS = 1200;
     const QUIZ_START_GRACE_MS = 12000; // Allow monitor/camera to stabilize before counting violations
     // Second face smaller than this ratio of primary face area is ignored (reflection/noise/calculator etc.)
     const MULTIPLE_FACES_MIN_SECOND_RATIO = 0.58;
-    // Minimum confidence + area ratio for a BlazeFace detection to be treated as a real face
-    const MIN_FACE_CONFIDENCE_BLAZE = 0.92;
-    const MIN_FACE_AREA_RATIO_BLAZE = 0.05; // 5% of frame area
+    // Minimum confidence + area ratio for a BlazeFace detection to be treated as a real face.
+    // Kept moderate so a normally-seated, well-lit user is reliably detected (avoids false "not detected").
+    const MIN_FACE_CONFIDENCE_BLAZE = 0.82;
+    const MIN_FACE_AREA_RATIO_BLAZE = 0.04; // ~4% of frame area
     // Within this window after a phone detection, suppress multiple-faces auto-submit to avoid double-logging
     const PHONE_SUPPRESS_MULTIPLE_FACES_MS = 6000;
 
@@ -133,11 +137,11 @@
     let validOutOfFrameEvents = 0;
     let normalViolationCount = 0;
     let noFaceStartedAt = null;
+    let lastFaceSeenAt = 0;
     let outOfFrameEventCapturedForCurrentAbsence = false;
     let lastHeadTurnMessage = '';
     let lastHeadTurnMessageAt = 0;
     const HEAD_TURN_BANNER_MS = 3000;
-    const DARKNESS_THRESHOLD = 0.12;
 
     /**
      * Get CSRF token
@@ -187,34 +191,6 @@
         } catch (err) {
             console.warn('Frame capture failed:', err);
             return null;
-        }
-    }
-
-    /**
-     * Get average frame brightness (0–1). Used for darkness detection.
-     */
-    function getFrameBrightness() {
-        const videoEl = config.videoElement || videoElement;
-        if (!videoEl || !canvas || !ctx || videoEl.readyState < 2 || videoEl.videoWidth <= 0) return 1;
-        try {
-            const w = videoEl.videoWidth;
-            const h = videoEl.videoHeight;
-            if (canvas.width !== w || canvas.height !== h) {
-                canvas.width = w;
-                canvas.height = h;
-            }
-            ctx.drawImage(videoEl, 0, 0, w, h);
-            const data = ctx.getImageData(0, 0, Math.min(w, 160), Math.min(h, 120));
-            const pixels = data.data;
-            let sum = 0;
-            const step = 4 * 2;
-            for (let i = 0; i < pixels.length; i += step) {
-                sum += (pixels[i] * 0.299 + pixels[i + 1] * 0.587 + pixels[i + 2] * 0.114) / 255;
-            }
-            const count = Math.floor(pixels.length / step);
-            return count > 0 ? sum / count : 1;
-        } catch (err) {
-            return 1;
         }
     }
 
@@ -702,9 +678,18 @@
             multipleFacesStartedAt = null;
         }
 
-        // Out-of-frame: no face detected. Counts down to the configured time, then auto-submits
-        // (mirrors the multiple-faces behaviour). The timer resets the instant a face returns,
-        // so brief detection drops or quick glances never reach the threshold.
+        // Presence smoothing: any detected face refreshes "last seen". A face seen within the
+        // hold window still counts as present, so a single blurred/half-detected frame doesn't
+        // flash "not detected" — this is what previously caused false warnings while clearly visible.
+        if (faceCount >= 1) {
+            lastFaceSeenAt = now;
+        } else if (lastFaceSeenAt && (now - lastFaceSeenAt) < FACE_PRESENCE_HOLD_MS) {
+            // Recently seen: keep the current (good) banner state and don't start any timer.
+            return;
+        }
+
+        // Out-of-frame: no face for longer than the hold window. Counts down to the configured
+        // time, then auto-submits (mirrors the multiple-faces flow). Resets when a face returns.
         if (faceCount === 0) {
             if (noFaceStartedAt === null) {
                 noFaceStartedAt = now;
@@ -712,9 +697,7 @@
             }
             const noFaceDurationMs = now - noFaceStartedAt;
             const outOfFrameMinMs = getOutOfFrameMinMs();
-            // Lighting is only relevant when we cannot see a face: if it's dark, that's likely why.
-            const isDark = getFrameBrightness() < DARKNESS_THRESHOLD;
-            const headline = isDark ? 'Move to a well-lit area' : 'Face not detected';
+            const secondsLeft = Math.max(0, Math.ceil((outOfFrameMinMs - noFaceDurationMs) / 1000));
 
             if (noFaceDurationMs >= outOfFrameMinMs) {
                 setLiveFrameState('red', 'Out of frame too long', 'Your quiz is being submitted.');
@@ -723,15 +706,10 @@
                     outOfFrameEventCapturedForCurrentAbsence = true;
                     registerValidatedOutOfFrameEvent(now, noFaceDurationMs);
                 }
-            } else if (noFaceDurationMs < OUT_OF_FRAME_GRACE_MS) {
-                // Short settle so a single dropped frame doesn't flash a countdown.
-                setLiveFrameState('yellow', headline, 'Return your face to the camera frame.');
-                updateLiveFramePosition(null);
             } else {
-                const secondsLeft = Math.max(0, Math.ceil((outOfFrameMinMs - noFaceDurationMs) / 1000));
                 setLiveFrameState(
                     'red',
-                    headline,
+                    'Face not detected',
                     'Return to frame now \u2014 quiz will auto-submit in ' + secondsLeft + 's if this continues.'
                 );
                 updateLiveFramePosition(null);
@@ -739,7 +717,7 @@
             return;
         }
 
-        // Face detected: clear the out-of-frame timer (and lighting nag never applies with a face).
+        // Face detected: clear the out-of-frame timer.
         if (noFaceStartedAt !== null) {
             noFaceStartedAt = null;
             outOfFrameEventCapturedForCurrentAbsence = false;
@@ -1157,6 +1135,7 @@
         motionScore = 0;
         motionCheckStartTime = Date.now();
         noFaceStartedAt = null;
+        lastFaceSeenAt = Date.now();
         multipleFacesStartedAt = null;
         outOfFrameEventCapturedForCurrentAbsence = false;
         lastHeadDirection = 'center';

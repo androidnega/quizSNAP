@@ -39,6 +39,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'staff.tokens' => \App\Http\Middleware\EnsureStaffTokenManager::class,
             'student.has-level' => \App\Http\Middleware\EnsureStudentHasLevel::class,
             'monitoring.access' => \App\Http\Middleware\EnsureMonitoringAccess::class,
+            'broadcasting.auth' => \App\Http\Middleware\EnsureBroadcastingAuthenticated::class,
             'operations.access' => \App\Http\Middleware\EnsureOperationsAccess::class,
             'intelligence.access' => \App\Http\Middleware\EnsureIntelligenceAccess::class,
         ]);

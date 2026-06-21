@@ -32,7 +32,7 @@ class MonitoringServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        Broadcast::routes(['middleware' => ['web', 'admin.auth']]);
+        Broadcast::routes(['middleware' => ['web', 'broadcasting.auth']]);
 
         Quiz::observe(QuizAuditObserver::class);
         User::observe(UserAuditObserver::class);

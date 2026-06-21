@@ -54,7 +54,8 @@ class EnsureAdminAuthenticated
 
         // System Administrator: monitoring, operations, and intelligence centers only
         if ($user->role === User::ROLE_SYSTEM_ADMIN) {
-            $systemAdminAllowed = $request->routeIs('dashboard.monitoring.*')
+            $systemAdminAllowed = $request->is('broadcasting/auth')
+                || $request->routeIs('dashboard.monitoring.*')
                 || $request->routeIs('dashboard.operations.*')
                 || $request->routeIs('dashboard.intelligence.*')
                 || $request->routeIs('dashboard.profile.*')

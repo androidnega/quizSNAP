@@ -9,6 +9,16 @@ REVERB_PORT="${REVERB_PORT:-8080}"
 
 cd "$APP_DIR"
 
+echo "==> Stopping systemd reverb.service (auto-respawns and blocks port ${REVERB_PORT})..."
+if systemctl is-active --quiet reverb.service 2>/dev/null; then
+  systemctl stop reverb.service
+  systemctl disable reverb.service
+  echo "Stopped and disabled reverb.service — use Supervisor (quizsnap-reverb) instead."
+elif systemctl list-unit-files reverb.service 2>/dev/null | grep -q reverb.service; then
+  systemctl disable reverb.service 2>/dev/null || true
+  echo "Disabled reverb.service."
+fi
+
 echo "==> Stopping Supervisor Reverb (avoid restart loop)..."
 supervisorctl stop quizsnap-reverb 2>/dev/null || true
 sleep 1
@@ -28,7 +38,8 @@ fi
 if ss -ltnp 2>/dev/null | grep -q ":${REVERB_PORT} "; then
   echo "ERROR: port ${REVERB_PORT} is still in use:"
   ss -ltnp | grep ":${REVERB_PORT} " || true
-  echo "Check for systemd/screen/tmux jobs for user manuel: systemctl --user list-units | grep -i reverb"
+  echo "Check: systemctl status reverb.service"
+  echo "       systemctl --user -u manuel list-units | grep -i reverb"
   exit 1
 fi
 

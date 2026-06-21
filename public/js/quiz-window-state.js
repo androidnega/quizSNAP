@@ -74,8 +74,15 @@
         return { ok: false, error: lastError || new Error('unsupported') };
     }
 
+    /** Prefer the quiz content root so scrolling and clicks work inside Fullscreen API. */
+    function getPreferredFullscreenRoot() {
+        return document.querySelector('.quiz-writing-content')
+            || document.getElementById('quizsnap-app')
+            || null;
+    }
+
     /**
-     * Request full screen starting from the clicked element (user gesture), then documentElement/body.
+     * Request full screen starting from the clicked element (user gesture), then quiz root / documentElement.
      * Browsers require requestFullscreen in the same turn as the click; call this synchronously from click.
      */
     function requestFullscreenFromGesture(sourceEl) {
@@ -93,6 +100,10 @@
                 }
                 node = node.parentElement;
             }
+        }
+        var preferredRoot = getPreferredFullscreenRoot();
+        if (preferredRoot) {
+            candidates.push(preferredRoot);
         }
         candidates.push(document.documentElement, document.body);
         candidates = uniqueElements(candidates);
@@ -273,6 +284,7 @@
         getFullscreenDeniedMessage: getFullscreenDeniedMessage,
         bindFullscreenSync: bindFullscreenSync,
         bindEnterFullscreenButton: bindEnterFullscreenButton,
+        getPreferredFullscreenRoot: getPreferredFullscreenRoot,
         bindKnownFullscreenButtons: bindKnownFullscreenButtons,
         fsDebug: fsDebug
     };

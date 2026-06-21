@@ -5,9 +5,29 @@
 
 @push('styles')
 <style>
-body.quiz-fs-blocked { overflow: hidden; }
+/* Fullscreen gate: overlay blocks interaction; do not lock body scroll (breaks :fullscreen scrolling). */
 #resize-blur-overlay.hidden { display: none !important; pointer-events: none !important; visibility: hidden !important; }
 #resize-blur-overlay:not(.hidden) { display: flex !important; pointer-events: auto !important; }
+/* Hidden quiz modals must never intercept clicks (Tailwind hidden vs flex conflict). */
+.quiz-writing-content > .hidden[class*="fixed"],
+.quiz-writing-content > .hidden[class*="inset-0"] {
+    display: none !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
+}
+/* Scrollable fullscreen: use quiz root as fullscreen element, not clipped html. */
+#quiz-writing-content:fullscreen,
+#quiz-writing-content:-webkit-full-screen,
+#quizsnap-app:fullscreen,
+#quizsnap-app:-webkit-full-screen {
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    width: 100% !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    background: #fafaf9;
+}
 html:fullscreen,
 html:-webkit-full-screen {
     overflow-y: auto !important;
@@ -19,10 +39,9 @@ html:-webkit-full-screen body {
     overflow-y: auto !important;
     overflow-x: hidden;
     min-height: 100%;
-}
-html:fullscreen body.quiz-fs-blocked,
-html:-webkit-full-screen body.quiz-fs-blocked {
-    overflow: hidden !important;
+    position: static !important;
+    width: auto !important;
+    height: auto !important;
 }
 .quiz-timer-green{color:#059669}.quiz-timer-blue{color:#2563eb}.quiz-timer-red{color:#dc2626}.quiz-side-num.quiz-side-answered{border-color:#22c55e;background-color:#f0fdf4;color:#15803d}
 /* AI invigilator badge (top panel only) when camera is active */
@@ -94,7 +113,7 @@ html:-webkit-full-screen body.quiz-fs-blocked {
     </div>
     @endif
 
-    <div class="quiz-writing-content {{ $quizDesktopOnly ? 'hidden md:block' : 'block' }} min-h-screen min-w-0 w-full">
+    <div id="quiz-writing-content" class="quiz-writing-content {{ $quizDesktopOnly ? 'hidden md:block' : 'block' }} min-h-screen min-w-0 w-full">
         {{-- Fixed header --}}
         <header class="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 h-16 flex items-center">
             <div class="w-full px-4 sm:px-6">

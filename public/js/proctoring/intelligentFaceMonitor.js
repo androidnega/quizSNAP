@@ -48,10 +48,6 @@
         return seconds * 1000;
     }
 
-    function outOfFrameSecondsLabel() {
-        return Math.ceil(getOutOfFrameMinMs() / 1000);
-    }
-
     // BlazeFace detection settings
     const DETECTION_CONFIG = {
         maxFaces: 2,
@@ -101,10 +97,8 @@
     const FACE_TOO_FAR_RATIO = 0.04;
     const OUT_OF_FRAME_EVENT_LIMIT = 1;
     const NORMAL_VIOLATION_LIMIT = 10;
-    // Grace: don't start the out-of-frame timer until no face for this long (avoids head-turn false positives).
-    const OUT_OF_FRAME_GRACE_MS = 2000;
-    // Before capturing evidence, confirm face still absent after this delay (don't capture when user is back).
-    const OUT_OF_FRAME_CONFIRM_MS = 500;
+    // Short settle so a single dropped detection frame doesn't flash the auto-submit countdown.
+    const OUT_OF_FRAME_GRACE_MS = 1000;
     const QUIZ_START_GRACE_MS = 12000; // Allow monitor/camera to stabilize before counting violations
     // Second face smaller than this ratio of primary face area is ignored (reflection/noise/calculator etc.)
     const MULTIPLE_FACES_MIN_SECOND_RATIO = 0.58;
@@ -139,15 +133,11 @@
     let validOutOfFrameEvents = 0;
     let normalViolationCount = 0;
     let noFaceStartedAt = null;
-    let noFaceFirstSeenAt = null;
     let outOfFrameEventCapturedForCurrentAbsence = false;
-    let outOfFrameConfirmTimeout = null;
     let lastHeadTurnMessage = '';
     let lastHeadTurnMessageAt = 0;
     const HEAD_TURN_BANNER_MS = 3000;
-    let darknessFrameCount = 0;
     const DARKNESS_THRESHOLD = 0.12;
-    const DARKNESS_FRAMES_REQUIRED = 15;
 
     /**
      * Get CSRF token
@@ -658,26 +648,12 @@
         const now = Date.now();
         const inGraceWindow = quizMonitoringStartedAt && (now - quizMonitoringStartedAt) < QUIZ_START_GRACE_MS;
         const primaryBox = (boundingBoxes && boundingBoxes[0]) ? boundingBoxes[0] : null;
-        const outOfFrameWarningsLeft = remainingOutOfFrameWarnings();
         const effectiveMultiple = effectiveFaceCount != null ? effectiveFaceCount : getEffectiveMultipleFaceCount(boundingBoxes);
 
         // Avoid false positives right after quiz starts while stream/model settles.
         if (inGraceWindow) {
             setLiveFrameState('green', 'Camera stabilizing...', 'Monitoring starts in a few seconds.');
             return;
-        }
-
-        // Darkness detection: ask user to go to a well-lit place
-        const brightness = getFrameBrightness();
-        if (brightness < DARKNESS_THRESHOLD) {
-            darknessFrameCount++;
-            if (darknessFrameCount >= DARKNESS_FRAMES_REQUIRED) {
-                setLiveFrameState('yellow', 'Please go to a well-lit place', '');
-                updateLiveFramePosition(primaryBox);
-                return;
-            }
-        } else {
-            darknessFrameCount = 0;
         }
 
         // Multiple face detection: two or more effective faces continuously before auto-submit.
@@ -726,65 +702,47 @@
             multipleFacesStartedAt = null;
         }
 
-        // Out-of-frame: face count zero. Use grace period so brief head turns don't start the timer.
+        // Out-of-frame: no face detected. Counts down to the configured time, then auto-submits
+        // (mirrors the multiple-faces behaviour). The timer resets the instant a face returns,
+        // so brief detection drops or quick glances never reach the threshold.
         if (faceCount === 0) {
-            if (noFaceFirstSeenAt === null) {
-                noFaceFirstSeenAt = now;
-            }
-            const noFaceTotalMs = now - noFaceFirstSeenAt;
-            if (noFaceTotalMs >= OUT_OF_FRAME_GRACE_MS && noFaceStartedAt === null) {
-                noFaceStartedAt = now - (noFaceTotalMs - OUT_OF_FRAME_GRACE_MS);
+            if (noFaceStartedAt === null) {
+                noFaceStartedAt = now;
                 outOfFrameEventCapturedForCurrentAbsence = false;
             }
-            const noFaceDurationMs = noFaceStartedAt === null ? 0 : (now - noFaceStartedAt);
+            const noFaceDurationMs = now - noFaceStartedAt;
             const outOfFrameMinMs = getOutOfFrameMinMs();
-            const outOfFrameSecondsLabelValue = outOfFrameSecondsLabel();
+            // Lighting is only relevant when we cannot see a face: if it's dark, that's likely why.
+            const isDark = getFrameBrightness() < DARKNESS_THRESHOLD;
+            const headline = isDark ? 'Move to a well-lit area' : 'Face not detected';
+
             if (noFaceDurationMs >= outOfFrameMinMs) {
-                setLiveFrameState(
-                    'red',
-                    'Face missing for ' + outOfFrameSecondsLabelValue + 's+',
-                    outOfFrameWarningsLeft > 0
-                        ? (outOfFrameWarningsLeft + ' warning(s) remaining before auto-submission.')
-                        : 'Auto-submission in progress.'
-                );
+                setLiveFrameState('red', 'Out of frame too long', 'Your quiz is being submitted.');
                 updateLiveFramePosition(null);
-                if (!outOfFrameEventCapturedForCurrentAbsence && outOfFrameConfirmTimeout === null) {
-                    var captureStartAt = noFaceStartedAt;
-                    outOfFrameConfirmTimeout = setTimeout(function () {
-                        outOfFrameConfirmTimeout = null;
-                        if (captureStartAt !== null && noFaceStartedAt !== null && !outOfFrameEventCapturedForCurrentAbsence) {
-                            var confirmNow = Date.now();
-                            var durationMs = confirmNow - captureStartAt;
-                            outOfFrameEventCapturedForCurrentAbsence = true;
-                            registerValidatedOutOfFrameEvent(confirmNow, durationMs);
-                        }
-                    }, OUT_OF_FRAME_CONFIRM_MS);
+                if (!outOfFrameEventCapturedForCurrentAbsence) {
+                    outOfFrameEventCapturedForCurrentAbsence = true;
+                    registerValidatedOutOfFrameEvent(now, noFaceDurationMs);
                 }
+            } else if (noFaceDurationMs < OUT_OF_FRAME_GRACE_MS) {
+                // Short settle so a single dropped frame doesn't flash a countdown.
+                setLiveFrameState('yellow', headline, 'Return your face to the camera frame.');
+                updateLiveFramePosition(null);
             } else {
-                const secondsLeft = noFaceStartedAt === null
-                    ? Math.ceil((OUT_OF_FRAME_GRACE_MS - noFaceTotalMs) / 1000)
-                    : Math.ceil((outOfFrameMinMs - noFaceDurationMs) / 1000);
+                const secondsLeft = Math.max(0, Math.ceil((outOfFrameMinMs - noFaceDurationMs) / 1000));
                 setLiveFrameState(
                     'red',
-                    'Face not detected',
-                    noFaceStartedAt === null
-                        ? 'Return to frame within ' + Math.max(0, secondsLeft) + 's to avoid starting the warning timer.'
-                        : 'Return to frame within ' + Math.max(0, secondsLeft) + 's to avoid auto-submission (' + outOfFrameSecondsLabelValue + 's out of frame).'
+                    headline,
+                    'Return to frame now \u2014 quiz will auto-submit in ' + secondsLeft + 's if this continues.'
                 );
                 updateLiveFramePosition(null);
             }
             return;
         }
 
-        // Face returned: reset no-face timer and cancel any pending out-of-frame capture.
-        if (noFaceStartedAt !== null || noFaceFirstSeenAt !== null) {
+        // Face detected: clear the out-of-frame timer (and lighting nag never applies with a face).
+        if (noFaceStartedAt !== null) {
             noFaceStartedAt = null;
-            noFaceFirstSeenAt = null;
             outOfFrameEventCapturedForCurrentAbsence = false;
-            if (outOfFrameConfirmTimeout !== null) {
-                clearTimeout(outOfFrameConfirmTimeout);
-                outOfFrameConfirmTimeout = null;
-            }
         }
 
         // Guidance only: face exists but partially outside frame.
@@ -1199,13 +1157,8 @@
         motionScore = 0;
         motionCheckStartTime = Date.now();
         noFaceStartedAt = null;
-        noFaceFirstSeenAt = null;
         multipleFacesStartedAt = null;
         outOfFrameEventCapturedForCurrentAbsence = false;
-        if (outOfFrameConfirmTimeout !== null) {
-            clearTimeout(outOfFrameConfirmTimeout);
-            outOfFrameConfirmTimeout = null;
-        }
         lastHeadDirection = 'center';
         lastHeadDirectionViolationAt = 0;
 
@@ -1237,11 +1190,6 @@
         if (challengeTimer) {
             clearTimeout(challengeTimer);
             challengeTimer = null;
-        }
-
-        if (outOfFrameConfirmTimeout !== null) {
-            clearTimeout(outOfFrameConfirmTimeout);
-            outOfFrameConfirmTimeout = null;
         }
 
         model = null;

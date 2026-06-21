@@ -11,6 +11,8 @@
         </div>
         <div class="flex flex-wrap gap-2">
             <button type="button" data-copy-error="{{ $error->id }}" class="btn btn-secondary btn-sm">Copy log</button>
+            <a href="{{ route('dashboard.monitoring.errors.download.single', ['error' => $error, 'format' => 'json']) }}" class="btn btn-secondary btn-sm">Download JSON</a>
+            <a href="{{ route('dashboard.monitoring.errors.download.single', ['error' => $error, 'format' => 'txt']) }}" class="btn btn-secondary btn-sm">Download TXT</a>
             <form method="post" action="{{ route('dashboard.monitoring.errors.resolve', $error) }}">@csrf<button class="btn btn-secondary btn-sm">Resolve</button></form>
             <form method="post" action="{{ route('dashboard.monitoring.errors.ignore', $error) }}">@csrf<button class="btn btn-secondary btn-sm">Ignore</button></form>
         </div>

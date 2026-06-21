@@ -13,10 +13,14 @@ class MonitoringErrorController extends Controller
 {
     public function index(Request $request): View
     {
+        $filterQuery = $this->errorFilterQueryString($request);
+
         if (! \Illuminate\Support\Facades\Schema::hasTable('system_errors')) {
             return view('admin.monitoring.errors.index', [
                 'errors' => new \Illuminate\Pagination\LengthAwarePaginator([], 0, 25),
                 'exportAllUrl' => route('dashboard.monitoring.errors.export'),
+                'downloadJsonUrl' => route('dashboard.monitoring.errors.download', ['format' => 'json']),
+                'downloadTxtUrl' => route('dashboard.monitoring.errors.download', ['format' => 'txt']),
             ]);
         }
 
@@ -38,9 +42,9 @@ class MonitoringErrorController extends Controller
 
         return view('admin.monitoring.errors.index', [
             'errors' => $query->paginate(25)->withQueryString(),
-            'exportAllUrl' => route('dashboard.monitoring.errors.export').(
-                ($q = http_build_query(array_filter($request->only(['search', 'severity', 'status'])))) ? '?'.$q : ''
-            ),
+            'exportAllUrl' => route('dashboard.monitoring.errors.export').($filterQuery ? '?'.$filterQuery : ''),
+            'downloadJsonUrl' => route('dashboard.monitoring.errors.download', array_merge(['format' => 'json'], $request->only(['search', 'severity', 'status']))),
+            'downloadTxtUrl' => route('dashboard.monitoring.errors.download', array_merge(['format' => 'txt'], $request->only(['search', 'severity', 'status']))),
         ]);
     }
 
@@ -74,5 +78,10 @@ class MonitoringErrorController extends Controller
             ->get();
 
         return view('admin.monitoring.errors.feed', compact('occurrences'));
+    }
+
+    protected function errorFilterQueryString(Request $request): string
+    {
+        return http_build_query(array_filter($request->only(['search', 'severity', 'status'])));
     }
 }

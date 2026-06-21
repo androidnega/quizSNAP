@@ -44,6 +44,7 @@ Route::middleware(['admin.auth', 'monitoring.access'])->prefix('dashboard/monito
 
     Route::get('/errors', [MonitoringErrorController::class, 'index'])->name('errors.index');
     Route::get('/errors/feed', [MonitoringErrorController::class, 'feed'])->name('errors.feed');
+    Route::get('/errors/download', [MonitoringMaintenanceController::class, 'downloadErrors'])->name('errors.download');
     Route::get('/errors/{error}', [MonitoringErrorController::class, 'show'])->name('errors.show');
     Route::post('/errors/{error}/resolve', [MonitoringErrorController::class, 'resolve'])->name('errors.resolve');
     Route::post('/errors/{error}/ignore', [MonitoringErrorController::class, 'ignore'])->name('errors.ignore');
@@ -83,6 +84,7 @@ Route::middleware(['admin.auth', 'monitoring.access'])->prefix('dashboard/monito
     Route::post('/maintenance/clear-logs', [MonitoringMaintenanceController::class, 'clearLogs'])->name('maintenance.clear-logs');
     Route::get('/errors/export', [MonitoringMaintenanceController::class, 'exportErrors'])->name('errors.export');
     Route::get('/errors/{error}/export', [MonitoringMaintenanceController::class, 'exportError'])->name('errors.export.single');
+    Route::get('/errors/{error}/download', [MonitoringMaintenanceController::class, 'downloadError'])->name('errors.download.single');
 });
 
 Route::redirect('/admin/monitoring', '/dashboard/monitoring');

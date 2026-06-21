@@ -2,7 +2,6 @@
 
 @php($pageTitle = 'Monitoring Overview')
 @php($monitoringPage = 'overview')
-@php($monitoringDark = true)
 
 @section('monitoring_content')
 <div class="monitoring-command-center -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-5 rounded-2xl">
@@ -137,73 +136,6 @@
     </div>
 </div>
 @endsection
-
-@push('styles')
-<style>
-.monitoring-command-center {
-    background: radial-gradient(ellipse at top, #1e293b 0%, #0f172a 45%, #020617 100%);
-    border: 1px solid rgba(51, 65, 85, 0.6);
-    box-shadow: inset 0 1px 0 rgba(148, 163, 184, 0.08);
-}
-.monitoring-panel {
-    border-radius: 0.75rem;
-    border: 1px solid rgba(51, 65, 85, 0.7);
-    background: rgba(15, 23, 42, 0.65);
-    padding: 1rem;
-    backdrop-filter: blur(8px);
-}
-.monitoring-stat-card {
-    border-radius: 0.75rem;
-    border: 1px solid rgba(51, 65, 85, 0.7);
-    background: rgba(15, 23, 42, 0.75);
-    padding: 1rem;
-    backdrop-filter: blur(6px);
-    transition: border-color 0.2s, box-shadow 0.2s;
-}
-.monitoring-stat-card:hover {
-    box-shadow: 0 0 24px rgba(6, 182, 212, 0.08);
-}
-.monitoring-stat-card--rose { border-top: 2px solid rgba(251, 113, 133, 0.7); }
-.monitoring-stat-card--orange { border-top: 2px solid rgba(251, 146, 60, 0.7); }
-.monitoring-stat-card--amber { border-top: 2px solid rgba(251, 191, 36, 0.7); }
-.monitoring-stat-card--emerald { border-top: 2px solid rgba(52, 211, 153, 0.7); }
-.monitoring-stat-card--violet { border-top: 2px solid rgba(167, 139, 250, 0.7); }
-.monitoring-stat-card--sky { border-top: 2px solid rgba(56, 189, 248, 0.7); }
-.monitoring-stat-card--cyan { border-top: 2px solid rgba(34, 211, 238, 0.7); }
-.monitoring-stat-card--slate { border-top: 2px solid rgba(148, 163, 184, 0.5); }
-.monitoring-breathe-dot {
-    display: inline-block;
-    width: 10px;
-    height: 10px;
-    border-radius: 9999px;
-    background: #34d399;
-    box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.6);
-    animation: monitoring-breathe 2s ease-in-out infinite;
-}
-.monitoring-breathe-dot--xs { width: 6px; height: 6px; }
-.monitoring-breathe-dot--sm { width: 8px; height: 8px; }
-.monitoring-breathe-dot--rose { background: #fb7185; box-shadow: 0 0 0 0 rgba(251, 113, 133, 0.55); }
-.monitoring-breathe-dot--emerald { background: #34d399; box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.55); }
-.monitoring-breathe-dot--cyan { background: #22d3ee; box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.55); }
-.monitoring-breathe-dot--orange { background: #fb923c; box-shadow: 0 0 0 0 rgba(251, 146, 60, 0.55); }
-.monitoring-breathe-dot--amber { background: #fbbf24; box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.55); }
-.monitoring-breathe-dot--violet { background: #a78bfa; box-shadow: 0 0 0 0 rgba(167, 139, 250, 0.55); }
-.monitoring-breathe-dot--sky { background: #38bdf8; box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.55); }
-.monitoring-breathe-dot--slate { background: #94a3b8; box-shadow: 0 0 0 0 rgba(148, 163, 184, 0.45); }
-@keyframes monitoring-breathe {
-    0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.5); }
-    50% { opacity: 0.65; transform: scale(0.92); box-shadow: 0 0 0 6px rgba(52, 211, 153, 0); }
-}
-.monitoring-scroll::-webkit-scrollbar { width: 6px; }
-.monitoring-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
-.monitoring-dark-shell .monitoring-nav-dark {
-    border-color: rgba(51, 65, 85, 0.8);
-    background: rgba(15, 23, 42, 0.9);
-}
-.monitoring-dark-shell .monitoring-nav-dark .text-gray-500 { color: #94a3b8; }
-.monitoring-dark-shell .monitoring-nav-dark .text-gray-600 { color: #cbd5e1; }
-</style>
-@endpush
 
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>

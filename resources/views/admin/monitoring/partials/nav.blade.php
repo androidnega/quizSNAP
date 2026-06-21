@@ -27,13 +27,13 @@
     ];
 @endphp
 
-<div class="mb-4 rounded-xl border p-3 shadow-sm {{ ($monitoringDark ?? false) ? 'monitoring-nav-dark border-slate-700 bg-slate-900/90' : 'border-gray-200 bg-white' }}">
+<div class="mb-4 rounded-xl border border-slate-700 bg-slate-900/90 p-3 shadow-sm monitoring-nav-dark">
     <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
         <div>
-            <p class="text-xs font-semibold uppercase tracking-wider {{ ($monitoringDark ?? false) ? 'text-slate-400' : 'text-gray-500' }}">System Monitoring</p>
-            <p class="text-sm {{ ($monitoringDark ?? false) ? 'text-slate-300' : 'text-gray-600' }}">Enterprise operations center</p>
+            <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">System Monitoring</p>
+            <p class="text-sm text-slate-300">Enterprise operations center</p>
         </div>
-        <span id="monitoring-live-indicator" class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium {{ ($monitoringDark ?? false) ? 'bg-emerald-950/60 text-emerald-300' : 'bg-emerald-50 text-emerald-700' }}">
+        <span id="monitoring-live-indicator" class="inline-flex items-center gap-1.5 rounded-full bg-emerald-950/60 px-2.5 py-1 text-xs font-medium text-emerald-300">
             <span class="monitoring-breathe-dot monitoring-breathe-dot--xs" aria-hidden="true"></span> Live
         </span>
     </div>
@@ -41,12 +41,11 @@
         @foreach($monitoringNav as $item)
             @php
                 $active = request()->routeIs($item['route']) || request()->routeIs(str_replace('.index', '.*', $item['route']));
-                $dark = $monitoringDark ?? false;
             @endphp
             <a href="{{ route($item['route']) }}"
                class="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors {{ $active
-                    ? ($dark ? 'border-cyan-500/50 bg-cyan-950/50 text-cyan-200' : 'border-primary-300 bg-primary-50 text-primary-700')
-                    : ($dark ? 'border-slate-700 bg-slate-800/60 text-slate-300 hover:bg-slate-800' : 'border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100') }}">
+                    ? 'border-cyan-500/50 bg-cyan-950/50 text-cyan-200'
+                    : 'border-slate-700 bg-slate-800/60 text-slate-300 hover:bg-slate-800' }}">
                 <i class="fas {{ $item['icon'] }} text-[10px]"></i>
                 {{ $item['label'] }}
             </a>

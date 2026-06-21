@@ -293,7 +293,7 @@ class StudentQuizController extends Controller
                     'camera_started_at' => $session->camera_started_at ?? now(),
                 ]);
             } else {
-                return redirect()->to(route('student.proctoring.capture').'?token='.urlencode($token))
+                return redirect()->to($this->quizLinks->proctoringCaptureUrl((int) $session->quiz_id, $token))
                     ->with('error', UserFriendlyMessages::GENERIC);
             }
         }

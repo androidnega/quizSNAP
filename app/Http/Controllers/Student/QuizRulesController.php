@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
 use App\Models\Quiz;
-use App\Models\QuizAcceptance;
 use App\Models\QuizSession;
 use App\Models\Setting;
 use App\Models\Student;
@@ -123,7 +122,6 @@ class QuizRulesController extends Controller
         if (! $quizId && session('quiz_link_token')) {
             $quizId = Quiz::where('link_token', session('quiz_link_token'))->value('id');
         }
-        $sessionData = ['rules_accepted' => true];
 
         if (! $quizId) {
             return response()->json([
@@ -183,34 +181,21 @@ class QuizRulesController extends Controller
                     }
                 }
 
-                QuizAcceptance::updateOrCreate(
-                    [
-                        'quiz_id' => $quiz->id,
-                        'index_number' => $student->index_number,
-                    ],
-                    [
-                        'ip_address' => $request->ip(),
-                        'accepted_at' => now(),
-                    ]
-                );
+                $this->quizLinks->recordRulesAcceptance($quiz, (string) $student->index_number, $request->ip());
 
-                session([
-                    'quiz_id' => $quiz->id,
-                    'quiz_id_for_login' => $quiz->id,
-                    'index_number' => strtoupper(trim((string) $student->index_number)),
-                    'student_index' => strtoupper(trim((string) $student->index_number)),
-                    'rules_accepted' => true,
-                ]);
-                if ($existingSession) {
-                    session(['quiz_session_token' => $existingSession->session_token]);
-                }
+                $this->quizLinks->syncQuizEntrySession(
+                    (int) $quiz->id,
+                    (string) $student->index_number,
+                    true,
+                    $existingSession?->session_token
+                );
                 session()->forget('eligible_courses');
 
                 return response()->json([
                     'success' => true,
                     'redirect' => $existingSession
                         ? $this->quizLinks->resumeRoute($existingSession)
-                        : route('student.proctoring.capture', ['quiz' => $quiz->id]),
+                        : $this->quizLinks->proctoringCaptureUrl((int) $quiz->id),
                 ]);
             }
 
@@ -220,17 +205,13 @@ class QuizRulesController extends Controller
             ], 422);
         }
 
-        $pendingIndex = $request->input('index_number') ?? session('student_index') ?? 'pending';
-        QuizAcceptance::create([
+        // Pre-login: session only — do not write placeholder rows to quiz_acceptance.
+        $this->quizLinks->rememberQuizContext($quiz, true);
+        session([
             'quiz_id' => $quiz->id,
-            'index_number' => $pendingIndex,
-            'ip_address' => $request->ip(),
-            'accepted_at' => now(),
+            'quiz_id_for_login' => $quiz->id,
+            'rules_accepted' => true,
         ]);
-        $sessionData['quiz_id_for_login'] = $quiz->id;
-        $sessionData['quiz_link_token'] = $quiz->link_token;
-
-        session($sessionData);
         session()->forget('eligible_courses');
 
         return response()->json([
@@ -248,15 +229,12 @@ class QuizRulesController extends Controller
         $session = $this->quizLinks->latestSession($quiz, $indexNumber);
         if ($session) {
             $this->quizLinks->rememberQuizContext($quiz, true);
-            session([
-                'quiz_id' => $quiz->id,
-                'quiz_id_for_login' => $quiz->id,
-                'index_number' => $indexNumber,
-                'rules_accepted' => true,
-            ]);
-            if ($student) {
-                session(['student_index' => $indexNumber]);
-            }
+            $this->quizLinks->syncQuizEntrySession(
+                (int) $quiz->id,
+                $indexNumber,
+                true,
+                (string) $session->session_token
+            );
 
             return redirect()->to($this->quizLinks->resumeRoute($session));
         }
@@ -266,16 +244,14 @@ class QuizRulesController extends Controller
         }
 
         if ($this->quizLinks->hasAcceptedRules($quiz, $indexNumber)) {
-            $this->quizLinks->rememberQuizContext($quiz, true);
-            session([
-                'quiz_id' => $quiz->id,
-                'quiz_id_for_login' => $quiz->id,
-                'index_number' => $indexNumber,
-                'rules_accepted' => true,
-                'student_index' => $indexNumber,
-            ]);
+            if ($this->quizLinks->isIpBlockedForQuiz($quiz, $indexNumber, request()->ip())) {
+                return null;
+            }
 
-            return redirect()->route('student.proctoring.capture', ['quiz' => $quiz->id]);
+            $this->quizLinks->rememberQuizContext($quiz, true);
+            $this->quizLinks->syncQuizEntrySession((int) $quiz->id, $indexNumber);
+
+            return redirect()->to($this->quizLinks->proctoringCaptureUrl((int) $quiz->id));
         }
 
         return null;

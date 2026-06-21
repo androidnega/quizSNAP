@@ -149,13 +149,91 @@ final class QuizLinkService
 
     public function hasAcceptedRules(Quiz $quiz, ?string $indexNumber): bool
     {
-        if (! $indexNumber) {
+        $indexNumber = $this->normalizeIndexValue($indexNumber);
+        if ($indexNumber === null) {
             return false;
         }
 
         return QuizAcceptance::where('quiz_id', $quiz->id)
-            ->whereRaw('UPPER(TRIM(index_number)) = ?', [$indexNumber])
+            ->where('index_number', $indexNumber)
             ->exists();
+    }
+
+    /**
+     * Persist rules acceptance once the student's index is known (never stores "pending").
+     */
+    public function recordRulesAcceptance(Quiz $quiz, string $indexNumber, ?string $ip = null): void
+    {
+        $indexNumber = $this->normalizeIndexValue($indexNumber);
+        if ($indexNumber === null) {
+            return;
+        }
+
+        QuizAcceptance::updateOrCreate(
+            [
+                'quiz_id' => $quiz->id,
+                'index_number' => $indexNumber,
+            ],
+            [
+                'ip_address' => $ip,
+                'accepted_at' => now(),
+            ]
+        );
+    }
+
+    /**
+     * @return string|null Uppercase trimmed index, or null when blank / placeholder.
+     */
+    public function normalizeIndexValue(mixed $indexNumber): ?string
+    {
+        if (! is_string($indexNumber) && ! is_numeric($indexNumber)) {
+            return null;
+        }
+
+        $normalized = strtoupper(trim((string) $indexNumber));
+        if ($normalized === '' || $normalized === 'PENDING') {
+            return null;
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * Stable proctoring capture URL (quiz id + optional attempt token).
+     */
+    public function proctoringCaptureUrl(int $quizId, ?string $sessionToken = null): string
+    {
+        $url = route('student.proctoring.capture', ['quiz' => $quizId]);
+        if (is_string($sessionToken) && trim($sessionToken) !== '') {
+            $url .= (str_contains($url, '?') ? '&' : '?').'token='.urlencode(trim($sessionToken));
+        }
+
+        return $url;
+    }
+
+    /**
+     * Sync quiz entry keys used across rules, capture, and quiz pages.
+     *
+     * @return array<string, mixed>
+     */
+    public function syncQuizEntrySession(int $quizId, string $indexNumber, bool $rulesAccepted = true, ?string $sessionToken = null): array
+    {
+        $indexNumber = $this->normalizeIndexValue($indexNumber) ?? strtoupper(trim($indexNumber));
+        $payload = [
+            'quiz_id' => $quizId,
+            'quiz_id_for_login' => $quizId,
+            'index_number' => $indexNumber,
+            'rules_accepted' => $rulesAccepted,
+        ];
+        if ($this->resolveStudent()) {
+            $payload['student_index'] = $indexNumber;
+        }
+        if (is_string($sessionToken) && trim($sessionToken) !== '') {
+            $payload['quiz_session_token'] = trim($sessionToken);
+        }
+        session($payload);
+
+        return $payload;
     }
 
     public function isRegisteredForQuiz(Quiz $quiz, Student $student): bool
@@ -229,7 +307,7 @@ final class QuizLinkService
         }
 
         if ($this->needsProctoringCapture($session)) {
-            return route('student.proctoring.capture').'?token='.urlencode((string) $session->session_token);
+            return $this->proctoringCaptureUrl((int) $session->quiz_id, $session->session_token);
         }
 
         $route = $session->start_time !== null
@@ -250,9 +328,11 @@ final class QuizLinkService
 
         session([
             'quiz_id' => $session->quiz_id,
-            'index_number' => $session->student_index,
+            'index_number' => strtoupper(trim((string) $session->student_index)),
             'quiz_session_token' => $session->session_token,
             'rules_accepted' => true,
+            'quiz_id_for_login' => $session->quiz_id,
+            'student_index' => strtoupper(trim((string) $session->student_index)),
         ]);
 
         return $this->resumeUrl($session);
@@ -286,13 +366,12 @@ final class QuizLinkService
 
     public function syncActiveSession(QuizSession $session): void
     {
-        session([
-            'quiz_id' => $session->quiz_id,
-            'quiz_id_for_login' => $session->quiz_id,
-            'index_number' => $session->student_index,
-            'quiz_session_token' => $session->session_token,
-            'rules_accepted' => true,
-        ]);
+        $this->syncQuizEntrySession(
+            (int) $session->quiz_id,
+            (string) $session->student_index,
+            true,
+            (string) $session->session_token
+        );
     }
 
     public function needsProctoringCapture(QuizSession $session): bool
@@ -332,15 +411,7 @@ final class QuizLinkService
         }
 
         if ($quizId && $indexNumber) {
-            $payload = [
-                'quiz_id' => (int) $quizId,
-                'quiz_id_for_login' => (int) $quizId,
-                'index_number' => $indexNumber,
-            ];
-            if ($this->resolveStudent()) {
-                $payload['student_index'] = $indexNumber;
-            }
-            session($payload);
+            $this->syncQuizEntrySession((int) $quizId, $indexNumber, true, is_string($token) ? trim($token) : null);
         }
 
         return [

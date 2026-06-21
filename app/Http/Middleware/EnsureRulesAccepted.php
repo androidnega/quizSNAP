@@ -3,7 +3,6 @@
 namespace App\Http\Middleware;
 
 use App\Models\Quiz;
-use App\Models\QuizAcceptance;
 use App\Models\QuizSession;
 use Closure;
 use Illuminate\Http\Request;
@@ -24,12 +23,7 @@ class EnsureRulesAccepted
                 ->whereNull('ended_at')
                 ->first();
             if ($activeSession) {
-                session([
-                    'quiz_session_token' => $activeSession->session_token,
-                    'quiz_id' => $activeSession->quiz_id,
-                    'index_number' => $activeSession->student_index,
-                    'rules_accepted' => true,
-                ]);
+                app(\App\Services\QuizLinkService::class)->syncActiveSession($activeSession);
 
                 return $next($request);
             }
@@ -41,38 +35,30 @@ class EnsureRulesAccepted
                 ->whereNull('ended_at')
                 ->first();
             if ($activeSession) {
-                session([
-                    'quiz_id' => $activeSession->quiz_id,
-                    'index_number' => $activeSession->student_index,
-                    'rules_accepted' => true,
-                ]);
+                app(\App\Services\QuizLinkService::class)->syncActiveSession($activeSession);
 
                 return $next($request);
             }
         }
 
         $quizId = $this->resolveQuizId($request);
-        $indexNumber = app(\App\Services\QuizLinkService::class)->resolveEntryIndexNumber($request);
+        $quizLinks = app(\App\Services\QuizLinkService::class);
+        $indexNumber = $quizLinks->resolveEntryIndexNumber($request);
         if ($quizId !== null && $indexNumber !== null) {
-            if (! $this->hasAcceptedRules((int) $quizId, $indexNumber)) {
-                $quiz = Quiz::where('id', $quizId)->first();
+            $quiz = Quiz::find($quizId);
+            if (! $quiz || ! $quizLinks->hasAcceptedRules($quiz, $indexNumber)) {
                 if ($quiz && $quiz->link_token) {
-                    return redirect()->route('student.rules.show.quiz', ['token' => $quiz->link_token])
-                        ->with('error', 'Error');
+                    return redirect()->route('student.rules.show.quiz', [
+                        'token' => $quiz->link_token,
+                        'stay' => 1,
+                    ])->with('error', 'Please accept the quiz rules to continue.');
                 }
 
                 return redirect()->route('student.rules.show')
-                    ->with('error', 'Error');
+                    ->with('error', 'Please accept the quiz rules to continue.');
             }
 
-            session([
-                'rules_accepted' => true,
-                'index_number' => $indexNumber,
-                'quiz_id' => (int) $quizId,
-            ]);
-            if (session('student_id')) {
-                session(['student_index' => $indexNumber]);
-            }
+            $quizLinks->syncQuizEntrySession((int) $quizId, $indexNumber);
 
             return $next($request);
         }
@@ -85,13 +71,15 @@ class EnsureRulesAccepted
         if ($quizId) {
             $quiz = Quiz::where('id', $quizId)->first();
             if ($quiz && $quiz->link_token) {
-                return redirect()->route('student.rules.show.quiz', ['token' => $quiz->link_token])
-                    ->with('error', 'Error');
+                return redirect()->route('student.rules.show.quiz', [
+                    'token' => $quiz->link_token,
+                    'stay' => 1,
+                ])->with('error', 'Please accept the quiz rules to continue.');
             }
         }
 
         return redirect()->route('student.rules.show')
-            ->with('error', 'Error');
+            ->with('error', 'Please accept the quiz rules to continue.');
     }
 
     /**
@@ -126,24 +114,5 @@ class EnsureRulesAccepted
         }
 
         return null;
-    }
-
-    private function normalizedIndex(mixed $indexNumber): ?string
-    {
-        if (! is_string($indexNumber) && ! is_numeric($indexNumber)) {
-            return null;
-        }
-
-        $normalized = strtoupper(trim((string) $indexNumber));
-
-        return $normalized !== '' ? $normalized : null;
-    }
-
-    private function hasAcceptedRules(int $quizId, string $indexNumber): bool
-    {
-        return QuizAcceptance::query()
-            ->where('quiz_id', $quizId)
-            ->whereRaw('UPPER(TRIM(index_number)) = ?', [$indexNumber])
-            ->exists();
     }
 }

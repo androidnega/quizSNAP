@@ -6,11 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Student\Concerns\IssuesStudentLoginSmsOtp;
 use App\Models\ClassGroupStudent;
 use App\Models\Quiz;
-use App\Models\QuizAcceptance;
 use App\Models\QuizSession;
 use App\Models\Setting;
 use App\Models\Student;
 use App\Models\User;
+use App\Services\QuizLinkService;
 use App\Services\StudentAuthAuditLogger;
 use App\Services\StudentAuthFlowService;
 use App\Services\StudentOnboardingEmailOtpService;
@@ -159,16 +159,7 @@ class StudentLoginController extends Controller
         ]);
         session()->forget('quiz_id_for_login');
 
-        QuizAcceptance::updateOrCreate(
-            [
-                'quiz_id' => $quiz->id,
-                'index_number' => $indexNumber,
-            ],
-            [
-                'ip_address' => $request->ip(),
-                'accepted_at' => now(),
-            ]
-        );
+        app(QuizLinkService::class)->recordRulesAcceptance($quiz, $indexNumber, $request->ip());
 
         $indexHash = Student::hashIndexNumber($indexNumber);
         $student = Student::firstOrCreate(

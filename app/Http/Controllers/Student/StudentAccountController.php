@@ -864,28 +864,20 @@ class StudentAccountController extends Controller
 
         $quizId = session('quiz_id');
         if ($quizId) {
-            $indexNumber = strtoupper(trim((string) ($student->index_number ?? session('index_number') ?? session('student_index') ?? '')));
-            session([
-                'quiz_id' => (int) $quizId,
-                'index_number' => $indexNumber,
-                'rules_accepted' => true,
-            ]);
+            $quizLinks = app(QuizLinkService::class);
+            $indexNumber = $quizLinks->normalizeIndexValue(
+                $student->index_number ?? session('index_number') ?? session('student_index')
+            );
+            if ($indexNumber !== null) {
+                $quiz = Quiz::find((int) $quizId);
+                if ($quiz) {
+                    $quizLinks->recordRulesAcceptance($quiz, $indexNumber, request()->ip());
+                }
+                $quizLinks->syncQuizEntrySession((int) $quizId, $indexNumber);
+            }
             session()->forget('quiz_id_for_login');
 
-            if ($indexNumber !== '') {
-                QuizAcceptance::updateOrCreate(
-                    [
-                        'quiz_id' => (int) $quizId,
-                        'index_number' => $indexNumber,
-                    ],
-                    [
-                        'ip_address' => request()->ip(),
-                        'accepted_at' => now(),
-                    ]
-                );
-            }
-
-            return route('student.proctoring.capture', ['quiz' => (int) $quizId]);
+            return $quizLinks->proctoringCaptureUrl((int) $quizId);
         }
         if ($student->level === null || $student->level === '') {
             return route('student.select-level');

@@ -216,6 +216,10 @@
                         <p class="font-medium">Secure SSL/TLS (recommended)</p>
                         <p class="mt-1 text-primary-700">Host: mail.ausweblabs.com — Port: 465 (SSL). Username: reset@ausweblabs.com. Use the account password. IMAP/POP3/SMTP require authentication.</p>
                     </div>
+                    <div class="rounded-lg border border-amber-200 bg-amber-50/80 p-4 mb-6 text-sm text-amber-900">
+                        <p class="font-medium">Avoid spam folder</p>
+                        <p class="mt-1">Use a <strong>From address on the same domain</strong> as your SMTP username (e.g. quiz@manuelcode.info). In your hosting DNS, add <strong>SPF</strong>, <strong>DKIM</strong>, and <strong>DMARC</strong> records for that domain. Gmail and other providers trust authenticated, branded transactional mail much more than plain text tests.</p>
+                    </div>
                     <div class="space-y-6">
                         <div class="rounded-lg border border-gray-200 bg-gray-50/50 p-5 space-y-4">
                             <h3 class="text-sm font-semibold text-gray-800">SMTP server</h3>
@@ -240,7 +244,8 @@
                             </div>
                             <div>
                                 <label for="mail_username" class="block text-sm font-medium text-gray-700 mb-1.5">Username</label>
-                                <input type="text" name="mail_username" id="mail_username" value="{{ old('mail_username', $mail_username ?? 'reset@ausweblabs.com') }}" placeholder="reset@ausweblabs.com" autocomplete="off" class="block w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 focus:outline-none">
+                                <input type="email" name="mail_username" id="mail_username" value="{{ old('mail_username', $mail_username ?? 'reset@ausweblabs.com') }}" placeholder="quiz@example.com" autocomplete="off" class="block w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 focus:outline-none">
+                                <p class="text-xs text-gray-500 mt-1">Full email address for the mailbox (same as From address for most hosts).</p>
                             </div>
                             <div>
                                 <label for="mail_password" class="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
@@ -285,13 +290,14 @@
                         @if($can_manage_backup ?? false)
                         <div class="rounded-lg border border-gray-200 bg-gray-50/50 p-5 space-y-4">
                             <h3 class="text-sm font-semibold text-gray-800">Test email delivery</h3>
-                            <p class="text-sm text-gray-600">Send a test message to confirm SMTP settings are working. Save settings first if you changed host, port, username, password, or from address.</p>
+                            <p class="text-sm text-gray-600">Send test messages to confirm SMTP settings and preview the password reset template. Save settings first if you changed host, port, username, password, or from address.</p>
                             <div class="flex flex-wrap items-end gap-2">
                                 <div>
                                     <label for="email-test-to" class="block text-xs font-medium text-gray-500 mb-0.5">Recipient email</label>
-                                    <input type="email" id="email-test-to" value="{{ old('notify_result_email', $notify_result_email ?? $mail_from_address ?? '') }}" placeholder="e.g. admin@example.com" class="block w-72 max-w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:ring-1 focus:ring-gray-300 focus:outline-none">
+                                    <input type="email" id="email-test-to" value="{{ old('notify_result_email', $notify_result_email ?? $mail_from_address ?? 'kwofiee3@gmail.com') }}" placeholder="e.g. admin@example.com" class="block w-72 max-w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:ring-1 focus:ring-gray-300 focus:outline-none">
                                 </div>
                                 <button type="button" id="email-test-btn" class="inline-flex items-center justify-center rounded-md border border-transparent bg-yellow-500 px-3 py-2 text-sm font-medium text-yellow-900 hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-1">Send test email</button>
+                                <button type="button" id="password-reset-test-btn" class="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1">Send test password reset</button>
                             </div>
                             <div id="email-test-result" class="mt-3 hidden rounded-lg border p-3 text-sm"></div>
                         </div>
@@ -991,6 +997,50 @@ document.addEventListener('DOMContentLoaded', function() {
                 resultEl.textContent = 'Request failed: ' + (err.message || 'Network error');
             })
             .finally(function() { emailTestBtn.disabled = false; });
+        });
+    }
+
+    var passwordResetTestBtn = document.getElementById('password-reset-test-btn');
+    if (passwordResetTestBtn) {
+        passwordResetTestBtn.addEventListener('click', function() {
+            var toInput = document.getElementById('email-test-to');
+            var resultEl = document.getElementById('email-test-result');
+            var to = toInput && toInput.value ? toInput.value.trim() : '';
+            if (!to) {
+                resultEl.classList.remove('hidden');
+                resultEl.classList.add('bg-danger-50', 'border', 'border-danger-200', 'text-danger-800');
+                resultEl.textContent = 'Enter an email address first.';
+                return;
+            }
+            resultEl.classList.remove('hidden', 'bg-success-50', 'border-success-200', 'text-success-800', 'bg-danger-50', 'border-danger-200', 'text-danger-800');
+            resultEl.textContent = 'Sending password reset preview…';
+            passwordResetTestBtn.disabled = true;
+            var formData = new FormData();
+            formData.append('to', to);
+            formData.append('_token', document.querySelector('input[name="_token"]') && document.querySelector('input[name="_token"]').value);
+            fetch('{{ route('dashboard.settings.password-reset-test') }}', {
+                method: 'POST',
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                body: formData
+            })
+            .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
+            .then(function(res) {
+                var d = res.data || {};
+                resultEl.classList.remove('hidden');
+                if (d.success) {
+                    resultEl.classList.add('bg-success-50', 'border', 'border-success-200', 'text-success-800');
+                    resultEl.textContent = d.message || 'Password reset preview sent.';
+                } else {
+                    resultEl.classList.add('bg-danger-50', 'border', 'border-danger-200', 'text-danger-800');
+                    resultEl.textContent = (d.message || 'Failed to send password reset preview.') + (d.detail ? ' ' + d.detail : '');
+                }
+            })
+            .catch(function(err) {
+                resultEl.classList.remove('hidden');
+                resultEl.classList.add('bg-danger-50', 'border', 'border-danger-200', 'text-danger-800');
+                resultEl.textContent = 'Request failed: ' + (err.message || 'Network error');
+            })
+            .finally(function() { passwordResetTestBtn.disabled = false; });
         });
     }
 

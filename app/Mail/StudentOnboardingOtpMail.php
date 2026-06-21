@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Mail\Concerns\BuildsQuizSnapEnvelope;
 use App\Models\Student;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
@@ -11,7 +12,7 @@ use Illuminate\Queue\SerializesModels;
 
 class StudentOnboardingOtpMail extends Mailable
 {
-    use Queueable, SerializesModels;
+    use BuildsQuizSnapEnvelope, Queueable, SerializesModels;
 
     public function __construct(
         public Student $student,
@@ -21,19 +22,24 @@ class StudentOnboardingOtpMail extends Mailable
 
     public function envelope(): Envelope
     {
-        $appName = \App\Models\Setting::getValue(\App\Models\Setting::KEY_APP_NAME, config('app.name', 'QuizSnap'));
+        $appName = (string) \App\Models\Setting::getValue(\App\Models\Setting::KEY_APP_NAME, config('app.name', 'QuizSnap'));
 
-        return new Envelope(
-            subject: 'Your '.$appName.' verification code',
+        return $this->quizSnapEnvelope(
+            "Your {$appName} verification code",
+            "Your verification code is {$this->code}. It expires in {$this->expiresMinutes} minutes.",
         );
     }
 
     public function content(): Content
     {
-        return new Content(
-            view: 'emails.student-onboarding-otp',
-            with: [
+        return $this->quizSnapContent(
+            'emails.student-onboarding-otp',
+            'emails.text.student-onboarding-otp',
+            [
                 'expiresMinutes' => $this->expiresMinutes,
+                'badge' => 'Account setup',
+                'heading' => 'Your verification code',
+                'preheader' => "Your verification code is {$this->code}.",
             ],
         );
     }

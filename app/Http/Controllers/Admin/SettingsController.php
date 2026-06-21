@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\ClassGroup;
 use App\Models\Setting;
 use App\Models\User;
+use App\Mail\MailDeliveryTest;
+use App\Mail\PasswordResetMail;
 use App\Services\MailConfigService;
 use App\Services\StudentOnboardingEmailOtpService;
 use App\Models\Student;
@@ -275,7 +277,26 @@ class SettingsController extends Controller
                     },
                 ],
                 'mail_port' => 'nullable|string|max:10',
-                'mail_username' => 'nullable|string|max:255',
+                'mail_username' => [
+                    'nullable',
+                    'string',
+                    'max:255',
+                    function (string $attribute, mixed $value, \Closure $fail): void {
+                        if (! is_string($value) || trim($value) === '') {
+                            return;
+                        }
+
+                        $fromAddress = request()->input('mail_from_address');
+                        if (! is_string($fromAddress) || trim($fromAddress) === '') {
+                            $fromAddress = Setting::getValue(Setting::KEY_MAIL_FROM_ADDRESS);
+                        }
+
+                        $normalized = MailConfigService::normalizeSmtpUsername($value, is_string($fromAddress) ? $fromAddress : null);
+                        if ($normalized === null || $normalized === '' || ! filter_var($normalized, FILTER_VALIDATE_EMAIL)) {
+                            $fail('Username must be the full mailbox email address (e.g. quiz@example.com).');
+                        }
+                    },
+                ],
                 'mail_password' => 'nullable|string|max:512',
                 'mail_encryption' => 'nullable|string|max:20',
                 'mail_from_address' => 'nullable|email|max:255',
@@ -400,7 +421,15 @@ class SettingsController extends Controller
                 : null
         );
         Setting::setValue(Setting::KEY_MAIL_PORT, $request->filled('mail_port') ? trim($request->mail_port) : null);
-        Setting::setValue(Setting::KEY_MAIL_USERNAME, $request->filled('mail_username') ? trim($request->mail_username) : null);
+        $fromAddress = $request->filled('mail_from_address')
+            ? trim($request->mail_from_address)
+            : Setting::getValue(Setting::KEY_MAIL_FROM_ADDRESS);
+        Setting::setValue(
+            Setting::KEY_MAIL_USERNAME,
+            $request->filled('mail_username')
+                ? MailConfigService::normalizeSmtpUsername(trim($request->mail_username), is_string($fromAddress) ? $fromAddress : null)
+                : null
+        );
         if ($request->filled('mail_password')) {
             Setting::setValue(Setting::KEY_MAIL_PASSWORD, trim($request->mail_password));
         }
@@ -639,7 +668,6 @@ class SettingsController extends Controller
             MailConfigService::applyFromSettings();
 
             $to = trim((string) $request->input('to'));
-            $mailer = (string) Setting::getValue(Setting::KEY_MAIL_MAILER, (string) config('mail.default'));
             $host = (string) (MailConfigService::normalizeSmtpHost(
                 Setting::getValue(Setting::KEY_MAIL_HOST, (string) config('mail.mailers.smtp.host'))
             ) ?? '');
@@ -648,18 +676,7 @@ class SettingsController extends Controller
             $fromAddress = (string) Setting::getValue(Setting::KEY_MAIL_FROM_ADDRESS, (string) config('mail.from.address'));
             $fromName = (string) Setting::getValue(Setting::KEY_MAIL_FROM_NAME, (string) config('mail.from.name'));
 
-            $body = "QuizSnap test email\n\n"
-                . 'Time: ' . now()->toDateTimeString() . "\n"
-                . 'Mailer: ' . ($mailer ?: '—') . "\n"
-                . 'Host: ' . ($host ?: '—') . "\n"
-                . 'Port: ' . ($port ?: '—') . "\n"
-                . 'Encryption: ' . ($encryption !== '' ? $encryption : 'none') . "\n"
-                . 'From: ' . ($fromName ?: 'QuizSnap') . ' <' . ($fromAddress ?: 'noreply@quizsnap.local') . ">\n\n"
-                . "If you received this, your mail settings are working.";
-
-            Mail::raw($body, function ($message) use ($to) {
-                $message->to($to)->subject('QuizSnap mail test');
-            });
+            Mail::to($to)->send(new MailDeliveryTest($host, $port, $encryption, $fromAddress, $fromName));
 
             return response()->json([
                 'success' => true,
@@ -669,6 +686,54 @@ class SettingsController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to send test email.',
+                'detail' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    /**
+     * Send a preview password reset email using current mail settings.
+     */
+    public function passwordResetTest(Request $request): JsonResponse
+    {
+        $request->validate(['to' => 'required|email|max:255']);
+
+        $currentUser = auth()->user() ?? User::find(session('admin_user_id'));
+        $primarySuperAdminId = User::where('role', User::ROLE_SUPER_ADMIN)->min('id');
+        $isPrimarySuperAdmin = $primarySuperAdminId !== null && (
+            ($currentUser && (int) $currentUser->id === (int) $primarySuperAdminId)
+            || ((int) session('admin_user_id') === (int) $primarySuperAdminId)
+        );
+
+        if (! $isPrimarySuperAdmin) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Only the primary super admin can send test password reset emails from settings.',
+            ], 403);
+        }
+
+        try {
+            MailConfigService::applyFromSettings();
+
+            $to = trim((string) $request->input('to'));
+            $previewUrl = url('/password/reset/preview-not-valid');
+
+            Mail::to($to)->send(new PasswordResetMail(
+                recipientName: 'Preview User',
+                resetUrl: $previewUrl,
+                audience: 'staff',
+                accountLabel: 'preview.user',
+                isPreview: true,
+            ));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Password reset preview sent to ' . $to . '.',
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send password reset preview.',
                 'detail' => $e->getMessage(),
             ], 422);
         }

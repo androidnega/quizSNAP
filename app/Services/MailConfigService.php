@@ -34,6 +34,35 @@ class MailConfigService
         return $host;
     }
 
+    /**
+     * Normalize SMTP username: convert local.domain.tld dot form to local@domain.tld when from address matches.
+     */
+    public static function normalizeSmtpUsername(?string $username, ?string $fromAddress = null): ?string
+    {
+        if ($username === null) {
+            return null;
+        }
+
+        $username = trim($username);
+        if ($username === '') {
+            return '';
+        }
+
+        if (filter_var($username, FILTER_VALIDATE_EMAIL)) {
+            return $username;
+        }
+
+        $fromAddress = trim((string) $fromAddress);
+        if ($fromAddress !== '' && filter_var($fromAddress, FILTER_VALIDATE_EMAIL)) {
+            $dotForm = str_replace('@', '.', $fromAddress);
+            if (strcasecmp($username, $dotForm) === 0) {
+                return $fromAddress;
+            }
+        }
+
+        return $username;
+    }
+
     public static function applyFromSettings(): void
     {
         $mailer = Setting::getValue(Setting::KEY_MAIL_MAILER, config('mail.default'));
@@ -43,15 +72,22 @@ class MailConfigService
             Setting::setValue(Setting::KEY_MAIL_HOST, $host);
         }
         $port = (int) Setting::getValue(Setting::KEY_MAIL_PORT, '465');
-        $username = Setting::getValue(Setting::KEY_MAIL_USERNAME);
+        $fromAddress = Setting::getValue(Setting::KEY_MAIL_FROM_ADDRESS, 'deveopers@quizsnap.online');
+        $rawUsername = Setting::getValue(Setting::KEY_MAIL_USERNAME);
+        $username = self::normalizeSmtpUsername($rawUsername, $fromAddress) ?? '';
+        if ($username !== '' && $rawUsername !== null && trim((string) $rawUsername) !== '' && $username !== trim((string) $rawUsername)) {
+            Setting::setValue(Setting::KEY_MAIL_USERNAME, $username);
+        }
         $password = Setting::getValue(Setting::KEY_MAIL_PASSWORD);
         $encryption = Setting::getValue(Setting::KEY_MAIL_ENCRYPTION, 'ssl');
-        $fromAddress = Setting::getValue(Setting::KEY_MAIL_FROM_ADDRESS, 'deveopers@quizsnap.online');
         $fromName = Setting::getValue(Setting::KEY_MAIL_FROM_NAME, 'QuizSnap');
 
         Config::set('mail.default', $mailer);
         Config::set('mail.from.address', $fromAddress ?: 'noreply@quizsnap.local');
         Config::set('mail.from.name', $fromName ?: 'QuizSnap');
+        if (filter_var($username, FILTER_VALIDATE_EMAIL)) {
+            Config::set('mail.from.address', $username);
+        }
         Config::set('mail.mailers.smtp.host', $host);
         Config::set('mail.mailers.smtp.port', $port);
         Config::set('mail.mailers.smtp.username', $username);

@@ -2,7 +2,9 @@
 
 namespace App\Mail;
 
+use App\Mail\Concerns\BuildsQuizSnapEnvelope;
 use App\Models\QuizSession;
+use App\Models\Setting;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -11,7 +13,7 @@ use Illuminate\Queue\SerializesModels;
 
 class QuizResultReadyNotification extends Mailable
 {
-    use Queueable, SerializesModels;
+    use BuildsQuizSnapEnvelope, Queueable, SerializesModels;
 
     public function __construct(
         public QuizSession $session
@@ -20,16 +22,24 @@ class QuizResultReadyNotification extends Mailable
     public function envelope(): Envelope
     {
         $quizTitle = $this->session->quiz?->title ?? 'Quiz';
-        $appName = \App\Models\Setting::getValue(\App\Models\Setting::KEY_APP_NAME, config('app.name'));
-        return new Envelope(
-            subject: "[{$appName}] Quiz result ready: {$quizTitle}",
+        $appName = (string) Setting::getValue(Setting::KEY_APP_NAME, config('app.name'));
+
+        return $this->quizSnapEnvelope(
+            "{$appName} quiz result ready: {$quizTitle}",
+            "A student submitted {$quizTitle}. Open your dashboard for full results.",
         );
     }
 
     public function content(): Content
     {
-        return new Content(
-            view: 'emails.quiz-result-ready',
+        return $this->quizSnapContent(
+            'emails.quiz-result-ready',
+            'emails.text.quiz-result-ready',
+            [
+                'badge' => 'Quiz notification',
+                'heading' => 'Quiz result ready',
+                'preheader' => 'A student submitted a quiz. View the summary inside.',
+            ],
         );
     }
 }

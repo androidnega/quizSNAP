@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
-use App\Mail\StudentPasswordResetMail;
+use App\Mail\PasswordResetMail;
 use App\Models\ClassGroupStudent;
 use App\Models\Setting;
 use App\Models\Student;
@@ -95,7 +95,14 @@ class StudentPasswordResetController extends Controller
         $resetUrl = route('student.password.reset.form', ['token' => $token]);
 
         try {
-            Mail::to($student->email)->send(new StudentPasswordResetMail($student, $resetUrl, self::RESET_LINK_MINUTES));
+            $displayName = trim($student->student_name ?? '') !== '' ? $student->student_name : $student->index_number;
+            Mail::to($student->email)->send(new PasswordResetMail(
+                recipientName: $displayName,
+                resetUrl: $resetUrl,
+                audience: 'student',
+                accountLabel: $student->index_number,
+                expiresMinutes: self::RESET_LINK_MINUTES,
+            ));
             StudentAuthAuditLogger::log('password_reset_sent', $student, $indexHash, $request);
         } catch (\Throwable $e) {
             report($e);

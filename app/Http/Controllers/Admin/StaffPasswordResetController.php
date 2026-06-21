@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Mail\StaffPasswordResetMail;
+use App\Mail\PasswordResetMail;
 use App\Services\MailConfigService;
 use App\Models\StaffPasswordReset;
 use App\Models\User;
@@ -58,7 +58,12 @@ class StaffPasswordResetController extends Controller
         $resetUrl = route('password.reset.form', ['token' => $token]);
 
         try {
-            Mail::to($user->email)->send(new StaffPasswordResetMail($user, $resetUrl));
+            Mail::to($user->email)->send(new PasswordResetMail(
+                recipientName: $user->name ?: $user->username,
+                resetUrl: $resetUrl,
+                audience: 'staff',
+                accountLabel: $user->username,
+            ));
         } catch (\Throwable $e) {
             report($e);
             return back()->withInput($request->only('username'))

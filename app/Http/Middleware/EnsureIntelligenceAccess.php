@@ -12,7 +12,11 @@ class EnsureIntelligenceAccess
 {
     public function handle(Request $request, Closure $next): Response
     {
-        $user = User::find(session('admin_user_id'));
+        $user = auth()->user();
+        if (! $user instanceof User) {
+            $user = User::find(session('admin_user_id'));
+        }
+
         if (! $user || ! $user->canAccessIntelligence()) {
             return redirect()->route('dashboard')
                 ->with('error', EnterpriseCenterAccess::deniedMessage($user, 'Intelligence Center'));

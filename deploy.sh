@@ -46,6 +46,15 @@ else
   echo "WARN: supervisorctl not found — restart Reverb and queue workers manually."
 fi
 
+echo "==> Reload PHP-FPM (clear OPcache)..."
+if [[ "$(id -u)" -eq 0 ]]; then
+  for svc in php8.3-fpm php8.2-fpm php-fpm; do
+    if systemctl is-active --quiet "$svc" 2>/dev/null; then
+      systemctl reload "$svc" && echo "Reloaded $svc" && break
+    fi
+  done
+fi
+
 echo ""
 echo "==> Done. Latest commit:"
 git log -1 --oneline

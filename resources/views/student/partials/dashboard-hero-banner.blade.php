@@ -34,7 +34,7 @@
 @if($mode === 'image' && ($usesBundledBanner || ! empty($bannerImageUrl)))
 {{-- Wide hero banner (1024×374): responsive WebP with JPEG fallback --}}
 <section aria-label="Dashboard banner" class="sd-hero-banner w-full min-w-0 h-full flex flex-col">
-    <figure class="sd-hero-banner__media relative m-0 w-full flex-1 min-h-[168px] overflow-hidden rounded-2xl lg:rounded-3xl bg-[#f8fafc] aspect-[1024/374] lg:aspect-auto h-full">
+    <figure class="sd-hero-banner__media relative m-0 w-full flex-1 min-h-[168px] overflow-hidden rounded-2xl lg:rounded-3xl bg-[#f8fafc] aspect-[1024/374] h-full">
         @if($usesBundledBanner)
         <picture>
             <source type="image/webp"
@@ -45,7 +45,7 @@
                     sizes="(max-width: 768px) 100vw, 100vw">
             <img src="{{ $bundledBase }}.jpg"
                  alt="{{ $bannerAlt }}"
-                 class="absolute inset-0 block h-full w-full object-cover object-center"
+                 class="sd-hero-banner__img absolute inset-0 block h-full w-full object-contain object-center"
                  width="1024"
                  height="374"
                  loading="eager"
@@ -55,7 +55,7 @@
         @else
         <img src="{{ e($bannerImageUrl) }}"
              alt="{{ $bannerAlt }}"
-             class="absolute inset-0 block h-full w-full object-cover object-center"
+             class="sd-hero-banner__img absolute inset-0 block h-full w-full object-contain object-center"
              width="1024"
              height="374"
              loading="eager"

@@ -557,13 +557,11 @@
             min-height: 100%;
             height: 100%;
         }
+    }
 
-        .sd-hero-row .sd-hero-banner__media {
-            aspect-ratio: unset;
-            flex: 1 1 auto;
-            min-height: 100%;
-            height: 100%;
-        }
+    .sd-hero-banner__img {
+        object-fit: contain;
+        object-position: center;
     }
 
     .sd-featured-quiz__card {

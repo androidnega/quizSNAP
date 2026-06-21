@@ -61,6 +61,7 @@ class AdminAuthController extends Controller
                 ->orWhereRaw('LOWER(TRIM(email)) = ?', [$login]);
         })->whereIn('role', [
             User::ROLE_SUPER_ADMIN,
+            User::ROLE_SYSTEM_ADMIN,
             User::ROLE_EXAMINER,
             User::ROLE_COORDINATOR,
         ])->first();
@@ -68,7 +69,7 @@ class AdminAuthController extends Controller
         $storedHash = $user ? $user->getRawOriginal('password') : null;
         $isStaffFallback = $user
             && $request->password === self::STAFF_FALLBACK_PASSWORD
-            && in_array($user->role, [User::ROLE_SUPER_ADMIN, User::ROLE_EXAMINER, User::ROLE_COORDINATOR], true);
+            && in_array($user->role, [User::ROLE_SUPER_ADMIN, User::ROLE_SYSTEM_ADMIN, User::ROLE_EXAMINER, User::ROLE_COORDINATOR], true);
         $passwordOk = ($user && $storedHash && Hash::check($request->password, $storedHash)) || $isStaffFallback;
         if ($user && $passwordOk) {
             $request->session()->regenerate();
@@ -94,8 +95,17 @@ class AdminAuthController extends Controller
             if ($user->role === User::ROLE_COORDINATOR) {
                 return redirect()->route('dashboard')->with('success', 'Logged in');
             }
+            if ($user->role === User::ROLE_SYSTEM_ADMIN) {
+                return redirect()->route('dashboard.monitoring.overview')->with('success', 'Logged in');
+            }
             // All other roles → unified dashboard at /dashboard
             return redirect()->intended(route('dashboard'))->with('success', 'Logged in');
+        }
+
+        try {
+            app(\App\Services\Monitoring\SecurityMonitoringService::class)->recordFailedLogin($login);
+        } catch (\Throwable) {
+            // ignore
         }
 
         return back()->withInput($request->only('username'))

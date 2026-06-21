@@ -566,9 +566,9 @@
                     }
                 } else if (data.show_major_warning) {
                     if (isTabSwitchStrike && window.QuizSnapQuiz && typeof window.QuizSnapQuiz.showTabSwitchWarning === 'function') {
-                        window.QuizSnapQuiz.showTabSwitchWarning();
+                        window.QuizSnapQuiz.showTabSwitchWarning(data.tab_switch_strikes, data.tab_switch_remaining);
                     } else if (window.QuizSnapQuiz && typeof window.QuizSnapQuiz.showTabSwitchWarning === 'function' && (data.tab_switch_strikes || 0) > 0) {
-                        window.QuizSnapQuiz.showTabSwitchWarning();
+                        window.QuizSnapQuiz.showTabSwitchWarning(data.tab_switch_strikes, data.tab_switch_remaining);
                     } else {
                         var el = document.getElementById('blur-warning');
                         if (el) el.classList.remove('hidden');
@@ -802,7 +802,7 @@
             .then(function (data) {
                 if (!data || !data.show_tab_switch_warning) return;
                 if (window.QuizSnapQuiz && typeof window.QuizSnapQuiz.showTabSwitchWarning === 'function') {
-                    window.QuizSnapQuiz.showTabSwitchWarning();
+                    window.QuizSnapQuiz.showTabSwitchWarning(data.tab_switch_strikes, data.tab_switch_remaining);
                 }
             })
             .catch(function () {

@@ -14,6 +14,7 @@ class User extends Authenticatable
     use HasFactory, Notifiable;
 
     public const ROLE_SUPER_ADMIN = 'super_admin';
+    public const ROLE_SYSTEM_ADMIN = 'system_admin';
     public const ROLE_EXAMINER = 'examiner';
     public const ROLE_COORDINATOR = 'coordinator';
 
@@ -94,6 +95,26 @@ class User extends Authenticatable
         return $this->role === self::ROLE_SUPER_ADMIN;
     }
 
+    public function isSystemAdministrator(): bool
+    {
+        return $this->role === self::ROLE_SYSTEM_ADMIN;
+    }
+
+    public function canAccessMonitoring(): bool
+    {
+        return $this->isSuperAdmin() || $this->isSystemAdministrator();
+    }
+
+    public function canAccessOperations(): bool
+    {
+        return $this->isSuperAdmin() || $this->isSystemAdministrator();
+    }
+
+    public function canAccessIntelligence(): bool
+    {
+        return $this->isSuperAdmin() || $this->isSystemAdministrator();
+    }
+
     public function isExaminer(): bool
     {
         return $this->role === self::ROLE_EXAMINER;
@@ -101,7 +122,22 @@ class User extends Authenticatable
 
     public function isStaff(): bool
     {
-        return in_array($this->role, [self::ROLE_SUPER_ADMIN, self::ROLE_EXAMINER, self::ROLE_COORDINATOR], true);
+        return in_array($this->role, [
+            self::ROLE_SUPER_ADMIN,
+            self::ROLE_SYSTEM_ADMIN,
+            self::ROLE_EXAMINER,
+            self::ROLE_COORDINATOR,
+        ], true);
+    }
+
+    public static function monitoringRoleLabels(): array
+    {
+        return [
+            self::ROLE_SUPER_ADMIN => 'Super Admin',
+            self::ROLE_SYSTEM_ADMIN => 'System Administrator',
+            self::ROLE_EXAMINER => 'Examiner',
+            self::ROLE_COORDINATOR => 'Coordinator',
+        ];
     }
 
     public function assignedCourseIds(): array

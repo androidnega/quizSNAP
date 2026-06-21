@@ -619,6 +619,28 @@
                         </div>
                         <p class="text-xs text-gray-500">Prevent copy, cut, and paste and log violation.</p>
                     </div>
+
+                    <div class="rounded-md border border-amber-100 bg-amber-50/60 p-4 mt-2">
+                        <p class="text-sm font-medium text-gray-800 mb-1">Auto-submit thresholds</p>
+                        <p class="text-xs text-gray-500 mb-4">How many times or how long (in seconds) a rule must be broken before the quiz is auto-submitted.</p>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div>
+                                <label for="proctoring_tab_switch_limit" class="block text-sm font-medium text-gray-700 mb-1">Tab switches</label>
+                                <input type="number" name="proctoring_tab_switch_limit" id="proctoring_tab_switch_limit" min="1" max="20" value="{{ old('proctoring_tab_switch_limit', $proctoring_tab_switch_limit ?? 5) }}" class="w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                                <p class="text-xs text-gray-500 mt-1">Number of tab/window switches before auto-submit (default 5).</p>
+                            </div>
+                            <div>
+                                <label for="proctoring_out_of_frame_seconds" class="block text-sm font-medium text-gray-700 mb-1">Face out of frame (seconds)</label>
+                                <input type="number" name="proctoring_out_of_frame_seconds" id="proctoring_out_of_frame_seconds" min="5" max="120" value="{{ old('proctoring_out_of_frame_seconds', $proctoring_out_of_frame_seconds ?? 30) }}" class="w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                                <p class="text-xs text-gray-500 mt-1">Continuous seconds with no face visible (default 30).</p>
+                            </div>
+                            <div>
+                                <label for="proctoring_multiple_faces_seconds" class="block text-sm font-medium text-gray-700 mb-1">Multiple faces (seconds)</label>
+                                <input type="number" name="proctoring_multiple_faces_seconds" id="proctoring_multiple_faces_seconds" min="5" max="120" value="{{ old('proctoring_multiple_faces_seconds', $proctoring_multiple_faces_seconds ?? 35) }}" class="w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                                <p class="text-xs text-gray-500 mt-1">Continuous seconds with 2+ faces in frame (default 35).</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 </div>
                 @endif

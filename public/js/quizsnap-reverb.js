@@ -1,6 +1,5 @@
 /**
  * QuizSnap Reverb WebSocket client (Pusher protocol).
- * Single shared connection for dashboard, live proctor, and student quiz voice.
  */
 (function () {
     'use strict';
@@ -17,10 +16,15 @@
         return !!(c && c.key);
     }
 
+    function csrfToken() {
+        var meta = document.querySelector('meta[name="csrf-token"]');
+        return meta ? meta.getAttribute('content') : '';
+    }
+
     function buildOptions(c) {
         var useTls = (c.scheme || 'http') === 'https';
         var port = parseInt(c.port, 10) || (useTls ? 443 : 8080);
-        return {
+        var options = {
             wsHost: c.host,
             wsPort: port,
             wssPort: port,
@@ -29,6 +33,30 @@
             enabledTransports: useTls ? ['ws', 'wss'] : ['ws'],
             cluster: 'mt1',
         };
+
+        if (window.MONITORING_ACCESS || window.OPERATIONS_ACCESS || window.INTELLIGENCE_ACCESS) {
+            options.authEndpoint = '/broadcasting/auth';
+            options.auth = {
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken(),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            };
+        }
+
+        return options;
+    }
+
+    function monitoringChannelName() {
+        return window.MONITORING_ACCESS ? 'private-quizsnap-monitoring' : 'quizsnap-monitoring';
+    }
+
+    function operationsChannelName() {
+        return window.OPERATIONS_ACCESS ? 'private-quizsnap-operations' : 'quizsnap-operations';
+    }
+
+    function intelligenceChannelName() {
+        return window.INTELLIGENCE_ACCESS ? 'private-quizsnap-intelligence' : 'quizsnap-intelligence';
     }
 
     function getPusher() {
@@ -52,6 +80,15 @@
             pusher.subscribe('quizsnap').bind('DataUpdated', function (data) {
                 window.dispatchEvent(new CustomEvent('quizsnap-data-updated', { detail: data || {} }));
             });
+            if (window.MONITORING_ACCESS) {
+                pusher.subscribe(monitoringChannelName());
+            }
+            if (window.OPERATIONS_ACCESS) {
+                pusher.subscribe(operationsChannelName());
+            }
+            if (window.INTELLIGENCE_ACCESS) {
+                pusher.subscribe(intelligenceChannelName());
+            }
         } catch (e) {
             console.warn('[QuizSnap Reverb] init failed:', e);
             pusher = null;
@@ -95,6 +132,9 @@
         getPusher: getPusher,
         subscribe: subscribe,
         bind: bind,
+        monitoringChannel: monitoringChannelName,
+        operationsChannel: operationsChannelName,
+        intelligenceChannel: intelligenceChannelName,
     };
 
     initWhenReady();

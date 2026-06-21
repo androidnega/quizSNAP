@@ -24,6 +24,7 @@ class EnsureAdminAuthenticated
             $user = User::where('remember_token', $request->cookie('quizsnap_remember'))
                 ->whereIn('role', [
                     User::ROLE_SUPER_ADMIN,
+                    User::ROLE_SYSTEM_ADMIN,
                     User::ROLE_EXAMINER,
                     User::ROLE_COORDINATOR,
                 ])
@@ -48,6 +49,23 @@ class EnsureAdminAuthenticated
             session()->forget(['admin_authenticated', 'admin_user_id', 'admin_role']);
             return redirect()->guest(route('login'))
                 ->with('error', 'Session invalid. Please log in again.');
+        }
+
+        // System Administrator: monitoring center only
+        if ($user->role === User::ROLE_SYSTEM_ADMIN) {
+            $systemAdminAllowed = $request->routeIs('dashboard.monitoring.*')
+                || $request->routeIs('dashboard.profile.*')
+                || $request->routeIs('logout')
+                || $request->routeIs('logout.get');
+            if (! $systemAdminAllowed) {
+                return redirect()->route('dashboard.monitoring.overview')
+                    ->with('error', 'System Administrators can only access the Monitoring Center.');
+            }
+
+            session(['admin_role' => $user->role]);
+            auth()->setUser($user);
+
+            return $next($request);
         }
 
         // Coordinators may access their dashboard (coordinators.*), Docu Mentor (proposals/chapters), Class Groups, Courses, Exam Calendar, profile, and logout

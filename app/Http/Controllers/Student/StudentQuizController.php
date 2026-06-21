@@ -31,10 +31,10 @@ class StudentQuizController extends Controller
 {
     private const MAX_QUIZ_VIOLATION_CAPTURES = 5;
     private const NORMAL_VIOLATION_LIMIT = 10;
-    private const TAB_SWITCH_STRIKE_LIMIT = 2;
     private const HEAD_DIRECTION_LIMIT = 12;
-    /** Out-of-frame duration (ms) above which we auto-submit immediately (e.g. 15+ seconds). */
-    private const OUT_OF_FRAME_CRITICAL_DURATION_MS = 15000;
+
+    /** @var array{tab_switch_limit: int, out_of_frame_seconds: int, multiple_faces_seconds: int}|null */
+    private ?array $proctoringThresholds = null;
 
     public function __construct(
         private readonly QuizConcurrencyService $concurrency,
@@ -53,6 +53,18 @@ class StudentQuizController extends Controller
         }
 
         return $this->proctoringFlags;
+    }
+
+    /**
+     * @return array{tab_switch_limit: int, out_of_frame_seconds: int, multiple_faces_seconds: int}
+     */
+    private function proctoringThresholds(): array
+    {
+        if ($this->proctoringThresholds === null) {
+            $this->proctoringThresholds = Setting::getProctoringThresholds();
+        }
+
+        return $this->proctoringThresholds;
     }
 
     /**
@@ -277,6 +289,7 @@ class StudentQuizController extends Controller
         $proctoringBlockRightClick = $proctoring[Setting::KEY_PROCTORING_BLOCK_RIGHT_CLICK];
         $proctoringBlockCopyPaste = $proctoring[Setting::KEY_PROCTORING_BLOCK_COPY_PASTE];
         $fullscreenEnforcement = $this->isFullscreenEnforcementEnabled($proctoring);
+        $proctoringThresholds = $this->proctoringThresholds();
         $matchedStudent = Student::findByIndex($session->student_index, ['index_number', 'student_name']);
         $matchedStudentName = $matchedStudent && trim((string) $matchedStudent->student_name) !== ''
             ? trim((string) $matchedStudent->student_name)
@@ -330,6 +343,9 @@ class StudentQuizController extends Controller
                 'outOfFrameCount' => $outOfFrameCount,
                 'headTurnCount' => $headTurnCount,
                 'normalViolationCount' => $normalViolationCount,
+                'proctoringTabSwitchLimit' => $proctoringThresholds['tab_switch_limit'],
+                'proctoringOutOfFrameSeconds' => $proctoringThresholds['out_of_frame_seconds'],
+                'proctoringMultipleFacesSeconds' => $proctoringThresholds['multiple_faces_seconds'],
             ];
             return response()
                 ->view('student.quiz-mobile', $viewData)
@@ -361,6 +377,9 @@ class StudentQuizController extends Controller
                 'headTurnCount' => $headTurnCount,
                 'normalViolationCount' => $normalViolationCount,
                 'allowedDevices' => $allowedDevices,
+                'proctoringTabSwitchLimit' => $proctoringThresholds['tab_switch_limit'],
+                'proctoringOutOfFrameSeconds' => $proctoringThresholds['out_of_frame_seconds'],
+                'proctoringMultipleFacesSeconds' => $proctoringThresholds['multiple_faces_seconds'],
             ])
             ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
             ->header('Pragma', 'no-cache');
@@ -716,6 +735,10 @@ class StudentQuizController extends Controller
         $violationByType = $violationAggregates['by_type'];
         $outOfFrameCount = (int) ($violationByType['face_out_of_frame'] ?? 0);
         $focusLeaveCount = (int) ($violationByType['tab_switch'] ?? 0) + (int) ($violationByType['blur'] ?? 0);
+        $thresholds = $this->proctoringThresholds();
+        $tabSwitchLimit = $thresholds['tab_switch_limit'];
+        $outOfFrameCriticalMs = $thresholds['out_of_frame_seconds'] * 1000;
+        $multipleFacesCriticalMs = $thresholds['multiple_faces_seconds'] * 1000;
         $autoSubmitted = false;
         $immediateCriticalTypes = [
             'phone_detected',
@@ -724,9 +747,9 @@ class StudentQuizController extends Controller
             'copy_paste',
             'multiple_ip',
         ];
-        // Tab switch / blur: warn on first leave, auto-submit on second.
+        // Tab switch / blur: warn until configured limit, then auto-submit.
         if (in_array($type, ['tab_switch', 'blur'], true)) {
-            if ($focusLeaveCount >= self::TAB_SWITCH_STRIKE_LIMIT) {
+            if ($focusLeaveCount >= $tabSwitchLimit) {
                 $session->update([
                     'post_face_skipped_at' => now(),
                     'post_face_skipped_reason' => 'auto_submit',
@@ -749,13 +772,13 @@ class StudentQuizController extends Controller
             $this->finalizeQuiz($session);
             $autoSubmitted = true;
         }
-        // Out-of-frame 15+ seconds continuously: treat as critical, immediate auto-submit (e.g. on mobile).
+        // Out-of-frame continuously for configured seconds: immediate auto-submit.
         if (!$autoSubmitted && $type === 'face_out_of_frame') {
             $durationMs = (int) ($metadata['out_of_frame_duration_ms'] ?? $metadata['out_of_frame_duration'] ?? 0);
             if ($durationMs > 0 && $durationMs < 1000) {
                 $durationMs *= 1000; // value was in seconds
             }
-            if ($durationMs >= self::OUT_OF_FRAME_CRITICAL_DURATION_MS) {
+            if ($durationMs >= $outOfFrameCriticalMs) {
                 $session->update([
                     'post_face_skipped_at' => now(),
                     'post_face_skipped_reason' => 'auto_submit',
@@ -767,7 +790,26 @@ class StudentQuizController extends Controller
                 $autoSubmitted = true;
             }
         }
-        // Out-of-frame: auto-submit after 10 face_out_of_frame events (when duration < 15s each).
+        // Multiple faces continuously for configured seconds: immediate auto-submit.
+        if (!$autoSubmitted && in_array($type, ['multiple_faces_during_quiz', 'multiple_faces'], true)) {
+            $durationMs = (int) ($metadata['multiple_faces_duration_ms'] ?? $metadata['multiple_faces_duration'] ?? 0);
+            if ($durationMs > 0 && $durationMs < 1000) {
+                $durationMs *= 1000;
+            }
+            if ($durationMs >= $multipleFacesCriticalMs) {
+                $session->update([
+                    'post_face_skipped_at' => now(),
+                    'post_face_skipped_reason' => 'auto_submit',
+                    'auto_submit_after' => null,
+                    'auto_submitted' => true,
+                    'submission_reason' => 'critical_violation_auto_submit',
+                ]);
+                $this->finalizeQuiz($session);
+                $autoSubmitted = true;
+            }
+        }
+
+        // Out-of-frame: auto-submit after repeated face_out_of_frame events (legacy fallback).
         if (!$autoSubmitted && $type === 'face_out_of_frame') {
             if ($outOfFrameCount >= self::NORMAL_VIOLATION_LIMIT) {
                 $session->update([
@@ -807,7 +849,8 @@ class StudentQuizController extends Controller
         if (!$autoSubmitted && in_array($type, ['tab_switch', 'blur'], true)) {
             $response['show_major_warning'] = true;
             $response['tab_switch_strikes'] = $focusLeaveCount;
-            $response['tab_switch_remaining'] = max(0, self::TAB_SWITCH_STRIKE_LIMIT - $focusLeaveCount);
+            $response['tab_switch_remaining'] = max(0, $tabSwitchLimit - $focusLeaveCount);
+            $response['tab_switch_limit'] = $tabSwitchLimit;
         } elseif (!$autoSubmitted && in_array($type, $warningTypes, true)) {
             $response['show_major_warning'] = true;
         }
@@ -923,6 +966,14 @@ class StudentQuizController extends Controller
         $session = QuizSession::where('session_token', $token)->first();
         if (!$session || $session->ended_at) {
             return response()->json(['success' => true]);
+        }
+        $session->load('quiz:id,is_paused,operations_broadcast_message');
+        if ($session->quiz?->is_paused) {
+            return response()->json([
+                'success' => true,
+                'paused' => true,
+                'broadcast_message' => $session->quiz->operations_broadcast_message,
+            ]);
         }
         $this->syncQuizSessionContext($session);
         $hadScheduledSubmit = $session->auto_submit_after !== null;

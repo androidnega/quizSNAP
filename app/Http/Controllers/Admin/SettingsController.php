@@ -73,6 +73,9 @@ class SettingsController extends Controller
             Setting::KEY_PROCTORING_OBJECT_DETECT => '1',
             Setting::KEY_PROCTORING_BLOCK_RIGHT_CLICK => '1',
             Setting::KEY_PROCTORING_BLOCK_COPY_PASTE => '1',
+            Setting::KEY_PROCTORING_TAB_SWITCH_LIMIT => '5',
+            Setting::KEY_PROCTORING_OUT_OF_FRAME_SECONDS => '30',
+            Setting::KEY_PROCTORING_MULTIPLE_FACES_SECONDS => '35',
         ]);
 
         $deepseekKey = $settings[Setting::KEY_DEEPSEEK_API] ?? null;
@@ -132,6 +135,9 @@ class SettingsController extends Controller
             'proctoring_object_detect' => ($settings[Setting::KEY_PROCTORING_OBJECT_DETECT] ?? '1') === '1',
             'proctoring_block_right_click' => ($settings[Setting::KEY_PROCTORING_BLOCK_RIGHT_CLICK] ?? '1') === '1',
             'proctoring_block_copy_paste' => ($settings[Setting::KEY_PROCTORING_BLOCK_COPY_PASTE] ?? '1') === '1',
+            'proctoring_tab_switch_limit' => $settings[Setting::KEY_PROCTORING_TAB_SWITCH_LIMIT] ?? '5',
+            'proctoring_out_of_frame_seconds' => $settings[Setting::KEY_PROCTORING_OUT_OF_FRAME_SECONDS] ?? '30',
+            'proctoring_multiple_faces_seconds' => $settings[Setting::KEY_PROCTORING_MULTIPLE_FACES_SECONDS] ?? '35',
             'live_proctor_enabled' => ($settings[Setting::KEY_LIVE_PROCTOR_ENABLED] ?? '1') === '1',
             'violation_storage_driver' => $settings[Setting::KEY_VIOLATION_STORAGE_DRIVER] ?? 'server',
             'violation_retention_days_primary' => $settings[Setting::KEY_VIOLATION_RETENTION_DAYS_PRIMARY] ?? '21',
@@ -542,6 +548,25 @@ class SettingsController extends Controller
         Setting::setValue(Setting::KEY_PROCTORING_BLOCK_RIGHT_CLICK, $request->input('proctoring_block_right_click', '1') === '1' ? '1' : '0');
         Setting::setValue(Setting::KEY_PROCTORING_BLOCK_COPY_PASTE, $request->input('proctoring_block_copy_paste', '1') === '1' ? '1' : '0');
 
+        if ($request->filled('proctoring_tab_switch_limit')) {
+            Setting::setValue(
+                Setting::KEY_PROCTORING_TAB_SWITCH_LIMIT,
+                (string) max(1, min(20, (int) $request->proctoring_tab_switch_limit))
+            );
+        }
+        if ($request->filled('proctoring_out_of_frame_seconds')) {
+            Setting::setValue(
+                Setting::KEY_PROCTORING_OUT_OF_FRAME_SECONDS,
+                (string) max(5, min(120, (int) $request->proctoring_out_of_frame_seconds))
+            );
+        }
+        if ($request->filled('proctoring_multiple_faces_seconds')) {
+            Setting::setValue(
+                Setting::KEY_PROCTORING_MULTIPLE_FACES_SECONDS,
+                (string) max(5, min(120, (int) $request->proctoring_multiple_faces_seconds))
+            );
+        }
+
         Setting::setValue(Setting::KEY_VIOLATION_STORAGE_DRIVER, 'server');
         if ($request->filled('violation_retention_days_primary')) {
             Setting::setValue(Setting::KEY_VIOLATION_RETENTION_DAYS_PRIMARY, (string) max(1, min(365, (int) $request->violation_retention_days_primary)));
@@ -558,6 +583,9 @@ class SettingsController extends Controller
             Setting::KEY_PROCTORING_OBJECT_DETECT,
             Setting::KEY_PROCTORING_BLOCK_RIGHT_CLICK,
             Setting::KEY_PROCTORING_BLOCK_COPY_PASTE,
+            Setting::KEY_PROCTORING_TAB_SWITCH_LIMIT,
+            Setting::KEY_PROCTORING_OUT_OF_FRAME_SECONDS,
+            Setting::KEY_PROCTORING_MULTIPLE_FACES_SECONDS,
             Setting::KEY_VIOLATION_STORAGE_DRIVER,
             Setting::KEY_VIOLATION_RETENTION_DAYS_PRIMARY,
             Setting::KEY_VIOLATION_RETENTION_DAYS_SECONDARY,

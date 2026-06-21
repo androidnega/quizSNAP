@@ -29,7 +29,7 @@ class Quiz extends Model
 
     protected $fillable = [
         'link_token', 'class_group_id', 'title', 'exam_type', 'topics', 'script_url', 'script_public_id', 'script_text',
-        'number_of_questions', 'question_type_counts', 'questions_per_student', 'duration_minutes', 'course_id', 'is_active', 'is_published', 'starts_at', 'ends_at', 'result_visibility', 'allowed_devices',
+        'number_of_questions', 'question_type_counts', 'questions_per_student', 'duration_minutes', 'course_id', 'is_active', 'is_paused', 'operations_broadcast_message', 'is_published', 'starts_at', 'ends_at', 'result_visibility', 'allowed_devices',
         'academic_year_id', 'quiz_category_id', 'level_id', 'semester_id', 'academic_class_id', 'examiner_id', 'status',
     ];
 
@@ -91,6 +91,7 @@ class Quiz extends Model
     {
         return [
             'is_active' => 'boolean',
+            'is_paused' => 'boolean',
             'is_published' => 'boolean',
             'starts_at' => 'datetime',
             'ends_at' => 'datetime',

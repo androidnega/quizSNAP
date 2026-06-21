@@ -182,8 +182,8 @@
         <h2 style="margin-top: 0;">Your Result</h2>
         @if($isWithheld)
         <div class="result-box" style="min-width: 260px;">
-            <div class="score" style="font-size: 20px; color: #b91c1c;">Withheld, contact lecturer.</div>
-            <div class="label">Result on hold</div>
+            <div class="score" style="font-size: 20px; color: #b91c1c;">Result will be released after review</div>
+            <div class="label">Result under review</div>
         </div>
         @else
         <div class="result-box">

@@ -90,7 +90,7 @@
     <div id="tab-switch-once-warning" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900/90 px-4">
         <div class="bg-amber-50 border border-amber-400 rounded-xl p-4 max-w-md w-full text-center">
             <h4 class="font-semibold text-amber-800 mb-1">You left this tab</h4>
-            <p class="text-sm text-amber-800 mb-3">This is your first warning — <strong>one warning left</strong>. If you switch tabs again, your quiz will be auto-submitted. Stay on this tab to continue.</p>
+            <p id="tab-switch-once-warning-body" class="text-sm text-amber-800 mb-3">You left this tab. Further tab switches may auto-submit your quiz. Stay on this tab to continue.</p>
             <button type="button" onclick="this.closest('#tab-switch-once-warning').classList.add('hidden')" class="btn btn-action py-2.5 px-5 text-sm font-semibold">OK</button>
         </div>
     </div>
@@ -269,6 +269,7 @@ window.QuizSnapQuiz = {
     proctoringObjectDetect: {{ ($proctoringObjectDetect ?? true) ? 'true' : 'false' }},
     proctoringBlockRightClick: {{ ($proctoringBlockRightClick ?? true) ? 'true' : 'false' }},
     proctoringBlockCopyPaste: {{ ($proctoringBlockCopyPaste ?? true) ? 'true' : 'false' }},
+    tabSwitchLimit: {{ (int) ($proctoringTabSwitchLimit ?? 5) }},
     studentIndex: @json($session->student_index ?? null),
     studentName: @json($matchedStudentName ?? null),
     studentNameLinked: {{ ($studentNameLinked ?? false) ? 'true' : 'false' }}
@@ -285,10 +286,28 @@ window.QuizSnapIntelligentFaceMonitor.config = {
     initialHeadTurnCount: {{ (int) ($headTurnCount ?? 0) }},
     studentIndex: @json($session->student_index ?? null),
     studentName: @json($matchedStudentName ?? null),
-    studentNameLinked: {{ ($studentNameLinked ?? false) ? 'true' : 'false' }}
+    studentNameLinked: {{ ($studentNameLinked ?? false) ? 'true' : 'false' }},
+    outOfFrameSeconds: {{ (int) ($proctoringOutOfFrameSeconds ?? 30) }},
+    multipleFacesSeconds: {{ (int) ($proctoringMultipleFacesSeconds ?? 35) }}
 };
 window.QuizSnapObjectMonitor = { config: { violationCaptureUrl: "{{ route('student.quiz.violation.capture') }}", csrfToken: "{{ csrf_token() }}", sessionId: {{ $session->id ?? 0 }} } };
 window.QuizSnapAudioMonitor = { config: { violationCaptureUrl: "{{ route('student.quiz.violation.capture') }}", csrfToken: "{{ csrf_token() }}", sessionId: {{ $session->id ?? 0 }} } };
+
+window.QuizSnapQuiz.showTabSwitchWarning = function(strikes, remaining) {
+    var el = document.getElementById('tab-switch-once-warning');
+    var body = document.getElementById('tab-switch-once-warning-body');
+    var limit = (window.QuizSnapQuiz && window.QuizSnapQuiz.tabSwitchLimit) ? window.QuizSnapQuiz.tabSwitchLimit : 5;
+    var used = typeof strikes === 'number' ? strikes : 1;
+    var left = typeof remaining === 'number' ? remaining : Math.max(0, limit - used);
+    if (body) {
+        if (left <= 0) {
+            body.textContent = 'You have reached the tab switch limit. Your quiz is being submitted.';
+        } else {
+            body.innerHTML = 'You left this tab (' + used + ' of ' + limit + '). <strong>' + left + ' switch' + (left === 1 ? '' : 'es') + ' remaining</strong> before your quiz is auto-submitted. Stay on this tab to continue.';
+        }
+    }
+    if (el) { el.classList.remove('hidden'); }
+};
 
 document.addEventListener('DOMContentLoaded', function() {
     var c = window.QuizSnapQuiz || {};

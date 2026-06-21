@@ -26,6 +26,32 @@
         videoElement = config.videoElement || videoElement;
     }
 
+    function monitorSettings() {
+        updateConfig();
+        var root = window.QuizSnapIntelligentFaceMonitor || {};
+        return root.config || root;
+    }
+
+    function getOutOfFrameMinMs() {
+        var seconds = parseInt(monitorSettings().outOfFrameSeconds, 10);
+        if (!seconds || seconds < 5) {
+            seconds = 30;
+        }
+        return seconds * 1000;
+    }
+
+    function getMultipleFacesMinMs() {
+        var seconds = parseInt(monitorSettings().multipleFacesSeconds, 10);
+        if (!seconds || seconds < 5) {
+            seconds = 35;
+        }
+        return seconds * 1000;
+    }
+
+    function outOfFrameSecondsLabel() {
+        return Math.ceil(getOutOfFrameMinMs() / 1000);
+    }
+
     // BlazeFace detection settings
     const DETECTION_CONFIG = {
         maxFaces: 2,
@@ -73,16 +99,13 @@
     const DETECTION_INTERVAL_MS = adaptiveDetectionIntervalMs();
     const QUIZ_FRAME_MARGIN = 0.08; // Wider margin so head turns near edge don't count as "out of frame"
     const FACE_TOO_FAR_RATIO = 0.04;
-    const OUT_OF_FRAME_EVENT_MIN_MS = 15000;
     const OUT_OF_FRAME_EVENT_LIMIT = 1;
     const NORMAL_VIOLATION_LIMIT = 10;
-    // Grace: don't start the 15s timer until no face for this long (avoids head-turn false positives).
+    // Grace: don't start the out-of-frame timer until no face for this long (avoids head-turn false positives).
     const OUT_OF_FRAME_GRACE_MS = 2000;
     // Before capturing evidence, confirm face still absent after this delay (don't capture when user is back).
     const OUT_OF_FRAME_CONFIRM_MS = 500;
     const QUIZ_START_GRACE_MS = 12000; // Allow monitor/camera to stabilize before counting violations
-    // Require this many consecutive frames with 2+ faces before recording (reduces false positives)
-    const MULTIPLE_FACES_CONSECUTIVE_THRESHOLD = 6; // consecutive frames before confirming multiple faces
     // Second face smaller than this ratio of primary face area is ignored (reflection/noise/calculator etc.)
     const MULTIPLE_FACES_MIN_SECOND_RATIO = 0.58;
     // Minimum confidence + area ratio for a BlazeFace detection to be treated as a real face
@@ -112,7 +135,7 @@
     let lastHeadDirection = 'center'; // 'left', 'center', 'right', 'up', 'down'
     let lastHeadDirectionViolationAt = 0;
     let headDirectionViolationCount = 0;
-    let multipleFacesConsecutiveCount = 0;
+    let multipleFacesStartedAt = null;
     let validOutOfFrameEvents = 0;
     let normalViolationCount = 0;
     let noFaceStartedAt = null;
@@ -427,7 +450,8 @@
 
     function registerValidatedOutOfFrameEvent(now, durationMs) {
         const evidenceTimestamp = new Date(now).toISOString();
-        const eventDurationMs = Math.max(OUT_OF_FRAME_EVENT_MIN_MS, Math.floor(durationMs));
+        const minMs = getOutOfFrameMinMs();
+        const eventDurationMs = Math.max(minMs, Math.floor(durationMs));
         validOutOfFrameEvents++;
         incrementNormalViolationCount();
         const remainingWarnings = remainingOutOfFrameWarnings();
@@ -656,34 +680,50 @@
             darknessFrameCount = 0;
         }
 
-        // Multiple face detection: two or more effective faces = auto-submit after consecutive confirmation.
+        // Multiple face detection: two or more effective faces continuously before auto-submit.
         // If a phone was just detected by the object monitor, suppress multiple-faces to avoid double-logging.
         var proctorState = window.QuizSnapProctorState || {};
         var lastPhoneDetectedAt = proctorState.lastPhoneDetectedAt || 0;
         var phoneRecentlyDetected = lastPhoneDetectedAt && (now - lastPhoneDetectedAt) < PHONE_SUPPRESS_MULTIPLE_FACES_MS;
+        var multipleFacesThresholdMs = getMultipleFacesMinMs();
 
         if (effectiveMultiple > 1) {
             if (phoneRecentlyDetected) {
-                multipleFacesConsecutiveCount = 0;
+                multipleFacesStartedAt = null;
                 return;
             }
-            multipleFacesConsecutiveCount++;
-            if (multipleFacesConsecutiveCount >= MULTIPLE_FACES_CONSECUTIVE_THRESHOLD) {
+            if (multipleFacesStartedAt === null) {
+                multipleFacesStartedAt = now;
+            }
+            var multipleFacesDurationMs = now - multipleFacesStartedAt;
+            var multipleFacesSecondsLeft = Math.ceil((multipleFacesThresholdMs - multipleFacesDurationMs) / 1000);
+            var multipleFacesTitle = effectiveMultiple === 2 ? 'Two faces detected' : 'Multiple faces detected';
+
+            if (multipleFacesDurationMs >= multipleFacesThresholdMs) {
                 showProctoringModal(
-                    effectiveMultiple === 2 ? 'Two faces detected' : 'Multiple faces detected',
+                    multipleFacesTitle,
                     'Only one person should be in the camera frame. Your quiz is being submitted.',
                     { icon: effectiveMultiple === 2 ? 'fa-user-group' : 'fa-users' }
                 );
-                recordViolation('multiple_faces_during_quiz', 'major', true, { face_count: effectiveMultiple });
-                // Instant auto-submit on first confirmed multiple-faces (2+ or 3+)
+                recordViolation('multiple_faces_during_quiz', 'major', true, {
+                    face_count: effectiveMultiple,
+                    multiple_faces_duration_ms: multipleFacesDurationMs,
+                });
                 if (window.QuizSnapProctorEngine && window.QuizSnapProctorEngine.triggerAutoSubmit) {
                     window.QuizSnapProctorEngine.triggerAutoSubmit('multiple_faces', 'multiple_faces_during_quiz');
                 }
-                multipleFacesConsecutiveCount = 0;
+                multipleFacesStartedAt = null;
+            } else {
+                setLiveFrameState(
+                    'red',
+                    multipleFacesTitle,
+                    'Only one person should be visible. Quiz will auto-submit in ' + Math.max(0, multipleFacesSecondsLeft) + 's if this continues.'
+                );
+                updateLiveFramePosition(primaryBox);
             }
             return;
         } else {
-            multipleFacesConsecutiveCount = 0;
+            multipleFacesStartedAt = null;
         }
 
         // Out-of-frame: face count zero. Use grace period so brief head turns don't start the timer.
@@ -697,10 +737,12 @@
                 outOfFrameEventCapturedForCurrentAbsence = false;
             }
             const noFaceDurationMs = noFaceStartedAt === null ? 0 : (now - noFaceStartedAt);
-            if (noFaceDurationMs >= OUT_OF_FRAME_EVENT_MIN_MS) {
+            const outOfFrameMinMs = getOutOfFrameMinMs();
+            const outOfFrameSecondsLabelValue = outOfFrameSecondsLabel();
+            if (noFaceDurationMs >= outOfFrameMinMs) {
                 setLiveFrameState(
                     'red',
-                    'Face missing for 15s+',
+                    'Face missing for ' + outOfFrameSecondsLabelValue + 's+',
                     outOfFrameWarningsLeft > 0
                         ? (outOfFrameWarningsLeft + ' warning(s) remaining before auto-submission.')
                         : 'Auto-submission in progress.'
@@ -721,13 +763,13 @@
             } else {
                 const secondsLeft = noFaceStartedAt === null
                     ? Math.ceil((OUT_OF_FRAME_GRACE_MS - noFaceTotalMs) / 1000)
-                    : Math.ceil((OUT_OF_FRAME_EVENT_MIN_MS - noFaceDurationMs) / 1000);
+                    : Math.ceil((outOfFrameMinMs - noFaceDurationMs) / 1000);
                 setLiveFrameState(
                     'red',
                     'Face not detected',
                     noFaceStartedAt === null
                         ? 'Return to frame within ' + Math.max(0, secondsLeft) + 's to avoid starting the warning timer.'
-                        : 'Return to frame within ' + Math.max(0, secondsLeft) + 's to avoid a warning.'
+                        : 'Return to frame within ' + Math.max(0, secondsLeft) + 's to avoid auto-submission (' + outOfFrameSecondsLabelValue + 's out of frame).'
                 );
                 updateLiveFramePosition(null);
             }
@@ -1139,17 +1181,17 @@
     function startQuizMonitoring() {
         isQuizStarted = true;
         quizMonitoringStartedAt = Date.now();
-        updateConfig();
-        if (typeof config.initialOutOfFrameCount === 'number' && config.initialOutOfFrameCount >= 0) {
-            validOutOfFrameEvents = config.initialOutOfFrameCount;
+        var settings = monitorSettings();
+        if (typeof settings.initialOutOfFrameCount === 'number' && settings.initialOutOfFrameCount >= 0) {
+            validOutOfFrameEvents = settings.initialOutOfFrameCount;
         }
-        if (typeof config.initialNormalViolationCount === 'number' && config.initialNormalViolationCount >= 0) {
-            normalViolationCount = config.initialNormalViolationCount;
+        if (typeof settings.initialNormalViolationCount === 'number' && settings.initialNormalViolationCount >= 0) {
+            normalViolationCount = settings.initialNormalViolationCount;
         } else {
             normalViolationCount = validOutOfFrameEvents;
         }
-        if (typeof config.initialHeadTurnCount === 'number' && config.initialHeadTurnCount >= 0) {
-            headDirectionViolationCount = config.initialHeadTurnCount;
+        if (typeof settings.initialHeadTurnCount === 'number' && settings.initialHeadTurnCount >= 0) {
+            headDirectionViolationCount = settings.initialHeadTurnCount;
         }
         // Reset state
         facePresenceValid = false;
@@ -1158,6 +1200,7 @@
         motionCheckStartTime = Date.now();
         noFaceStartedAt = null;
         noFaceFirstSeenAt = null;
+        multipleFacesStartedAt = null;
         outOfFrameEventCapturedForCurrentAbsence = false;
         if (outOfFrameConfirmTimeout !== null) {
             clearTimeout(outOfFrameConfirmTimeout);

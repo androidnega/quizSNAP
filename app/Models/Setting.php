@@ -149,6 +149,7 @@ class Setting extends Model
             self::KEY_SUPABASE_BUCKET,
             self::KEY_SUPABASE_SIGNED_URL_TTL,
             ...self::PROCTORING_FLAG_KEYS,
+            ...self::PROCTORING_THRESHOLD_KEYS,
         ];
     }
 
@@ -385,6 +386,11 @@ class Setting extends Model
     public const KEY_PROCTORING_BLOCK_RIGHT_CLICK = 'proctoring_block_right_click';
     public const KEY_PROCTORING_BLOCK_COPY_PASTE = 'proctoring_block_copy_paste';
 
+    /** Proctoring auto-submit thresholds (Super Admin). */
+    public const KEY_PROCTORING_TAB_SWITCH_LIMIT = 'proctoring_tab_switch_limit';
+    public const KEY_PROCTORING_OUT_OF_FRAME_SECONDS = 'proctoring_out_of_frame_seconds';
+    public const KEY_PROCTORING_MULTIPLE_FACES_SECONDS = 'proctoring_multiple_faces_seconds';
+
     /** Proctoring flag keys loaded together on quiz hot paths. */
     private const PROCTORING_FLAG_KEYS = [
         self::KEY_PROCTORING_CAMERA_REQUIRED,
@@ -393,6 +399,13 @@ class Setting extends Model
         self::KEY_PROCTORING_OBJECT_DETECT,
         self::KEY_PROCTORING_BLOCK_RIGHT_CLICK,
         self::KEY_PROCTORING_BLOCK_COPY_PASTE,
+    ];
+
+    /** @var list<string> */
+    private const PROCTORING_THRESHOLD_KEYS = [
+        self::KEY_PROCTORING_TAB_SWITCH_LIMIT,
+        self::KEY_PROCTORING_OUT_OF_FRAME_SECONDS,
+        self::KEY_PROCTORING_MULTIPLE_FACES_SECONDS,
     ];
 
     /**
@@ -409,6 +422,26 @@ class Setting extends Model
         }
 
         return $flags;
+    }
+
+    /**
+     * Proctoring auto-submit thresholds for tab switch, out-of-frame, and multiple faces.
+     *
+     * @return array{tab_switch_limit: int, out_of_frame_seconds: int, multiple_faces_seconds: int}
+     */
+    public static function getProctoringThresholds(): array
+    {
+        $values = self::getMany(self::PROCTORING_THRESHOLD_KEYS, [
+            self::KEY_PROCTORING_TAB_SWITCH_LIMIT => '5',
+            self::KEY_PROCTORING_OUT_OF_FRAME_SECONDS => '30',
+            self::KEY_PROCTORING_MULTIPLE_FACES_SECONDS => '35',
+        ]);
+
+        return [
+            'tab_switch_limit' => max(1, min(20, (int) ($values[self::KEY_PROCTORING_TAB_SWITCH_LIMIT] ?? 5))),
+            'out_of_frame_seconds' => max(5, min(120, (int) ($values[self::KEY_PROCTORING_OUT_OF_FRAME_SECONDS] ?? 30))),
+            'multiple_faces_seconds' => max(5, min(120, (int) ($values[self::KEY_PROCTORING_MULTIPLE_FACES_SECONDS] ?? 35))),
+        ];
     }
 
     /** Keys whose values are stored encrypted (API keys, secrets, mail password). */

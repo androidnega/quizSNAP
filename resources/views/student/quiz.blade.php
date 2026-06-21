@@ -109,7 +109,7 @@ body.quiz-fs-blocked { overflow: hidden; }
     <div id="tab-switch-once-warning" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900/80 px-4">
         <div class="bg-white border border-gray-200 rounded-xl shadow-lg p-5 max-w-md w-full">
             <h4 class="font-semibold text-gray-900 mb-1">You left this tab</h4>
-            <p class="text-sm text-gray-600 mb-4">This is your first warning — <strong>one warning left</strong>. If you switch tabs again, your quiz will be auto-submitted immediately with no further warning. Stay on this tab to continue.</p>
+            <p id="tab-switch-once-warning-body" class="text-sm text-gray-600 mb-4">You left this tab. Further tab switches may auto-submit your quiz. Stay on this tab to continue.</p>
             <button type="button" id="tab-switch-once-warning-ok" class="w-full py-2.5 px-5 text-sm font-semibold rounded-lg text-white bg-gray-900 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 transition-colors">OK</button>
         </div>
     </div>
@@ -387,6 +387,7 @@ window.QuizSnapQuiz = {
     proctoringObjectDetect: {{ ($proctoringObjectDetect ?? true) ? 'true' : 'false' }},
     proctoringBlockRightClick: {{ ($proctoringBlockRightClick ?? true) ? 'true' : 'false' }},
     proctoringBlockCopyPaste: {{ ($proctoringBlockCopyPaste ?? true) ? 'true' : 'false' }},
+    tabSwitchLimit: {{ (int) ($proctoringTabSwitchLimit ?? 5) }},
     questionIds: @json($questions->pluck('id')->values()->all()),
     studentIndex: @json($session->student_index ?? null),
     studentName: @json($matchedStudentName ?? null),
@@ -407,6 +408,8 @@ window.QuizSnapIntelligentFaceMonitor.config.initialHeadTurnCount = {{ (int) (($
 window.QuizSnapIntelligentFaceMonitor.config.studentIndex = @json($session->student_index ?? null);
 window.QuizSnapIntelligentFaceMonitor.config.studentName = @json($matchedStudentName ?? null);
 window.QuizSnapIntelligentFaceMonitor.config.studentNameLinked = {{ ($studentNameLinked ?? false) ? 'true' : 'false' }};
+window.QuizSnapIntelligentFaceMonitor.config.outOfFrameSeconds = {{ (int) ($proctoringOutOfFrameSeconds ?? 30) }};
+window.QuizSnapIntelligentFaceMonitor.config.multipleFacesSeconds = {{ (int) ($proctoringMultipleFacesSeconds ?? 35) }};
 
 // Configure object monitor
 window.QuizSnapObjectMonitor = window.QuizSnapObjectMonitor || {};
@@ -450,8 +453,19 @@ document.addEventListener('DOMContentLoaded', function() {
         var el = document.getElementById('new-tab-zone-warning');
         if (el) { el.classList.add('hidden'); }
     };
-    window.QuizSnapQuiz.showTabSwitchWarning = function() {
+    window.QuizSnapQuiz.showTabSwitchWarning = function(strikes, remaining) {
         var el = document.getElementById('tab-switch-once-warning');
+        var body = document.getElementById('tab-switch-once-warning-body');
+        var limit = (window.QuizSnapQuiz && window.QuizSnapQuiz.tabSwitchLimit) ? window.QuizSnapQuiz.tabSwitchLimit : 5;
+        var used = typeof strikes === 'number' ? strikes : 1;
+        var left = typeof remaining === 'number' ? remaining : Math.max(0, limit - used);
+        if (body) {
+            if (left <= 0) {
+                body.textContent = 'You have reached the tab switch limit. Your quiz is being submitted.';
+            } else {
+                body.innerHTML = 'You left this tab (' + used + ' of ' + limit + '). <strong>' + left + ' switch' + (left === 1 ? '' : 'es') + ' remaining</strong> before your quiz is auto-submitted. Stay on this tab to continue.';
+            }
+        }
         if (el) { el.classList.remove('hidden'); }
     };
     window.QuizSnapQuiz.showResizeFinalWarning = function() {

@@ -47,7 +47,7 @@
                     <div class="flex items-center gap-2 flex-shrink-0 flex-wrap">
                         @if(isset($s->result) && $s->result)
                         @if($s->isResultWithheld())
-                        <span class="inline-flex items-center rounded-lg bg-red-100 px-2.5 py-1 text-xs font-semibold text-red-700">Result on hold - contact lecturer</span>
+                        <span class="inline-flex items-center rounded-lg bg-red-100 px-2.5 py-1 text-xs font-semibold text-red-700">Result under review</span>
                         @else
                         <span class="inline-flex items-center rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">{{ number_format($s->result->score ?? 0, 1) }}%</span>
                         <span class="text-xs text-slate-500">{{ $s->result->correct_count ?? 0 }}/{{ $s->result->total_questions ?? 0 }} correct</span>

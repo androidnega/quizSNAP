@@ -15,9 +15,9 @@
 
         @if($session->result && $isWithheld)
             <div class="mb-8 rounded-xl border-2 border-red-300 bg-red-50 p-6 sm:p-8 text-center">
-                <h2 class="text-lg font-bold text-red-800 mb-2">Result on hold</h2>
-                <p class="text-base font-semibold text-red-900">Withheld, contact lecturer.</p>
-                <p class="text-sm text-red-700 mt-2">Your exam was auto-submitted after repeated proctoring violations.</p>
+                <h2 class="text-lg font-bold text-red-800 mb-2">Result under review</h2>
+                <p class="text-base font-semibold text-red-900">Your result will be released after review.</p>
+                <p class="text-sm text-red-700 mt-2">Your exam was submitted and is being reviewed. You will be able to view your score once it has been released.</p>
             </div>
         @endif
 

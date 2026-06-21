@@ -6,6 +6,10 @@
 @php
     $layoutAdminUser = auth()->user();
     $isSuperAdmin = $layoutAdminUser && $layoutAdminUser->role === \App\Models\User::ROLE_SUPER_ADMIN;
+    $isSystemAdmin = $layoutAdminUser && $layoutAdminUser->role === \App\Models\User::ROLE_SYSTEM_ADMIN;
+    $canAccessMonitoring = $layoutAdminUser && $layoutAdminUser->canAccessMonitoring();
+    $canAccessOperations = $layoutAdminUser && $layoutAdminUser->canAccessOperations();
+    $canAccessIntelligence = $layoutAdminUser && $layoutAdminUser->canAccessIntelligence();
     $isExaminer = session('admin_role') === 'examiner';
     $isCoordinatorOnly = session('admin_role') === 'coordinator';
     $isQuizSnapStaff = $isSuperAdmin || $isExaminer;
@@ -100,6 +104,25 @@
                     </li>
                     @endif
                     @if($isSuperAdmin)
+                    <li class="pt-3"><div class="px-3 mb-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider examiner-nav-text">System Monitoring</div></li>
+                    <li>
+                        <a href="{{ route('dashboard.monitoring.overview') }}" class="examiner-nav-link {{ request()->routeIs('dashboard.monitoring.*') ? 'examiner-nav-link--active' : '' }} group flex items-center gap-3 rounded-lg py-3 px-3 text-sm font-medium min-w-0 transition-all" title="Enterprise monitoring and observability">
+                            <svg class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                            <span class="examiner-nav-text truncate">Monitoring Center</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('dashboard.operations.index') }}" class="examiner-nav-link {{ request()->routeIs('dashboard.operations.*') ? 'examiner-nav-link--active' : '' }} group flex items-center gap-3 rounded-lg py-3 px-3 text-sm font-medium min-w-0 transition-all" title="Live exam and academic operations">
+                            <svg class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                            <span class="examiner-nav-text truncate">Operations Center</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('dashboard.intelligence.index') }}" class="examiner-nav-link {{ request()->routeIs('dashboard.intelligence.*') ? 'examiner-nav-link--active' : '' }} group flex items-center gap-3 rounded-lg py-3 px-3 text-sm font-medium min-w-0 transition-all" title="Academic intelligence and predictive analytics">
+                            <svg class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+                            <span class="examiner-nav-text truncate">Intelligence Center</span>
+                        </a>
+                    </li>
                     <li>
                         <a href="{{ route('dashboard.institutions.index') }}" class="examiner-nav-link {{ request()->routeIs('dashboard.institutions.*') ? 'examiner-nav-link--active' : '' }} group flex items-center gap-3 rounded-lg py-3 px-3 text-sm font-medium min-w-0 transition-all" title="Manage institutions and assign examiners">
                             <svg class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
@@ -129,6 +152,26 @@
                         <a href="{{ route('dashboard.system.reset.index') }}" class="examiner-nav-link {{ $isResetPage ? 'examiner-nav-link--active' : '' }} group flex items-center gap-3 rounded-lg py-3 px-3 text-sm font-medium min-w-0 transition-all" title="Clear data or full system reset (use with caution)">
                             <svg class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                             <span class="examiner-nav-text truncate">Reset</span>
+                        </a>
+                    </li>
+                    @endif
+                    @if($isSystemAdmin)
+                    <li>
+                        <a href="{{ route('dashboard.monitoring.overview') }}" class="examiner-nav-link {{ request()->routeIs('dashboard.monitoring.*') ? 'examiner-nav-link--active' : '' }} group flex items-center gap-3 rounded-lg py-3 px-3 text-sm font-medium min-w-0 transition-all">
+                            <svg class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                            <span class="examiner-nav-text truncate">Monitoring Center</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('dashboard.operations.index') }}" class="examiner-nav-link {{ request()->routeIs('dashboard.operations.*') ? 'examiner-nav-link--active' : '' }} group flex items-center gap-3 rounded-lg py-3 px-3 text-sm font-medium min-w-0 transition-all">
+                            <svg class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                            <span class="examiner-nav-text truncate">Operations Center</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('dashboard.intelligence.index') }}" class="examiner-nav-link {{ request()->routeIs('dashboard.intelligence.*') ? 'examiner-nav-link--active' : '' }} group flex items-center gap-3 rounded-lg py-3 px-3 text-sm font-medium min-w-0 transition-all">
+                            <svg class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+                            <span class="examiner-nav-text truncate">Intelligence Center</span>
                         </a>
                     </li>
                     @endif
@@ -173,6 +216,9 @@
                     </div>
                     @endif
                 </div>
+                @endif
+                @if($canAccessMonitoring ?? false)
+                    @include('admin.monitoring.partials.header-bell')
                 @endif
                 <div class="relative flex flex-shrink-0 items-center" id="profile-menu-wrap">
                     <button type="button" class="flex h-11 min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 rounded-full pl-0.5 pr-2 py-0.5 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 touch-manipulation overflow-hidden" aria-expanded="false" aria-haspopup="true" id="profile-menu-btn" title="Profile">
@@ -309,3 +355,39 @@
 })();
 </script>
 @endsection
+
+@if($canAccessMonitoring ?? false)
+@push('scripts')
+<script>window.MONITORING_ACCESS = true;</script>
+<script src="{{ asset('js/quizsnap-monitoring.js') }}" defer></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var btn = document.getElementById('monitoring-notification-btn');
+    var dropdown = document.getElementById('monitoring-notification-dropdown');
+    var wrap = document.getElementById('monitoring-notification-wrap');
+    if (!btn || !dropdown) return;
+    btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        dropdown.classList.toggle('hidden');
+    });
+    document.addEventListener('click', function (e) {
+        if (wrap && !wrap.contains(e.target)) dropdown.classList.add('hidden');
+    });
+});
+</script>
+@endpush
+@endif
+
+@if($canAccessOperations ?? false)
+@push('scripts')
+<script>window.OPERATIONS_ACCESS = true;</script>
+<script src="{{ asset('js/quizsnap-operations.js') }}" defer></script>
+@endpush
+@endif
+
+@if($canAccessIntelligence ?? false)
+@push('scripts')
+<script>window.INTELLIGENCE_ACCESS = true;</script>
+<script src="{{ asset('js/quizsnap-intelligence.js') }}" defer></script>
+@endpush
+@endif

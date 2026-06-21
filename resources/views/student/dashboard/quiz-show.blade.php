@@ -43,7 +43,7 @@
 <section class="mb-8 min-w-0 max-w-full" aria-label="Result">
         @if($isWithheld)
         <div class="bg-white rounded-xl border border-red-200 p-4 sm:p-5">
-            <p class="text-sm font-semibold text-red-800">Result on hold - contact lecturer</p>
+            <p class="text-sm font-semibold text-red-800">Result under review — will be released after review</p>
         </div>
         @else
         @php

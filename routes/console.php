@@ -29,3 +29,11 @@ Schedule::command('exam:send-reminder-push')->everyTenMinutes();
 
 // Violation images: delete server-stored images older than retention days (primary setting)
 Schedule::command('violations:clean-old-images')->daily();
+
+// Monitoring center: collect server health and purge old logs
+Schedule::command('monitoring:collect-health')->everyMinute();
+Schedule::command('monitoring:purge-old-logs')->daily();
+Schedule::command('monitoring:collect-phase3')->everyMinute();
+Schedule::command('monitoring:scan-backups')->daily();
+Schedule::command('operations:collect-metrics')->everyMinute();
+Schedule::command('intelligence:collect-metrics')->everyFiveMinutes();

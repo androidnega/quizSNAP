@@ -11,11 +11,18 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         channels: __DIR__.'/../routes/channels.php',
         health: '/up',
+        then: function () {
+            require base_path('routes/monitoring.php');
+            require base_path('routes/operations.php');
+            require base_path('routes/intelligence.php');
+        },
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->validateCsrfTokens(except: []);
         $middleware->web(append: [
             \App\Http\Middleware\CheckUpdateMode::class,
+            \App\Http\Middleware\MonitorHttpRequests::class,
+            \App\Http\Middleware\RecordMonitoringSecurityEvents::class,
         ]);
         $middleware->alias([
             'rules.accepted' => \App\Http\Middleware\EnsureRulesAccepted::class,
@@ -31,6 +38,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'coordinator.only' => \App\Http\Middleware\EnsureCoordinatorRole::class,
             'staff.tokens' => \App\Http\Middleware\EnsureStaffTokenManager::class,
             'student.has-level' => \App\Http\Middleware\EnsureStudentHasLevel::class,
+            'monitoring.access' => \App\Http\Middleware\EnsureMonitoringAccess::class,
+            'operations.access' => \App\Http\Middleware\EnsureOperationsAccess::class,
+            'intelligence.access' => \App\Http\Middleware\EnsureIntelligenceAccess::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
@@ -43,5 +53,23 @@ return Application::configure(basePath: dirname(__DIR__))
                 ->to('/login')
                 ->exceptInput('password', 'password_confirmation')
                 ->with('error', $message);
+        });
+
+        $exceptions->reportable(function (\Throwable $e) {
+            if ($e instanceof \Illuminate\Session\TokenMismatchException) {
+                try {
+                    app(\App\Services\Monitoring\SecurityMonitoringService::class)->recordCsrfFailure();
+                } catch (\Throwable) {
+                    // ignore
+                }
+            }
+
+            if (! app()->runningInConsole()) {
+                try {
+                    app(\App\Services\Monitoring\ErrorMonitoringService::class)->capture($e, request());
+                } catch (\Throwable) {
+                    // never break reporting
+                }
+            }
         });
     })->create();

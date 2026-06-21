@@ -31,6 +31,13 @@ class UserFactory extends Factory
         ]);
     }
 
+    public function systemAdmin(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => User::ROLE_SYSTEM_ADMIN,
+        ]);
+    }
+
     public function examiner(): static
     {
         return $this->state(fn (array $attributes) => [

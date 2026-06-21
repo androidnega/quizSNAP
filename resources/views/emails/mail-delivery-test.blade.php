@@ -30,6 +30,6 @@
     </table>
 
     <p style="margin:0;font-size:13px;line-height:1.55;color:#64748b;">
-        If this landed in spam, add SPF, DKIM, and DMARC records for your sending domain in your hosting DNS panel.
+        If this landed in spam, add SPF, DKIM, and DMARC records for your sending domain in your hosting DNS panel. Ask recipients to check their spam or junk folder if they do not see test messages.
     </p>
 @endsection

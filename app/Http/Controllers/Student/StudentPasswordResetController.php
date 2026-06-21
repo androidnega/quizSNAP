@@ -49,7 +49,7 @@ class StudentPasswordResetController extends Controller
         $indexHash = Student::hashIndexNumber($request->index_number);
         $student = Student::where('index_number_hash', $indexHash)->first();
 
-        $genericMessage = 'If your index and email match our records, we have sent a password reset link. Check your inbox.';
+        $genericMessage = 'If your index and email match our records, we have sent a password reset link. Check your inbox and spam folder if you do not see it within a few minutes.';
 
         if (! $student || ! $student->hasPassword()) {
             StudentAuthAuditLogger::log('password_reset_requested_unknown', null, $indexHash, $request);

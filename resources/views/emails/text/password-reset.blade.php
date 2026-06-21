@@ -12,6 +12,8 @@ Reset your password using this link:
 
 This link expires in {{ $expiresMinutes }} minutes.
 
+If you do not see this email in your inbox, check your spam or junk folder.
+
 If you did not request this, you can safely ignore this email. Your password will not change.
 
 ---

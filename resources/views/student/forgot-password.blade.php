@@ -7,7 +7,7 @@
     <div class="max-w-md w-full">
         <div class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
             <h1 class="text-2xl font-bold text-gray-800 mb-2">Forgot password</h1>
-            <p class="text-gray-600 text-sm mb-6">Enter your index number and the email saved on your account. We will send a reset link if they match. The link expires in 60 minutes.</p>
+            <p class="text-gray-600 text-sm mb-6">Enter your index number and the email saved on your account. We will send a reset link if they match. The link expires in 60 minutes. If you do not receive it within a few minutes, check your spam or junk folder.</p>
             <p class="text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs mb-6">For security, you can reset your password at most 3 times in any 7-day period.</p>
 
             <form action="{{ route('student.password.forgot.send') }}" method="post" class="space-y-4">

@@ -708,7 +708,7 @@ class SettingsController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Test email sent to ' . $to . '.',
+                'message' => 'Test email sent to ' . $to . '. If you do not see it within a few minutes, check your spam or junk folder.',
             ]);
         } catch (\Throwable $e) {
             return response()->json([
@@ -756,7 +756,7 @@ class SettingsController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Password reset preview sent to ' . $to . '.',
+                'message' => 'Password reset preview sent to ' . $to . '. If you do not see it within a few minutes, check your spam or junk folder.',
             ]);
         } catch (\Throwable $e) {
             return response()->json([

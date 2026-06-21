@@ -8,7 +8,7 @@
         <div class="card p-8">
             <div class="text-center mb-8">
                 <h1 class="text-2xl font-bold text-gray-900">Forgot password</h1>
-                <p class="text-sm text-gray-600 mt-1">Enter your username to receive a reset link by email</p>
+                <p class="text-sm text-gray-600 mt-1">Enter your username to receive a reset link by email. If you do not receive it within a few minutes, check your spam or junk folder.</p>
             </div>
 
             {{-- Flash shown once via layouts.app flash popup --}}

@@ -71,7 +71,7 @@ class StaffPasswordResetController extends Controller
         }
 
         return redirect()->route('login')
-            ->with('info', 'If an account exists with that username, we have sent a password reset link to the email on file. Check your inbox.');
+            ->with('info', 'If an account exists with that username, we have sent a password reset link to the email on file. Check your inbox and spam folder if you do not see it within a few minutes.');
     }
 
     /**

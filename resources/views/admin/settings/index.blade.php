@@ -290,7 +290,7 @@
                         @if($can_manage_backup ?? false)
                         <div class="rounded-lg border border-gray-200 bg-gray-50/50 p-5 space-y-4">
                             <h3 class="text-sm font-semibold text-gray-800">Test email delivery</h3>
-                            <p class="text-sm text-gray-600">Send test messages to confirm SMTP settings and preview the password reset template. Save settings first if you changed host, port, username, password, or from address.</p>
+                            <p class="text-sm text-gray-600">Send test messages to confirm SMTP settings and preview the password reset template. Save settings first if you changed host, port, username, password, or from address. If a test does not arrive, check the recipient's spam or junk folder.</p>
                             <div class="flex flex-wrap items-end gap-2">
                                 <div>
                                     <label for="email-test-to" class="block text-xs font-medium text-gray-500 mb-0.5">Recipient email</label>

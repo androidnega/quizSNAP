@@ -47,6 +47,10 @@
         {{ $resetUrl }}
     </p>
 
+    <p style="margin:0 0 16px;font-size:13px;line-height:1.55;color:#64748b;">
+        Did not receive this email? Check your spam or junk folder. Add {{ $fromAddress ?: 'our sending address' }} to your contacts to improve delivery.
+    </p>
+
     <p style="margin:0;font-size:13px;line-height:1.55;color:#64748b;">
         If you did not request this, you can safely ignore this email. Your password will not change.
     </p>

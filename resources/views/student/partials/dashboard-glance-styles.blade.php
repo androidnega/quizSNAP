@@ -533,16 +533,33 @@
     }
 
     @media (min-width: 1024px) {
+        .sd-hero-row {
+            align-items: stretch;
+        }
+
         .sd-hero-row > * {
             display: flex;
+            min-height: 0;
+            height: 100%;
+            align-self: stretch;
         }
 
         .sd-hero-row .sd-featured-quiz,
         .sd-hero-row .sd-hero-banner {
+            flex: 1 1 auto;
+            width: 100%;
+            min-height: 100%;
             height: 100%;
         }
 
         .sd-hero-row .sd-featured-quiz__card {
+            flex: 1 1 auto;
+            min-height: 100%;
+            height: 100%;
+        }
+
+        .sd-hero-row .sd-hero-banner__media {
+            aspect-ratio: unset;
             flex: 1 1 auto;
             min-height: 100%;
             height: 100%;

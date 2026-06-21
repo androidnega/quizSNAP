@@ -383,3 +383,7 @@ Route::middleware('admin.auth')->group(function () {
     });
 });
 
+require base_path('routes/monitoring.php');
+require base_path('routes/operations.php');
+require base_path('routes/intelligence.php');
+

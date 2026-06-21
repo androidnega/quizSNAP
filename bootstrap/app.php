@@ -10,11 +10,6 @@ return Application::configure(basePath: dirname(__DIR__))
         api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
-        then: function () {
-            require base_path('routes/monitoring.php');
-            require base_path('routes/operations.php');
-            require base_path('routes/intelligence.php');
-        },
     )
     ->withBroadcasting(
         __DIR__.'/../routes/channels.php',

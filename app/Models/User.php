@@ -118,6 +118,16 @@ class User extends Authenticatable
         return $this->isSuperAdmin() || $this->isSystemAdministrator();
     }
 
+    /** Super Admin and System Monitor only — not examiner or coordinator. */
+    public function canAccessEnterpriseBroadcasting(): bool
+    {
+        if ($this->isExaminer() || $this->role === self::ROLE_COORDINATOR) {
+            return false;
+        }
+
+        return $this->isSuperAdmin() || $this->isSystemAdministrator();
+    }
+
     public function isExaminer(): bool
     {
         return $this->role === self::ROLE_EXAMINER;

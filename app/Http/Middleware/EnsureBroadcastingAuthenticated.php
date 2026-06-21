@@ -5,12 +5,13 @@ namespace App\Http\Middleware;
 use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
 class EnsureBroadcastingAuthenticated
 {
     /**
-     * Authenticate staff for /broadcasting/auth without redirects (Pusher expects JSON).
+     * Authenticate admin staff for /broadcasting/auth without redirects (Pusher expects JSON).
      */
     public function handle(Request $request, Closure $next): Response
     {
@@ -19,12 +20,14 @@ class EnsureBroadcastingAuthenticated
         }
 
         $user = User::find(session('admin_user_id'));
-        if (! $user || ! $user->isStaff()) {
+        if (! $user instanceof User || ! $user->canAccessEnterpriseBroadcasting()) {
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
         session(['admin_role' => $user->role]);
-        auth()->setUser($user);
+
+        Auth::setUser($user);
+        $request->setUserResolver(static fn () => $user);
 
         return $next($request);
     }

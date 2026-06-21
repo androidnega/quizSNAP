@@ -27,11 +27,23 @@ quizsnap-select-none
 @endphp
 <script>
 (function() {
+    function isQuizScrollArea(el) {
+        return !!(el && el.closest && el.closest('.quiz-main-content, .quiz-mobile-content-below-camera, .quiz-left-panel'));
+    }
+    function isEditableField(el) {
+        return !!(el && el.closest && el.closest('input, textarea, select, [contenteditable="true"]'));
+    }
     document.addEventListener('copy', function(e) { e.preventDefault(); });
     document.addEventListener('cut', function(e) { e.preventDefault(); });
     document.addEventListener('paste', function(e) { e.preventDefault(); });
-    document.addEventListener('selectstart', function(e) { e.preventDefault(); });
-    document.addEventListener('select', function(e) { e.preventDefault(); });
+    document.addEventListener('selectstart', function(e) {
+        if (isEditableField(e.target) || isQuizScrollArea(e.target)) return;
+        e.preventDefault();
+    });
+    document.addEventListener('select', function(e) {
+        if (isEditableField(e.target) || isQuizScrollArea(e.target)) return;
+        e.preventDefault();
+    });
     @if($blockRightClick)
     document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
     @endif

@@ -13,6 +13,12 @@
                 <p class="text-gray-600 text-sm mt-1">Tap <span class="font-semibold text-gray-800">Start camera</span> and keep your face inside the circle.</p>
             </div>
 
+            @if(!empty($entryError))
+            <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
+                {{ $entryError }}
+            </div>
+            @endif
+
             {{-- Inline verified state (not a modal) --}}
             <div id="face-verified-panel" class="hidden rounded-xl border border-primary-200 bg-primary-50/70 px-4 py-3.5 flex items-center gap-3" role="status" aria-live="polite">
                 <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-100 text-primary-700">

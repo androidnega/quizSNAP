@@ -33,7 +33,7 @@ class ProctoringCaptureController extends Controller
         if (! $quizId || ! $indexNumber) {
             $quizToken = session('quiz_link_token');
             if ($quizToken) {
-                return redirect()->route('student.rules.show.quiz', ['token' => $quizToken])
+                return redirect()->route('student.rules.show.quiz', ['token' => $quizToken, 'stay' => 1])
                     ->with('error', 'Your quiz session expired. Please accept the rules again.');
             }
             return redirect()->route('student.landing')->with('error', 'Your quiz session expired. Please open your quiz link again.');
@@ -45,7 +45,7 @@ class ProctoringCaptureController extends Controller
                 return redirect()->route('student.quiz-will-start', ['token' => $quiz->link_token]);
             }
             if ($quiz && $quiz->link_token) {
-                return redirect()->route('student.rules.show.quiz', ['token' => $quiz->link_token])
+                return redirect()->route('student.rules.show.quiz', ['token' => $quiz->link_token, 'stay' => 1])
                     ->with('error', 'This quiz is not currently available.');
             }
 
@@ -53,18 +53,15 @@ class ProctoringCaptureController extends Controller
         }
         $ip = $request->ip();
 
-        if ($this->isIpDeviceRestrictionEnabled()) {
-            // Check if IP was used by a different student for this quiz (ignore reset sessions)
-            $ipUsedByOther = QuizSession::where('quiz_id', $quiz->id)
-                ->where('ip_address', $ip)
-                ->whereRaw("ip_address NOT LIKE 'reset-%'")
-                ->whereRaw('UPPER(TRIM(student_index)) != ?', [$studentIndex])
-                ->exists();
-
-            if ($ipUsedByOther) {
-                return redirect()->route('student.rules.show.quiz', ['token' => $quiz->link_token])
-                    ->with('error', 'This network has already been used for this quiz by another student.');
-            }
+        if ($this->quizLinks->isIpBlockedForQuiz($quiz, $studentIndex, $ip)) {
+            return response()
+                ->view('student.proctoring-capture', [
+                    'quiz' => $quiz,
+                    'indexNumber' => $indexNumber,
+                    'entryError' => 'This network has already been used for an active quiz attempt by another student. Try a different connection or contact your examiner.',
+                ])
+                ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+                ->header('Pragma', 'no-cache');
         }
 
         // Enforce one attempt flow per student+quiz across tabs:
@@ -141,12 +138,13 @@ class ProctoringCaptureController extends Controller
         return $this->captureViewResponse($quiz, $indexNumber);
     }
 
-    private function captureViewResponse(Quiz $quiz, string $indexNumber): \Illuminate\Http\Response
+    private function captureViewResponse(Quiz $quiz, string $indexNumber, ?string $entryError = null): \Illuminate\Http\Response
     {
         return response()
             ->view('student.proctoring-capture', [
                 'quiz' => $quiz,
                 'indexNumber' => $indexNumber,
+                'entryError' => $entryError,
             ])
             ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
             ->header('Pragma', 'no-cache');
@@ -198,16 +196,8 @@ class ProctoringCaptureController extends Controller
             ]);
         }
 
-        if ($this->isIpDeviceRestrictionEnabled()) {
-            $ipUsedByOther = QuizSession::where('quiz_id', $quiz->id)
-                ->where('ip_address', $ip)
-                ->whereRaw("ip_address NOT LIKE 'reset-%'")
-                ->whereRaw('UPPER(TRIM(student_index)) != ?', [$studentIndex])
-                ->exists();
-
-            if ($ipUsedByOther) {
-                return response()->json(['success' => false, 'message' => 'IP already used for this quiz by another student.'], 403);
-            }
+        if ($this->quizLinks->isIpBlockedForQuiz($quiz, $studentIndex, $ip)) {
+            return response()->json(['success' => false, 'message' => 'IP already used for this quiz by another student.'], 403);
         }
 
         $imagePath = null;

@@ -15,14 +15,12 @@
     pointer-events: none !important;
     visibility: hidden !important;
 }
-/* Scrollable fullscreen: use quiz root as fullscreen element, not clipped html. */
+/* Scrollable fullscreen: constrain the shell; questions scroll inside .quiz-main-content. */
 #quiz-writing-content:fullscreen,
 #quiz-writing-content:-webkit-full-screen,
 #quizsnap-app:fullscreen,
 #quizsnap-app:-webkit-full-screen {
-    overflow-x: hidden !important;
-    overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch;
+    overflow: hidden !important;
     width: 100% !important;
     height: 100% !important;
     max-height: 100% !important;
@@ -30,20 +28,37 @@
 }
 html:fullscreen,
 html:-webkit-full-screen {
-    overflow-y: auto !important;
-    overflow-x: hidden;
+    overflow: hidden !important;
     height: 100%;
 }
 html:fullscreen body,
 html:-webkit-full-screen body {
-    overflow-y: auto !important;
-    overflow-x: hidden;
+    overflow: hidden !important;
     min-height: 100%;
+    height: 100%;
     position: static !important;
-    width: auto !important;
-    height: auto !important;
+    width: 100% !important;
+}
+html:fullscreen .quiz-main-content,
+html:-webkit-full-screen .quiz-main-content,
+#quiz-writing-content:fullscreen .quiz-main-content,
+#quiz-writing-content:-webkit-full-screen .quiz-main-content,
+#quizsnap-app:fullscreen .quiz-main-content,
+#quizsnap-app:-webkit-full-screen .quiz-main-content {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
 }
 .quiz-timer-green{color:#059669}.quiz-timer-blue{color:#2563eb}.quiz-timer-red{color:#dc2626}.quiz-side-num.quiz-side-answered{border-color:#22c55e;background-color:#f0fdf4;color:#15803d}
+/* Quiz shell: fixed viewport height; questions scroll inside .quiz-main-content only */
+.quiz-writing-content {
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+    position: relative;
+}
 /* AI invigilator badge (top panel only) when camera is active */
 #ai-invigilator-badge-panel.visible{display:flex!important}
 #ai-invigilator-badge-panel .pulse-dot{width:6px;height:6px;background:#22c55e;border-radius:50%;animation:ai-invigilator-pulse 1.5s ease-in-out infinite}
@@ -64,19 +79,34 @@ html:-webkit-full-screen body {
 }
 .quiz-left-panel::-webkit-scrollbar { display: none; }
 
-/* Main content area - full width when panel hidden; offset when panel visible (lg) */
+/* Main content area - dedicated scroll region (works in and out of browser fullscreen) */
 .quiz-main-content {
     margin-left: 0;
     width: 100%;
-    padding: 1rem 1rem 2rem 1rem;
+    height: 100%;
+    padding: 5rem 1rem 2rem 1rem;
+    box-sizing: border-box;
+    max-height: 100dvh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
 }
 @media (min-width: 1024px) {
     .quiz-main-content {
         margin-left: 280px;
         width: calc(100% - 280px);
         max-width: none;
-        padding: 1rem 1rem 2rem 1rem;
+        padding: 5rem 1rem 2rem 1rem;
     }
+}
+#quiz-writing-content:fullscreen .quiz-main-content,
+#quiz-writing-content:-webkit-full-screen .quiz-main-content,
+#quizsnap-app:fullscreen .quiz-main-content,
+#quizsnap-app:-webkit-full-screen .quiz-main-content {
+    max-height: 100%;
+    height: 100%;
 }
 
 /* Live camera frame border states (synced with intelligentFaceMonitor) */
@@ -636,6 +666,8 @@ document.addEventListener('DOMContentLoaded', function() {
             a.classList.toggle('text-primary-700', p === currentPage);
         });
         updateSideNavLockState();
+        var scrollMain = document.querySelector('.quiz-main-content');
+        if (scrollMain) scrollMain.scrollTop = 0;
     }
 
     var form = document.getElementById('quiz-form');

@@ -65,6 +65,53 @@ final class QuizLinkService
     }
 
     /**
+     * Authoritative index for quiz entry middleware/controllers.
+     * Prefers logged-in student, then quiz attempt context, then legacy session keys.
+     */
+    public function resolveEntryIndexNumber(?Request $request = null): ?string
+    {
+        $token = $request?->query('token') ?? session('quiz_session_token');
+        if (is_string($token) && trim($token) !== '') {
+            $activeSession = $this->resolveActiveSession(trim($token));
+            if ($activeSession && $activeSession->student_index) {
+                return strtoupper(trim((string) $activeSession->student_index));
+            }
+        }
+
+        $student = $this->resolveStudent();
+        if ($student && $student->index_number) {
+            return strtoupper(trim($student->index_number));
+        }
+
+        $sessionIndex = session('index_number') ?? session('student_index');
+
+        return $sessionIndex ? strtoupper(trim((string) $sessionIndex)) : null;
+    }
+
+    /**
+     * Whether another student's active attempt is already bound to this IP for the quiz.
+     */
+    public function isIpBlockedForQuiz(Quiz $quiz, string $studentIndex, string $ip): bool
+    {
+        if (Setting::getValue(Setting::KEY_DISABLE_IP_DEVICE_RESTRICTIONS, '0') === '1') {
+            return false;
+        }
+
+        $studentIndex = strtoupper(trim($studentIndex));
+        if ($studentIndex === '' || $ip === '') {
+            return false;
+        }
+
+        return QuizSession::query()
+            ->where('quiz_id', $quiz->id)
+            ->where('ip_address', $ip)
+            ->whereNull('ended_at')
+            ->whereRaw("ip_address NOT LIKE 'reset-%'")
+            ->whereRaw('UPPER(TRIM(student_index)) != ?', [$studentIndex])
+            ->exists();
+    }
+
+    /**
      * Where to send someone who opened a public quiz link (landing, start-quiz form, etc.).
      *
      * @return array{route: string, params: array<string, string>}|null
@@ -264,8 +311,11 @@ final class QuizLinkService
      */
     public function hydrateQuizEntryContext(?Request $request = null): array
     {
-        $quizId = session('quiz_id') ?? session('quiz_id_for_login');
-        $indexNumber = $this->normalizedIndex();
+        $quizId = $request?->query('quiz') ?? session('quiz_id') ?? session('quiz_id_for_login');
+        if (! $quizId && session('quiz_link_token')) {
+            $quizId = Quiz::where('link_token', session('quiz_link_token'))->value('id');
+        }
+        $indexNumber = $this->resolveEntryIndexNumber($request);
 
         $token = $request?->query('token') ?? session('quiz_session_token');
         if (is_string($token) && trim($token) !== '') {
@@ -282,11 +332,15 @@ final class QuizLinkService
         }
 
         if ($quizId && $indexNumber) {
-            session([
+            $payload = [
                 'quiz_id' => (int) $quizId,
                 'quiz_id_for_login' => (int) $quizId,
                 'index_number' => $indexNumber,
-            ]);
+            ];
+            if ($this->resolveStudent()) {
+                $payload['student_index'] = $indexNumber;
+            }
+            session($payload);
         }
 
         return [

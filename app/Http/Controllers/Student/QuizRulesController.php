@@ -36,7 +36,9 @@ class QuizRulesController extends Controller
             $indexNumber = $this->quizLinks->normalizedIndex($student);
 
             if ($quiz && ($redirect = $this->redirectExistingStudentAttempt($quiz, $student, $indexNumber))) {
-                return $redirect;
+                if (! $request->boolean('stay')) {
+                    return $redirect;
+                }
             }
 
             if (! $quiz || ! $this->quizLinks->isLinkOpen($quiz, $indexNumber)) {
@@ -53,6 +55,7 @@ class QuizRulesController extends Controller
                     'quiz_id' => $quiz->id,
                     'quiz_id_for_login' => $quiz->id,
                     'index_number' => $indexNumber,
+                    'student_index' => $indexNumber,
                 ]);
             }
 
@@ -87,7 +90,9 @@ class QuizRulesController extends Controller
         }
 
         if ($redirect = $this->redirectExistingStudentAttempt($quiz, $student, $indexNumber)) {
-            return $redirect;
+            if (! $request->boolean('stay')) {
+                return $redirect;
+            }
         }
 
         if (! $quiz->starts_at || $quiz->starts_at->isPast()) {
@@ -100,6 +105,7 @@ class QuizRulesController extends Controller
                 'quiz_id' => $quiz->id,
                 'quiz_id_for_login' => $quiz->id,
                 'index_number' => $indexNumber,
+                'student_index' => $indexNumber,
             ]);
         }
 
@@ -192,6 +198,7 @@ class QuizRulesController extends Controller
                     'quiz_id' => $quiz->id,
                     'quiz_id_for_login' => $quiz->id,
                     'index_number' => strtoupper(trim((string) $student->index_number)),
+                    'student_index' => strtoupper(trim((string) $student->index_number)),
                     'rules_accepted' => true,
                 ]);
                 if ($existingSession) {
@@ -203,7 +210,7 @@ class QuizRulesController extends Controller
                     'success' => true,
                     'redirect' => $existingSession
                         ? $this->quizLinks->resumeRoute($existingSession)
-                        : route('student.proctoring.capture'),
+                        : route('student.proctoring.capture', ['quiz' => $quiz->id]),
                 ]);
             }
 
@@ -234,15 +241,28 @@ class QuizRulesController extends Controller
 
     private function redirectExistingStudentAttempt(Quiz $quiz, ?Student $student, ?string $indexNumber): ?RedirectResponse
     {
-        if (! $student || ! $indexNumber || ! $this->quizLinks->isRegisteredForQuiz($quiz, $student)) {
+        if (! $indexNumber) {
             return null;
         }
 
         $session = $this->quizLinks->latestSession($quiz, $indexNumber);
         if ($session) {
             $this->quizLinks->rememberQuizContext($quiz, true);
+            session([
+                'quiz_id' => $quiz->id,
+                'quiz_id_for_login' => $quiz->id,
+                'index_number' => $indexNumber,
+                'rules_accepted' => true,
+            ]);
+            if ($student) {
+                session(['student_index' => $indexNumber]);
+            }
 
             return redirect()->to($this->quizLinks->resumeRoute($session));
+        }
+
+        if (! $student || ! $this->quizLinks->isRegisteredForQuiz($quiz, $student)) {
+            return null;
         }
 
         if ($this->quizLinks->hasAcceptedRules($quiz, $indexNumber)) {
@@ -252,9 +272,10 @@ class QuizRulesController extends Controller
                 'quiz_id_for_login' => $quiz->id,
                 'index_number' => $indexNumber,
                 'rules_accepted' => true,
+                'student_index' => $indexNumber,
             ]);
 
-            return redirect()->route('student.proctoring.capture');
+            return redirect()->route('student.proctoring.capture', ['quiz' => $quiz->id]);
         }
 
         return null;

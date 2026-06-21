@@ -74,7 +74,13 @@
 .safe-area-pb { padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0)); }
 /* Floating AI camera: fixed overlay so it stays visible; main content has top offset so nav is smooth and no accidental auto-submit from overlay */
 .quiz-mobile-camera-overlay { position: fixed; top: 0; left: 0; right: 0; z-index: 30; }
-.quiz-mobile-content-below-camera { padding-top: var(--quiz-mobile-camera-height, 0); }
+.quiz-mobile-content-below-camera {
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+}
 #resize-blur-overlay.hidden { display: none !important; pointer-events: none !important; visibility: hidden !important; }
 #resize-blur-overlay:not(.hidden) { display: flex !important; pointer-events: auto !important; }
 .quiz-mobile-container > .hidden[class*="fixed"],
@@ -85,9 +91,9 @@
 }
 #quiz-mobile-root:fullscreen,
 #quiz-mobile-root:-webkit-full-screen {
-    overflow-x: hidden !important;
-    overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
     width: 100% !important;
     height: 100% !important;
     max-height: 100% !important;
@@ -95,9 +101,9 @@
 }
 #quizsnap-app:fullscreen,
 #quizsnap-app:-webkit-full-screen {
-    overflow-x: hidden !important;
-    overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
     width: 100% !important;
     height: 100% !important;
     max-height: 100% !important;
@@ -105,18 +111,30 @@
 }
 html:fullscreen,
 html:-webkit-full-screen {
-    overflow-y: auto !important;
-    overflow-x: hidden;
+    overflow: hidden !important;
     height: 100%;
 }
 html:fullscreen body,
 html:-webkit-full-screen body {
-    overflow-y: auto !important;
-    overflow-x: hidden;
+    overflow: hidden !important;
     min-height: 100%;
+    height: 100%;
     position: static !important;
-    width: auto !important;
-    height: auto !important;
+    width: 100% !important;
+}
+html:fullscreen .quiz-mobile-content-below-camera,
+html:-webkit-full-screen .quiz-mobile-content-below-camera,
+#quiz-mobile-root:fullscreen .quiz-mobile-content-below-camera,
+#quiz-mobile-root:-webkit-full-screen .quiz-mobile-content-below-camera,
+#quizsnap-app:fullscreen .quiz-mobile-content-below-camera,
+#quizsnap-app:-webkit-full-screen .quiz-mobile-content-below-camera {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
 }
 </style>
 @endpush
@@ -595,6 +613,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (completeBtn) completeBtn.style.display = isSubmit ? 'block' : 'none';
         if (isSubmit) updateAnsweredSummary();
         updateMobileNextButton();
+        var scrollMain = document.querySelector('.quiz-mobile-content-below-camera');
+        if (scrollMain) scrollMain.scrollTop = 0;
     }
 
     try {

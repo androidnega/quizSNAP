@@ -885,7 +885,7 @@ class StudentAccountController extends Controller
                 );
             }
 
-            return route('student.proctoring.capture');
+            return route('student.proctoring.capture', ['quiz' => (int) $quizId]);
         }
         if ($student->level === null || $student->level === '') {
             return route('student.select-level');

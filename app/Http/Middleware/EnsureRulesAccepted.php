@@ -5,7 +5,6 @@ namespace App\Http\Middleware;
 use App\Models\Quiz;
 use App\Models\QuizAcceptance;
 use App\Models\QuizSession;
-use App\Models\Student;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -53,10 +52,7 @@ class EnsureRulesAccepted
         }
 
         $quizId = $this->resolveQuizId($request);
-        $indexNumber = $this->normalizedIndex(session('student_index') ?? session('index_number'));
-        if ($indexNumber === null && session('student_id')) {
-            $indexNumber = $this->normalizedIndex(Student::find(session('student_id'))?->index_number);
-        }
+        $indexNumber = app(\App\Services\QuizLinkService::class)->resolveEntryIndexNumber($request);
         if ($quizId !== null && $indexNumber !== null) {
             if (! $this->hasAcceptedRules((int) $quizId, $indexNumber)) {
                 $quiz = Quiz::where('id', $quizId)->first();
@@ -74,6 +70,9 @@ class EnsureRulesAccepted
                 'index_number' => $indexNumber,
                 'quiz_id' => (int) $quizId,
             ]);
+            if (session('student_id')) {
+                session(['student_index' => $indexNumber]);
+            }
 
             return $next($request);
         }

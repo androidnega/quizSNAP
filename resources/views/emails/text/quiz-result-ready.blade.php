@@ -9,7 +9,7 @@ A student has submitted a quiz.
 
 Quiz: {{ $quiz?->title ?? '—' }}
 Student index: {{ $session->student_index ?? '—' }}
-Score: {{ $result ? round($result->score, 1) . '%' : '—' }}@if($result) ({{ $result->correct_count }}/{{ $result->total_questions }} correct)@endif
+Score: {{ $result ? round($result->score, 1) . '%' : '—' }}{{ $result ? ' ('.$result->correct_count.'/'.$result->total_questions.' correct)' : '' }}
 Submitted at: {{ $result?->submitted_at?->format('Y-m-d H:i T') ?? '—' }}
 
 View full results in your {{ $appName }} dashboard.

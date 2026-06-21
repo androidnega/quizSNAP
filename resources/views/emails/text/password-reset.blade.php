@@ -5,7 +5,7 @@ Reset your {{ $appName }} password
 
 Hello {{ $recipientName }},
 
-We received a request to reset the password for your {{ $appName }} {{ $audience === 'student' ? 'student' : 'staff' }} account@if($accountLabel) ({{ $accountLabel }})@endif.
+We received a request to reset the password for your {{ $appName }} {{ $audience === 'student' ? 'student' : 'staff' }} account{{ $accountLabel ? ' ('.$accountLabel.')' : '' }}.
 
 Reset your password using this link:
 {{ $resetUrl }}

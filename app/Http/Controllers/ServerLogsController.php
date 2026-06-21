@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\SystemError;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Symfony\Component\HttpFoundation\Response;
 
 class ServerLogsController extends Controller
@@ -40,6 +42,10 @@ class ServerLogsController extends Controller
             $sections[] = $this->tailFile($path, $lines);
         }
 
+        $sections[] = '';
+        $sections[] = '=== Recent application errors (database) ===';
+        $sections[] = $this->recentSystemErrors($lines);
+
         return response(implode("\n", $sections), 200, [
             'Content-Type' => 'text/plain; charset=utf-8',
         ]);
@@ -50,9 +56,18 @@ class ServerLogsController extends Controller
      */
     private function logSources(): array
     {
-        $sources = [
-            'Laravel' => storage_path('logs/laravel.log'),
-        ];
+        $sources = [];
+
+        $logsDir = storage_path('logs');
+        $laravelLogs = glob($logsDir.'/laravel*.log') ?: [];
+        usort($laravelLogs, fn ($a, $b) => filemtime($b) <=> filemtime($a));
+        if ($laravelLogs !== []) {
+            foreach (array_slice($laravelLogs, 0, 3) as $index => $path) {
+                $sources[$index === 0 ? 'Laravel' : 'Laravel ('.basename($path).')'] = $path;
+            }
+        } else {
+            $sources['Laravel'] = $logsDir.'/laravel.log';
+        }
 
         $optional = [
             'Nginx error' => '/var/log/nginx/quizsnap-error.log',
@@ -83,6 +98,42 @@ class ServerLogsController extends Controller
             return implode("\n", array_slice($content, -$lines));
         } catch (\Throwable $e) {
             return '(error: '.$e->getMessage().')';
+        }
+    }
+
+    private function recentSystemErrors(int $limit): string
+    {
+        if (! Schema::hasTable('system_errors')) {
+            return '(system_errors table not available)';
+        }
+
+        try {
+            $errors = SystemError::query()
+                ->where('resolution_status', 'open')
+                ->orderByDesc('last_seen_at')
+                ->limit(min(50, $limit))
+                ->get(['exception_class', 'message', 'route', 'url', 'severity', 'occurrence_count', 'last_seen_at']);
+
+            if ($errors->isEmpty()) {
+                return '(no open errors recorded)';
+            }
+
+            $lines = [];
+            foreach ($errors as $error) {
+                $lines[] = sprintf(
+                    '[%s] %s x%d | %s | route=%s | %s',
+                    $error->last_seen_at?->toDateTimeString() ?? '-',
+                    $error->severity,
+                    $error->occurrence_count,
+                    class_basename((string) $error->exception_class),
+                    $error->route ?? '-',
+                    $error->message
+                );
+            }
+
+            return implode("\n", $lines);
+        } catch (\Throwable $e) {
+            return '(could not read system errors: '.$e->getMessage().')';
         }
     }
 }

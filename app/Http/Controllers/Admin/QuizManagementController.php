@@ -959,7 +959,7 @@ class QuizManagementController extends Controller
         if (! $quiz) {
             abort(404);
         }
-        $this->authorize('update', $quiz);
+        $this->authorize('manageSessions', $quiz);
         // If URL quiz is stale, move to canonical URL first.
         if ((string) $quizId !== (string) $quiz->getRouteKey()) {
             return redirect()->route('dashboard.quizzes.sessions.show', [
@@ -1052,19 +1052,36 @@ class QuizManagementController extends Controller
         if (! $quiz) {
             abort(404);
         }
-        $this->authorize('update', $quiz);
+        $this->authorize('manageSessions', $quiz);
 
-        // Delete the session (DB cascade deletes result, answers, violations).
-        // Route quizId may be stale after migrations; session binding is authoritative.
-        app(\App\Services\QuizConcurrencyService::class)->clearLiveSession((int) $quizSession->id);
-        $quizSession->delete();
+        if ((int) $quizSession->quiz_id !== (int) $quiz->id) {
+            abort(404);
+        }
+
+        $redirect = redirect()
+            ->route($this->staffRoutePrefix() . '.quizzes.show', ['quiz' => $quiz, 'tab' => 'sessions']);
+
+        try {
+            app(\App\Services\QuizConcurrencyService::class)->clearLiveSession((int) $quizSession->id);
+
+            DB::transaction(function () use ($quizSession) {
+                if (Schema::hasTable('operations_exam_incidents')) {
+                    DB::table('operations_exam_incidents')
+                        ->where('quiz_session_id', $quizSession->id)
+                        ->update(['quiz_session_id' => null]);
+                }
+                $quizSession->delete();
+            });
+        } catch (\Throwable $e) {
+            report($e);
+
+            return $redirect->with('error', UserFriendlyMessages::GENERIC);
+        }
 
         $this->broadcastDataUpdatedSafe('dashboard');
         $this->broadcastDataUpdatedSafe('sessions');
 
-        return redirect()
-            ->route($this->staffRoutePrefix() . '.quizzes.show', ['quiz' => $quiz, 'tab' => 'sessions'])
-            ->with('success', 'Session killed. The student can retake this quiz.');
+        return $redirect->with('success', 'Session killed. The student can retake this quiz.');
     }
 
     /**
@@ -1073,7 +1090,7 @@ class QuizManagementController extends Controller
      */
     public function clearSessionsByRange(Request $request, Quiz $quiz): RedirectResponse
     {
-        $this->authorize('update', $quiz);
+        $this->authorize('manageSessions', $quiz);
 
         $validated = $request->validate([
             'from' => 'required|date',

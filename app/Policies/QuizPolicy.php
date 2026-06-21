@@ -66,8 +66,20 @@ class QuizPolicy
         if ((int) $classGroup->examiner_id === (int) $user->id) {
             return true;
         }
+        if ($user->isCoordinator() && in_array((int) $classGroup->id, $user->classGroupIds(), true)) {
+            return true;
+        }
+        if (\Illuminate\Support\Facades\Schema::hasColumn('class_group_course', 'examiner_id')) {
+            return $classGroup->courses()->wherePivot('examiner_id', $user->id)->exists();
+        }
 
-        return $user->isCoordinator() && in_array((int) $classGroup->id, $user->classGroupIds(), true);
+        return false;
+    }
+
+    /** Kill session, reset IP, release withheld results — same staff who can view sessions. */
+    public function manageSessions(User $user, Quiz $quiz): bool
+    {
+        return $this->view($user, $quiz);
     }
 
     public function delete(User $user, Quiz $quiz): bool

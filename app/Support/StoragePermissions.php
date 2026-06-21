@@ -61,6 +61,21 @@ final class StoragePermissions
             $lines[] = 'Write test FAILED: storage/framework/views (web server cannot compile Blade views)';
         }
 
+        $logsPath = rtrim($basePath, '/').'/storage/logs';
+        if (! is_file($logsPath.'/laravel.log')) {
+            @touch($logsPath.'/laravel.log');
+            @chmod($logsPath.'/laravel.log', 0664);
+        }
+        $logTestFile = $logsPath.'/.__write_test_'.uniqid('', true);
+        $canWriteLogs = @file_put_contents($logTestFile, 'ok') !== false;
+        if ($canWriteLogs) {
+            @unlink($logTestFile);
+            $lines[] = 'Write test OK: storage/logs';
+        } else {
+            $allOk = false;
+            $lines[] = 'Write test FAILED: storage/logs (application errors may not be logged to file)';
+        }
+
         $chownHint = null;
         if (! $allOk && $webUser !== null) {
             $chownHint = "sudo chown -R {$webUser}:{$webUser} storage bootstrap/cache && sudo chmod -R ug+rwx storage bootstrap/cache";

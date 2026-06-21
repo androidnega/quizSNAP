@@ -914,6 +914,7 @@
         });
         if (fromUserGesture || wasFullscreenOrMaximized) {
             hideResizeBlur();
+            unlockQuizPageInteraction();
             tryStartCameraWhenAllowed('after-fullscreen-entered');
         }
     }
@@ -939,14 +940,26 @@
         }
     }
 
+    function unlockQuizPageInteraction() {
+        document.body.classList.remove('quiz-fs-blocked');
+        document.documentElement.classList.remove('quiz-fs-blocked');
+        document.body.style.removeProperty('overflow');
+        document.documentElement.style.removeProperty('overflow');
+        document.body.style.removeProperty('position');
+        document.body.style.removeProperty('height');
+        document.body.style.removeProperty('width');
+    }
+
     function showResizeBlur(showFinalWarning, isInitialGate) {
         if (!resizeBlurOverlay) {
-            document.body.classList.add('quiz-fs-blocked');
             return;
         }
         resizeBlurOverlay.classList.remove('hidden');
+        resizeBlurOverlay.style.removeProperty('display');
+        resizeBlurOverlay.style.removeProperty('pointer-events');
+        resizeBlurOverlay.style.removeProperty('visibility');
+        resizeBlurOverlay.removeAttribute('inert');
         resizeBlurOverlay.setAttribute('aria-hidden', 'false');
-        document.body.classList.add('quiz-fs-blocked');
         if (enterFsBtn) enterFsBtn.classList.remove('hidden');
         if (resizeBlurWarning) {
             if (isInitialGate) {
@@ -966,9 +979,13 @@
     }
 
     function hideResizeBlur() {
-        document.body.classList.remove('quiz-fs-blocked');
+        unlockQuizPageInteraction();
         if (!resizeBlurOverlay) return;
         resizeBlurOverlay.classList.add('hidden');
+        resizeBlurOverlay.style.display = 'none';
+        resizeBlurOverlay.style.pointerEvents = 'none';
+        resizeBlurOverlay.style.visibility = 'hidden';
+        resizeBlurOverlay.setAttribute('inert', '');
         resizeBlurOverlay.setAttribute('aria-hidden', 'true');
         if (resizeBlurWarning) resizeBlurWarning.classList.add('hidden');
         if (resizeBlurFinalWarning) resizeBlurFinalWarning.classList.add('hidden');

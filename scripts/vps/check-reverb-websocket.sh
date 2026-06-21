@@ -37,13 +37,19 @@ KEY="$(grep '^REVERB_APP_KEY=' .env | cut -d= -f2- | tr -d '"')"
 if [[ -z "$KEY" ]]; then
   echo "WARN: REVERB_APP_KEY missing in .env"
 else
-  HTTP_CODE="$(curl -s -o /dev/null -w '%{http_code}' \
+  HTTP_CODE="$(curl -s -o /dev/null -w '%{http_code}' --max-time 3 \
     -H 'Connection: Upgrade' \
     -H 'Upgrade: websocket' \
     -H 'Sec-WebSocket-Version: 13' \
     -H 'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==' \
-    "http://127.0.0.1:${REVERB_PORT}/app/${KEY}?protocol=7&client=js&version=8.2.0" || echo "000")"
-  echo "HTTP status from Reverb: ${HTTP_CODE} (expect 101 Switching Protocols)"
+    "http://127.0.0.1:${REVERB_PORT}/app/${KEY}?protocol=7&client=js&version=8.2.0" 2>/dev/null || echo "000")"
+  if [[ "$HTTP_CODE" == "101" ]]; then
+    echo "HTTP status from Reverb: 101 (Switching Protocols) — OK"
+  elif [[ "$HTTP_CODE" == "000" ]]; then
+    echo "WARN: probe timed out or failed (Reverb may still be OK if port 8080 is listening)"
+  else
+    echo "HTTP status from Reverb: ${HTTP_CODE} (expect 101 Switching Protocols)"
+  fi
 fi
 echo ""
 
@@ -67,11 +73,19 @@ echo ""
 echo "==> Public HTTPS probe (via nginx)"
 HOST="$(grep '^REVERB_HOST=' .env | cut -d= -f2- | tr -d '"')"
 if [[ -n "$HOST" && -n "${KEY:-}" ]]; then
-  HTTPS_CODE="$(curl -s -o /dev/null -w '%{http_code}' \
+  HTTPS_CODE="$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 \
     -H 'Connection: Upgrade' \
     -H 'Upgrade: websocket' \
     -H 'Sec-WebSocket-Version: 13' \
     -H 'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==' \
-    "https://${HOST}/app/${KEY}?protocol=7&client=js&version=8.2.0" || echo "000")"
-  echo "HTTPS status via nginx: ${HTTPS_CODE} (expect 101; 502/504 = Reverb down; 404 = missing nginx /app)"
+    "https://${HOST}/app/${KEY}?protocol=7&client=js&version=8.2.0" 2>/dev/null || echo "000")"
+  if [[ "$HTTPS_CODE" == "101" ]]; then
+    echo "HTTPS status via nginx: 101 — WebSocket proxy OK"
+  elif [[ "$HTTPS_CODE" == "404" ]]; then
+    echo "ERROR: HTTPS returned 404 — nginx is missing location /app"
+  elif [[ "$HTTPS_CODE" == "502" || "$HTTPS_CODE" == "504" ]]; then
+    echo "ERROR: HTTPS returned ${HTTPS_CODE} — nginx cannot reach Reverb on 127.0.0.1:${REVERB_PORT}"
+  else
+    echo "HTTPS status via nginx: ${HTTPS_CODE} (expect 101)"
+  fi
 fi

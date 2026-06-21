@@ -19,7 +19,6 @@ use App\Observers\UserAuditObserver;
 use App\Services\Monitoring\DatabaseMonitoringService;
 use App\Services\Monitoring\ReverbAnalyticsService;
 use App\Services\Monitoring\SecurityMonitoringService;
-use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 
@@ -32,8 +31,6 @@ class MonitoringServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        Broadcast::routes(['middleware' => ['web', 'broadcasting.auth']]);
-
         Quiz::observe(QuizAuditObserver::class);
         User::observe(UserAuditObserver::class);
         Course::observe(CourseAuditObserver::class);

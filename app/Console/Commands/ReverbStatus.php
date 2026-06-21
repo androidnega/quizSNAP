@@ -14,10 +14,10 @@ class ReverbStatus extends Command
     public function handle(): int
     {
         $broadcast = (string) config('broadcasting.default');
-        $this->line('BROADCAST_CONNECTION: ' . $broadcast);
+        $this->line('BROADCAST_CONNECTION: '.$broadcast);
 
         if ($broadcast !== 'reverb') {
-            $this->warn('Set BROADCAST_CONNECTION=reverb in .env and run: php artisan config:clear');
+            $this->warn('Set BROADCAST_CONNECTION=reverb in .env and run: php artisan config:cache');
 
             return Command::FAILURE;
         }
@@ -26,8 +26,8 @@ class ReverbStatus extends Command
         if ($key === '' || ReverbClientConfig::isPlaceholder($key)) {
             $this->warn('REVERB_APP_KEY is missing or still a placeholder.');
             $this->line('Generate keys:');
-            $this->line('  REVERB_APP_KEY=' . bin2hex(random_bytes(16)));
-            $this->line('  REVERB_APP_SECRET=' . bin2hex(random_bytes(32)));
+            $this->line('  REVERB_APP_KEY='.bin2hex(random_bytes(16)));
+            $this->line('  REVERB_APP_SECRET='.bin2hex(random_bytes(32)));
 
             return Command::FAILURE;
         }
@@ -44,14 +44,43 @@ class ReverbStatus extends Command
             ['host', $client['host']],
             ['port', (string) $client['port']],
             ['scheme', $client['scheme']],
-            ['key', substr($client['key'], 0, 8) . '…'],
+            ['browser URL', sprintf('%s://%s:%d/app/{key}', $client['scheme'] === 'https' ? 'wss' : 'ws', $client['host'], $client['port'])],
+            ['key', substr($client['key'], 0, 8).'…'],
         ]);
 
+        $serverHost = (string) config('reverb.servers.reverb.host', '127.0.0.1');
         $serverPort = (int) config('reverb.servers.reverb.port', 8080);
-        $this->line('');
-        $this->line('Reverb server should be running: php artisan reverb:start --port=' . $serverPort);
-        $this->line('Production: proxy /app to 127.0.0.1:' . $serverPort . ' (see nginx-production.conf)');
+        $this->newLine();
+        $this->line("Reverb server bind: {$serverHost}:{$serverPort}");
 
-        return Command::SUCCESS;
+        $listening = $this->isPortListening($serverHost, $serverPort);
+        if ($listening) {
+            $this->info("Port {$serverPort} is listening.");
+        } else {
+            $this->error("Port {$serverPort} is NOT listening — browsers will show WebSocket connection failed.");
+            $this->line('Fix: sudo bash scripts/vps/consolidate-reverb.sh');
+            $this->line('     supervisorctl status quizsnap-reverb');
+        }
+
+        $this->newLine();
+        $this->line('nginx must proxy WebSocket path /app → http://127.0.0.1:'.$serverPort);
+        $this->line('Check: sudo bash scripts/vps/check-reverb-websocket.sh');
+        $this->line('Reference: nginx-production.conf (location /app { ... })');
+
+        return $listening ? Command::SUCCESS : Command::FAILURE;
+    }
+
+    protected function isPortListening(string $host, int $port): bool
+    {
+        $target = $host === '0.0.0.0' ? '127.0.0.1' : $host;
+        $socket = @fsockopen($target, $port, $errno, $errstr, 2);
+
+        if ($socket === false) {
+            return false;
+        }
+
+        fclose($socket);
+
+        return true;
     }
 }

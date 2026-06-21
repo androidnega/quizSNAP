@@ -121,7 +121,6 @@ class StudentQuizController extends Controller
             'quizAllowsMobile',
             in_array($allowedDevices, [Quiz::ALLOWED_DEVICES_BOTH, Quiz::ALLOWED_DEVICES_MOBILE], true)
         );
-        $flags = $this->proctoringFlags();
 
         return response()
             ->view('student.quiz-ready', [
@@ -129,7 +128,6 @@ class StudentQuizController extends Controller
                 'courseName' => $session->quiz->course?->name ?? $session->quiz->title ?? 'Quiz',
                 'durationMinutes' => (int) ($session->quiz->duration_minutes ?? 0),
                 'questionCount' => $questionCount,
-                'fullscreenRequired' => $this->isFullscreenEnforcementEnabled($flags),
             ])
             ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
             ->header('Pragma', 'no-cache');

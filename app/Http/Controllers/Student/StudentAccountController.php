@@ -13,6 +13,7 @@ use App\Services\StudentAuthAuditLogger;
 use App\Services\StudentAuthFlowService;
 use App\Services\StudentAuthThrottleService;
 use App\Services\StudentOnboardingEmailOtpService;
+use App\Services\QuizLinkService;
 use App\Services\StudentOnboardingService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
@@ -42,6 +43,8 @@ class StudentAccountController extends Controller
             return redirect()->route('dashboard')
                 ->with('info', 'You are already logged in as staff. Please logout first to login as a student.');
         }
+
+        $this->beginDashboardLogin();
         
         return view('student.account-login', [
             'password_login_enabled' => Student::isPasswordLoginEnabled(),
@@ -73,6 +76,8 @@ class StudentAccountController extends Controller
                 'message' => 'You are already logged in as staff. Please logout first to login as a student.',
             ], 422);
         }
+
+        $this->beginDashboardLogin();
         
         $request->validate(['index_number' => 'required|string|max:100']);
         $inputIndex = trim((string) $request->index_number);
@@ -836,9 +841,28 @@ class StudentAccountController extends Controller
         ]);
     }
 
+    private function beginDashboardLogin(): void
+    {
+        app(QuizLinkService::class)->forgetQuizContext();
+        session(['student_login_intent' => 'dashboard']);
+    }
+
     private function studentLoginRedirect(Student $student): string
     {
-        $quizId = session('quiz_id') ?? session('quiz_id_for_login');
+        $intent = session('student_login_intent');
+        session()->forget('student_login_intent');
+
+        if ($intent === 'dashboard') {
+            app(QuizLinkService::class)->forgetQuizContext();
+
+            if ($student->level === null || $student->level === '') {
+                return route('student.select-level');
+            }
+
+            return route('dashboard');
+        }
+
+        $quizId = session('quiz_id');
         if ($quizId) {
             $indexNumber = strtoupper(trim((string) ($student->index_number ?? session('index_number') ?? session('student_index') ?? '')));
             session([

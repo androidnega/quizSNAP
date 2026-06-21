@@ -4,10 +4,6 @@
 @section('body_class', 'bg-offwhite')
 
 @section('content')
-@if($fullscreenRequired ?? true)
-@include('student.partials.quiz-fullscreen-overlay', ['mode' => 'ready'])
-@endif
-
 <div class="min-h-[100dvh] min-h-screen flex items-center justify-center px-4 py-6 w-full max-w-full">
     <div class="max-w-md w-full max-w-full">
         <div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
@@ -35,7 +31,7 @@
 
             <form method="POST" action="{{ route('student.quiz.session.start') }}" id="quiz-start-form">
                 @csrf
-                <button type="submit" id="start-quiz-btn" class="btn btn-primary w-full py-2.5 text-sm font-semibold text-white border-0 disabled:opacity-50 disabled:cursor-not-allowed"{{ ($fullscreenRequired ?? true) ? ' disabled' : '' }}>
+                <button type="submit" id="start-quiz-btn" class="btn btn-primary w-full py-2.5 text-sm font-semibold text-white border-0 disabled:opacity-50 disabled:cursor-not-allowed">
                     Start Quiz
                 </button>
             </form>
@@ -43,15 +39,3 @@
     </div>
 </div>
 @endsection
-
-@push('scripts')
-<script src="{{ asset('js/quiz-window-state.js') }}?v={{ filemtime(public_path('js/quiz-window-state.js')) }}"></script>
-<script src="{{ asset('js/quiz-fullscreen-gate.js') }}?v={{ filemtime(public_path('js/quiz-fullscreen-gate.js')) }}"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    if (window.QuizSnapFullscreenGate) {
-        window.QuizSnapFullscreenGate.init({ required: {{ ($fullscreenRequired ?? true) ? 'true' : 'false' }} });
-    }
-});
-</script>
-@endpush

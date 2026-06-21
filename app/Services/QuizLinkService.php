@@ -146,6 +146,22 @@ final class QuizLinkService
         session($payload);
     }
 
+    /**
+     * Clear quiz-entry session keys so a dashboard login is not hijacked by a stale quiz link visit.
+     */
+    public function forgetQuizContext(): void
+    {
+        session()->forget([
+            'quiz_id',
+            'quiz_id_for_login',
+            'quiz_link_token',
+            'quiz_session_token',
+            'index_number',
+            'rules_accepted',
+            'eligible_courses',
+        ]);
+    }
+
     public function resumeRoute(QuizSession $session): string
     {
         if ($session->ended_at !== null) {

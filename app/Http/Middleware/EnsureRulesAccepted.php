@@ -52,24 +52,24 @@ class EnsureRulesAccepted
         }
 
         $quizId = $this->resolveQuizId($request);
-        $indexNumber = session('student_index') ?? session('index_number');
-        if ($quizId !== null && $indexNumber !== null && $indexNumber !== '') {
-            $hasAcceptance = QuizAcceptance::where('quiz_id', $quizId)
-                ->where('index_number', $indexNumber)
-                ->exists();
-
-            if (!$hasAcceptance) {
+        $indexNumber = $this->normalizedIndex(session('student_index') ?? session('index_number'));
+        if ($quizId !== null && $indexNumber !== null) {
+            if (! $this->hasAcceptedRules((int) $quizId, $indexNumber)) {
                 $quiz = Quiz::where('id', $quizId)->first();
                 if ($quiz && $quiz->link_token) {
                     return redirect()->route('student.rules.show.quiz', ['token' => $quiz->link_token])
                         ->with('error', 'Error');
                 }
+
                 return redirect()->route('student.rules.show')
                     ->with('error', 'Error');
             }
 
-            // Sync session for fast path on subsequent requests
-            session(['rules_accepted' => true]);
+            session([
+                'rules_accepted' => true,
+                'index_number' => $indexNumber,
+            ]);
+
             return $next($request);
         }
 
@@ -122,5 +122,24 @@ class EnsureRulesAccepted
         }
 
         return null;
+    }
+
+    private function normalizedIndex(mixed $indexNumber): ?string
+    {
+        if (! is_string($indexNumber) && ! is_numeric($indexNumber)) {
+            return null;
+        }
+
+        $normalized = strtoupper(trim((string) $indexNumber));
+
+        return $normalized !== '' ? $normalized : null;
+    }
+
+    private function hasAcceptedRules(int $quizId, string $indexNumber): bool
+    {
+        return QuizAcceptance::query()
+            ->where('quiz_id', $quizId)
+            ->whereRaw('UPPER(TRIM(index_number)) = ?', [$indexNumber])
+            ->exists();
     }
 }

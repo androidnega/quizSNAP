@@ -32,13 +32,7 @@ class ProctoringCaptureController extends Controller
         if ((! $quizId || ! $indexNumber) && is_string($sessionToken) && $sessionToken !== '') {
             $tokenSession = QuizSession::where('session_token', $sessionToken)->whereNull('ended_at')->first();
             if ($tokenSession) {
-                $quizId = $tokenSession->quiz_id;
-                $indexNumber = $tokenSession->student_index;
-                session([
-                    'quiz_id' => $quizId,
-                    'index_number' => $indexNumber,
-                    'rules_accepted' => true,
-                ]);
+                $this->quizLinks->syncActiveSession($tokenSession);
             }
         }
         if (!$quizId || !$indexNumber) {
@@ -86,16 +80,26 @@ class ProctoringCaptureController extends Controller
             ->latest('id')
             ->first();
         if ($existingSession) {
-            session(['quiz_session_token' => $existingSession->session_token]);
+            $this->quizLinks->syncActiveSession($existingSession);
+
             if ($existingSession->ended_at !== null) {
                 return redirect()
                     ->route('student.result', ['token' => $existingSession->session_token])
                     ->with('info', 'You already completed this quiz attempt.');
             }
-            if ($existingSession->start_time !== null) {
-                return redirect()->route('student.quiz.show');
+
+            if ($this->needsProctoringCapture($existingSession)) {
+                return $this->captureViewResponse($quiz, $indexNumber);
             }
-            return redirect()->route('student.quiz.ready');
+
+            if (! $existingSession->camera_verified && $existingSession->pre_face_image) {
+                $existingSession->update([
+                    'camera_verified' => true,
+                    'camera_started_at' => $existingSession->camera_started_at ?? now(),
+                ]);
+            }
+
+            return redirect()->to($this->quizLinks->resumeUrl($existingSession));
         }
 
         // Camera optional mode: skip capture page and bootstrap/resume session directly.
@@ -136,8 +140,23 @@ class ProctoringCaptureController extends Controller
 
             session(['quiz_session_token' => $session->session_token]);
 
-            return redirect()->route('student.quiz.ready');
+            return redirect()->to($this->quizLinks->resumeUrl($session));
         }
+
+        return $this->captureViewResponse($quiz, $indexNumber);
+    }
+
+    private function needsProctoringCapture(QuizSession $session): bool
+    {
+        if (! $this->isProctoringCameraRequired()) {
+            return false;
+        }
+
+        return ! $session->camera_verified && empty($session->pre_face_image);
+    }
+
+    private function captureViewResponse(Quiz $quiz, string $indexNumber): \Illuminate\Http\Response
+    {
         return response()
             ->view('student.proctoring-capture', [
                 'quiz' => $quiz,
@@ -170,7 +189,7 @@ class ProctoringCaptureController extends Controller
             ->latest('id')
             ->first();
         if ($existingSession) {
-            session(['quiz_session_token' => $existingSession->session_token]);
+            $this->quizLinks->syncActiveSession($existingSession);
             if ($existingSession->ended_at !== null) {
                 return response()->json([
                     'success' => true,
@@ -178,11 +197,17 @@ class ProctoringCaptureController extends Controller
                     'message' => 'You already completed this quiz attempt.',
                 ]);
             }
+
+            if ($this->needsProctoringCapture($existingSession)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Please complete your identity photo on this page before continuing.',
+                ], 422);
+            }
+
             return response()->json([
                 'success' => true,
-                'redirect' => $existingSession->start_time !== null
-                    ? route('student.quiz.show')
-                    : route('student.quiz.ready'),
+                'redirect' => $this->quizLinks->resumeUrl($existingSession),
                 'message' => 'Resuming your existing quiz session.',
             ]);
         }

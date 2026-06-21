@@ -286,8 +286,16 @@ class StudentQuizController extends Controller
             ]);
         }
         // Enforce pre-capture gate only when camera is required by settings.
-        if (!$session->camera_verified && $this->isProctoringCameraRequired()) {
-            return redirect()->route('student.proctoring.capture')->with('error', UserFriendlyMessages::GENERIC);
+        if (! $session->camera_verified && $this->isProctoringCameraRequired()) {
+            if (! empty($session->pre_face_image)) {
+                $session->update([
+                    'camera_verified' => true,
+                    'camera_started_at' => $session->camera_started_at ?? now(),
+                ]);
+            } else {
+                return redirect()->to(route('student.proctoring.capture').'?token='.urlencode($token))
+                    ->with('error', UserFriendlyMessages::GENERIC);
+            }
         }
         if (!$session->camera_verified && !$this->isProctoringCameraRequired()) {
             $session->update([

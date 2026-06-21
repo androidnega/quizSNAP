@@ -234,7 +234,8 @@ class QuizRulesController extends Controller
             $this->quizLinks->rememberQuizContext($quiz, true);
             session([
                 'quiz_id' => $quiz->id,
-                'index_number' => $student->index_number,
+                'index_number' => $indexNumber,
+                'rules_accepted' => true,
             ]);
 
             return redirect()->route('student.proctoring.capture');

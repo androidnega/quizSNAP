@@ -15,24 +15,26 @@
     if (is_string($bannerImageUrl) && $bannerImageUrl !== '' && ! preg_match('#^https?://#i', $bannerImageUrl)) {
         $bannerImageUrl = asset(ltrim($bannerImageUrl, '/'));
     }
-    $bundledSlug = 'student-dashboard-midsem-exams-good-luck-banner';
+    $bundledSlug = 'student-dashboard-fathers-day-banner';
+    $legacyBundledSlug = 'student-dashboard-midsem-exams-good-luck-banner';
     $usesBundledBanner = $mode === 'image' && (
         empty($image)
         || str_contains((string) $image, $bundledSlug)
+        || str_contains((string) $image, $legacyBundledSlug)
     );
     $bundledBase = asset('images/' . $bundledSlug);
     $showBanner = ! empty($banner['enabled']) && (
         ($mode === 'image' && ($usesBundledBanner || ! empty($bannerImageUrl)))
         || ($mode === 'image_text')
     );
-    $bannerAlt = 'Good luck in your midsem exams. Believe in yourself, stay focused, and do your best. Emmanuel Kofi Kwofie, Planning Committee Chair — FASSA.';
+    $bannerAlt = 'Happy Father\'s Day. Thank you for your love, guidance, strength, and for being my greatest inspiration. Emmanuel Kofi Kwofie, Planning Committee Chair — FASSA.';
 @endphp
 
 @if($showBanner)
 @if($mode === 'image' && ($usesBundledBanner || ! empty($bannerImageUrl)))
-{{-- Wide hero banner (1024×394): responsive WebP with JPEG fallback --}}
+{{-- Wide hero banner (1024×395): responsive WebP with JPEG fallback --}}
 <section aria-label="Dashboard banner" class="w-full min-w-0 h-full flex flex-col">
-    <figure class="relative m-0 w-full flex-1 min-h-[140px] overflow-hidden rounded-2xl lg:rounded-3xl bg-[#fef9e7] aspect-[999/291] lg:aspect-auto lg:min-h-[168px]">
+    <figure class="relative m-0 w-full flex-1 min-h-[160px] overflow-hidden rounded-2xl lg:rounded-3xl bg-[#f8fafc] aspect-[1024/395] lg:min-h-[200px]">
         @if($usesBundledBanner)
         <picture>
             <source type="image/webp"
@@ -44,8 +46,8 @@
             <img src="{{ $bundledBase }}.jpg"
                  alt="{{ $bannerAlt }}"
                  class="absolute inset-0 block h-full w-full object-cover object-center"
-                 width="999"
-                 height="291"
+                 width="1024"
+                 height="395"
                  loading="eager"
                  decoding="async"
                  fetchpriority="high">
@@ -54,8 +56,8 @@
         <img src="{{ e($bannerImageUrl) }}"
              alt="{{ $bannerAlt }}"
              class="absolute inset-0 block h-full w-full object-cover object-center"
-             width="999"
-             height="291"
+             width="1024"
+             height="395"
              loading="eager"
              decoding="async"
              fetchpriority="high">
@@ -66,7 +68,7 @@
 {{-- Image + text: text left, image right --}}
 <section aria-label="Dashboard banner" class="w-full min-w-0 h-full flex flex-col">
     <div class="overflow-hidden rounded-2xl lg:rounded-3xl border border-slate-200 bg-white shadow-[0_4px_24px_rgba(15,23,42,0.08)] h-full flex flex-col">
-        <div class="grid grid-cols-1 lg:grid-cols-2 flex-1 lg:min-h-[168px]">
+        <div class="grid grid-cols-1 lg:grid-cols-2 flex-1 lg:min-h-[200px]">
             <div class="flex flex-col justify-center px-5 py-4 sm:px-6 sm:py-5 lg:px-8 lg:py-6 order-2 lg:order-1">
                 <h2 class="text-lg sm:text-xl lg:text-2xl xl:text-[1.65rem] font-extrabold text-slate-900 leading-snug tracking-tight">
                     {{ $banner['title'] }}
@@ -76,7 +78,7 @@
                 <p class="mt-1.5 lg:mt-2 text-xs sm:text-sm lg:text-base text-slate-600 max-w-md leading-relaxed">{{ $banner['subtitle'] }}</p>
                 @endif
             </div>
-            <div class="relative h-28 sm:h-32 lg:h-auto lg:min-h-[152px] xl:min-h-[168px] bg-slate-100 order-1 lg:order-2">
+            <div class="relative h-32 sm:h-36 lg:h-auto lg:min-h-[180px] xl:min-h-[200px] bg-slate-100 order-1 lg:order-2">
                 @if(! empty($bannerImageUrl))
                 <img src="{{ e($bannerImageUrl) }}"
                      alt=""

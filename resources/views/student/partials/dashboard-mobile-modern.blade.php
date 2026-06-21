@@ -15,13 +15,15 @@
     if (is_string($bannerImageUrl) && $bannerImageUrl !== '' && ! preg_match('#^https?://#i', $bannerImageUrl)) {
         $bannerImageUrl = asset(ltrim($bannerImageUrl, '/'));
     }
-    $bundledSlug = 'student-dashboard-midsem-exams-good-luck-banner';
+    $bundledSlug = 'student-dashboard-fathers-day-banner';
+    $legacyBundledSlug = 'student-dashboard-midsem-exams-good-luck-banner';
     $usesBundledBanner = $bannerMode === 'image' && (
         empty($bannerImage)
         || str_contains((string) $bannerImage, $bundledSlug)
+        || str_contains((string) $bannerImage, $legacyBundledSlug)
     );
     $bundledBase = asset('images/' . $bundledSlug);
-    $bannerAlt = 'Dashboard banner';
+    $bannerAlt = 'Happy Father\'s Day. Thank you for your love, guidance, strength, and for being my greatest inspiration. Emmanuel Kofi Kwofie, Planning Committee Chair — FASSA.';
     $showMobileBanner = ! empty($banner['enabled']) && (
         ($bannerMode === 'image' && ($usesBundledBanner || ! empty($bannerImageUrl)))
         || $bannerMode === 'image_text'
@@ -82,8 +84,8 @@
                 <img src="{{ $bundledBase }}.jpg"
                      alt="{{ $bannerAlt }}"
                      class="md-dash__banner-img"
-                     width="999"
-                     height="291"
+                     width="1024"
+                     height="395"
                      loading="eager"
                      decoding="async"
                      fetchpriority="high">
@@ -92,8 +94,8 @@
             <img src="{{ e($bannerImageUrl) }}"
                  alt="{{ $bannerAlt }}"
                  class="md-dash__banner-img"
-                 width="999"
-                 height="291"
+                 width="1024"
+                 height="395"
                  loading="eager"
                  decoding="async"
                  fetchpriority="high">
@@ -243,11 +245,11 @@
         }
 
         body.sd-home-mobile-modern .md-dash__banner-media {
-            aspect-ratio: 999 / 278;
+            aspect-ratio: 1024 / 395;
         }
 
         body.sd-home-mobile-modern .md-dash__banner-img {
-            object-position: center 38%;
+            object-position: center center;
         }
 
         body.sd-home-mobile-modern .md-dash__tile {
@@ -358,7 +360,7 @@
         border-radius: 1rem;
         border: 1px solid var(--theme-border);
         background: var(--theme-surface);
-        aspect-ratio: 999 / 291;
+        aspect-ratio: 1024 / 395;
     }
 
     .md-dash__banner-media--compact {

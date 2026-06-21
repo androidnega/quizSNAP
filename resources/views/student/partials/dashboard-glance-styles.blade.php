@@ -530,7 +530,7 @@
     .sd-featured-quiz {
         width: 100%;
         min-width: 0;
-        min-height: 168px;
+        min-height: 200px;
     }
 
     .sd-featured-quiz__card {
@@ -539,7 +539,7 @@
         justify-content: space-between;
         width: 100%;
         height: 100%;
-        min-height: 168px;
+        min-height: 200px;
         padding: 1rem 1.125rem 1.125rem;
         border-radius: 1rem;
         border: 1px solid #e2e8f0;

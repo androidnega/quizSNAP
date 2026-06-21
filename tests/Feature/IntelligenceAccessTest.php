@@ -13,7 +13,7 @@ class IntelligenceAccessTest extends TestCase
         $systemAdmin = new User(['role' => User::ROLE_SYSTEM_ADMIN]);
         $examiner = new User(['role' => User::ROLE_EXAMINER]);
 
-        $this->assertTrue($superAdmin->canAccessIntelligence());
+        $this->assertFalse($superAdmin->canAccessIntelligence());
         $this->assertTrue($systemAdmin->canAccessIntelligence());
         $this->assertFalse($examiner->canAccessIntelligence());
     }

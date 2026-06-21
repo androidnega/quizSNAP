@@ -62,8 +62,8 @@ class EnsureAdminAuthenticated
                 || $request->routeIs('logout')
                 || $request->routeIs('logout.get');
             if (! $systemAdminAllowed) {
-                return redirect()->route('dashboard.monitoring.overview')
-                    ->with('error', 'System Monitors can only access Monitoring, Operations, and Intelligence centers.');
+                return redirect()->route('dashboard')
+                    ->with('error', 'System Monitors can only access their dashboard and enterprise centers.');
             }
 
             session(['admin_role' => $user->role]);

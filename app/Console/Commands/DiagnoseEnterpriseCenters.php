@@ -69,7 +69,7 @@ class DiagnoseEnterpriseCenters extends Command
         ]);
 
         if (! $user->canAccessMonitoring()) {
-            $this->warn('This user cannot access enterprise centers. Role must be super_admin or system_admin.');
+            $this->warn('This user cannot access enterprise centers. Role must be system_admin.');
 
             return Command::FAILURE;
         }

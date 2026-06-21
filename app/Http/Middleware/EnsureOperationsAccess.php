@@ -12,12 +12,14 @@ class EnsureOperationsAccess
 {
     public function handle(Request $request, Closure $next): Response
     {
-        $user = auth()->user();
+        $user = EnterpriseCenterAccess::resolveUser();
         if (! $user instanceof User) {
-            $user = User::find(session('admin_user_id'));
+            return redirect()->route('login')->with('error', 'Please log in.');
         }
 
-        if (! $user || ! $user->canAccessOperations()) {
+        EnterpriseCenterAccess::syncSessionUser($user);
+
+        if (! $user->canAccessOperations()) {
             return redirect()->route('dashboard')
                 ->with('error', EnterpriseCenterAccess::deniedMessage($user, 'Operations Center'));
         }

@@ -29,6 +29,9 @@ class AdminAuthController extends Controller
             if ($user && $user->role === User::ROLE_COORDINATOR) {
                 return redirect()->route('dashboard');
             }
+            if ($user && $user->isSystemAdministrator()) {
+                return redirect()->route('dashboard');
+            }
             return redirect()->intended(route('dashboard'));
         }
 
@@ -97,7 +100,7 @@ class AdminAuthController extends Controller
                 return redirect()->route('dashboard')->with('success', 'Logged in');
             }
             if ($user->role === User::ROLE_SYSTEM_ADMIN) {
-                return redirect()->route('dashboard.monitoring.overview')->with('success', 'Logged in');
+                return redirect()->route('dashboard')->with('success', 'Logged in');
             }
             // All other roles → unified dashboard at /dashboard
             return redirect()->intended(route('dashboard'))->with('success', 'Logged in');

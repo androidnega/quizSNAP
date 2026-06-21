@@ -18,16 +18,41 @@ class AdminDashboardController extends Controller
 {
     use InteractsWithAdminSession;
 
-    /** Unified dashboard: show admin or examiner content based on role. */
+    /** Unified dashboard: show admin, system monitor, coordinator, or examiner content based on role. */
     public function index(): View|\Illuminate\Http\RedirectResponse
     {
-        if (session('admin_role') === 'super_admin') {
+        $user = $this->adminUser();
+
+        if ($user?->isSystemAdministrator()) {
+            return $this->systemAdministratorDashboard();
+        }
+        if ($user?->isSuperAdmin()) {
             return $this->adminDashboard();
         }
-        if (session('admin_role') === 'coordinator') {
+        if ($user?->isCoordinator()) {
             return $this->coordinatorDashboard();
         }
+
         return $this->examinerDashboard();
+    }
+
+    /** System Monitor dashboard: hub for Monitoring, Operations, and Intelligence centers. */
+    public function systemAdministratorDashboard(): View
+    {
+        $stats = null;
+        try {
+            $stats = app(\App\Services\Monitoring\MonitoringOverviewService::class)->dashboardStats();
+        } catch (\Throwable) {
+            $stats = [
+                'errors_today' => 0,
+                'critical_errors' => 0,
+                'failed_jobs' => 0,
+                'live_visitors' => app(SitePresenceService::class)->countActive(),
+                'live_quiz_takers' => app(LiveQuizSessionService::class)->countActive(),
+            ];
+        }
+
+        return view('admin.dashboard-system-admin', compact('stats'));
     }
 
     /** Admin (Super Admin) dashboard: stats, courses, users, class groups, quizzes. */
@@ -60,7 +85,8 @@ class AdminDashboardController extends Controller
     /** JSON live counters for super admin dashboard cards (not cached). */
     public function liveStats(): JsonResponse
     {
-        if (session('admin_role') !== 'super_admin') {
+        $user = $this->adminUser();
+        if (! $user?->isSuperAdmin()) {
             return response()->json(['success' => false], 403);
         }
 

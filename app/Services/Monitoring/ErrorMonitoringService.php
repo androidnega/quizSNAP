@@ -60,7 +60,7 @@ class ErrorMonitoringService
                 $error = SystemError::query()->create([
                     'fingerprint' => $fingerprint,
                     'exception_class' => get_class($exception),
-                    'exception_type' => class_basename($exception),
+                    'exception_type' => Str::limit(class_basename($exception), 128, ''),
                     'message' => Str::limit($exception->getMessage(), 2000),
                     'error_code' => (string) $exception->getCode(),
                     'severity' => $severity,

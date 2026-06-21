@@ -1,5 +1,6 @@
 /**
- * QuizSnap live updates — listens for Reverb WebSocket events and refreshes the current page.
+ * QuizSnap live updates — listens for Reverb WebSocket events.
+ * Full-page reload only on list/dashboard pages; monitoring uses quizsnap-monitoring.js.
  */
 (function () {
     'use strict';
@@ -22,11 +23,17 @@
             return null;
         }
 
+        // Quiz detail tabs (overview, sessions, scores): never full-page reload.
+        // Examiners stay on the sessions table; live updates belong on monitoring dashboards.
+        if (/\/dashboard\/quizzes\/\d+(\/|$)/.test(path)) {
+            return null;
+        }
+
         if (/\/dashboard\/my-quizzes/.test(path)) {
             return { reloadTypes: ['dashboard'] };
         }
-        if (/\/dashboard\/quizzes/.test(path) && path.indexOf('live-proctor') === -1) {
-            return { reloadTypes: ['quizzes', 'dashboard', 'sessions'] };
+        if (/\/dashboard\/quizzes\/?$/.test(path)) {
+            return { reloadTypes: ['quizzes', 'dashboard'] };
         }
         if (/\/dashboard\/class-groups/.test(path)) {
             return { reloadTypes: ['class-groups', 'dashboard'] };
@@ -35,7 +42,7 @@
             return { reloadTypes: ['dashboard', 'quizzes', 'class-groups'] };
         }
         if (path.indexOf('/dashboard') === 0) {
-            return { reloadTypes: ['dashboard', 'quizzes', 'class-groups', 'sessions'] };
+            return { reloadTypes: ['dashboard', 'quizzes', 'class-groups'] };
         }
 
         return null;

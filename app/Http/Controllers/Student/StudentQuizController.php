@@ -128,7 +128,22 @@ class StudentQuizController extends Controller
 
         if ($this->quizLinks->studentOwnsSession($session) && $session->start_time !== null) {
             if (! str_starts_with((string) $session->ip_address, 'reset-')) {
-                $session->update(['ip_address' => $request->ip()]);
+                $newIp = $request->ip();
+                $ipTakenByOther = QuizSession::query()
+                    ->where('quiz_id', $session->quiz_id)
+                    ->where('ip_address', $newIp)
+                    ->where('id', '!=', $session->id)
+                    ->whereNull('ended_at')
+                    ->whereRaw("ip_address NOT LIKE 'reset-%'")
+                    ->exists();
+
+                if (! $ipTakenByOther) {
+                    try {
+                        $session->update(['ip_address' => $newIp]);
+                    } catch (\Throwable $e) {
+                        report($e);
+                    }
+                }
             }
 
             return null;

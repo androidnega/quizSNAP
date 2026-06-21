@@ -139,9 +139,10 @@ class StudentLoginController extends Controller
 
         if ($this->isIpDeviceRestrictionEnabled()) {
             $ip = $request->ip();
-            // Only treat as "in use" if a session has this IP and it was not reset (reset-* = released)
+            // Only block when another student is actively using this IP on the same quiz.
             if (QuizSession::where('quiz_id', $quiz->id)
                 ->where('ip_address', $ip)
+                ->whereNull('ended_at')
                 ->whereRaw("ip_address NOT LIKE 'reset-%'")
                 ->exists()) {
                 return response()->json([

@@ -150,6 +150,7 @@ class QuizRulesController extends Controller
                     $ip = $request->ip();
                     $ipUsedByOther = QuizSession::where('quiz_id', $quiz->id)
                         ->where('ip_address', $ip)
+                        ->whereNull('ended_at')
                         ->whereRaw("ip_address NOT LIKE 'reset-%'")
                         ->whereRaw('UPPER(TRIM(student_index)) != ?', [strtoupper($student->index_number)])
                         ->exists();

@@ -809,6 +809,8 @@
                 notifyStudentError('connection');
             });
     }
+
+    document.addEventListener('copy', function (e) {
         if (c.proctoringBlockCopyPaste === false) return;
         e.preventDefault();
         recordViolation('copy_paste');
@@ -1088,11 +1090,23 @@
         c.requestFullscreen = ws.requestFullscreen.bind(ws);
     }
 
+    if (enterFsBtn && ws && ws.enterAndWait) {
         enterFsBtn.addEventListener('click', function () {
-            ws.enterAndWait(5000).then(function () {
+            enterFsBtn.disabled = true;
+            var enterPromise;
+            try {
+                enterPromise = ws.enterAndWait(5000);
+            } catch (err) {
+                enterFsBtn.disabled = false;
+                alert(fullscreenDeniedMessage);
+                return;
+            }
+            enterPromise.then(function () {
                 markFullscreenEntered();
             }).catch(function () {
                 showProctorMessage(fullscreenDeniedMessage, true);
+            }).finally(function () {
+                enterFsBtn.disabled = false;
             });
         });
     }

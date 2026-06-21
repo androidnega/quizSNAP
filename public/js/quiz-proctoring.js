@@ -24,6 +24,9 @@
     let blurRecordTimer = null;
     let isUnloading = false;
     let cameraStream = null;
+    let cameraRequestInFlight = false;
+    let tfMonitoringStarted = false;
+    let monitoringSetupComplete = false;
     let cameraCheckInterval = null;
     let wakeLock = null;
     let cameraProtectionInterval = null;
@@ -1246,14 +1249,22 @@
         }
 
         function requestCameraAndContinue() {
+            var proctorState = window.QuizSnapProctorState || {};
+            if (cameraStream || cameraRequestInFlight || proctorState.cameraRequestInFlight) return;
+            cameraRequestInFlight = true;
+            proctorState.cameraRequestInFlight = true;
             // Check if page is loaded over HTTPS or localhost (required for camera access)
             if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+                cameraRequestInFlight = false;
+                proctorState.cameraRequestInFlight = false;
                 showCameraOffOverlay();
                 showProctorMessage('Camera access requires HTTPS. Please access this page using https:// or contact your administrator.', true);
                 return;
             }
 
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                cameraRequestInFlight = false;
+                proctorState.cameraRequestInFlight = false;
                 showCameraOffOverlay();
                 showProctorMessage('Camera is not supported in this browser. Please use a modern browser like Chrome, Firefox, or Safari.', true);
                 return;
@@ -1282,6 +1293,10 @@
                     setupMonitoringWithStream(stream);
                 })
                 .catch(function (err) {
+                    cameraRequestInFlight = false;
+                    if (window.QuizSnapProctorState) {
+                        window.QuizSnapProctorState.cameraRequestInFlight = false;
+                    }
                     console.error('Camera access error:', err);
                     showCameraOffOverlay();
                     var msg = 'Could not access camera. Please allow camera permission when your browser asks, then click "Allow camera & continue" below.';
@@ -1300,6 +1315,22 @@
         }
 
         function setupMonitoringWithStream(stream) {
+            if (monitoringSetupComplete) {
+                if (cameraStream && cameraStream !== stream) {
+                    try {
+                        cameraStream.getTracks().forEach(function (t) { t.stop(); });
+                    } catch (e) { /* ignore */ }
+                }
+                cameraStream = stream;
+                var existingVideo = document.getElementById('face-monitor-video');
+                if (existingVideo) {
+                    existingVideo.srcObject = stream;
+                    existingVideo.play().catch(function () {});
+                }
+                return;
+            }
+            monitoringSetupComplete = true;
+
             hideCameraOffOverlay();
             var panelBadge = document.getElementById('ai-invigilator-badge-panel');
             if (panelBadge) panelBadge.classList.add('visible');
@@ -1354,10 +1385,12 @@
             });
 
             function startTfMonitoring() {
+                if (tfMonitoringStarted) return;
                 if (monitorVideo.readyState < 2 || monitorVideo.videoWidth <= 0) {
                     setTimeout(startTfMonitoring, 400);
                     return;
                 }
+                tfMonitoringStarted = true;
 
                 if (c.proctoringFaceMonitor !== false && window.QuizSnapIntelligentFaceMonitor) {
                     window.QuizSnapIntelligentFaceMonitor.config = window.QuizSnapIntelligentFaceMonitor.config || {};
@@ -1400,7 +1433,6 @@
                 setTimeout(startTfMonitoring, 800);
             });
             monitorVideo.addEventListener('loadeddata', startTfMonitoring, { once: true });
-            monitorVideo.addEventListener('canplay', startTfMonitoring, { once: true });
 
             startCameraProtection();
             requestWakeLock();

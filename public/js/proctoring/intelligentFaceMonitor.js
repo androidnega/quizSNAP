@@ -131,6 +131,9 @@
     let lastHeadTurnMessageAt = 0;
     const HEAD_TURN_BANNER_MS = 3000;
     let darknessFrameCount = 0;
+    let modelLoadPromise = null;
+    let startInProgress = false;
+    let quizMonitoringLocked = false;
 
     /**
      * Get CSRF token
@@ -157,7 +160,7 @@
         if (!videoEl || canvas) return;
 
         canvas = document.createElement('canvas');
-        ctx = canvas.getContext('2d');
+        ctx = canvas.getContext('2d', { willReadFrequently: true });
         canvas.width = videoEl.videoWidth || 640;
         canvas.height = videoEl.videoHeight || 480;
     }
@@ -197,7 +200,11 @@
                 canvas.height = h;
             }
             ctx.drawImage(videoEl, 0, 0, w, h);
-            const data = ctx.getImageData(0, 0, Math.min(w, 160), Math.min(h, 120));
+            const sampleW = Math.min(w, 160);
+            const sampleH = Math.min(h, 120);
+            const sx = Math.max(0, Math.floor((w - sampleW) / 2));
+            const sy = Math.max(0, Math.floor((h - sampleH) / 2));
+            const data = ctx.getImageData(sx, sy, sampleW, sampleH);
             const pixels = data.data;
             let sum = 0;
             const step = 4 * 2;
@@ -704,14 +711,18 @@
             return;
         }
 
-        // Darkness detection: ask user to go to a well-lit place
-        const brightness = getFrameBrightness();
-        if (brightness < DARKNESS_THRESHOLD) {
-            darknessFrameCount++;
-            if (darknessFrameCount >= DARKNESS_FRAMES_REQUIRED) {
-                setLiveFrameState('yellow', 'Please go to a well-lit place', '');
-                updateLiveFramePosition(primaryBox);
-                return;
+        // Darkness: only when no face is detected. A confirmed face means lighting is adequate.
+        if (faceCount === 0) {
+            const brightness = getFrameBrightness();
+            if (brightness < DARKNESS_THRESHOLD) {
+                darknessFrameCount++;
+                if (darknessFrameCount >= DARKNESS_FRAMES_REQUIRED) {
+                    setLiveFrameState('yellow', 'Please go to a well-lit place', '');
+                    updateLiveFramePosition(null);
+                    return;
+                }
+            } else {
+                darknessFrameCount = 0;
             }
         } else {
             darknessFrameCount = 0;
@@ -1106,21 +1117,41 @@
     /**
      * Initialize TensorFlow.js BlazeFace model
      */
-    async function initBlazeFace() {
+    function initBlazeFace() {
+        if (model) return Promise.resolve(true);
+        if (modelLoadPromise) return modelLoadPromise;
+
         if (typeof blazeface === 'undefined' || typeof tf === 'undefined') {
             console.error('TensorFlow.js or BlazeFace not loaded');
-            return false;
+            return Promise.resolve(false);
         }
 
-        try {
+        modelLoadPromise = new Promise(function (resolve) {
             console.log('Loading BlazeFace model...');
-            model = await blazeface.load();
-            console.log('BlazeFace model loaded successfully');
-            return true;
-        } catch (err) {
-            console.error('Error loading BlazeFace model:', err);
-            return false;
+            blazeface.load().then(function (loadedModel) {
+                model = loadedModel;
+                console.log('BlazeFace model loaded successfully');
+                resolve(true);
+            }).catch(function (err) {
+                console.error('Error loading BlazeFace model:', err);
+                modelLoadPromise = null;
+                resolve(false);
+            });
+        });
+
+        return modelLoadPromise;
+    }
+
+    function beginDetectionLoop() {
+        if (isRunning && detectionInterval) return;
+        if (detectionInterval) {
+            clearInterval(detectionInterval);
+            detectionInterval = null;
         }
+        isRunning = true;
+        initCanvas();
+        detectionInterval = setInterval(runDetection, DETECTION_INTERVAL_MS);
+        console.log('IntelligentFaceMonitor: Face monitoring started successfully');
     }
 
     /**
@@ -1179,35 +1210,25 @@
 
         // Initialize model if not loaded
         if (!model) {
+            if (startInProgress) return;
+            startInProgress = true;
             initBlazeFace().then(function(loaded) {
-                if (loaded) {
-                    isRunning = true;
-                    initCanvas();
-                    
-                    // Start detection loop
-                    detectionInterval = setInterval(runDetection, DETECTION_INTERVAL_MS);
-                    
-                    console.log('IntelligentFaceMonitor: Face monitoring started successfully');
-                } else {
-                    console.error('IntelligentFaceMonitor: Failed to load BlazeFace model');
-                }
+                startInProgress = false;
+                if (!loaded || isRunning) return;
+                beginDetectionLoop();
             });
             return;
         }
 
-        isRunning = true;
-        initCanvas();
-        
-        // Start detection loop
-        detectionInterval = setInterval(runDetection, DETECTION_INTERVAL_MS);
-        
-        console.log('IntelligentFaceMonitor: Face monitoring started successfully');
+        beginDetectionLoop();
     }
 
     /**
      * Start quiz monitoring (continuous checks)
      */
     function startQuizMonitoring() {
+        if (quizMonitoringLocked) return;
+        quizMonitoringLocked = true;
         isQuizStarted = true;
         quizMonitoringStartedAt = Date.now();
         var settings = monitorSettings();
@@ -1240,6 +1261,9 @@
         darknessFrameCount = 0;
 
         // Start periodic monitoring
+        if (monitoringInterval) {
+            clearInterval(monitoringInterval);
+        }
         monitoringInterval = setInterval(function () {
             // Monitoring happens in runDetection during quiz
         }, MONITORING_INTERVAL_MS);
@@ -1275,78 +1299,24 @@
         }
 
         model = null;
+        modelLoadPromise = null;
+        startInProgress = false;
+        quizMonitoringLocked = false;
     }
 
     /**
-     * Initialize when ready
+     * Wait for TensorFlow.js / BlazeFace libraries only.
+     * This script is loaded on quiz pages; quiz-proctoring.js calls start() after the camera attaches.
      */
     function init() {
-        // Wait for TensorFlow.js and BlazeFace to load
         if (typeof tf === 'undefined' || typeof blazeface === 'undefined') {
-            console.log('IntelligentFaceMonitor: Waiting for TensorFlow.js/BlazeFace to load...');
             setTimeout(init, 200);
             return;
         }
-
-        console.log('IntelligentFaceMonitor: TensorFlow.js/BlazeFace loaded, initializing...');
-
-        // Get video element from config or find it
-        let videoEl = config.videoElement || videoElement;
-
-        if (!videoEl) {
-            videoEl = document.getElementById('face-monitor-video') ||
-                     document.getElementById('camera-gate-video') ||
-                     document.querySelector('video[autoplay]');
-        }
-
-        if (videoEl) {
-            // Persist to the shared config object (preferred).
-            root.config = root.config || {};
-            root.config.videoElement = videoEl;
-            // Refresh local references.
-            config = root.config;
-            videoElement = videoEl;
-
-            console.log('IntelligentFaceMonitor: Video element found:', {
-                id: videoEl.id,
-                hasSrcObject: !!videoEl.srcObject,
-                readyState: videoEl.readyState,
-                videoWidth: videoEl.videoWidth,
-                videoHeight: videoEl.videoHeight
-            });
-
-            if (videoEl.srcObject && videoEl.readyState >= 2 && videoEl.videoWidth > 0) {
-                console.log('IntelligentFaceMonitor: Video ready, starting...');
-                start();
-            } else if (videoEl.srcObject) {
-                console.log('IntelligentFaceMonitor: Waiting for video to be ready...');
-                videoEl.addEventListener('loadeddata', function() {
-                    console.log('IntelligentFaceMonitor: Video loadeddata event');
-                    start();
-                }, { once: true });
-                videoEl.addEventListener('canplay', function() {
-                    console.log('IntelligentFaceMonitor: Video canplay event');
-                    start();
-                }, { once: true });
-
-                // Also try after a delay
-                setTimeout(function() {
-                    if (videoEl && videoEl.videoWidth > 0 && !isRunning) {
-                        console.log('IntelligentFaceMonitor: Starting after timeout...');
-                        start();
-                    }
-                }, 3000);
-            } else {
-                console.log('IntelligentFaceMonitor: Video element has no srcObject, will retry...');
-                setTimeout(init, 2000);
-            }
-        } else {
-            console.log('IntelligentFaceMonitor: Video element not found, will retry...');
-            setTimeout(init, 1000);
-        }
+        console.log('IntelligentFaceMonitor: Ready — waiting for start() from quiz-proctoring.js');
     }
 
-    // Auto-initialize when DOM is ready
+    // Load TF/BlazeFace libraries when DOM is ready (does not start detection).
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
     } else {

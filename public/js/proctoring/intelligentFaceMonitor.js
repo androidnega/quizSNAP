@@ -526,25 +526,36 @@
         if (!isRunning || !videoEl) return;
 
         const boxes = Array.isArray(predictions) ? predictions : [];
-        const frameArea = (videoEl.videoWidth || 640) * (videoEl.videoHeight || 480);
 
-        // Filter out low-confidence / tiny detections (reduces reflections and noise)
+        // Filter out low-confidence / tiny detections (reduces reflections and noise).
+        // NOTE: BlazeFace may return box coords either as pixels OR normalized 0–1, so we use
+        // getFaceAreaRatio() which handles both — computing area against raw pixels here would
+        // reject every normalized detection and cause a permanent false "Face not detected".
         const boundingBoxes = boxes.filter(function (box) {
             if (!box || !box.topLeft || !box.bottomRight) return false;
-            if (faceScore(box) < MIN_FACE_CONFIDENCE_BLAZE) {
-                return false;
-            }
-            // Area ratio relative to full frame
-            const w = Math.abs((box.bottomRight[0] || 0) - (box.topLeft[0] || 0));
-            const h = Math.abs((box.bottomRight[1] || 0) - (box.topLeft[1] || 0));
-            const area = w * h;
-            if (!frameArea || area <= 0) return false;
-            const ratio = area / frameArea;
-            return ratio >= MIN_FACE_AREA_RATIO_BLAZE;
+            if (faceScore(box) < MIN_FACE_CONFIDENCE_BLAZE) return false;
+            return getFaceAreaRatio(box) >= MIN_FACE_AREA_RATIO_BLAZE;
         });
 
         const faceCount = boundingBoxes.length;
         const effectiveFaceCount = getEffectiveMultipleFaceCount(boundingBoxes);
+
+        if (isProctorDebugEnabled()) {
+            var topScore = 0;
+            for (var bi = 0; bi < boxes.length; bi++) {
+                var s = faceScore(boxes[bi]);
+                if (s > topScore) topScore = s;
+            }
+            renderProctorDebug({
+                modelLoaded: !!model,
+                vw: videoEl.videoWidth || 0,
+                vh: videoEl.videoHeight || 0,
+                rawPreds: boxes.length,
+                kept: boundingBoxes.length,
+                topScore: topScore,
+                quizStarted: isQuizStarted,
+            });
+        }
 
         // Phase 1: Strict face presence detection (pre-quiz)
         if (!isQuizStarted) {
@@ -554,6 +565,39 @@
 
         // Phase 7: Continuous monitoring during quiz (use effective count to reduce false positives)
         handleQuizMonitoring(faceCount, boundingBoxes, effectiveFaceCount);
+    }
+
+    /**
+     * Optional on-screen diagnostics. Enable with `?pdebug=1`, window.QuizSnapProctorDebug = true,
+     * or localStorage.setItem('proctorDebug','1'). Off by default; never shown to normal users.
+     */
+    function isProctorDebugEnabled() {
+        try {
+            if (window.QuizSnapProctorDebug === true) return true;
+            if (window.localStorage && localStorage.getItem('proctorDebug') === '1') return true;
+            if (window.location && String(window.location.search).indexOf('pdebug=1') !== -1) return true;
+        } catch (e) { /* ignore */ }
+        return false;
+    }
+
+    function renderProctorDebug(info) {
+        var el = document.getElementById('proctor-debug-hud');
+        if (!el) {
+            el = document.createElement('div');
+            el.id = 'proctor-debug-hud';
+            el.style.cssText = 'position:fixed;bottom:8px;left:8px;z-index:99999;background:rgba(0,0,0,0.85);' +
+                'color:#22ff88;font:11px/1.45 monospace;padding:8px 10px;border-radius:6px;white-space:pre;' +
+                'pointer-events:none;max-width:70vw;';
+            document.body.appendChild(el);
+        }
+        el.textContent =
+            'PROCTOR DEBUG\n' +
+            'model: ' + (info.modelLoaded ? 'loaded' : 'NOT loaded') + '\n' +
+            'video: ' + info.vw + 'x' + info.vh + '\n' +
+            'raw predictions: ' + info.rawPreds + '\n' +
+            'kept faces: ' + info.kept + '\n' +
+            'top score: ' + info.topScore.toFixed(3) + '\n' +
+            'quiz started: ' + info.quizStarted;
     }
 
     /**

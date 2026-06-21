@@ -107,16 +107,13 @@
                 });
         }
 
-        if (gateBtn) {
-            gateBtn.addEventListener('click', function () {
-                ws.enterAndWait(5000)
-                    .then(syncGate)
-                    .catch(function () {
-                        alert(deniedMessage);
-                        syncGate();
-                    });
-            });
+        if (gateBtn && ws.bindEnterFullscreenButton) {
+            ws.bindEnterFullscreenButton(gateBtn);
         }
+
+        document.addEventListener('quizsnap:fullscreen-entered', function () {
+            syncGate();
+        });
 
         if (startForm) {
             startForm.addEventListener('submit', function (e) {

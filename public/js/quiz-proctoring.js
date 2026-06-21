@@ -874,7 +874,9 @@
     var fsDebug = (ws && ws.fsDebug) ? ws.fsDebug : function () {};
     var isFullscreenOrMaximized = (ws && ws.isFullscreenOrMaximized)
         ? ws.isFullscreenOrMaximized.bind(ws)
-        : function () { return false; };
+        : function () {
+            return !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement);
+        };
     var fullscreenDeniedMessage = (ws && ws.getFullscreenDeniedMessage)
         ? ws.getFullscreenDeniedMessage()
         : 'Could not enter full screen.';
@@ -924,7 +926,7 @@
         }
     }
 
-    function showResizeBlur(showFinalWarning) {
+    function showResizeBlur(showFinalWarning, isInitialGate) {
         if (!resizeBlurOverlay) return;
         resizeBlurOverlay.classList.remove('hidden');
         resizeBlurOverlay.classList.add('flex');
@@ -932,8 +934,12 @@
         document.body.classList.add('quiz-fs-blocked');
         if (enterFsBtn) enterFsBtn.classList.remove('hidden');
         if (resizeBlurWarning) {
-            resizeBlurWarning.classList.remove('hidden');
-            resizeBlurWarning.textContent = 'Repeated violations will result in auto-submission of your quiz.';
+            if (isInitialGate) {
+                resizeBlurWarning.classList.add('hidden');
+            } else {
+                resizeBlurWarning.classList.remove('hidden');
+                resizeBlurWarning.textContent = 'Repeated violations will result in auto-submission of your quiz.';
+            }
         }
         if (resizeBlurFinalWarning) {
             if (showFinalWarning) {
@@ -1090,32 +1096,19 @@
         c.requestFullscreen = ws.requestFullscreen.bind(ws);
     }
 
-    if (enterFsBtn && ws && ws.enterAndWait) {
-        enterFsBtn.addEventListener('click', function () {
-            enterFsBtn.disabled = true;
-            var enterPromise;
-            try {
-                enterPromise = ws.enterAndWait(5000);
-            } catch (err) {
-                enterFsBtn.disabled = false;
-                alert(fullscreenDeniedMessage);
-                return;
-            }
-            enterPromise.then(function () {
-                markFullscreenEntered();
-            }).catch(function () {
-                showProctorMessage(fullscreenDeniedMessage, true);
-            }).finally(function () {
-                enterFsBtn.disabled = false;
-            });
-        });
+    if (ws && ws.bindKnownFullscreenButtons) {
+        ws.bindKnownFullscreenButtons();
     }
+
+    document.addEventListener('quizsnap:fullscreen-entered', function () {
+        markFullscreenEntered();
+    });
 
     // Block the quiz until the student is in browser full screen (fullscreen is lost on redirect from quiz-ready).
     if (fullscreenEnforced && !isFullscreenOrMaximized()) {
         wasFullscreenOrMaximized = false;
         cameraStartDeferred = true;
-        showResizeBlur(false);
+        showResizeBlur(false, true);
         if (resizeBlurTitle) resizeBlurTitle.textContent = 'Full screen required';
         if (resizeBlurMessage) resizeBlurMessage.textContent = 'Your quiz runs in browser full screen so tabs and the address bar are hidden. Click below and choose Allow when your browser asks.';
         fsDebug('quiz load: waiting for fullscreen before camera');

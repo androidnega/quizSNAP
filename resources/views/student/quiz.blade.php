@@ -349,10 +349,6 @@ body.quiz-fs-blocked { overflow: hidden; }
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.2/dist/coco-ssd.min.js" crossorigin="anonymous"></script>
 
 <script src="{{ asset('js/quiz-window-state.js') }}?v={{ filemtime(public_path('js/quiz-window-state.js')) }}"></script>
-<script src="{{ asset('js/quiz-proctoring.js') }}?v={{ filemtime(public_path('js/quiz-proctoring.js')) }}" defer></script>
-<script src="{{ asset('js/proctoring/intelligentFaceMonitor.js') }}" defer></script>
-<script src="{{ asset('js/proctoring/objectMonitor.js') }}" defer></script>
-<script src="{{ asset('js/proctoring/audioMonitor.js') }}" defer></script>
 <script>
 window.QuizSnapQuiz = {
     saveAnswerUrl: "{{ route('student.quiz.save') }}",
@@ -384,7 +380,12 @@ window.QuizSnapQuiz = {
     studentName: @json($matchedStudentName ?? null),
     studentNameLinked: {{ ($studentNameLinked ?? false) ? 'true' : 'false' }}
 };
-
+</script>
+<script src="{{ asset('js/quiz-proctoring.js') }}?v={{ filemtime(public_path('js/quiz-proctoring.js')) }}" defer></script>
+<script src="{{ asset('js/proctoring/intelligentFaceMonitor.js') }}" defer></script>
+<script src="{{ asset('js/proctoring/objectMonitor.js') }}" defer></script>
+<script src="{{ asset('js/proctoring/audioMonitor.js') }}" defer></script>
+<script>
 // Configure intelligent face monitor for quiz monitoring
 window.QuizSnapIntelligentFaceMonitor = window.QuizSnapIntelligentFaceMonitor || {};
 window.QuizSnapIntelligentFaceMonitor.config = window.QuizSnapIntelligentFaceMonitor.config || {};

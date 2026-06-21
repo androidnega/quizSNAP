@@ -7,6 +7,8 @@
         ['route' => 'dashboard.monitoring.student-activities.index', 'label' => 'Student Activities', 'icon' => 'fa-user-graduate'],
         ['route' => 'dashboard.monitoring.failed-jobs.index', 'label' => 'Failed Jobs', 'icon' => 'fa-times-circle'],
         ['route' => 'dashboard.monitoring.server-health.index', 'label' => 'Server Health', 'icon' => 'fa-server'],
+        ['route' => 'dashboard.monitoring.api.index', 'label' => 'API Performance', 'icon' => 'fa-plug'],
+        ['route' => 'dashboard.monitoring.websocket.index', 'label' => 'WebSocket', 'icon' => 'fa-broadcast-tower'],
         ['route' => 'dashboard.monitoring.settings.index', 'label' => 'Settings', 'icon' => 'fa-cog'],
     ];
 @endphp

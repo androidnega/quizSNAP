@@ -13,18 +13,32 @@ class MonitoringOverviewController extends Controller
 {
     public function index(MonitoringOverviewService $overview): View
     {
-        return view('admin.monitoring.overview', [
-            'stats' => $overview->dashboardStats(),
-            'errorsByHour' => $overview->errorsByHour(),
-            'requestsByHour' => $overview->requestsByHour(),
-            'recentErrors' => $overview->recentErrors(),
-            'recentActivity' => $overview->recentActivity(),
-        ]);
+        try {
+            return view('admin.monitoring.overview', [
+                'stats' => $overview->dashboardStats(),
+                'recentErrors' => $overview->recentErrors(),
+                'recentActivity' => $overview->recentActivity(),
+            ]);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return view('admin.monitoring.overview', [
+                'stats' => $overview->fallbackDashboardStats(),
+                'recentErrors' => collect(),
+                'recentActivity' => collect(),
+            ])->with('error', 'Some monitoring metrics are temporarily unavailable.');
+        }
     }
 
     public function liveStats(MonitoringOverviewService $overview): JsonResponse
     {
-        return response()->json($overview->dashboardStats());
+        try {
+            return response()->json($overview->dashboardStats());
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json($overview->fallbackDashboardStats());
+        }
     }
 
     public function liveEvents(MonitoringOverviewService $overview): View

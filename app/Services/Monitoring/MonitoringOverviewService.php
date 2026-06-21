@@ -24,7 +24,7 @@ class MonitoringOverviewService
         return [
             'errors_today' => $this->countIfTable('system_errors', fn ($q) => $q->where('last_seen_at', '>=', $today)),
             'critical_errors' => $this->countIfTable('system_errors', fn ($q) => $q->whereIn('severity', ['critical', 'fatal'])->where('resolution_status', 'open')),
-            'failed_jobs' => Schema::hasTable('failed_jobs') ? DB::table('failed_jobs')->count() : 0,
+            'failed_jobs' => $this->countIfTable('failed_jobs'),
             'active_users' => app(SessionMonitoringService::class)->activeCount(),
             'security_alerts' => $this->countIfTable('security_events', fn ($q) => $q->where('occurred_at', '>=', $today)),
             'api_requests_today' => $this->countIfTable('api_request_logs', fn ($q) => $q->where('occurred_at', '>=', $today)),
@@ -35,19 +35,44 @@ class MonitoringOverviewService
         ];
     }
 
+    /** Safe defaults when monitoring tables or metrics are unavailable. */
+    public function fallbackDashboardStats(): array
+    {
+        return [
+            'errors_today' => 0,
+            'critical_errors' => 0,
+            'failed_jobs' => 0,
+            'active_users' => 0,
+            'security_alerts' => 0,
+            'api_requests_today' => 0,
+            'server_health' => null,
+            'queue' => ['pending' => 0, 'failed' => 0, 'recent_failed' => 0, 'workers' => 0],
+            'live_visitors' => 0,
+            'live_quiz_takers' => 0,
+        ];
+    }
+
     public function errorsByHour(int $hours = 24): array
     {
         if (! Schema::hasTable('system_error_occurrences')) {
             return [];
         }
 
-        return SystemErrorOccurrence::query()
-            ->selectRaw('DATE_FORMAT(occurred_at, "%Y-%m-%d %H:00") as hour, COUNT(*) as total')
-            ->where('occurred_at', '>=', now()->subHours($hours))
-            ->groupBy('hour')
-            ->orderBy('hour')
-            ->pluck('total', 'hour')
-            ->all();
+        try {
+            $bucket = $this->hourBucketExpression('occurred_at');
+
+            return SystemErrorOccurrence::query()
+                ->selectRaw("{$bucket} as hour, COUNT(*) as total")
+                ->where('occurred_at', '>=', now()->subHours($hours))
+                ->groupByRaw($bucket)
+                ->orderBy('hour')
+                ->pluck('total', 'hour')
+                ->all();
+        } catch (\Throwable $e) {
+            report($e);
+
+            return [];
+        }
     }
 
     public function requestsByHour(int $hours = 24): array
@@ -56,13 +81,21 @@ class MonitoringOverviewService
             return [];
         }
 
-        return ApiRequestLog::query()
-            ->selectRaw('DATE_FORMAT(occurred_at, "%Y-%m-%d %H:00") as hour, COUNT(*) as total')
-            ->where('occurred_at', '>=', now()->subHours($hours))
-            ->groupBy('hour')
-            ->orderBy('hour')
-            ->pluck('total', 'hour')
-            ->all();
+        try {
+            $bucket = $this->hourBucketExpression('occurred_at');
+
+            return ApiRequestLog::query()
+                ->selectRaw("{$bucket} as hour, COUNT(*) as total")
+                ->where('occurred_at', '>=', now()->subHours($hours))
+                ->groupByRaw($bucket)
+                ->orderBy('hour')
+                ->pluck('total', 'hour')
+                ->all();
+        } catch (\Throwable $e) {
+            report($e);
+
+            return [];
+        }
     }
 
     public function recentErrors(int $limit = 10)
@@ -71,7 +104,13 @@ class MonitoringOverviewService
             return collect();
         }
 
-        return SystemError::query()->orderByDesc('last_seen_at')->limit($limit)->get();
+        try {
+            return SystemError::query()->orderByDesc('last_seen_at')->limit($limit)->get();
+        } catch (\Throwable $e) {
+            report($e);
+
+            return collect();
+        }
     }
 
     public function recentActivity(int $limit = 20)
@@ -80,7 +119,13 @@ class MonitoringOverviewService
             return collect();
         }
 
-        return SystemAuditLog::query()->orderByDesc('occurred_at')->limit($limit)->get();
+        try {
+            return SystemAuditLog::query()->orderByDesc('occurred_at')->limit($limit)->get();
+        } catch (\Throwable $e) {
+            report($e);
+
+            return collect();
+        }
     }
 
     public function liveQuizStats(): array
@@ -93,15 +138,32 @@ class MonitoringOverviewService
         ];
     }
 
-    protected function countIfTable(string $table, callable $callback): int
+    protected function countIfTable(string $table, ?callable $callback = null): int
     {
         if (! Schema::hasTable($table)) {
             return 0;
         }
 
-        $query = DB::table($table);
-        $callback($query);
+        try {
+            $query = DB::table($table);
+            if ($callback) {
+                $callback($query);
+            }
 
-        return (int) $query->count();
+            return (int) $query->count();
+        } catch (\Throwable $e) {
+            report($e);
+
+            return 0;
+        }
+    }
+
+    protected function hourBucketExpression(string $column): string
+    {
+        if (Schema::getConnection()->getDriverName() === 'sqlite') {
+            return "strftime('%Y-%m-%d %H:00', {$column})";
+        }
+
+        return "DATE_FORMAT({$column}, '%Y-%m-%d %H:00')";
     }
 }

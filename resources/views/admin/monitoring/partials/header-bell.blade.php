@@ -1,11 +1,16 @@
 @php
     $monitoringUser = auth()->user();
-    $monitoringUnread = $canAccessMonitoring ?? false
-        ? app(\App\Services\Monitoring\MonitoringNotificationService::class)->unreadCount($monitoringUser)
-        : 0;
-    $monitoringRecent = ($canAccessMonitoring ?? false)
-        ? app(\App\Services\Monitoring\MonitoringNotificationService::class)->recent(8, $monitoringUser)
-        : collect();
+    $monitoringUnread = 0;
+    $monitoringRecent = collect();
+    if ($canAccessMonitoring ?? false) {
+        try {
+            $notificationService = app(\App\Services\Monitoring\MonitoringNotificationService::class);
+            $monitoringUnread = $notificationService->unreadCount($monitoringUser);
+            $monitoringRecent = $notificationService->recent(8, $monitoringUser);
+        } catch (\Throwable $e) {
+            report($e);
+        }
+    }
 @endphp
 @if($canAccessMonitoring ?? false)
 <div class="relative flex flex-shrink-0 items-center" id="monitoring-notification-wrap">

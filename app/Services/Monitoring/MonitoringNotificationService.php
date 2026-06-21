@@ -82,14 +82,20 @@ class MonitoringNotificationService
             return 0;
         }
 
-        $query = MonitoringNotification::query()->whereNull('read_at');
-        if ($user) {
-            $query->where(function ($q) use ($user) {
-                $q->whereNull('user_id')->orWhere('user_id', $user->id);
-            });
-        }
+        try {
+            $query = MonitoringNotification::query()->whereNull('read_at');
+            if ($user) {
+                $query->where(function ($q) use ($user) {
+                    $q->whereNull('user_id')->orWhere('user_id', $user->id);
+                });
+            }
 
-        return $query->count();
+            return $query->count();
+        } catch (\Throwable $e) {
+            report($e);
+
+            return 0;
+        }
     }
 
     public function recent(int $limit = 20, ?User $user = null)
@@ -98,14 +104,20 @@ class MonitoringNotificationService
             return collect();
         }
 
-        $query = MonitoringNotification::query()->orderByDesc('created_at');
-        if ($user) {
-            $query->where(function ($q) use ($user) {
-                $q->whereNull('user_id')->orWhere('user_id', $user->id);
-            });
-        }
+        try {
+            $query = MonitoringNotification::query()->orderByDesc('created_at');
+            if ($user) {
+                $query->where(function ($q) use ($user) {
+                    $q->whereNull('user_id')->orWhere('user_id', $user->id);
+                });
+            }
 
-        return $query->limit($limit)->get();
+            return $query->limit($limit)->get();
+        } catch (\Throwable $e) {
+            report($e);
+
+            return collect();
+        }
     }
 
     public function markRead(int $id, ?User $user = null): void

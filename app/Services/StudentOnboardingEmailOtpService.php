@@ -2,14 +2,13 @@
 
 namespace App\Services;
 
-use App\Mail\StudentOnboardingOtpMail;
+use App\Jobs\SendStudentOnboardingOtpEmail;
 use App\Models\Otp;
 use App\Models\Setting;
 use App\Models\Student;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Mail;
 
 class StudentOnboardingEmailOtpService
 {
@@ -179,18 +178,7 @@ class StudentOnboardingEmailOtpService
             'expires_at' => now()->addMinutes(self::EXPIRES_MINUTES),
         ]);
 
-        MailConfigService::applyFromSettings();
-
-        try {
-            Mail::to($email)->send(new StudentOnboardingOtpMail($student, $code, self::EXPIRES_MINUTES));
-        } catch (\Throwable $e) {
-            report($e);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'We could not send the email. Check the address or try SMS again.',
-            ], 422);
-        }
+        SendStudentOnboardingOtpEmail::dispatch($student->id, $email, $code, self::EXPIRES_MINUTES);
 
         Cache::put($resendKey, 1, now()->addSeconds(Otp::RESEND_COOLDOWN_SECONDS));
         StudentAuthAuditLogger::log('onboarding_email_otp_sent', $student, $indexHash, $request, [

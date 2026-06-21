@@ -17,6 +17,11 @@
     function pageConfig() {
         var path = String(window.location.pathname || '');
 
+        // Enterprise centers use their own Reverb listeners — avoid full-page reload loops here.
+        if (/\/dashboard\/(monitoring|operations|intelligence)(\/|$)/.test(path)) {
+            return null;
+        }
+
         if (/\/dashboard\/my-quizzes/.test(path)) {
             return { reloadTypes: ['dashboard'] };
         }

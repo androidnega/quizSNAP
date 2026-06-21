@@ -5,6 +5,7 @@ namespace App\Services\Monitoring;
 use App\Events\Monitoring\MonitoringHealthChanged;
 use App\Models\ServerHealthSnapshot;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class ServerHealthService
 {
@@ -44,7 +45,17 @@ class ServerHealthService
 
     public function latest(): ?ServerHealthSnapshot
     {
-        return ServerHealthSnapshot::query()->latest('recorded_at')->first();
+        if (! Schema::hasTable('server_health_snapshots')) {
+            return null;
+        }
+
+        try {
+            return ServerHealthSnapshot::query()->latest('recorded_at')->first();
+        } catch (\Throwable $e) {
+            report($e);
+
+            return null;
+        }
     }
 
     protected function determineStatus(?float $cpu, ?float $ram, ?float $disk): string

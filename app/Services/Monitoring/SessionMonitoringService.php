@@ -50,9 +50,19 @@ class SessionMonitoringService
 
     public function activeCount(): int
     {
-        return MonitoringUserSession::query()
-            ->where('is_active', true)
-            ->where('last_activity_at', '>=', now()->subMinutes(15))
-            ->count();
+        if (! Schema::hasTable('monitoring_user_sessions')) {
+            return 0;
+        }
+
+        try {
+            return MonitoringUserSession::query()
+                ->where('is_active', true)
+                ->where('last_activity_at', '>=', now()->subMinutes(15))
+                ->count();
+        } catch (\Throwable $e) {
+            report($e);
+
+            return 0;
+        }
     }
 }

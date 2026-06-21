@@ -18,6 +18,23 @@ class EnsureRulesAccepted
      */
     public function handle(Request $request, Closure $next): Response
     {
+        $queryToken = $request->query('token');
+        if (is_string($queryToken) && trim($queryToken) !== '') {
+            $activeSession = QuizSession::where('session_token', trim($queryToken))
+                ->whereNull('ended_at')
+                ->first();
+            if ($activeSession) {
+                session([
+                    'quiz_session_token' => $activeSession->session_token,
+                    'quiz_id' => $activeSession->quiz_id,
+                    'index_number' => $activeSession->student_index,
+                    'rules_accepted' => true,
+                ]);
+
+                return $next($request);
+            }
+        }
+
         $sessionToken = session('quiz_session_token');
         if (is_string($sessionToken) && $sessionToken !== '') {
             $activeSession = QuizSession::where('session_token', $sessionToken)

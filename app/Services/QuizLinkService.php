@@ -170,6 +170,25 @@ final class QuizLinkService
         session()->forget(['quiz_session_token']);
     }
 
+    /**
+     * Public URL to continue an open quiz attempt (token in query for reliable resume).
+     */
+    public function resumeUrl(QuizSession $session): string
+    {
+        if ($session->ended_at !== null) {
+            return route('student.result', ['token' => $session->session_token]);
+        }
+
+        $route = $session->start_time !== null
+            ? route('student.quiz.show')
+            : route('student.quiz.ready');
+
+        return $route.'?token='.urlencode((string) $session->session_token);
+    }
+
+    /**
+     * Store attempt context in session and return the resume URL.
+     */
     public function resumeRoute(QuizSession $session): string
     {
         if ($session->ended_at !== null) {
@@ -183,8 +202,42 @@ final class QuizLinkService
             'rules_accepted' => true,
         ]);
 
-        return $session->start_time !== null
-            ? route('student.quiz.show')
-            : route('student.quiz.ready');
+        return $this->resumeUrl($session);
+    }
+
+    public function studentOwnsSession(QuizSession $session, ?Student $student = null): bool
+    {
+        $student = $student ?? $this->resolveStudent();
+        if (! $student || ! $student->index_number) {
+            return false;
+        }
+
+        return strtoupper(trim((string) $student->index_number))
+            === strtoupper(trim((string) $session->student_index));
+    }
+
+    /**
+     * Resolve an active attempt from session storage or ?token= query (same pattern as results).
+     */
+    public function resolveActiveSession(?string $token): ?QuizSession
+    {
+        if (! is_string($token) || trim($token) === '') {
+            return null;
+        }
+
+        return QuizSession::query()
+            ->where('session_token', trim($token))
+            ->whereNull('ended_at')
+            ->first();
+    }
+
+    public function syncActiveSession(QuizSession $session): void
+    {
+        session([
+            'quiz_id' => $session->quiz_id,
+            'index_number' => $session->student_index,
+            'quiz_session_token' => $session->session_token,
+            'rules_accepted' => true,
+        ]);
     }
 }

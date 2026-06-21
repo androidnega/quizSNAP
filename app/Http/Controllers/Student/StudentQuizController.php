@@ -18,6 +18,7 @@ use App\Models\Student;
 use App\Support\UserFriendlyMessages;
 use App\Services\AiQuestionService;
 use App\Services\QuizConcurrencyService;
+use App\Services\QuizLinkService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -38,6 +39,7 @@ class StudentQuizController extends Controller
 
     public function __construct(
         private readonly QuizConcurrencyService $concurrency,
+        private readonly QuizLinkService $quizLinks,
     ) {}
 
     /** @var array<string, bool>|null */
@@ -88,29 +90,76 @@ class StudentQuizController extends Controller
 
     private function syncQuizSessionContext(QuizSession $session): void
     {
-        session([
-            'quiz_session_token' => $session->session_token,
-            'quiz_id' => $session->quiz_id,
-            'index_number' => $session->student_index,
-            'rules_accepted' => true,
+        $this->quizLinks->syncActiveSession($session);
+    }
+
+    private function resolveQuizSessionToken(Request $request): ?string
+    {
+        $token = session('quiz_session_token') ?? $request->query('token');
+
+        return is_string($token) && trim($token) !== '' ? trim($token) : null;
+    }
+
+    /**
+     * @return QuizSession|RedirectResponse
+     */
+    private function requireActiveQuizSession(Request $request)
+    {
+        $token = $this->resolveQuizSessionToken($request);
+        if (! $token) {
+            return redirect()->route('student.landing')->with('error', UserFriendlyMessages::GENERIC);
+        }
+
+        $session = $this->quizLinks->resolveActiveSession($token);
+        if (! $session) {
+            return redirect()->route('student.landing')->with('error', UserFriendlyMessages::GENERIC);
+        }
+
+        $this->syncQuizSessionContext($session);
+
+        return $session;
+    }
+
+    private function enforceIpForQuizSession(Request $request, QuizSession $session): ?RedirectResponse
+    {
+        if (! $this->isIpDeviceRestrictionEnabled() || $session->ip_address === $request->ip()) {
+            return null;
+        }
+
+        if ($this->quizLinks->studentOwnsSession($session) && $session->start_time !== null) {
+            if (! str_starts_with((string) $session->ip_address, 'reset-')) {
+                $session->update(['ip_address' => $request->ip()]);
+            }
+
+            return null;
+        }
+
+        QuizViolation::create([
+            'quiz_session_id' => $session->id,
+            'type' => 'multiple_ip',
+            'severity' => QuizViolation::severityForType('multiple_ip'),
+            'metadata' => json_encode(['expected' => $session->ip_address, 'got' => $request->ip()]),
+            'occurred_at' => now(),
         ]);
+
+        return redirect()->route('student.landing')->with('error', UserFriendlyMessages::GENERIC);
     }
     /**
      * System readiness screen after pre-quiz face capture.
      */
     public function ready(Request $request): View|\Illuminate\Http\RedirectResponse|\Illuminate\Http\Response
     {
-        $token = session('quiz_session_token');
-        if (!$token) {
-            return redirect()->route('student.landing')->with('error', UserFriendlyMessages::GENERIC);
+        $resolved = $this->requireActiveQuizSession($request);
+        if ($resolved instanceof RedirectResponse) {
+            return $resolved;
         }
-        $session = QuizSession::with('quiz.course')->where('session_token', $token)->firstOrFail();
-        $this->syncQuizSessionContext($session);
+        $session = $resolved;
+        $session->loadMissing(['quiz.course', 'quiz.classGroup']);
         if ($session->ended_at) {
             return redirect()->to($this->quizCompleteUrl());
         }
         if ($session->start_time !== null) {
-            return redirect()->route('student.quiz.show');
+            return redirect()->to($this->quizLinks->resumeUrl($session));
         }
         $questionCount = is_array($session->assigned_question_ids)
             ? count($session->assigned_question_ids)
@@ -138,22 +187,19 @@ class StudentQuizController extends Controller
      */
     public function startSessionRedirect(Request $request): RedirectResponse
     {
-        $token = session('quiz_session_token');
-        if (! $token) {
-            return redirect()->route('student.landing')->with('error', UserFriendlyMessages::GENERIC);
+        $resolved = $this->requireActiveQuizSession($request);
+        if ($resolved instanceof RedirectResponse) {
+            return $resolved;
         }
-        $session = QuizSession::where('session_token', $token)->first();
-        if (! $session) {
-            return redirect()->route('student.landing')->with('error', UserFriendlyMessages::GENERIC);
-        }
+        $session = $resolved;
         if ($session->ended_at) {
             return redirect()->to($this->quizCompleteUrl());
         }
         if ($session->start_time !== null) {
-            return redirect()->route('student.quiz.show');
+            return redirect()->to($this->quizLinks->resumeUrl($session));
         }
 
-        return redirect()->route('student.quiz.ready');
+        return redirect()->to($this->quizLinks->resumeUrl($session));
     }
 
     /**
@@ -162,21 +208,15 @@ class StudentQuizController extends Controller
      */
     public function startSession(Request $request): JsonResponse|RedirectResponse
     {
-        $token = session('quiz_session_token');
-        if (!$token) {
+        $resolved = $this->requireActiveQuizSession($request);
+        if ($resolved instanceof RedirectResponse) {
             if ($request->expectsJson()) {
                 return response()->json(['success' => false, 'message' => 'No active quiz session.'], 401);
             }
-            return redirect()->route('student.landing')->with('error', UserFriendlyMessages::GENERIC);
+
+            return $resolved;
         }
-        $session = QuizSession::where('session_token', $token)->first();
-        if (!$session) {
-            if ($request->expectsJson()) {
-                return response()->json(['success' => false, 'message' => 'Session not found.'], 404);
-            }
-            return redirect()->route('student.landing')->with('error', UserFriendlyMessages::GENERIC);
-        }
-        $this->syncQuizSessionContext($session);
+        $session = $resolved;
         if ($session->ended_at) {
             if ($request->expectsJson()) {
                 return response()->json(['success' => false, 'message' => 'Session already ended.'], 403);
@@ -184,10 +224,11 @@ class StudentQuizController extends Controller
             return redirect()->to($this->quizCompleteUrl());
         }
         if ($session->start_time !== null) {
+            $redirect = $this->quizLinks->resumeUrl($session);
             if ($request->expectsJson()) {
-                return response()->json(['success' => true, 'redirect' => route('student.quiz.show')]);
+                return response()->json(['success' => true, 'redirect' => $redirect]);
             }
-            return redirect()->route('student.quiz.show');
+            return redirect()->to($redirect);
         }
         $session->update([
             'camera_verified' => true,
@@ -198,10 +239,10 @@ class StudentQuizController extends Controller
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,
-                'redirect' => route('student.quiz.show'),
+                'redirect' => $this->quizLinks->resumeUrl($session),
             ]);
         }
-        return redirect()->route('student.quiz.show');
+        return redirect()->to($this->quizLinks->resumeUrl($session));
     }
 
     /**
@@ -211,12 +252,12 @@ class StudentQuizController extends Controller
      */
     public function show(Request $request): View|JsonResponse|\Illuminate\Http\Response|\Illuminate\Http\RedirectResponse
     {
-        $token = session('quiz_session_token');
-        if (!$token) {
-            return redirect()->route('student.landing')->with('error', UserFriendlyMessages::GENERIC);
+        $resolved = $this->requireActiveQuizSession($request);
+        if ($resolved instanceof RedirectResponse) {
+            return $resolved;
         }
-        $session = QuizSession::with(['quiz', 'quiz.classGroup'])->where('session_token', $token)->firstOrFail();
-        $this->syncQuizSessionContext($session);
+        $session = $resolved->load(['quiz', 'quiz.classGroup']);
+        $token = (string) $session->session_token;
         if ($session->ended_at) {
             return redirect()->to($this->quizCompleteUrl());
         }
@@ -240,17 +281,10 @@ class StudentQuizController extends Controller
             ]);
         }
         if ($session->start_time === null) {
-            return redirect()->route('student.quiz.ready');
+            return redirect()->to($this->quizLinks->resumeUrl($session));
         }
-        if ($this->isIpDeviceRestrictionEnabled() && $session->ip_address !== $request->ip()) {
-            QuizViolation::create([
-                'quiz_session_id' => $session->id,
-                'type' => 'multiple_ip',
-                'severity' => QuizViolation::severityForType('multiple_ip'),
-                'metadata' => json_encode(['expected' => $session->ip_address, 'got' => $request->ip()]),
-                'occurred_at' => now(),
-            ]);
-            return redirect()->route('student.landing')->with('error', UserFriendlyMessages::GENERIC);
+        if ($ipRedirect = $this->enforceIpForQuizSession($request, $session)) {
+            return $ipRedirect;
         }
         $questionIds = $session->assigned_question_ids ?? [];
         $questions = collect();

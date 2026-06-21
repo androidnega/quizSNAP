@@ -130,16 +130,19 @@ class StudentDashboardController extends Controller
             $scheduledQuiz = $ready->sortBy(fn (Quiz $q) => $q->starts_at && $q->starts_at->isFuture() ? $q->starts_at->timestamp : PHP_INT_MAX)->first();
 
             if ($scheduledQuiz) {
-                $scheduledOpenSession = QuizSession::where('quiz_id', $scheduledQuiz->id)
-                    ->where('student_index', $student->index_number)
+                $indexNumber = strtoupper(trim((string) $student->index_number));
+                $scheduledOpenSession = QuizSession::query()
+                    ->where('quiz_id', $scheduledQuiz->id)
                     ->whereNull('ended_at')
+                    ->whereRaw('UPPER(TRIM(student_index)) = ?', [$indexNumber])
                     ->latest('id')
                     ->first();
 
                 if (! $scheduledOpenSession) {
-                    $scheduledQuizSession = QuizSession::where('quiz_id', $scheduledQuiz->id)
-                        ->where('student_index', $student->index_number)
+                    $scheduledQuizSession = QuizSession::query()
+                        ->where('quiz_id', $scheduledQuiz->id)
                         ->whereNotNull('ended_at')
+                        ->whereRaw('UPPER(TRIM(student_index)) = ?', [$indexNumber])
                         ->with('result')
                         ->first();
                 }
@@ -194,11 +197,6 @@ class StudentDashboardController extends Controller
 
         if (! $quizSession) {
             return redirect()->route('dashboard')->with('error', UserFriendlyMessages::NOT_FOUND);
-        }
-
-        $quiz = Quiz::find($quizSession->quiz_id);
-        if (! $quiz || ! $quizLinks->isRegisteredForQuiz($quiz, $student)) {
-            return redirect()->route('dashboard')->with('error', UserFriendlyMessages::GENERIC);
         }
 
         return redirect()->to($quizLinks->resumeRoute($quizSession));

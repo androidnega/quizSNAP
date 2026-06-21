@@ -85,7 +85,7 @@
                      alt="{{ $bannerAlt }}"
                      class="md-dash__banner-img"
                      width="1024"
-                     height="395"
+                     height="374"
                      loading="eager"
                      decoding="async"
                      fetchpriority="high">
@@ -95,7 +95,7 @@
                  alt="{{ $bannerAlt }}"
                  class="md-dash__banner-img"
                  width="1024"
-                 height="395"
+                 height="374"
                  loading="eager"
                  decoding="async"
                  fetchpriority="high">
@@ -245,7 +245,7 @@
         }
 
         body.sd-home-mobile-modern .md-dash__banner-media {
-            aspect-ratio: 1024 / 430;
+            aspect-ratio: 1024 / 374;
         }
 
         body.sd-home-mobile-modern .md-dash__banner-img {
@@ -360,7 +360,7 @@
         border-radius: 1rem;
         border: 1px solid var(--theme-border);
         background: var(--theme-surface);
-        aspect-ratio: 1024 / 430;
+        aspect-ratio: 1024 / 374;
     }
 
     .md-dash__banner-media--compact {

@@ -33,9 +33,15 @@ fi
 
 echo "==> Restart workers..."
 if command -v supervisorctl >/dev/null 2>&1; then
-  supervisorctl restart quizsnap-reverb quizsnap-queue-default:* quizsnap-queue-imports 2>/dev/null || \
-    supervisorctl restart all 2>/dev/null || \
-    echo "WARN: supervisorctl restart failed — check /etc/supervisor/conf.d/quizsnap.conf paths."
+  restarted=0
+  for prog in quizsnap-reverb quizsnap-worker quizsnap-queue quizsnap-queue-default quizsnap-queue-imports; do
+    if supervisorctl status "$prog" >/dev/null 2>&1; then
+      supervisorctl restart "$prog" && restarted=1 || echo "WARN: failed to restart $prog"
+    fi
+  done
+  if [[ "$restarted" -eq 0 ]]; then
+    echo "WARN: no quizsnap supervisor programs found — check /etc/supervisor/conf.d/quizsnap.conf"
+  fi
 else
   echo "WARN: supervisorctl not found — restart Reverb and queue workers manually."
 fi

@@ -95,30 +95,98 @@
     }
 
     /**
-     * Protect camera stream from being canceled
+     * Protect camera stream from being canceled; recover paused/dark/frozen feeds.
      */
+    function restartCameraStream(reason) {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+        var constraints = { video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }, audio: false };
+        navigator.mediaDevices.getUserMedia(constraints)
+            .then(function (newStream) {
+                if (cameraStream) {
+                    cameraStream.getTracks().forEach(function (t) { t.stop(); });
+                }
+                cameraStream = newStream;
+                if (typeof hideCameraOffOverlay === 'function') hideCameraOffOverlay();
+                var monitorVideo = document.getElementById('face-monitor-video');
+                if (monitorVideo) {
+                    monitorVideo.srcObject = newStream;
+                    monitorVideo.play().catch(function () {});
+                }
+                if (videoTrack) {
+                    videoTrack.onended = function () {
+                        console.warn('Camera track ended after restart.');
+                        restartCameraStream('track_ended_after_restart');
+                        if (cameraRequired && typeof showCameraOffOverlay === 'function') {
+                            showCameraOffOverlay();
+                        }
+                    };
+                }
+                if (window.QuizSnapProctorEngineFeedMonitor) {
+                    window.QuizSnapProctorEngineFeedMonitor.report({
+                        source: 'quiz-proctoring.restartCameraStream',
+                        reason: 'Camera restarted: ' + (reason || 'unknown'),
+                    });
+                }
+            })
+            .catch(function (err) {
+                console.error('Failed to restart camera:', err);
+                if (cameraRequired && typeof showCameraOffOverlay === 'function') showCameraOffOverlay();
+            });
+    }
+
+    function ensureVideoFeedHealthy() {
+        var monitorVideo = document.getElementById('face-monitor-video');
+        if (!monitorVideo || !cameraStream) return;
+
+        window.QuizSnapProctorFeedState = window.QuizSnapProctorFeedState || { frozen: false, dark: false, lastTime: 0 };
+
+        if (!monitorVideo.srcObject && cameraStream) {
+            monitorVideo.srcObject = cameraStream;
+            monitorVideo.play().catch(function () {});
+            if (window.QuizSnapProctorEngineFeedMonitor) {
+                window.QuizSnapProctorEngineFeedMonitor.report({
+                    source: 'ensureVideoFeedHealthy',
+                    reason: 'Re-attached srcObject to video element',
+                    hint: 'Feed was dark because stream was detached from video',
+                });
+            }
+        }
+
+        if (monitorVideo.paused && monitorVideo.srcObject) {
+            monitorVideo.play().catch(function () {});
+        }
+
+        var track = cameraStream.getVideoTracks()[0];
+        if (track && track.readyState === 'live' && track.enabled === false) {
+            track.enabled = true;
+        }
+
+        if (monitorVideo.readyState >= 2 && monitorVideo.videoWidth > 0) {
+            var t = monitorVideo.currentTime;
+            if (window.QuizSnapProctorFeedState.lastTime === t && t > 0) {
+                window.QuizSnapProctorFeedState.frozenStreak = (window.QuizSnapProctorFeedState.frozenStreak || 0) + 1;
+            } else {
+                window.QuizSnapProctorFeedState.frozenStreak = 0;
+            }
+            window.QuizSnapProctorFeedState.lastTime = t;
+            window.QuizSnapProctorFeedState.frozen = window.QuizSnapProctorFeedState.frozenStreak >= 3;
+            if (window.QuizSnapProctorFeedState.frozen) {
+                restartCameraStream('frozen_feed');
+            }
+        }
+    }
+
     function startCameraProtection() {
         if (cameraProtectionInterval) return;
         cameraProtectionInterval = setInterval(function() {
             if (!cameraStream) return;
+            ensureVideoFeedHealthy();
             const videoTrack = cameraStream.getVideoTracks()[0];
             if (!videoTrack || videoTrack.readyState === 'ended') {
                 console.warn('Camera stream ended during quiz.');
+                restartCameraStream('track_ended');
                 if (cameraRequired && typeof showCameraOffOverlay === 'function') {
                     showCameraOffOverlay();
-                } else if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                    var constraints = { video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }, audio: false };
-                    navigator.mediaDevices.getUserMedia(constraints)
-                        .then(function(newStream) {
-                            cameraStream = newStream;
-                            if (typeof hideCameraOffOverlay === 'function') hideCameraOffOverlay();
-                            const monitorVideo = document.getElementById('face-monitor-video');
-                            if (monitorVideo) monitorVideo.srcObject = newStream;
-                        })
-                        .catch(function(err) {
-                            console.error('Failed to restart camera:', err);
-                            if (cameraRequired && typeof showCameraOffOverlay === 'function') showCameraOffOverlay();
-                        });
                 }
             }
         }, 2000);
@@ -1277,6 +1345,13 @@
             monitorVideo.style.display = 'block';
             monitorVideo.setAttribute('playsinline', '');
             monitorVideo.srcObject = stream;
+
+            document.addEventListener('visibilitychange', function () {
+                if (document.visibilityState === 'visible' && monitorVideo) {
+                    if (monitorVideo.paused) monitorVideo.play().catch(function () {});
+                    ensureVideoFeedHealthy();
+                }
+            });
 
             function startTfMonitoring() {
                 if (monitorVideo.readyState < 2 || monitorVideo.videoWidth <= 0) {

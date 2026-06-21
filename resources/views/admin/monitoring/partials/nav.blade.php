@@ -1,28 +1,12 @@
 @php
     $monitoringNav = [
         ['route' => 'dashboard.monitoring.overview', 'label' => 'Overview', 'icon' => 'fa-chart-line'],
-        ['route' => 'dashboard.monitoring.command-center.index', 'label' => 'Command Center', 'icon' => 'fa-tv'],
         ['route' => 'dashboard.monitoring.live-quiz.index', 'label' => 'Live Quiz', 'icon' => 'fa-play-circle'],
         ['route' => 'dashboard.monitoring.live-attendance.index', 'label' => 'Live Attendance', 'icon' => 'fa-user-check'],
         ['route' => 'dashboard.monitoring.errors.index', 'label' => 'Error Logs', 'icon' => 'fa-bug'],
-        ['route' => 'dashboard.monitoring.activity.index', 'label' => 'Activity Logs', 'icon' => 'fa-list'],
         ['route' => 'dashboard.monitoring.student-activities.index', 'label' => 'Student Activities', 'icon' => 'fa-user-graduate'],
         ['route' => 'dashboard.monitoring.failed-jobs.index', 'label' => 'Failed Jobs', 'icon' => 'fa-times-circle'],
-        ['route' => 'dashboard.monitoring.queue.index', 'label' => 'Queue Monitor', 'icon' => 'fa-tasks'],
-        ['route' => 'dashboard.monitoring.api.index', 'label' => 'API Monitor', 'icon' => 'fa-plug'],
-        ['route' => 'dashboard.monitoring.database.index', 'label' => 'Database Monitor', 'icon' => 'fa-database'],
-        ['route' => 'dashboard.monitoring.performance.index', 'label' => 'Performance', 'icon' => 'fa-tachometer-alt'],
         ['route' => 'dashboard.monitoring.server-health.index', 'label' => 'Server Health', 'icon' => 'fa-server'],
-        ['route' => 'dashboard.monitoring.security.index', 'label' => 'Security', 'icon' => 'fa-shield-alt'],
-        ['route' => 'dashboard.monitoring.sessions.index', 'label' => 'User Sessions', 'icon' => 'fa-users'],
-        ['route' => 'dashboard.monitoring.audit-trail.index', 'label' => 'Audit Trail', 'icon' => 'fa-clipboard-list'],
-        ['route' => 'dashboard.monitoring.websocket.index', 'label' => 'WebSocket', 'icon' => 'fa-broadcast-tower'],
-        ['route' => 'dashboard.monitoring.backups.index', 'label' => 'Backups', 'icon' => 'fa-hdd'],
-        ['route' => 'dashboard.monitoring.deployments.index', 'label' => 'Deployments', 'icon' => 'fa-rocket'],
-        ['route' => 'dashboard.monitoring.incidents.index', 'label' => 'Incidents', 'icon' => 'fa-exclamation-triangle'],
-        ['route' => 'dashboard.monitoring.capacity.database', 'label' => 'DB Capacity', 'icon' => 'fa-chart-area'],
-        ['route' => 'dashboard.monitoring.capacity.storage', 'label' => 'Storage Capacity', 'icon' => 'fa-folder-open'],
-        ['route' => 'dashboard.monitoring.notifications.index', 'label' => 'Notifications', 'icon' => 'fa-bell'],
         ['route' => 'dashboard.monitoring.settings.index', 'label' => 'Settings', 'icon' => 'fa-cog'],
     ];
 @endphp

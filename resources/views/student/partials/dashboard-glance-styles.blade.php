@@ -37,6 +37,7 @@
 
     .glance-card--blue .glance-card__glow { background: radial-gradient(circle, rgba(59, 130, 246, 0.22) 0%, transparent 70%); }
     .glance-card--emerald .glance-card__glow { background: radial-gradient(circle, rgba(16, 185, 129, 0.22) 0%, transparent 70%); }
+    .glance-card--amber .glance-card__glow { background: radial-gradient(circle, rgba(245, 158, 11, 0.22) 0%, transparent 70%); }
     .glance-card--violet .glance-card__glow { background: radial-gradient(circle, rgba(139, 92, 246, 0.2) 0%, transparent 70%); }
 
     a.glance-card:hover .glance-card__glow,
@@ -61,7 +62,7 @@
 
     @media (min-width: 1280px) {
         .sd-home-compact .glance-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 1rem;
         }
         .sd-home-compact .glance-card__body {
@@ -100,6 +101,7 @@
 
     .glance-card__icon--blue { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); box-shadow: 0 6px 16px rgba(37, 99, 235, 0.28); }
     .glance-card__icon--emerald { background: linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow: 0 6px 16px rgba(5, 150, 105, 0.28); }
+    .glance-card__icon--amber { background: #f59e0b; box-shadow: 0 6px 16px rgba(245, 158, 11, 0.28); }
     .glance-card__icon--violet { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); box-shadow: 0 6px 16px rgba(124, 58, 237, 0.28); }
 
     a.glance-card:hover .glance-card__icon,
@@ -439,6 +441,7 @@
 
     .glance-card--blue:hover .glance-card__chevron { background: #eff6ff; color: #2563eb; }
     .glance-card--emerald:hover .glance-card__chevron { background: #ecfdf5; color: #059669; }
+    .glance-card--amber:hover .glance-card__chevron { background: #fffbeb; color: #d97706; }
     .glance-card--violet:hover .glance-card__chevron { background: #f5f3ff; color: #7c3aed; }
 
     @media (max-width: 639px) {
@@ -539,30 +542,37 @@
         min-height: 168px;
         padding: 1rem 1.125rem 1.125rem;
         border-radius: 1rem;
-        border: 1px solid rgba(226, 232, 240, 0.95);
-        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-        box-shadow:
-            0 1px 2px rgba(15, 23, 42, 0.04),
-            0 8px 24px rgba(15, 23, 42, 0.06);
+        border: 1px solid #e2e8f0;
+        background: #ffffff;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
         transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
     }
 
     .sd-featured-quiz__card:hover {
         transform: translateY(-2px);
-        border-color: rgba(203, 213, 225, 0.95);
-        box-shadow:
-            0 4px 8px rgba(15, 23, 42, 0.05),
-            0 14px 32px rgba(15, 23, 42, 0.08);
+        border-color: #cbd5e1;
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
     }
 
     .sd-featured-quiz__card--countdown {
-        border-color: rgba(16, 185, 129, 0.22);
-        background: linear-gradient(180deg, #ffffff 0%, #ecfdf5 100%);
+        border-color: #6ee7b7;
+        background: #ecfdf5;
+    }
+
+    .sd-featured-quiz__card--countdown .sd-featured-quiz__eyebrow,
+    .sd-featured-quiz__card--countdown .sd-featured-quiz__course,
+    .sd-featured-quiz__card--countdown .sd-featured-quiz__meta {
+        color: #047857;
+    }
+
+    .sd-featured-quiz__card--countdown .sd-featured-quiz__title {
+        color: #064e3b;
     }
 
     .sd-featured-quiz__card--ready,
     .sd-featured-quiz__card--active {
-        border-color: rgba(37, 99, 235, 0.18);
+        border-color: #bfdbfe;
+        background: #eff6ff;
     }
 
     .sd-featured-quiz__head {
@@ -678,14 +688,14 @@
 
     .sd-featured-quiz__cta--start {
         color: #fff;
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-        box-shadow: 0 4px 14px rgba(5, 150, 105, 0.28);
+        background: #059669;
+        box-shadow: none;
     }
 
     .sd-featured-quiz__cta--continue {
         color: #fff;
-        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-        box-shadow: 0 4px 14px rgba(37, 99, 235, 0.26);
+        background: #2563eb;
+        box-shadow: none;
     }
 
     .sd-featured-quiz__cta--muted {

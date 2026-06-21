@@ -5,7 +5,7 @@
         : ($showLastQuiz ? ($lastQuiz->quiz?->title ?? 'Latest quiz') : 'No active quiz');
     $featuredQuestions = isset($scheduledQuiz) && $scheduledQuiz ? ($scheduledQuiz->questions_count ?? null) : null;
 @endphp
-<aside aria-label="Upcoming quiz" class="sd-featured-quiz hidden lg:flex">
+<aside aria-label="Upcoming quiz" class="sd-featured-quiz hidden lg:flex w-full">
     <a href="{{ $quizActionHref }}"
        @if(($scheduledUpcoming ?? false) && ($quizRulesUrl ?? null)) data-rules-url="{{ $quizRulesUrl }}" @endif
        class="sd-featured-quiz__card group no-underline text-inherit @if($scheduledUpcoming ?? false) sd-featured-quiz__card--countdown @elseif($scheduledReady ?? false) sd-featured-quiz__card--ready @elseif($scheduledInProgress ?? false) sd-featured-quiz__card--active @endif">

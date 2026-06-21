@@ -5,7 +5,10 @@
 (function () {
     'use strict';
 
-    let config = window.QuizSnapIntelligentFaceMonitor || {};
+    // Root namespace. Configuration lives on `window.QuizSnapIntelligentFaceMonitor.config`
+    // (set by the Blade views and quiz-proctoring.js).
+    const root = (window.QuizSnapIntelligentFaceMonitor = window.QuizSnapIntelligentFaceMonitor || {});
+    let config = root.config || root;
     let violationUrl = config.violationUrl || '/quiz/violation';
     let violationCaptureUrl = config.violationCaptureUrl || '/quiz/violation/capture';
     let autoSubmitUrl = config.autoSubmitUrl || '/quiz/auto-submit';
@@ -17,7 +20,9 @@
 
     // Update config reference when it changes
     function updateConfig() {
-        config = window.QuizSnapIntelligentFaceMonitor || {};
+        const r = window.QuizSnapIntelligentFaceMonitor || {};
+        // Backwards compatible: allow settings on root as well, but prefer `.config`.
+        config = r.config || r || {};
         violationUrl = config.violationUrl || violationUrl;
         violationCaptureUrl = config.violationCaptureUrl || violationCaptureUrl;
         autoSubmitUrl = config.autoSubmitUrl || autoSubmitUrl;
@@ -28,8 +33,7 @@
 
     function monitorSettings() {
         updateConfig();
-        var root = window.QuizSnapIntelligentFaceMonitor || {};
-        return root.config || root;
+        return config || {};
     }
 
     function getOutOfFrameMinMs() {
@@ -51,7 +55,8 @@
     // BlazeFace detection settings
     const DETECTION_CONFIG = {
         maxFaces: 2,
-        scoreThreshold: 0.7,
+        // Lower than default to reduce "face not detected" in low-light / slight rotations.
+        scoreThreshold: 0.55,
         iouThreshold: 0.3,
         inputWidth: 128,
         inputHeight: 128,
@@ -141,6 +146,7 @@
     let lastHeadTurnMessage = '';
     let lastHeadTurnMessageAt = 0;
     const HEAD_TURN_BANNER_MS = 3000;
+    let detectionInFlight = false;
 
     /**
      * Get CSRF token
@@ -1091,8 +1097,31 @@
         }
 
         try {
+            // Ensure TF backend is ready. WebGL is significantly faster and more stable for video inference.
+            try {
+                await tf.ready();
+                if (typeof tf.getBackend === 'function' && typeof tf.setBackend === 'function') {
+                    const backend = tf.getBackend();
+                    if (backend && backend !== 'webgl') {
+                        await tf.setBackend('webgl').catch(function () {});
+                    }
+                }
+                await tf.ready();
+            } catch (e) { /* ignore backend errors */ }
+
+            function getLoadConfig() {
+                try {
+                    var cores = navigator.hardwareConcurrency || 8;
+                    var mobileLike = (navigator.maxTouchPoints > 0 || 'ontouchstart' in window) && window.innerWidth < 900;
+                    var input = (cores <= 4 || mobileLike) ? 128 : 256;
+                    return Object.assign({}, DETECTION_CONFIG, { inputWidth: input, inputHeight: input });
+                } catch (e) {
+                    return DETECTION_CONFIG;
+                }
+            }
+
             console.log('Loading BlazeFace model...');
-            model = await blazeface.load();
+            model = await blazeface.load(getLoadConfig());
             console.log('BlazeFace model loaded successfully');
             return true;
         } catch (err) {
@@ -1107,12 +1136,17 @@
     async function runDetection() {
         const videoEl = config.videoElement || videoElement;
         if (!model || !videoEl || !isRunning) return;
+        if (detectionInFlight) return;
+        detectionInFlight = true;
 
         try {
-            const predictions = await model.estimateFaces(videoEl, false);
+            // For webcam feeds, BlazeFace generally performs better with flipHorizontal=true.
+            const predictions = await model.estimateFaces(videoEl, false, true);
             processDetections(predictions);
         } catch (err) {
             console.warn('Face detection error:', err);
+        } finally {
+            detectionInFlight = false;
         }
     }
 
@@ -1256,9 +1290,12 @@
         }
 
         if (videoEl) {
-            // Update config with found video element
-            config.videoElement = videoEl;
-            window.QuizSnapIntelligentFaceMonitor.config = config;
+            // Persist to the shared config object (preferred).
+            root.config = root.config || {};
+            root.config.videoElement = videoEl;
+            // Refresh local references.
+            config = root.config;
+            videoElement = videoEl;
 
             console.log('IntelligentFaceMonitor: Video element found:', {
                 id: videoEl.id,
@@ -1306,15 +1343,17 @@
         setTimeout(init, 100);
     }
 
-    // Export public API
-    window.QuizSnapIntelligentFaceMonitor = window.QuizSnapIntelligentFaceMonitor || {};
-    window.QuizSnapIntelligentFaceMonitor.config = config;
-    window.QuizSnapIntelligentFaceMonitor.start = start;
-    window.QuizSnapIntelligentFaceMonitor.stop = stop;
-    window.QuizSnapIntelligentFaceMonitor.startQuizMonitoring = startQuizMonitoring;
-    window.QuizSnapIntelligentFaceMonitor.captureFrame = captureFrame;
-    window.QuizSnapIntelligentFaceMonitor.isRunning = function() { return isRunning; };
-    window.QuizSnapIntelligentFaceMonitor.getValidOutOfFrameEvents = function() { return normalViolationCount; };
-    window.QuizSnapIntelligentFaceMonitor.getOutOfFrameEvents = function() { return validOutOfFrameEvents; };
-    window.QuizSnapIntelligentFaceMonitor.getHeadTurnCount = function() { return headDirectionViolationCount; };
+    // Export public API (do not clobber `.config` which is set by the Blade views).
+    if (!root.config || root.config === root) {
+        root.config = (config && config !== root) ? config : {};
+    }
+    config = root.config;
+    root.start = start;
+    root.stop = stop;
+    root.startQuizMonitoring = startQuizMonitoring;
+    root.captureFrame = captureFrame;
+    root.isRunning = function() { return isRunning; };
+    root.getValidOutOfFrameEvents = function() { return validOutOfFrameEvents; };
+    root.getOutOfFrameEvents = function() { return validOutOfFrameEvents; };
+    root.getHeadTurnCount = function() { return headDirectionViolationCount; };
 })();

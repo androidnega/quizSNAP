@@ -22,7 +22,7 @@ class CheckUpdateMode
         }
 
         $path = $request->path();
-        $allowedPaths = ['up', 'login', 'password/forgot', 'password/reset', 'migrate-sqlite-to-mysql', 'run-migrations', 'fix-pull', 'clear-cache', 'clear-cache.php'];
+        $allowedPaths = ['up', 'login', 'password/forgot', 'password/reset', 'migrate-sqlite-to-mysql', 'run-migrations', 'fix-pull', 'clear-cache', 'clear-cache.php', 'maintenance'];
         foreach ($allowedPaths as $allowed) {
             if ($path === $allowed || str_starts_with($path, $allowed . '/')) {
                 return $next($request);

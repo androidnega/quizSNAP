@@ -43,6 +43,7 @@ Route::get('/clear-cache', \App\Http\Controllers\ClearCacheController::class)->n
 Route::get('/clear-cache.php', \App\Http\Controllers\ClearCacheController::class);
 // Maintenance: list helper URLs (no key) – use to verify routes are deployed on live
 Route::get('/maintenance', [\App\Http\Controllers\FixPullController::class, 'maintenance'])->name('maintenance');
+Route::get('/maintenance/logs', \App\Http\Controllers\ServerLogsController::class)->name('maintenance.logs');
 // Fix git pull merge error (same key as run-migrations)
 Route::get('/fix-pull', [\App\Http\Controllers\FixPullController::class, 'show'])->name('fix.pull');
 Route::get('/fix-pull/run', [\App\Http\Controllers\FixPullController::class, 'run'])->name('fix.pull.run');

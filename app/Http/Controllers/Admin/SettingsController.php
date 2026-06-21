@@ -86,14 +86,9 @@ class SettingsController extends Controller
         $bannerImages = json_decode($bannerImagesRaw ?: '[]', true) ?: [];
 
         $currentUser = auth()->user() ?? User::find(session('admin_user_id'));
-        $primarySuperAdminId = User::where('role', User::ROLE_SUPER_ADMIN)->min('id');
-        $canManageProctoring = $currentUser && $currentUser->isSuperAdmin();
         $isSuperAdmin = ($currentUser && $currentUser->isSuperAdmin()) || session('admin_role') === User::ROLE_SUPER_ADMIN;
-        $isPrimarySuperAdmin = $primarySuperAdminId !== null && (
-            ($currentUser && (int) $currentUser->id === (int) $primarySuperAdminId)
-            || ((int) session('admin_user_id') === (int) $primarySuperAdminId)
-        );
-        $canManageBackup = $isSuperAdmin && $isPrimarySuperAdmin;
+        $canManageProctoring = $isSuperAdmin;
+        $canManageBackup = $isSuperAdmin;
         $digestRecipient = $canManageBackup ? Setting::getDigestRecipientValue() : null;
         $backupEmailConfigured = $digestRecipient !== null && trim($digestRecipient) !== '';
 
@@ -176,18 +171,11 @@ class SettingsController extends Controller
     }
 
     /**
-     * Validate study guide password and unlock access (Settings → Digest). Primary super admin only.
+     * Validate study guide password and unlock access (Settings → Digest). Super admin only.
      */
     public function studyGuideUnlock(Request $request): RedirectResponse
     {
-        $currentUser = auth()->user() ?? User::find(session('admin_user_id'));
-        $primarySuperAdminId = User::where('role', User::ROLE_SUPER_ADMIN)->min('id');
-        $isPrimary = $primarySuperAdminId !== null && (
-            ($currentUser && (int) $currentUser->id === (int) $primarySuperAdminId)
-            || ((int) session('admin_user_id') === (int) $primarySuperAdminId)
-        );
-
-        if (! $isPrimary) {
+        if (! $this->actingSuperAdmin()) {
             return redirect()->route('dashboard.settings.index')->with('error', 'Access denied.')->withFragment('backup');
         }
 
@@ -217,14 +205,9 @@ class SettingsController extends Controller
         }
 
         $currentUser = auth()->user() ?? User::find(session('admin_user_id'));
-        $primarySuperAdminId = User::where('role', User::ROLE_SUPER_ADMIN)->min('id');
-        $canManageProctoring = $currentUser && $currentUser->isSuperAdmin();
-        $isPrimarySuperAdmin = $primarySuperAdminId !== null && (
-            ($currentUser && (int) $currentUser->id === (int) $primarySuperAdminId)
-            || ((int) session('admin_user_id') === (int) $primarySuperAdminId)
-        );
-        $canManageBackup = $isPrimarySuperAdmin;
-        $isSuperAdmin = session('admin_role') === User::ROLE_SUPER_ADMIN;
+        $isSuperAdmin = $this->actingSuperAdmin();
+        $canManageProctoring = $isSuperAdmin;
+        $canManageBackup = $isSuperAdmin;
 
         $request->validate($this->validationRulesForTab($tab, $canManageProctoring, $canManageBackup, $isSuperAdmin));
 
@@ -652,17 +635,10 @@ class SettingsController extends Controller
      */
     public function supabaseTest(): JsonResponse
     {
-        $currentUser = auth()->user() ?? User::find(session('admin_user_id'));
-        $primarySuperAdminId = User::where('role', User::ROLE_SUPER_ADMIN)->min('id');
-        $isPrimarySuperAdmin = $primarySuperAdminId !== null && (
-            ($currentUser && (int) $currentUser->id === (int) $primarySuperAdminId)
-            || ((int) session('admin_user_id') === (int) $primarySuperAdminId)
-        );
-
-        if (! $isPrimarySuperAdmin) {
+        if (! $this->actingSuperAdmin()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Only the primary super admin can test Supabase from settings.',
+                'message' => 'Only super admins can test Supabase from settings.',
             ], 403);
         }
 
@@ -672,23 +648,16 @@ class SettingsController extends Controller
 
     /**
      * Send a test email using current mail settings.
-     * Restricted to the primary super admin.
+     * Restricted to super admins.
      */
     public function emailTest(Request $request): JsonResponse
     {
         $request->validate(['to' => 'required|email|max:255']);
 
-        $currentUser = auth()->user() ?? User::find(session('admin_user_id'));
-        $primarySuperAdminId = User::where('role', User::ROLE_SUPER_ADMIN)->min('id');
-        $isPrimarySuperAdmin = $primarySuperAdminId !== null && (
-            ($currentUser && (int) $currentUser->id === (int) $primarySuperAdminId)
-            || ((int) session('admin_user_id') === (int) $primarySuperAdminId)
-        );
-
-        if (! $isPrimarySuperAdmin) {
+        if (! $this->actingSuperAdmin()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Only the primary super admin can send test email from settings.',
+                'message' => 'Only super admins can send test email from settings.',
             ], 403);
         }
 
@@ -726,17 +695,10 @@ class SettingsController extends Controller
     {
         $request->validate(['to' => 'required|email|max:255']);
 
-        $currentUser = auth()->user() ?? User::find(session('admin_user_id'));
-        $primarySuperAdminId = User::where('role', User::ROLE_SUPER_ADMIN)->min('id');
-        $isPrimarySuperAdmin = $primarySuperAdminId !== null && (
-            ($currentUser && (int) $currentUser->id === (int) $primarySuperAdminId)
-            || ((int) session('admin_user_id') === (int) $primarySuperAdminId)
-        );
-
-        if (! $isPrimarySuperAdmin) {
+        if (! $this->actingSuperAdmin()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Only the primary super admin can send test password reset emails from settings.',
+                'message' => 'Only super admins can send test password reset emails from settings.',
             ], 403);
         }
 
@@ -823,5 +785,12 @@ class SettingsController extends Controller
         Setting::setValue(Setting::KEY_UPDATE_ESTIMATED_END, $value);
         Cache::forget('setting:' . Setting::KEY_UPDATE_ESTIMATED_END);
         return redirect()->route('dashboard')->with('success', $value ? 'Estimated end time saved.' : 'Estimated end time cleared.');
+    }
+
+    private function actingSuperAdmin(): bool
+    {
+        $user = auth()->user() ?? User::find(session('admin_user_id'));
+
+        return ($user && $user->isSuperAdmin()) || session('admin_role') === User::ROLE_SUPER_ADMIN;
     }
 }

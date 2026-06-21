@@ -196,10 +196,7 @@ class ClassGroupController extends Controller
             $classGroupIdsWithLiveSessions = $query->distinct()->pluck('quizzes.class_group_id')->all();
         }
 
-        $primarySuperAdminId = \App\Models\User::where('role', \App\Models\User::ROLE_SUPER_ADMIN)->min('id');
-        $isPrimarySuperAdmin = $primarySuperAdminId !== null && $user && (int) $user->id === (int) $primarySuperAdminId;
-
-        return view('admin.class-groups.index', compact('classGroups', 'levels', 'courses', 'lecturers', 'quizCategories', 'academicYears', 'classGroupIdsWithLiveSessions', 'isPrimarySuperAdmin'));
+        return view('admin.class-groups.index', compact('classGroups', 'levels', 'courses', 'lecturers', 'quizCategories', 'academicYears', 'classGroupIdsWithLiveSessions'));
     }
 
     public function create(): View

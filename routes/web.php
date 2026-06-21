@@ -197,7 +197,7 @@ Route::middleware('admin.auth')->group(function () {
         Route::get('/profile/password', [\App\Http\Controllers\Admin\StaffProfileController::class, 'password'])->name('profile.password');
         Route::put('/profile/password', [\App\Http\Controllers\Admin\StaffProfileController::class, 'updatePassword'])->name('profile.password.update');
 
-        // Study guide: primary super admin only — time-limited signed URL (no DB logging)
+        // Study guide: super admin only — time-limited signed URL (no DB logging)
         Route::get('/study-guide/{classGroup}', [\App\Http\Controllers\Admin\StudyGuideController::class, '__invoke'])
             ->name('study-guide.show')
             ->middleware('signed');

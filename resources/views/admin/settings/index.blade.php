@@ -752,7 +752,7 @@
                 </div>
                 @endif
                 @if($show_backup_tab ?? false)
-                <!-- Tab: Backup / Digest (primary administrator only) -->
+                <!-- Tab: Backup / Digest (super admin only) -->
                 <div class="settings-tab-content p-6 hidden" data-tab-content="backup" id="tab-content-backup">
                     <div class="rounded-lg border border-gray-200 bg-gray-50/50 p-5 space-y-5">
                         <div>
@@ -943,7 +943,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Supabase Test (all environments; controller restricts to primary super admin)
+// Supabase Test (controller restricts to super admin)
 var supabaseBtn = document.getElementById('supabase-test-btn');
 if (supabaseBtn) {
     supabaseBtn.addEventListener('click', function() {

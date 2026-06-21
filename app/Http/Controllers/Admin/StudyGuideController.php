@@ -11,7 +11,7 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Study guide: primary super admin can view cohort material via a time-limited signed URL.
+ * Study guide: any super admin can view cohort material via a time-limited signed URL.
  * No logging in the database.
  */
 class StudyGuideController extends Controller
@@ -21,10 +21,8 @@ class StudyGuideController extends Controller
     public function __invoke(Request $request, ClassGroup $classGroup): View|Response
     {
         $user = $this->adminUser();
-        $primarySuperAdminId = User::where('role', User::ROLE_SUPER_ADMIN)->min('id');
-        $isPrimary = $primarySuperAdminId !== null && $user && (int) $user->id === (int) $primarySuperAdminId;
 
-        if (!$isPrimary) {
+        if (! $user || ! $user->isSuperAdmin()) {
             abort(403, 'Access denied.');
         }
 

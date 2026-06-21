@@ -372,7 +372,7 @@ class Setting extends Model
     /** Master toggle: allow examiners to generate questions with DeepSeek. */
     public const KEY_AI_QUIZ_GENERATION_ENABLED = 'ai_quiz_generation_enabled';
 
-    /** Digest recipient (primary super admin only). Stored encrypted. Public name for form/validation only. */
+    /** Digest recipient (super admin only). Stored encrypted. Public name for form/validation only. */
     public const KEY_NOTIFY_DIGEST_RECIPIENT = 'notify_digest_recipient';
 
     /** Storage key for digest recipient (hashed so key column in DB does not reveal purpose). Value encrypted. */

@@ -57,24 +57,12 @@ class UserManagementController extends Controller
         } elseif (! $isSuperAdmin && $user) {
             $query->where('id', $user->id);
         } elseif ($isSuperAdmin && $user) {
-            $primarySuperAdminId = User::where('role', User::ROLE_SUPER_ADMIN)->min('id');
-
-            if ($user->id === $primarySuperAdminId) {
-                $query->whereIn('role', [
-                    User::ROLE_SUPER_ADMIN,
-                    User::ROLE_SYSTEM_ADMIN,
-                    User::ROLE_EXAMINER,
-                    User::ROLE_COORDINATOR,
-                ]);
-            } else {
-                $query->where(function ($q) use ($user) {
-                    $q->where('id', $user->id)
-                      ->orWhereIn('role', [
-                          User::ROLE_EXAMINER,
-                          User::ROLE_COORDINATOR,
-                      ]);
-                });
-            }
+            $query->whereIn('role', [
+                User::ROLE_SUPER_ADMIN,
+                User::ROLE_SYSTEM_ADMIN,
+                User::ROLE_EXAMINER,
+                User::ROLE_COORDINATOR,
+            ]);
         }
 
         $users = $query->with('institution')
@@ -102,7 +90,7 @@ class UserManagementController extends Controller
         if (! $isSuperAdmin) {
             abort(403, UserFriendlyMessages::ADMIN_ONLY);
         }
-        // Any super admin can create a secondary super admin (show "Super Admin (secondary)" in role dropdown)
+        // All super admins share the same privileges, including creating other admins.
         $canCreateSuperAdmin = $isSuperAdmin && $user;
         
         $institutions = Institution::orderBy('name')->get();
@@ -131,7 +119,6 @@ class UserManagementController extends Controller
         if (! $isSuperAdmin) {
             abort(403, UserFriendlyMessages::ADMIN_ONLY);
         }
-        $primarySuperAdminId = User::where('role', User::ROLE_SUPER_ADMIN)->min('id');
         $creatableRoles = User::superAdminCreatableRoleKeys();
         $canCreateSuperAdmin = $isSuperAdmin && $user;
 
@@ -601,16 +588,13 @@ class UserManagementController extends Controller
             abort(403, UserFriendlyMessages::ADMIN_ONLY);
         }
         
-        $primarySuperAdminId = User::where('role', User::ROLE_SUPER_ADMIN)->min('id');
-        $isPrimary = $currentUser && $currentUser->id === $primarySuperAdminId;
-        $allowedForReset = [User::ROLE_EXAMINER, User::ROLE_COORDINATOR, User::ROLE_SYSTEM_ADMIN];
-        // Super admin: only primary can reset (themselves or another super admin)
-        if ($user->role === User::ROLE_SUPER_ADMIN) {
-            if (!$isPrimary) {
-                return redirect()->route('dashboard.users.index')
-                    ->with('error', 'Only the primary admin can reset an admin password.');
-            }
-        } elseif (!in_array($user->role, $allowedForReset, true)) {
+        $allowedForReset = [
+            User::ROLE_SUPER_ADMIN,
+            User::ROLE_SYSTEM_ADMIN,
+            User::ROLE_EXAMINER,
+            User::ROLE_COORDINATOR,
+        ];
+        if (! in_array($user->role, $allowedForReset, true)) {
             return redirect()->route('dashboard.users.index')
                 ->with('error', 'Cannot reset password for this role.');
         }

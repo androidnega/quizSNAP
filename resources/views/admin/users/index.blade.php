@@ -158,10 +158,13 @@
                                     <div class="flex justify-end gap-1">
                                         @if(isset($isSuperAdmin) && $isSuperAdmin)
                                             @if($u->role === 'super_admin')
-                                            <a href="{{ route('dashboard.users.view-password-form', $u) }}" class="inline-flex p-1.5 rounded-lg text-gray-500 hover:text-primary-600 hover:bg-primary-50 transition-colors" title="View / reset password">
-                                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
-                                            </a>
-                                            @else
+                                            <form action="{{ route('dashboard.users.reset-password', $u) }}" method="post" class="inline" onsubmit="return confirm('Reset password for {{ $u->username }}? A new temporary password will be generated.');">
+                                                @csrf
+                                                <button type="submit" class="inline-flex p-1.5 rounded-lg text-gray-500 hover:text-primary-600 hover:bg-primary-50 transition-colors" title="Reset password">
+                                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
+                                                </button>
+                                            </form>
+                                        @else
                                             <form action="{{ route('dashboard.users.reset-password', $u) }}" method="post" class="inline" onsubmit="return confirm('Reset password for {{ $u->username }}? A new temporary password will be generated.');">
                                                 @csrf
                                                 <button type="submit" class="inline-flex p-1.5 rounded-lg text-gray-500 hover:text-primary-600 hover:bg-primary-50 transition-colors" title="Reset password">

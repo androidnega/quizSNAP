@@ -59,7 +59,7 @@ for f in /etc/nginx/sites-enabled/*; do
   if [[ -f "$f" ]] && grep -q 'location /app' "$f" 2>/dev/null; then
     NGINX_SITE="$f"
     echo "Found in: $f"
-    grep -A8 'location /app' "$f" | head -9
+    grep -A12 'location /app' "$f" | head -13
     break
   fi
 done
@@ -70,22 +70,41 @@ if [[ -z "$NGINX_SITE" ]]; then
 fi
 echo ""
 
-echo "==> Public HTTPS probe (via nginx)"
+echo "==> nginx WebSocket probe (local nginx → Reverb)"
 HOST="$(grep '^REVERB_HOST=' .env | cut -d= -f2- | tr -d '"')"
 if [[ -n "$HOST" && -n "${KEY:-}" ]]; then
-  HTTPS_CODE="$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 \
-    -H 'Connection: Upgrade' \
-    -H 'Upgrade: websocket' \
-    -H 'Sec-WebSocket-Version: 13' \
-    -H 'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==' \
-    "https://${HOST}/app/${KEY}?protocol=7&client=js&version=8.2.0" 2>/dev/null)" || HTTPS_CODE="000"
-  if [[ "$HTTPS_CODE" == "101" ]]; then
-    echo "HTTPS status via nginx: 101 — WebSocket proxy OK"
-  elif [[ "$HTTPS_CODE" == "404" ]]; then
-    echo "ERROR: HTTPS returned 404 — nginx is missing location /app"
-  elif [[ "$HTTPS_CODE" == "502" || "$HTTPS_CODE" == "504" ]]; then
-    echo "ERROR: HTTPS returned ${HTTPS_CODE} — nginx cannot reach Reverb on 127.0.0.1:${REVERB_PORT}"
+  WS_HEADERS=(
+    -H 'Connection: Upgrade'
+    -H 'Upgrade: websocket'
+    -H 'Sec-WebSocket-Version: 13'
+    -H 'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ=='
+  )
+  LOCAL_NGINX_CODE="$(curl -s -o /dev/null -w '%{http_code}' --max-time 4 \
+    --resolve "${HOST}:443:127.0.0.1" \
+    "${WS_HEADERS[@]}" \
+    "https://${HOST}/app/${KEY}?protocol=7&client=js&version=8.2.0" 2>/dev/null)" || LOCAL_NGINX_CODE="000"
+  if [[ "$LOCAL_NGINX_CODE" == "101" ]]; then
+    echo "Local nginx (127.0.0.1:443): 101 — WebSocket proxy OK"
+  elif [[ "$LOCAL_NGINX_CODE" == "502" || "$LOCAL_NGINX_CODE" == "504" ]]; then
+    echo "ERROR: local nginx returned ${LOCAL_NGINX_CODE} — cannot reach Reverb on 127.0.0.1:${REVERB_PORT}"
+  elif [[ "$LOCAL_NGINX_CODE" == "404" ]]; then
+    echo "ERROR: local nginx returned 404 — location /app missing or wrong server block"
   else
-    echo "HTTPS status via nginx: ${HTTPS_CODE} (expect 101)"
+    echo "Local nginx (127.0.0.1:443): ${LOCAL_NGINX_CODE} (expect 101)"
+  fi
+
+  echo ""
+  echo "==> Public HTTPS probe (optional; 000 often means Cloudflare/DNS from the server itself)"
+  PUBLIC_CODE="$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 \
+    "${WS_HEADERS[@]}" \
+    "https://${HOST}/app/${KEY}?protocol=7&client=js&version=8.2.0" 2>/dev/null)" || PUBLIC_CODE="000"
+  if [[ "$PUBLIC_CODE" == "101" ]]; then
+    echo "Public HTTPS: 101 — OK"
+  elif [[ "$PUBLIC_CODE" == "000" && "$LOCAL_NGINX_CODE" == "101" ]]; then
+    echo "Public HTTPS: 000 (ignored — local nginx is OK; test wss:// in your browser)"
+  elif [[ "$PUBLIC_CODE" == "404" ]]; then
+    echo "ERROR: public HTTPS returned 404"
+  else
+    echo "Public HTTPS: ${PUBLIC_CODE} (expect 101; use browser DevTools if local nginx is 101)"
   fi
 fi

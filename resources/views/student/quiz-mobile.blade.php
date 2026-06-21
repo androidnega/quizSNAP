@@ -75,9 +75,34 @@
 /* Floating AI camera: fixed overlay so it stays visible; main content has top offset so nav is smooth and no accidental auto-submit from overlay */
 .quiz-mobile-camera-overlay { position: fixed; top: 0; left: 0; right: 0; z-index: 30; }
 .quiz-mobile-content-below-camera { padding-top: var(--quiz-mobile-camera-height, 0); }
-body.quiz-fs-blocked { overflow: hidden; }
 #resize-blur-overlay.hidden { display: none !important; pointer-events: none !important; visibility: hidden !important; }
 #resize-blur-overlay:not(.hidden) { display: flex !important; pointer-events: auto !important; }
+.quiz-mobile-container > .hidden[class*="fixed"],
+.quiz-mobile-container > .hidden[class*="inset-0"] {
+    display: none !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
+}
+#quiz-mobile-root:fullscreen,
+#quiz-mobile-root:-webkit-full-screen {
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    width: 100% !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    background: #fafaf9;
+}
+#quizsnap-app:fullscreen,
+#quizsnap-app:-webkit-full-screen {
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    width: 100% !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    background: #fafaf9;
+}
 html:fullscreen,
 html:-webkit-full-screen {
     overflow-y: auto !important;
@@ -89,16 +114,15 @@ html:-webkit-full-screen body {
     overflow-y: auto !important;
     overflow-x: hidden;
     min-height: 100%;
-}
-html:fullscreen body.quiz-fs-blocked,
-html:-webkit-full-screen body.quiz-fs-blocked {
-    overflow: hidden !important;
+    position: static !important;
+    width: auto !important;
+    height: auto !important;
 }
 </style>
 @endpush
 
 @section('content')
-<div class="quiz-mobile-container min-h-[100dvh] min-w-0 w-full flex flex-col max-w-full overflow-x-hidden">
+<div id="quiz-mobile-root" class="quiz-mobile-container min-h-[100dvh] min-w-0 w-full flex flex-col max-w-full overflow-x-hidden">
     {{-- Warnings (same IDs as desktop so proctoring JS can show them) --}}
     <div id="blur-warning" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900/90 px-4">
         <div class="bg-white border border-gray-200 rounded-xl p-4 max-w-md w-full text-center">

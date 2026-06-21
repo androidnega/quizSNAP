@@ -77,6 +77,7 @@
     /** Prefer the quiz content root so scrolling and clicks work inside Fullscreen API. */
     function getPreferredFullscreenRoot() {
         return document.querySelector('.quiz-writing-content')
+            || document.getElementById('quiz-mobile-root')
             || document.getElementById('quizsnap-app')
             || null;
     }

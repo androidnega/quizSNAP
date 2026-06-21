@@ -1209,6 +1209,8 @@
                 .then(function (stream) {
                     console.log('Camera access granted successfully');
                     hideCameraOffOverlay();
+                    unlockQuizPageInteraction();
+                    hideResizeBlur();
                     setupMonitoringWithStream(stream);
                 })
                 .catch(function (err) {

@@ -105,9 +105,9 @@
     const QUIZ_START_GRACE_MS = 12000; // Allow monitor/camera to stabilize before counting violations
     // Second face smaller than this ratio of primary face area is ignored (reflection/noise/calculator etc.)
     const MULTIPLE_FACES_MIN_SECOND_RATIO = 0.58;
-    // Minimum confidence + area ratio for a BlazeFace detection to be treated as a real face.
-    // Kept moderate so a normally-seated, well-lit user is reliably detected (avoids false "not detected").
-    const MIN_FACE_CONFIDENCE_BLAZE = 0.82;
+    // Light safety net on top of BlazeFace's own internal score threshold (~0.75): we only drop
+    // very-low-confidence blobs here, so dim-light faces are still detected (avoids false "not detected").
+    const MIN_FACE_CONFIDENCE_BLAZE = 0.5;
     const MIN_FACE_AREA_RATIO_BLAZE = 0.04; // ~4% of frame area
     // Within this window after a phone detection, suppress multiple-faces auto-submit to avoid double-logging
     const PHONE_SUPPRESS_MULTIPLE_FACES_MS = 6000;
@@ -493,6 +493,31 @@
     }
 
     /**
+     * Robustly read a BlazeFace detection's confidence. With returnTensors=false the model
+     * exposes `probability` as a Float32Array (not a plain Array), so Array.isArray() misses it
+     * and the score would wrongly read 0 — rejecting every real face. Handle number, array-like
+     * (TypedArray/Array), and Tensor forms; if the format is unknown, trust BlazeFace's own
+     * internal score threshold rather than discarding a valid detection.
+     */
+    function faceScore(box) {
+        var p = (box && box.probability != null) ? box.probability : (box && box.score);
+        if (p == null) return 1;
+        if (typeof p === 'number') return p;
+        if (typeof p.length === 'number' && p.length > 0) {
+            return typeof p[0] === 'number' ? p[0] : 1;
+        }
+        if (typeof p.dataSync === 'function') {
+            try {
+                var d = p.dataSync();
+                return (d && d.length) ? d[0] : 1;
+            } catch (e) {
+                return 1;
+            }
+        }
+        return 1;
+    }
+
+    /**
      * Process detection results
      */
     function processDetections(predictions) {
@@ -506,16 +531,7 @@
         // Filter out low-confidence / tiny detections (reduces reflections and noise)
         const boundingBoxes = boxes.filter(function (box) {
             if (!box || !box.topLeft || !box.bottomRight) return false;
-            // Confidence: BlazeFace exposes probability[0] (or probability/score)
-            let score = 0;
-            if (Array.isArray(box.probability) && box.probability.length) {
-                score = box.probability[0] || 0;
-            } else if (typeof box.probability === 'number') {
-                score = box.probability;
-            } else if (typeof box.score === 'number') {
-                score = box.score;
-            }
-            if (score < MIN_FACE_CONFIDENCE_BLAZE) {
+            if (faceScore(box) < MIN_FACE_CONFIDENCE_BLAZE) {
                 return false;
             }
             // Area ratio relative to full frame

@@ -8,7 +8,7 @@
     $btnId = $isReady ? 'quiz-fs-gate-btn' : 'resize-blur-enter-fs-btn';
     $overlayClasses = $isReady
         ? 'fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-95 px-4'
-        : 'hidden fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/95 px-4 pointer-events-auto';
+        : 'hidden fixed inset-0 z-[100] items-center justify-center bg-gray-900/95 px-4 pointer-events-auto';
     $cardClasses = $isReady
         ? 'max-w-md w-full bg-white border border-gray-200 rounded-xl p-6 shadow-lg text-center'
         : 'bg-white border border-gray-200 rounded-2xl shadow-xl p-6 max-w-md w-full text-center';

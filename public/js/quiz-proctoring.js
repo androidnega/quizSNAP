@@ -940,9 +940,11 @@
     }
 
     function showResizeBlur(showFinalWarning, isInitialGate) {
-        if (!resizeBlurOverlay) return;
+        if (!resizeBlurOverlay) {
+            document.body.classList.add('quiz-fs-blocked');
+            return;
+        }
         resizeBlurOverlay.classList.remove('hidden');
-        resizeBlurOverlay.classList.add('flex');
         resizeBlurOverlay.setAttribute('aria-hidden', 'false');
         document.body.classList.add('quiz-fs-blocked');
         if (enterFsBtn) enterFsBtn.classList.remove('hidden');
@@ -964,11 +966,10 @@
     }
 
     function hideResizeBlur() {
+        document.body.classList.remove('quiz-fs-blocked');
         if (!resizeBlurOverlay) return;
         resizeBlurOverlay.classList.add('hidden');
-        resizeBlurOverlay.classList.remove('flex');
         resizeBlurOverlay.setAttribute('aria-hidden', 'true');
-        document.body.classList.remove('quiz-fs-blocked');
         if (resizeBlurWarning) resizeBlurWarning.classList.add('hidden');
         if (resizeBlurFinalWarning) resizeBlurFinalWarning.classList.add('hidden');
     }

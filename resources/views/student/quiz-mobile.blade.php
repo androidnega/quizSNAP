@@ -76,7 +76,24 @@
 .quiz-mobile-camera-overlay { position: fixed; top: 0; left: 0; right: 0; z-index: 30; }
 .quiz-mobile-content-below-camera { padding-top: var(--quiz-mobile-camera-height, 0); }
 body.quiz-fs-blocked { overflow: hidden; }
-#resize-blur-overlay.flex { display: flex !important; }
+#resize-blur-overlay.hidden { display: none !important; pointer-events: none !important; visibility: hidden !important; }
+#resize-blur-overlay:not(.hidden) { display: flex !important; pointer-events: auto !important; }
+html:fullscreen,
+html:-webkit-full-screen {
+    overflow-y: auto !important;
+    overflow-x: hidden;
+    height: 100%;
+}
+html:fullscreen body,
+html:-webkit-full-screen body {
+    overflow-y: auto !important;
+    overflow-x: hidden;
+    min-height: 100%;
+}
+html:fullscreen body.quiz-fs-blocked,
+html:-webkit-full-screen body.quiz-fs-blocked {
+    overflow: hidden !important;
+}
 </style>
 @endpush
 

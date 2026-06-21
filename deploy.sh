@@ -21,8 +21,8 @@ php artisan optimize:clear
 echo "==> Rebuild caches..."
 php artisan config:cache
 php artisan route:cache
-php artisan view:clear
-php artisan cache:clear
+php artisan view:cache
+php artisan event:cache 2>/dev/null || true
 
 echo "==> Permissions..."
 if [[ "$(id -u)" -eq 0 ]]; then

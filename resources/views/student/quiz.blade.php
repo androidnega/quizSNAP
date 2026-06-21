@@ -6,7 +6,24 @@
 @push('styles')
 <style>
 body.quiz-fs-blocked { overflow: hidden; }
-#resize-blur-overlay.flex { display: flex !important; }
+#resize-blur-overlay.hidden { display: none !important; pointer-events: none !important; visibility: hidden !important; }
+#resize-blur-overlay:not(.hidden) { display: flex !important; pointer-events: auto !important; }
+html:fullscreen,
+html:-webkit-full-screen {
+    overflow-y: auto !important;
+    overflow-x: hidden;
+    height: 100%;
+}
+html:fullscreen body,
+html:-webkit-full-screen body {
+    overflow-y: auto !important;
+    overflow-x: hidden;
+    min-height: 100%;
+}
+html:fullscreen body.quiz-fs-blocked,
+html:-webkit-full-screen body.quiz-fs-blocked {
+    overflow: hidden !important;
+}
 .quiz-timer-green{color:#059669}.quiz-timer-blue{color:#2563eb}.quiz-timer-red{color:#dc2626}.quiz-side-num.quiz-side-answered{border-color:#22c55e;background-color:#f0fdf4;color:#15803d}
 /* AI invigilator badge (top panel only) when camera is active */
 #ai-invigilator-badge-panel.visible{display:flex!important}

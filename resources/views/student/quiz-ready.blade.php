@@ -5,19 +5,7 @@
 
 @section('content')
 @if($fullscreenRequired ?? true)
-<div id="quiz-fs-gate" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-95 px-4" aria-hidden="false">
-    <div class="max-w-md w-full bg-white border border-gray-200 rounded-xl p-6 shadow-lg text-center">
-        <div class="w-14 h-14 mx-auto mb-4 rounded-full bg-sky-50 flex items-center justify-center">
-            <i class="fas fa-expand text-2xl text-sky-600" aria-hidden="true"></i>
-        </div>
-        <h2 class="text-lg font-bold text-gray-900 mb-2">Full screen required</h2>
-        <p class="text-sm text-gray-600 mb-5">Before you start, your browser must be in <strong>full screen mode</strong> (tabs and address bar hidden). Click the button below and allow full screen when prompted.</p>
-        <button type="button" id="quiz-fs-gate-btn" class="btn btn-primary w-full py-2.5 text-sm font-semibold text-white border-0">
-            Enter full screen
-        </button>
-        <p id="quiz-fs-gate-hint" class="mt-3 text-xs text-gray-500 hidden">Full screen active. You can start the quiz below.</p>
-    </div>
-</div>
+@include('student.partials.quiz-fullscreen-overlay', ['mode' => 'ready'])
 @endif
 
 <div class="min-h-[100dvh] min-h-screen flex items-center justify-center px-4 py-6 w-full max-w-full">
@@ -63,53 +51,6 @@
 document.addEventListener('DOMContentLoaded', function () {
     if (window.QuizSnapFullscreenGate) {
         window.QuizSnapFullscreenGate.init({ required: {{ ($fullscreenRequired ?? true) ? 'true' : 'false' }} });
-    }
-
-    var startForm = document.getElementById('quiz-start-form');
-    var startBtn = document.getElementById('start-quiz-btn');
-    if (startForm && startBtn) {
-        startForm.addEventListener('submit', function (e) {
-            e.preventDefault();
-            if (startBtn.disabled) return;
-            startBtn.disabled = true;
-            var originalText = startBtn.textContent;
-            startBtn.textContent = 'Starting...';
-
-            fetch(startForm.action, {
-                method: 'POST',
-                credentials: 'same-origin',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-                body: JSON.stringify({}),
-            })
-                .then(function (response) {
-                    if (response.status === 419) {
-                        throw new Error('Session expired. Please refresh this page and try again.');
-                    }
-                    if (!response.ok) {
-                        return response.json().catch(function () { return {}; }).then(function (data) {
-                            throw new Error(data.message || 'Could not start the quiz. Please try again.');
-                        });
-                    }
-                    return response.json();
-                })
-                .then(function (data) {
-                    if (data.redirect) {
-                        window.location.href = data.redirect;
-                        return;
-                    }
-                    window.location.href = '{{ route('student.quiz.show') }}';
-                })
-                .catch(function (err) {
-                    startBtn.disabled = false;
-                    startBtn.textContent = originalText;
-                    alert(err && err.message ? err.message : 'Could not start the quiz. Please try again.');
-                });
-        });
     }
 });
 </script>

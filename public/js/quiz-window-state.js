@@ -92,6 +92,19 @@
         return waitForBrowserFullscreen(maxMs);
     }
 
+    var FULLSCREEN_DENIED_MESSAGE = 'Could not enter full screen. Click the button and allow full screen in your browser, or press F11 (Windows) / Ctrl+Cmd+F (Mac).';
+
+    function getFullscreenDeniedMessage() {
+        return FULLSCREEN_DENIED_MESSAGE;
+    }
+
+    /** Request browser full screen, then wait until the API reports active. */
+    function enterAndWait(maxMs) {
+        return requestFullscreen().then(function () {
+            return waitForBrowserFullscreen(maxMs);
+        });
+    }
+
     function bindFullscreenSync(onChange) {
         if (typeof onChange !== 'function') {
             return function () {};
@@ -151,6 +164,8 @@
         requestMaximizeOrFullscreen: requestMaximizeOrFullscreen,
         waitForBrowserFullscreen: waitForBrowserFullscreen,
         waitForFullscreenOrMaximized: waitForFullscreenOrMaximized,
+        enterAndWait: enterAndWait,
+        getFullscreenDeniedMessage: getFullscreenDeniedMessage,
         bindFullscreenSync: bindFullscreenSync,
         fsDebug: fsDebug
     };

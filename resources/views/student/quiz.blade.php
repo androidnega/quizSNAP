@@ -202,18 +202,9 @@ body.quiz-fs-blocked { overflow: hidden; }
     </div>
 
     {{-- Full screen entry gate: blocks quiz until browser full screen (required on load; fullscreen is lost on redirect from quiz-ready) --}}
-    <div id="resize-blur-overlay" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/95 px-4 pointer-events-auto" aria-hidden="true">
-        <div class="bg-white border border-gray-200 rounded-2xl shadow-xl p-6 max-w-md w-full text-center">
-            <div class="w-14 h-14 mx-auto mb-4 rounded-full bg-primary-50 flex items-center justify-center">
-                <i class="fas fa-expand text-2xl text-primary-600" aria-hidden="true"></i>
-            </div>
-            <h4 id="resize-blur-title" class="text-lg font-bold text-gray-900 mb-2">Full screen required</h4>
-            <p id="resize-blur-message" class="text-sm text-gray-600 mb-5">Your quiz runs in browser full screen so tabs and the address bar are hidden. Click below and choose <strong>Allow</strong> when your browser asks.</p>
-            <button type="button" id="resize-blur-enter-fs-btn" class="btn btn-primary w-full py-2.5 px-5 text-sm font-semibold text-white border-0 mb-3">Enter full screen</button>
-            <p id="resize-blur-warning" class="text-sm font-medium text-amber-700 mb-3 hidden">Repeated violations will result in auto-submission of your quiz.</p>
-            <p id="resize-blur-final-warning" class="text-sm font-bold text-red-600 mb-3 hidden">One more resize or exit from full screen will auto-submit your quiz.</p>
-        </div>
-    </div>
+    @if($fullscreenEnforcement ?? true)
+        @include('student.partials.quiz-fullscreen-overlay', ['mode' => 'quiz'])
+    @endif
 
         {{-- Fixed left panel: AI invigilator label first, then camera, then timer, then questions --}}
         <aside class="quiz-left-panel hidden lg:flex lg:flex-col lg:gap-4" aria-label="Quiz sidebar">
@@ -428,8 +419,9 @@ document.addEventListener('DOMContentLoaded', function() {
     function dismissWithFullscreen(modalId) {
         var modal = document.getElementById(modalId);
         if (modal) modal.classList.add('hidden');
-        if (window.QuizSnapQuiz && typeof window.QuizSnapQuiz.requestFullscreen === 'function') {
-            window.QuizSnapQuiz.requestFullscreen().catch(function () {});
+        var ws = window.QuizSnapWindowState;
+        if (ws && typeof ws.requestFullscreen === 'function') {
+            ws.requestFullscreen().catch(function () {});
         }
     }
     var newTabOk = document.getElementById('new-tab-zone-warning-ok');

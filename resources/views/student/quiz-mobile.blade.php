@@ -75,6 +75,8 @@
 /* Floating AI camera: fixed overlay so it stays visible; main content has top offset so nav is smooth and no accidental auto-submit from overlay */
 .quiz-mobile-camera-overlay { position: fixed; top: 0; left: 0; right: 0; z-index: 30; }
 .quiz-mobile-content-below-camera { padding-top: var(--quiz-mobile-camera-height, 0); }
+body.quiz-fs-blocked { overflow: hidden; }
+#resize-blur-overlay.flex { display: flex !important; }
 </style>
 @endpush
 
@@ -108,6 +110,9 @@
             <button type="button" id="camera-off-allow-btn" class="py-2.5 px-5 text-sm font-semibold rounded-lg border-2 border-sky-400 bg-sky-50 text-sky-800">Allow camera &amp; continue</button>
         </div>
     </div>
+    @if($fullscreenEnforcement ?? true)
+        @include('student.partials.quiz-fullscreen-overlay', ['mode' => 'quiz'])
+    @endif
     <div id="phone-detected-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/60 backdrop-blur-sm px-4" aria-modal="true" role="dialog" aria-labelledby="phone-detected-title-mobile" data-dashboard-url="{{ route('dashboard') }}">
         <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-gray-100">
             <div class="px-6 pt-8 pb-5 text-center">

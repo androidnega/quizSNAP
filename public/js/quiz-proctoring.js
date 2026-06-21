@@ -865,13 +865,17 @@
     var enterFsBtn = document.getElementById('resize-blur-enter-fs-btn');
     var windowResizeLimit = (window.QuizSnapQuiz && window.QuizSnapQuiz.windowResizeLimit) || 3;
     var fullscreenEnforced = c.fullscreenEnforcement !== false;
-    var ws = window.QuizSnapWindowState || {};
-    var fsDebug = ws.fsDebug || function () {};
-    var isFullscreenOrMaximized = ws.isFullscreenOrMaximized
+    var ws = window.QuizSnapWindowState;
+    if (!ws || !ws.isFullscreenOrMaximized || !ws.requestFullscreen) {
+        console.warn('[QuizSnap] quiz-window-state.js must load before quiz-proctoring.js');
+    }
+    var fsDebug = (ws && ws.fsDebug) ? ws.fsDebug : function () {};
+    var isFullscreenOrMaximized = (ws && ws.isFullscreenOrMaximized)
         ? ws.isFullscreenOrMaximized.bind(ws)
-        : function () {
-            return !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement);
-        };
+        : function () { return false; };
+    var fullscreenDeniedMessage = (ws && ws.getFullscreenDeniedMessage)
+        ? ws.getFullscreenDeniedMessage()
+        : 'Could not enter full screen.';
     var wasFullscreenOrMaximized = isFullscreenOrMaximized();
     var invalidStateTimer = null;
     var INVALID_PERSISTENCE_MS = 1500;
@@ -1074,46 +1078,21 @@
         });
         window.addEventListener('focus', checkWindowState);
         setInterval(checkWindowState, windowStateCheckMs);
-    } else if (fullscreenEnforced) {
-        document.addEventListener('fullscreenchange', checkWindowState);
-        document.addEventListener('webkitfullscreenchange', checkWindowState);
+    } else if (fullscreenEnforced && ws && ws.bindFullscreenSync) {
+        ws.bindFullscreenSync(checkWindowState);
         window.addEventListener('focus', checkWindowState);
         setInterval(checkWindowState, windowStateCheckMs);
     }
 
-    function requestQuizFullscreen() {
-        if (ws.requestFullscreen) {
-            return ws.requestFullscreen();
-        }
-        var candidates = [document.documentElement, document.body];
-        for (var i = 0; i < candidates.length; i++) {
-            var el = candidates[i];
-            if (!el) continue;
-            var fn = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
-            if (fn) {
-                return Promise.resolve(fn.call(el));
-            }
-        }
-        return Promise.reject(new Error('unsupported'));
+    if (c && typeof c === 'object' && ws && ws.requestFullscreen) {
+        c.requestFullscreen = ws.requestFullscreen.bind(ws);
     }
 
-    if (c && typeof c === 'object') {
-        c.requestFullscreen = requestQuizFullscreen;
-    }
-
-    function afterFullscreenEntered() {
-        var wait = ws.waitForBrowserFullscreen
-            ? ws.waitForBrowserFullscreen(5000)
-            : (ws.waitForFullscreenOrMaximized ? ws.waitForFullscreenOrMaximized(5000) : Promise.resolve());
-        return wait.then(function () {
-            markFullscreenEntered();
-        });
-    }
-
-    if (enterFsBtn) {
-        enterFsBtn.addEventListener('click', function() {
-            requestQuizFullscreen().then(afterFullscreenEntered).catch(function() {
-                showProctorMessage('Could not enter full screen. Click the button and allow full screen in your browser, or press F11 (Windows) / Ctrl+Cmd+F (Mac).', true);
+        enterFsBtn.addEventListener('click', function () {
+            ws.enterAndWait(5000).then(function () {
+                markFullscreenEntered();
+            }).catch(function () {
+                showProctorMessage(fullscreenDeniedMessage, true);
             });
         });
     }

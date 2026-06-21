@@ -42,7 +42,7 @@ else
     -H 'Upgrade: websocket' \
     -H 'Sec-WebSocket-Version: 13' \
     -H 'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==' \
-    "http://127.0.0.1:${REVERB_PORT}/app/${KEY}?protocol=7&client=js&version=8.2.0" 2>/dev/null || echo "000")"
+    "http://127.0.0.1:${REVERB_PORT}/app/${KEY}?protocol=7&client=js&version=8.2.0" 2>/dev/null)" || HTTP_CODE="000"
   if [[ "$HTTP_CODE" == "101" ]]; then
     echo "HTTP status from Reverb: 101 (Switching Protocols) — OK"
   elif [[ "$HTTP_CODE" == "000" ]]; then
@@ -65,8 +65,8 @@ for f in /etc/nginx/sites-enabled/*; do
 done
 if [[ -z "$NGINX_SITE" ]]; then
   echo "ERROR: no 'location /app' block in /etc/nginx/sites-enabled/*"
-  echo "Add the block from nginx-production.conf or scripts/vps/nginx-reverb-snippet.conf"
-  echo "Then: sudo nginx -t && sudo systemctl reload nginx"
+  echo "Fix: sudo bash scripts/vps/install-nginx-reverb-proxy.sh"
+  echo "Then: sudo bash scripts/vps/check-reverb-websocket.sh"
 fi
 echo ""
 
@@ -78,7 +78,7 @@ if [[ -n "$HOST" && -n "${KEY:-}" ]]; then
     -H 'Upgrade: websocket' \
     -H 'Sec-WebSocket-Version: 13' \
     -H 'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==' \
-    "https://${HOST}/app/${KEY}?protocol=7&client=js&version=8.2.0" 2>/dev/null || echo "000")"
+    "https://${HOST}/app/${KEY}?protocol=7&client=js&version=8.2.0" 2>/dev/null)" || HTTPS_CODE="000"
   if [[ "$HTTPS_CODE" == "101" ]]; then
     echo "HTTPS status via nginx: 101 — WebSocket proxy OK"
   elif [[ "$HTTPS_CODE" == "404" ]]; then

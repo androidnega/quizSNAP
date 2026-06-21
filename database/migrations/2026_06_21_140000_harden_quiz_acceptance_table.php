@@ -13,55 +13,12 @@ return new class extends Migration
             return;
         }
 
-        // Remove placeholder rows that never represented a real student index.
-        DB::table('quiz_acceptance')
-            ->whereRaw("UPPER(TRIM(index_number)) = 'PENDING'")
-            ->delete();
+        $this->removeAnonymousPendingRows();
 
-        // Normalize stored index numbers so lookups stay consistent.
-        DB::table('quiz_acceptance')
-            ->orderBy('id')
-            ->chunkById(200, function ($rows): void {
-                foreach ($rows as $row) {
-                    $normalized = strtoupper(trim((string) $row->index_number));
-                    if ($normalized === '' || $normalized === 'PENDING') {
-                        DB::table('quiz_acceptance')->where('id', $row->id)->delete();
-
-                        continue;
-                    }
-                    if ($normalized !== $row->index_number) {
-                        DB::table('quiz_acceptance')
-                            ->where('id', $row->id)
-                            ->update(['index_number' => $normalized]);
-                    }
-                }
-            });
-
-        // Keep the newest row when legacy duplicates exist for the same quiz + index.
-        $duplicateGroups = DB::table('quiz_acceptance')
-            ->select('quiz_id', 'index_number', DB::raw('MAX(id) as keep_id'), DB::raw('COUNT(*) as total'))
-            ->groupBy('quiz_id', 'index_number')
-            ->havingRaw('COUNT(*) > 1')
-            ->get();
-
-        foreach ($duplicateGroups as $group) {
-            DB::table('quiz_acceptance')
-                ->where('quiz_id', $group->quiz_id)
-                ->where('index_number', $group->index_number)
-                ->where('id', '!=', $group->keep_id)
-                ->delete();
+        if (! $this->hasIndex('quiz_acceptance', 'quiz_acceptance_quiz_id_index_number_unique')) {
+            $this->ensureQuizIdIndexForForeignKey();
+            $this->replaceCompositeIndexWithUnique();
         }
-
-        $legacyIndex = 'quiz_acceptance_quiz_id_index_number_index';
-        $hasLegacyIndex = collect(DB::select('SHOW INDEX FROM quiz_acceptance'))
-            ->contains(fn ($row) => ($row->Key_name ?? null) === $legacyIndex);
-        if ($hasLegacyIndex) {
-            DB::statement("ALTER TABLE quiz_acceptance DROP INDEX {$legacyIndex}");
-        }
-
-        Schema::table('quiz_acceptance', function (Blueprint $table): void {
-            $table->unique(['quiz_id', 'index_number'], 'quiz_acceptance_quiz_index_unique');
-        });
     }
 
     public function down(): void
@@ -70,8 +27,58 @@ return new class extends Migration
             return;
         }
 
-        Schema::table('quiz_acceptance', function (Blueprint $table): void {
-            $table->dropUnique('quiz_acceptance_quiz_index_unique');
+        if ($this->hasIndex('quiz_acceptance', 'quiz_acceptance_quiz_id_index_number_unique')) {
+            Schema::table('quiz_acceptance', function (Blueprint $table) {
+                $table->dropUnique('quiz_acceptance_quiz_id_index_number_unique');
+            });
+        }
+
+        if (! $this->hasIndex('quiz_acceptance', 'quiz_acceptance_quiz_id_index_number_index')) {
+            Schema::table('quiz_acceptance', function (Blueprint $table) {
+                $table->index(['quiz_id', 'index_number'], 'quiz_acceptance_quiz_id_index_number_index');
+            });
+        }
+    }
+
+    private function removeAnonymousPendingRows(): void
+    {
+        DB::table('quiz_acceptance')
+            ->where('index_number', 'pending')
+            ->delete();
+    }
+
+    private function ensureQuizIdIndexForForeignKey(): void
+    {
+        if ($this->hasIndex('quiz_acceptance', 'quiz_acceptance_quiz_id_foreign')) {
+            return;
+        }
+
+        if ($this->hasIndex('quiz_acceptance', 'quiz_acceptance_quiz_id_index')) {
+            return;
+        }
+
+        Schema::table('quiz_acceptance', function (Blueprint $table) {
+            $table->index('quiz_id', 'quiz_acceptance_quiz_id_index');
         });
+    }
+
+    private function replaceCompositeIndexWithUnique(): void
+    {
+        if (! $this->hasIndex('quiz_acceptance', 'quiz_acceptance_quiz_id_index_number_index')) {
+            Schema::table('quiz_acceptance', function (Blueprint $table) {
+                $table->unique(['quiz_id', 'index_number'], 'quiz_acceptance_quiz_id_index_number_unique');
+            });
+
+            return;
+        }
+
+        DB::statement('ALTER TABLE `quiz_acceptance` DROP INDEX `quiz_acceptance_quiz_id_index_number_index`, ADD UNIQUE `quiz_acceptance_quiz_id_index_number_unique` (`quiz_id`, `index_number`)');
+    }
+
+    private function hasIndex(string $table, string $indexName): bool
+    {
+        $rows = DB::select('SHOW INDEX FROM `'.$table.'` WHERE Key_name = ?', [$indexName]);
+
+        return $rows !== [];
     }
 };

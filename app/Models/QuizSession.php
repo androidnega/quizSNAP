@@ -77,6 +77,48 @@ class QuizSession extends Model
         ], true);
     }
 
+    public function wasAutoSubmitted(): bool
+    {
+        return (bool) $this->auto_submitted
+            || in_array(trim((string) $this->submission_reason), [
+                'time_expired',
+                'auto_submit',
+                'critical_violation_auto_submit',
+                'critical_violation',
+            ], true)
+            || ($this->post_face_skipped_reason ?? '') === 'auto_submit';
+    }
+
+    public function autoSubmitStudentMessage(): ?string
+    {
+        if (! $this->wasAutoSubmitted() || $this->isResultWithheld()) {
+            return null;
+        }
+
+        return match (trim((string) $this->submission_reason)) {
+            'time_expired' => 'Your quiz was submitted automatically because the time limit was reached. All answers saved before time ran out were included in your score.',
+            'critical_violation_auto_submit', 'critical_violation' => 'Your quiz was auto-submitted because a serious exam rule was broken. Your saved answers were scored.',
+            default => 'Your quiz was auto-submitted. Your saved answers were scored.',
+        };
+    }
+
+    /**
+     * @return array<int, string> question_id => decrypted student answer
+     */
+    public function decryptedAnswersByQuestionId(?array $questionIds = null): array
+    {
+        $query = $this->answers();
+        if ($questionIds !== null && $questionIds !== []) {
+            $query->whereIn('question_id', array_map('intval', $questionIds));
+        }
+
+        return $query->get()
+            ->mapWithKeys(fn (Answer $answer) => [
+                (int) $answer->question_id => (string) ($answer->student_answer ?? ''),
+            ])
+            ->all();
+    }
+
     /**
      * First critical violation label for lecturer preview/PDF (one only).
      * Returns human-readable label or null if no critical violation.

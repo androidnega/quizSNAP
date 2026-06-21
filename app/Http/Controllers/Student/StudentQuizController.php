@@ -326,9 +326,17 @@ class StudentQuizController extends Controller
             return redirect()->to($this->resultUrlWithToken($token));
         }
         if ($remaining <= 0) {
+            if ($session->ended_at === null) {
+                $session->update([
+                    'auto_submitted' => true,
+                    'submission_reason' => 'time_expired',
+                ]);
+                $this->finalizeQuiz($session->fresh());
+            }
+
             return redirect()->to($this->resultUrlWithToken($token));
         }
-        $savedAnswers = $session->answers()->pluck('student_answer', 'question_id')->toArray();
+        $savedAnswers = $session->decryptedAnswersByQuestionId();
         $totalQuestions = $questions->count();
         $answeredCount = $questions->filter(function ($q) use ($savedAnswers) {
             $a = $savedAnswers[$q->id] ?? '';
@@ -1074,13 +1082,27 @@ class StudentQuizController extends Controller
         if ($this->isIpDeviceRestrictionEnabled() && $session->ip_address !== $request->ip()) {
             return response()->json(['success' => false], 403);
         }
-        if ($this->isProctoringCameraRequired() && !$session->post_face_image && !$session->post_face_skipped_reason) {
+        $reason = trim((string) $request->input('submission_reason', ''));
+        if (
+            $reason !== 'time_expired'
+            && $this->isProctoringCameraRequired()
+            && ! $session->post_face_image
+            && ! $session->post_face_skipped_reason
+        ) {
             return response()->json([
                 'success' => false,
                 'message' => 'Post-quiz photo is required. Please capture your photo before submitting.',
             ], 403);
         }
-        $this->finalizeQuiz($session);
+        if ($reason === 'time_expired' && ! $session->auto_submitted) {
+            $session->update([
+                'auto_submitted' => true,
+                'submission_reason' => 'time_expired',
+            ]);
+        }
+
+        $this->finalizeQuiz($session->fresh());
+
         return response()->json([
             'success' => true,
             'redirect' => $this->quizCompleteUrl(),
@@ -1168,7 +1190,7 @@ class StudentQuizController extends Controller
         $correct = 0;
 
         if ($total > 0) {
-            $answersByQuestion = $session->answers()->whereIn('question_id', $lockedIdsArray)->pluck('student_answer', 'question_id')->toArray();
+            $answersByQuestion = $session->decryptedAnswersByQuestionId($lockedIdsArray);
             $questionsById = Question::whereIn('id', $lockedIdsArray)->get()->keyBy('id');
 
             foreach ($lockedIdsArray as $qid) {

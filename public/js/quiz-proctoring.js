@@ -330,7 +330,7 @@
                 periodicHeartbeatInterval = null;
             }
             playTimeUpSound();
-            submitQuiz(true);
+            submitQuizOnTimeExpired();
             return;
         }
         var text = formatTime(remainingSeconds);
@@ -358,7 +358,7 @@
                             clearInterval(periodicHeartbeatInterval);
                             periodicHeartbeatInterval = null;
                         }
-                        submitQuiz(true);
+                        submitQuizOnTimeExpired();
                     }
                 }
             })
@@ -554,12 +554,8 @@
             wrap.setAttribute('role', 'alert');
             var msg = document.createElement('p');
             msg.style.cssText = 'font-size:1.125rem;max-width:28rem;line-height:1.6;';
-            msg.textContent = 'Your quiz has been submitted due to a policy violation. Thanks for participating.';
+            msg.textContent = 'Your quiz has been submitted due to a policy violation. Your saved answers were scored.';
             wrap.appendChild(msg);
-            var emoji = document.createElement('p');
-            emoji.style.cssText = 'font-size:1.5rem;margin-top:0.75rem;';
-            emoji.textContent = '\uD83D\uDE1C';
-            wrap.appendChild(emoji);
             document.body.appendChild(wrap);
             if (typeof history.replaceState === 'function') {
                 history.replaceState(null, '', window.location.href);
@@ -627,14 +623,17 @@
             .then(function (data) {
                 if (!data) return;
                 if (data.auto_submitted) {
-                    var redirect = data.redirect || null;
-                    if (type === 'phone_detected') {
-                        showPhoneDetectedSubmitted(redirect);
-                    } else if (redirect) {
-                        showNeutralPageThenRedirect(redirect);
-                    } else {
-                        showNeutralPageThenRedirect(null);
-                    }
+                    pushAllFormAnswersToSavePending();
+                    flushSavePending().finally(function () {
+                        var redirect = data.redirect || null;
+                        if (type === 'phone_detected') {
+                            showPhoneDetectedSubmitted(redirect);
+                        } else if (redirect) {
+                            showNeutralPageThenRedirect(redirect);
+                        } else {
+                            showNeutralPageThenRedirect(null);
+                        }
+                    });
                 } else if (data.show_major_warning) {
                     if (isTabSwitchStrike && window.QuizSnapQuiz && typeof window.QuizSnapQuiz.showTabSwitchWarning === 'function') {
                         window.QuizSnapQuiz.showTabSwitchWarning(data.tab_switch_strikes, data.tab_switch_remaining);
@@ -714,6 +713,65 @@
                 window.location.href = finalPhotoUrl;
             }
         });
+    }
+
+    var timeExpiredSubmitStarted = false;
+
+    /** Time limit reached: flush saved answers, then finalize. Retries while offline; never submits empty on network lag. */
+    function submitQuizOnTimeExpired() {
+        if (timeExpiredSubmitStarted) return;
+        timeExpiredSubmitStarted = true;
+        releaseWakeLock();
+        stopCameraProtection();
+        pushAllFormAnswersToSavePending();
+
+        function attemptSubmit(retriesLeft) {
+            if (!navigator.onLine) {
+                showOfflineBanner(true);
+                if (offlineBanner) {
+                    offlineBanner.textContent = 'Time is up. Reconnect to the internet to submit your saved answers.';
+                }
+                if (retriesLeft > 0) {
+                    setTimeout(function () { attemptSubmit(retriesLeft - 1); }, 5000);
+                }
+                return;
+            }
+            flushSavePending()
+                .then(function () {
+                    return fetch(finalizeUrl || '/quiz/finalize', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrf(),
+                            'Accept': 'application/json',
+                        },
+                        body: JSON.stringify({ submission_reason: 'time_expired' }),
+                    });
+                })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data && data.redirect) {
+                        window.location.href = data.redirect;
+                    } else if (data && data.success) {
+                        window.location.href = '/quiz/complete';
+                    } else {
+                        throw new Error('finalize failed');
+                    }
+                })
+                .catch(function () {
+                    if (retriesLeft > 0) {
+                        setTimeout(function () { attemptSubmit(retriesLeft - 1); }, 3000);
+                    } else {
+                        showOfflineBanner(true);
+                        if (offlineBanner) {
+                            offlineBanner.textContent = 'Could not submit automatically. Reconnect and refresh this page.';
+                        }
+                        timeExpiredSubmitStarted = false;
+                    }
+                });
+        }
+
+        attemptSubmit(20);
     }
 
     function submitQuiz(doPostFace) {

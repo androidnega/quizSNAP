@@ -6,7 +6,9 @@ use App\Models\ClassGroupStudent;
 use App\Models\Quiz;
 use App\Models\QuizAcceptance;
 use App\Models\QuizSession;
+use App\Models\Setting;
 use App\Models\Student;
+use Illuminate\Http\Request;
 
 final class QuizLinkService
 {
@@ -179,6 +181,10 @@ final class QuizLinkService
             return route('student.result', ['token' => $session->session_token]);
         }
 
+        if ($this->needsProctoringCapture($session)) {
+            return route('student.proctoring.capture').'?token='.urlencode((string) $session->session_token);
+        }
+
         $route = $session->start_time !== null
             ? route('student.quiz.show')
             : route('student.quiz.ready');
@@ -235,9 +241,57 @@ final class QuizLinkService
     {
         session([
             'quiz_id' => $session->quiz_id,
+            'quiz_id_for_login' => $session->quiz_id,
             'index_number' => $session->student_index,
             'quiz_session_token' => $session->session_token,
             'rules_accepted' => true,
         ]);
+    }
+
+    public function needsProctoringCapture(QuizSession $session): bool
+    {
+        if (Setting::getValue(Setting::KEY_PROCTORING_CAMERA_REQUIRED, '1') !== '1') {
+            return false;
+        }
+
+        return ! $session->camera_verified && empty($session->pre_face_image);
+    }
+
+    /**
+     * Restore quiz entry keys from session token, logged-in student, or quiz link context.
+     *
+     * @return array{quiz_id: ?int, index_number: ?string}
+     */
+    public function hydrateQuizEntryContext(?Request $request = null): array
+    {
+        $quizId = session('quiz_id') ?? session('quiz_id_for_login');
+        $indexNumber = $this->normalizedIndex();
+
+        $token = $request?->query('token') ?? session('quiz_session_token');
+        if (is_string($token) && trim($token) !== '') {
+            $activeSession = $this->resolveActiveSession(trim($token));
+            if ($activeSession) {
+                $this->syncActiveSession($activeSession);
+                $quizId = $activeSession->quiz_id;
+                $indexNumber = strtoupper(trim((string) $activeSession->student_index));
+            }
+        }
+
+        if ($quizId && ! $indexNumber) {
+            $indexNumber = $this->normalizedIndex($this->resolveStudent());
+        }
+
+        if ($quizId && $indexNumber) {
+            session([
+                'quiz_id' => (int) $quizId,
+                'quiz_id_for_login' => (int) $quizId,
+                'index_number' => $indexNumber,
+            ]);
+        }
+
+        return [
+            'quiz_id' => $quizId ? (int) $quizId : null,
+            'index_number' => $indexNumber,
+        ];
     }
 }

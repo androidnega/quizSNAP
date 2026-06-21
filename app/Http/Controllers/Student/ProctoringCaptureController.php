@@ -26,16 +26,11 @@ class ProctoringCaptureController extends Controller
      */
     public function show(Request $request): View|\Illuminate\Http\RedirectResponse|JsonResponse|\Illuminate\Http\Response
     {
-        $quizId = session('quiz_id');
-        $indexNumber = session('index_number');
-        $sessionToken = session('quiz_session_token');
-        if ((! $quizId || ! $indexNumber) && is_string($sessionToken) && $sessionToken !== '') {
-            $tokenSession = QuizSession::where('session_token', $sessionToken)->whereNull('ended_at')->first();
-            if ($tokenSession) {
-                $this->quizLinks->syncActiveSession($tokenSession);
-            }
-        }
-        if (!$quizId || !$indexNumber) {
+        $context = $this->quizLinks->hydrateQuizEntryContext($request);
+        $quizId = $context['quiz_id'];
+        $indexNumber = $context['index_number'];
+
+        if (! $quizId || ! $indexNumber) {
             $quizToken = session('quiz_link_token');
             if ($quizToken) {
                 return redirect()->route('student.rules.show.quiz', ['token' => $quizToken])
@@ -88,7 +83,7 @@ class ProctoringCaptureController extends Controller
                     ->with('info', 'You already completed this quiz attempt.');
             }
 
-            if ($this->needsProctoringCapture($existingSession)) {
+            if ($this->quizLinks->needsProctoringCapture($existingSession)) {
                 return $this->captureViewResponse($quiz, $indexNumber);
             }
 
@@ -146,15 +141,6 @@ class ProctoringCaptureController extends Controller
         return $this->captureViewResponse($quiz, $indexNumber);
     }
 
-    private function needsProctoringCapture(QuizSession $session): bool
-    {
-        if (! $this->isProctoringCameraRequired()) {
-            return false;
-        }
-
-        return ! $session->camera_verified && empty($session->pre_face_image);
-    }
-
     private function captureViewResponse(Quiz $quiz, string $indexNumber): \Illuminate\Http\Response
     {
         return response()
@@ -198,7 +184,7 @@ class ProctoringCaptureController extends Controller
                 ]);
             }
 
-            if ($this->needsProctoringCapture($existingSession)) {
+            if ($this->quizLinks->needsProctoringCapture($existingSession)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Please complete your identity photo on this page before continuing.',

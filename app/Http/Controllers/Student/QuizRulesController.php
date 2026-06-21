@@ -48,6 +48,13 @@ class QuizRulesController extends Controller
             }
 
             $this->quizLinks->rememberQuizContext($quiz);
+            if ($student && $indexNumber) {
+                session([
+                    'quiz_id' => $quiz->id,
+                    'quiz_id_for_login' => $quiz->id,
+                    'index_number' => $indexNumber,
+                ]);
+            }
 
             if (! $request->route('token')) {
                 return redirect()->route('student.rules.show.quiz', ['token' => $quiz->link_token]);
@@ -88,6 +95,13 @@ class QuizRulesController extends Controller
         }
 
         $this->quizLinks->rememberQuizContext($quiz);
+        if ($student && $indexNumber) {
+            session([
+                'quiz_id' => $quiz->id,
+                'quiz_id_for_login' => $quiz->id,
+                'index_number' => $indexNumber,
+            ]);
+        }
 
         return view('student.quiz-will-start', compact('quiz'));
     }
@@ -176,7 +190,8 @@ class QuizRulesController extends Controller
 
                 session([
                     'quiz_id' => $quiz->id,
-                    'index_number' => $student->index_number,
+                    'quiz_id_for_login' => $quiz->id,
+                    'index_number' => strtoupper(trim((string) $student->index_number)),
                     'rules_accepted' => true,
                 ]);
                 if ($existingSession) {
@@ -187,7 +202,7 @@ class QuizRulesController extends Controller
                 return response()->json([
                     'success' => true,
                     'redirect' => $existingSession
-                        ? ($existingSession->start_time !== null ? route('student.quiz.show') : route('student.quiz.ready'))
+                        ? $this->quizLinks->resumeRoute($existingSession)
                         : route('student.proctoring.capture'),
                 ]);
             }
@@ -234,6 +249,7 @@ class QuizRulesController extends Controller
             $this->quizLinks->rememberQuizContext($quiz, true);
             session([
                 'quiz_id' => $quiz->id,
+                'quiz_id_for_login' => $quiz->id,
                 'index_number' => $indexNumber,
                 'rules_accepted' => true,
             ]);

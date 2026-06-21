@@ -39,7 +39,7 @@ final class EnterpriseCenterAccess
             ?? $role;
 
         return sprintf(
-            '%s is only available to System Monitor accounts. Your account role is "%s".',
+            '%s is only available to Administrator or System Monitor accounts. Your account role is "%s".',
             $center,
             $label
         );

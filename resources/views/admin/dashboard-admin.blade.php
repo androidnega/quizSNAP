@@ -135,6 +135,45 @@
             </a>
         </div>
     </section>
+
+    <section class="rounded-lg border border-gray-200 bg-white p-3 sm:p-4 min-w-0">
+        <h2 class="text-xs font-semibold text-gray-700 mb-3">System Monitoring</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 min-w-0">
+            <a href="{{ route('dashboard.monitoring.overview') }}" class="group rounded-xl border border-gray-200 bg-gray-50 p-4 transition hover:border-primary-300 hover:bg-white hover:shadow-sm min-w-0">
+                <div class="flex items-start gap-3">
+                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-sky-50 text-sky-700">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                    </span>
+                    <div class="min-w-0">
+                        <h3 class="text-sm font-semibold text-gray-900 group-hover:text-primary-700">Monitoring Center</h3>
+                        <p class="mt-0.5 text-xs text-gray-600">Errors, activity logs, queue, server health, security.</p>
+                    </div>
+                </div>
+            </a>
+            <a href="{{ route('dashboard.operations.index') }}" class="group rounded-xl border border-gray-200 bg-gray-50 p-4 transition hover:border-primary-300 hover:bg-white hover:shadow-sm min-w-0">
+                <div class="flex items-start gap-3">
+                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-violet-50 text-violet-700">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                    </span>
+                    <div class="min-w-0">
+                        <h3 class="text-sm font-semibold text-gray-900 group-hover:text-primary-700">Operations Center</h3>
+                        <p class="mt-0.5 text-xs text-gray-600">Live exams, proctoring, attendance, incidents.</p>
+                    </div>
+                </div>
+            </a>
+            <a href="{{ route('dashboard.intelligence.index') }}" class="group rounded-xl border border-gray-200 bg-gray-50 p-4 transition hover:border-primary-300 hover:bg-white hover:shadow-sm min-w-0">
+                <div class="flex items-start gap-3">
+                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-700">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+                    </span>
+                    <div class="min-w-0">
+                        <h3 class="text-sm font-semibold text-gray-900 group-hover:text-primary-700">Intelligence Center</h3>
+                        <p class="mt-0.5 text-xs text-gray-600">Academic analytics, risk, predictive insights, reports.</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </section>
 </div>
 
 @push('scripts')

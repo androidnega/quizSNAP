@@ -14,7 +14,7 @@ class MonitoringAccessTest extends TestCase
         $coordinator = new User(['role' => User::ROLE_COORDINATOR]);
         $examiner = new User(['role' => User::ROLE_EXAMINER]);
 
-        $this->assertFalse($superAdmin->canAccessMonitoring());
+        $this->assertTrue($superAdmin->canAccessMonitoring());
         $this->assertTrue($systemAdmin->canAccessMonitoring());
         $this->assertFalse($coordinator->canAccessMonitoring());
         $this->assertFalse($examiner->canAccessMonitoring());

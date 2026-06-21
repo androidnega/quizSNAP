@@ -19,10 +19,10 @@ class MonitoringBroadcastChannelTest extends TestCase
         $this->assertFalse($user->canAccessEnterpriseBroadcasting());
     }
 
-    public function test_monitoring_channel_denies_super_admin(): void
+    public function test_monitoring_channel_allows_super_admin(): void
     {
         $user = new User(['role' => User::ROLE_SUPER_ADMIN]);
-        $this->assertFalse($user->canAccessEnterpriseBroadcasting());
+        $this->assertTrue($user->canAccessEnterpriseBroadcasting());
     }
 
     public function test_monitoring_channel_denies_coordinator(): void

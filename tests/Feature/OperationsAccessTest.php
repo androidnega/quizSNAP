@@ -13,7 +13,7 @@ class OperationsAccessTest extends TestCase
         $systemAdmin = new User(['role' => User::ROLE_SYSTEM_ADMIN]);
         $examiner = new User(['role' => User::ROLE_EXAMINER]);
 
-        $this->assertFalse($superAdmin->canAccessOperations());
+        $this->assertTrue($superAdmin->canAccessOperations());
         $this->assertTrue($systemAdmin->canAccessOperations());
         $this->assertFalse($examiner->canAccessOperations());
     }

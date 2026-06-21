@@ -105,23 +105,23 @@ class User extends Authenticatable
 
     public function canAccessMonitoring(): bool
     {
-        return $this->isSystemAdministrator();
+        return $this->isSuperAdmin() || $this->isSystemAdministrator();
     }
 
     public function canAccessOperations(): bool
     {
-        return $this->isSystemAdministrator();
+        return $this->isSuperAdmin() || $this->isSystemAdministrator();
     }
 
     public function canAccessIntelligence(): bool
     {
-        return $this->isSystemAdministrator();
+        return $this->isSuperAdmin() || $this->isSystemAdministrator();
     }
 
-    /** System Monitor accounts only — not super admin, examiner, or coordinator. */
+    /** Administrator (Super Admin) and System Monitor only — not examiner or coordinator. */
     public function canAccessEnterpriseBroadcasting(): bool
     {
-        return $this->isSystemAdministrator();
+        return $this->isSuperAdmin() || $this->isSystemAdministrator();
     }
 
     public function isExaminer(): bool

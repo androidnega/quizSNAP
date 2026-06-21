@@ -18,6 +18,9 @@ class User extends Authenticatable
     public const ROLE_EXAMINER = 'examiner';
     public const ROLE_COORDINATOR = 'coordinator';
 
+    /** @deprecated Legacy role value; treated as super_admin for access checks. */
+    public const ROLE_LEGACY_ADMIN = 'admin';
+
     protected $fillable = [
         'username', 'email', 'phone', 'index_number', 'name', 'course_id', 'role', 'password',
         'avatar', 'institution_id', 'sms_allocation', 'ai_quiz_tokens_allocation', 'ai_quiz_generation_allowed',
@@ -92,7 +95,7 @@ class User extends Authenticatable
 
     public function isSuperAdmin(): bool
     {
-        return $this->role === self::ROLE_SUPER_ADMIN;
+        return in_array($this->role, [self::ROLE_SUPER_ADMIN, self::ROLE_LEGACY_ADMIN], true);
     }
 
     public function isSystemAdministrator(): bool
@@ -124,6 +127,7 @@ class User extends Authenticatable
     {
         return in_array($this->role, [
             self::ROLE_SUPER_ADMIN,
+            self::ROLE_LEGACY_ADMIN,
             self::ROLE_SYSTEM_ADMIN,
             self::ROLE_EXAMINER,
             self::ROLE_COORDINATOR,

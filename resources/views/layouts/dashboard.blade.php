@@ -5,7 +5,7 @@
 
 @php
     $layoutAdminUser = auth()->user();
-    $isSuperAdmin = $layoutAdminUser && $layoutAdminUser->role === \App\Models\User::ROLE_SUPER_ADMIN;
+    $isSuperAdmin = $layoutAdminUser && $layoutAdminUser->isSuperAdmin();
     $isSystemAdmin = $layoutAdminUser && $layoutAdminUser->role === \App\Models\User::ROLE_SYSTEM_ADMIN;
     $canAccessMonitoring = $layoutAdminUser && $layoutAdminUser->canAccessMonitoring();
     $canAccessOperations = $layoutAdminUser && $layoutAdminUser->canAccessOperations();

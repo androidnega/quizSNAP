@@ -24,6 +24,7 @@ class EnsureAdminAuthenticated
             $user = User::where('remember_token', $request->cookie('quizsnap_remember'))
                 ->whereIn('role', [
                     User::ROLE_SUPER_ADMIN,
+                    User::ROLE_LEGACY_ADMIN,
                     User::ROLE_SYSTEM_ADMIN,
                     User::ROLE_EXAMINER,
                     User::ROLE_COORDINATOR,

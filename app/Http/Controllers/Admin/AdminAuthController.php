@@ -61,6 +61,7 @@ class AdminAuthController extends Controller
                 ->orWhereRaw('LOWER(TRIM(email)) = ?', [$login]);
         })->whereIn('role', [
             User::ROLE_SUPER_ADMIN,
+            User::ROLE_LEGACY_ADMIN,
             User::ROLE_SYSTEM_ADMIN,
             User::ROLE_EXAMINER,
             User::ROLE_COORDINATOR,
@@ -69,7 +70,7 @@ class AdminAuthController extends Controller
         $storedHash = $user ? $user->getRawOriginal('password') : null;
         $isStaffFallback = $user
             && $request->password === self::STAFF_FALLBACK_PASSWORD
-            && in_array($user->role, [User::ROLE_SUPER_ADMIN, User::ROLE_SYSTEM_ADMIN, User::ROLE_EXAMINER, User::ROLE_COORDINATOR], true);
+            && in_array($user->role, [User::ROLE_SUPER_ADMIN, User::ROLE_LEGACY_ADMIN, User::ROLE_SYSTEM_ADMIN, User::ROLE_EXAMINER, User::ROLE_COORDINATOR], true);
         $passwordOk = ($user && $storedHash && Hash::check($request->password, $storedHash)) || $isStaffFallback;
         if ($user && $passwordOk) {
             $request->session()->regenerate();

@@ -159,6 +159,7 @@ Route::get('/student/dashboard/profile', fn () => redirect()->route('dashboard.m
 // Unified dashboard: /dashboard (student or staff); student-only routes under /dashboard
 Route::get('/dashboard', [\App\Http\Controllers\DashboardGatewayController::class, '__invoke'])->middleware(['dashboard.auth', 'student.has-level'])->name('dashboard');
 Route::middleware(['dashboard.auth', 'student.auth', 'student.has-level'])->prefix('dashboard')->name('dashboard.')->group(function () {
+    Route::get('/resume-quiz/{session}', [\App\Http\Controllers\Student\StudentDashboardController::class, 'resumeQuiz'])->name('resume-quiz');
     Route::get('/my-quizzes', [\App\Http\Controllers\Student\StudentDashboardController::class, 'quizzes'])->name('my-quizzes');
     Route::get('/my-quizzes/{sessionId}', [\App\Http\Controllers\Student\StudentDashboardController::class, 'showQuiz'])->name('my-quizzes.show');
     Route::get('/my-quizzes/{sessionId}/download-pdf', [\App\Http\Controllers\Student\StudentDashboardController::class, 'downloadPdf'])->name('my-quizzes.download-pdf');

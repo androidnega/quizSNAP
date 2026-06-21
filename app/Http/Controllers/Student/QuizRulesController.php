@@ -35,12 +35,12 @@ class QuizRulesController extends Controller
             $student = $this->quizLinks->resolveStudent();
             $indexNumber = $this->quizLinks->normalizedIndex($student);
 
-            if (! $quiz || ! $this->quizLinks->isLinkOpen($quiz, $indexNumber)) {
-                return view('student.link-expired');
+            if ($quiz && ($redirect = $this->redirectExistingStudentAttempt($quiz, $student, $indexNumber))) {
+                return $redirect;
             }
 
-            if ($redirect = $this->redirectExistingStudentAttempt($quiz, $student, $indexNumber)) {
-                return $redirect;
+            if (! $quiz || ! $this->quizLinks->isLinkOpen($quiz, $indexNumber)) {
+                return view('student.link-expired');
             }
 
             if ($quiz->starts_at && $quiz->starts_at->isFuture()) {

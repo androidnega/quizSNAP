@@ -48,7 +48,9 @@ final class DashboardQuizState
         $quizActionHref = route('dashboard.my-quizzes');
         if ($hasScheduled && $hasScheduledResult) {
             $quizActionHref = route('dashboard.my-quizzes.show', ['sessionId' => $scheduledQuizSession->id]);
-        } elseif ($scheduledInProgress || $scheduledReady) {
+        } elseif ($scheduledInProgress && $scheduledOpenSession !== null) {
+            $quizActionHref = route('dashboard.resume-quiz', ['session' => $scheduledOpenSession->id]);
+        } elseif ($scheduledReady) {
             $quizActionHref = route('student.rules.show.quiz', ['token' => $scheduledQuiz->link_token]);
         } elseif ($scheduledUpcoming) {
             $quizActionHref = route('student.quiz-will-start', ['token' => $scheduledQuiz->link_token]);

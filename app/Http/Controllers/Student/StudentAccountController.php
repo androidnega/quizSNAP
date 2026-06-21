@@ -843,7 +843,7 @@ class StudentAccountController extends Controller
 
     private function beginDashboardLogin(): void
     {
-        app(QuizLinkService::class)->forgetQuizContext();
+        app(QuizLinkService::class)->forgetStaleQuizLinkContext();
         session(['student_login_intent' => 'dashboard']);
     }
 

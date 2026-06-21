@@ -147,19 +147,27 @@ final class QuizLinkService
     }
 
     /**
-     * Clear quiz-entry session keys so a dashboard login is not hijacked by a stale quiz link visit.
+     * Clear stale quiz-link keys without dropping an active in-progress attempt token.
      */
-    public function forgetQuizContext(): void
+    public function forgetStaleQuizLinkContext(): void
     {
         session()->forget([
             'quiz_id',
             'quiz_id_for_login',
             'quiz_link_token',
-            'quiz_session_token',
             'index_number',
             'rules_accepted',
             'eligible_courses',
         ]);
+    }
+
+    /**
+     * Clear all quiz-entry session keys (including active attempt token).
+     */
+    public function forgetQuizContext(): void
+    {
+        $this->forgetStaleQuizLinkContext();
+        session()->forget(['quiz_session_token']);
     }
 
     public function resumeRoute(QuizSession $session): string

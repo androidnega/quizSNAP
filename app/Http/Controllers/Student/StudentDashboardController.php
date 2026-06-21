@@ -11,6 +11,7 @@ use App\Models\QuizSession;
 use App\Models\Student;
 use App\Models\User;
 use App\Services\PageCacheService;
+use App\Services\QuizLinkService;
 use App\Support\UserFriendlyMessages;
 use App\Support\DashboardQuizState;
 use Illuminate\Http\RedirectResponse;
@@ -177,6 +178,32 @@ class StudentDashboardController extends Controller
      * Exam calendar page: midsem & end-of-semester exams for the student's class(es).
      * Shows countdown when an exam is within a few hours.
      */
+    /**
+     * Restore quiz session context from dashboard and continue an in-progress attempt.
+     */
+    public function resumeQuiz(int $session, QuizLinkService $quizLinks): RedirectResponse
+    {
+        $student = $this->student();
+        $indexNumber = strtoupper(trim((string) $student->index_number));
+
+        $quizSession = QuizSession::query()
+            ->where('id', $session)
+            ->whereNull('ended_at')
+            ->whereRaw('UPPER(TRIM(student_index)) = ?', [$indexNumber])
+            ->first();
+
+        if (! $quizSession) {
+            return redirect()->route('dashboard')->with('error', UserFriendlyMessages::NOT_FOUND);
+        }
+
+        $quiz = Quiz::find($quizSession->quiz_id);
+        if (! $quiz || ! $quizLinks->isRegisteredForQuiz($quiz, $student)) {
+            return redirect()->route('dashboard')->with('error', UserFriendlyMessages::GENERIC);
+        }
+
+        return redirect()->to($quizLinks->resumeRoute($quizSession));
+    }
+
     public function calendar(): View|RedirectResponse
     {
         $student = $this->student();

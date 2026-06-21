@@ -67,6 +67,30 @@
         </div>
     </div>
 
+    @php($infra = $infrastructure ?? [])
+    <section class="rounded-lg border border-gray-200 bg-white p-3 sm:p-4 min-w-0" id="infrastructure-status-panel">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <h2 class="text-xs font-semibold text-gray-700">Server & infrastructure</h2>
+            <span class="text-[10px] text-gray-500 tabular-nums" id="infra-checked-at">Updated {{ isset($infra['checked_at']) ? \Carbon\Carbon::parse($infra['checked_at'])->diffForHumans() : 'just now' }}</span>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 min-w-0">
+            @foreach([
+                ['id' => 'infra-cpu', 'label' => 'CPU cores', 'value' => $infra['cpu_cores'] ?? '—', 'hint' => isset($infra['cpu_usage']) ? ($infra['cpu_usage'].'% used') : null, 'icon' => 'bg-orange-50 text-orange-700'],
+                ['id' => 'infra-ram', 'label' => 'RAM used', 'value' => isset($infra['ram_usage']) ? $infra['ram_usage'].'%' : '—', 'hint' => isset($infra['ram_used_mb'], $infra['ram_total_mb']) ? ($infra['ram_used_mb'].' / '.$infra['ram_total_mb'].' MB') : null, 'icon' => 'bg-blue-50 text-blue-700'],
+                ['id' => 'infra-disk', 'label' => 'Disk used', 'value' => isset($infra['disk_usage']) ? $infra['disk_usage'].'%' : '—', 'hint' => isset($infra['disk_free_gb']) ? ($infra['disk_free_gb'].' GB free') : null, 'icon' => 'bg-slate-50 text-slate-700'],
+                ['id' => 'infra-redis', 'label' => 'Redis', 'value' => ($infra['redis']['status'] ?? 'offline') === 'online' ? 'Live' : 'Offline', 'hint' => $infra['redis']['label'] ?? '—', 'icon' => ($infra['redis']['status'] ?? '') === 'online' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'],
+                ['id' => 'infra-db', 'label' => 'Database', 'value' => ($infra['database']['status'] ?? 'offline') === 'online' ? 'Active' : 'Down', 'hint' => $infra['database']['label'] ?? '—', 'icon' => ($infra['database']['status'] ?? '') === 'online' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'],
+                ['id' => 'infra-workers', 'label' => 'Workers', 'value' => ($infra['queue_workers'] ?? 0).' queue', 'hint' => ($infra['reverb_workers'] ?? 0).' reverb', 'icon' => 'bg-indigo-50 text-indigo-700'],
+            ] as $card)
+                <div class="rounded-xl border border-gray-200 bg-gray-50 p-3 min-w-0" id="{{ $card['id'] }}">
+                    <p class="text-[11px] font-medium text-gray-500 truncate">{{ $card['label'] }}</p>
+                    <p class="mt-0.5 text-lg font-bold tabular-nums text-gray-900 infra-value">{{ $card['value'] }}</p>
+                    @if($card['hint'])<p class="mt-0.5 text-[10px] text-gray-500 truncate infra-hint">{{ $card['hint'] }}</p>@endif
+                </div>
+            @endforeach
+        </div>
+    </section>
+
     <div class="grid grid-cols-2 gap-3 md:grid-cols-4 min-w-0">
         <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm min-w-0">
             <div class="flex items-start gap-3">
@@ -195,6 +219,31 @@
         if (quizEl && typeof data.quiz_takers === 'number') {
             quizEl.textContent = String(data.quiz_takers);
         }
+        if (data.infrastructure) {
+            applyInfrastructure(data.infrastructure);
+        }
+    }
+
+    function applyInfrastructure(infra) {
+        if (!infra) return;
+        var map = {
+            'infra-cpu': { value: infra.cpu_cores != null ? String(infra.cpu_cores) : '—', hint: infra.cpu_usage != null ? infra.cpu_usage + '% used' : '' },
+            'infra-ram': { value: infra.ram_usage != null ? infra.ram_usage + '%' : '—', hint: (infra.ram_used_mb != null && infra.ram_total_mb != null) ? infra.ram_used_mb + ' / ' + infra.ram_total_mb + ' MB' : '' },
+            'infra-disk': { value: infra.disk_usage != null ? infra.disk_usage + '%' : '—', hint: infra.disk_free_gb != null ? infra.disk_free_gb + ' GB free' : '' },
+            'infra-redis': { value: (infra.redis && infra.redis.status === 'online') ? 'Live' : 'Offline', hint: (infra.redis && infra.redis.label) || '' },
+            'infra-db': { value: (infra.database && infra.database.status === 'online') ? 'Active' : 'Down', hint: (infra.database && infra.database.label) || '' },
+            'infra-workers': { value: (infra.queue_workers != null ? infra.queue_workers : 0) + ' queue', hint: (infra.reverb_workers != null ? infra.reverb_workers : 0) + ' reverb' },
+        };
+        Object.keys(map).forEach(function (id) {
+            var el = document.getElementById(id);
+            if (!el) return;
+            var valEl = el.querySelector('.infra-value');
+            var hintEl = el.querySelector('.infra-hint');
+            if (valEl) valEl.textContent = map[id].value;
+            if (hintEl) hintEl.textContent = map[id].hint;
+        });
+        var checked = document.getElementById('infra-checked-at');
+        if (checked) checked.textContent = 'Updated just now';
     }
 
     function fetchLiveStats() {

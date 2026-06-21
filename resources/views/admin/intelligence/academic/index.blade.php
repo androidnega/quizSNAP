@@ -1,10 +1,11 @@
 @extends('admin.intelligence.layout')
 @php($pageTitle = 'Academic Intelligence')
+@php($intelligencePage = 'academic')
 @section('intelligence_content')
-@include('admin.operations.partials.analytics-cards', ['data' => $data, 'sections' => [
-    'most_active_courses' => 'Most Active Courses',
-    'most_active_departments' => 'Most Active Departments',
-    'course_participation' => 'Course Participation',
-    'faculty_engagement' => 'Faculty Engagement',
-]])
+<div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+    @include('admin.intelligence.partials.section-card', ['title' => 'Most Active Courses', 'items' => $data['most_active_courses'] ?? []])
+    @include('admin.intelligence.partials.section-card', ['title' => 'Most Active Departments', 'items' => $data['most_active_departments'] ?? []])
+    @include('admin.intelligence.partials.section-card', ['title' => 'Course Participation', 'items' => $data['course_participation'] ?? []])
+    @include('admin.intelligence.partials.section-card', ['title' => 'Faculty Engagement', 'items' => $data['faculty_engagement'] ?? []])
+</div>
 @endsection

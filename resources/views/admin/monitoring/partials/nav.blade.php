@@ -6,6 +6,7 @@
         ['route' => 'dashboard.monitoring.live-attendance.index', 'label' => 'Live Attendance', 'icon' => 'fa-user-check'],
         ['route' => 'dashboard.monitoring.errors.index', 'label' => 'Error Logs', 'icon' => 'fa-bug'],
         ['route' => 'dashboard.monitoring.activity.index', 'label' => 'Activity Logs', 'icon' => 'fa-list'],
+        ['route' => 'dashboard.monitoring.student-activities.index', 'label' => 'Student Activities', 'icon' => 'fa-user-graduate'],
         ['route' => 'dashboard.monitoring.failed-jobs.index', 'label' => 'Failed Jobs', 'icon' => 'fa-times-circle'],
         ['route' => 'dashboard.monitoring.queue.index', 'label' => 'Queue Monitor', 'icon' => 'fa-tasks'],
         ['route' => 'dashboard.monitoring.api.index', 'label' => 'API Monitor', 'icon' => 'fa-plug'],

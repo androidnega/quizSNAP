@@ -13,6 +13,12 @@ class MonitoringErrorController extends Controller
 {
     public function index(Request $request): View
     {
+        if (! \Illuminate\Support\Facades\Schema::hasTable('system_errors')) {
+            return view('admin.monitoring.errors.index', [
+                'errors' => new \Illuminate\Pagination\LengthAwarePaginator([], 0, 25),
+            ]);
+        }
+
         $query = SystemError::query()->withCount('occurrences')->orderByDesc('last_seen_at');
 
         if ($severity = $request->query('severity')) {

@@ -9,7 +9,9 @@ use App\Http\Controllers\Admin\Monitoring\MonitoringOpsController;
 use App\Http\Controllers\Admin\Monitoring\MonitoringOverviewController;
 use App\Http\Controllers\Admin\Monitoring\MonitoringQueueController;
 use App\Http\Controllers\Admin\Monitoring\MonitoringSecurityController;
+use App\Http\Controllers\Admin\Monitoring\MonitoringMaintenanceController;
 use App\Http\Controllers\Admin\Monitoring\MonitoringSettingsController;
+use App\Http\Controllers\Admin\Monitoring\MonitoringStudentActivityController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['admin.auth', 'monitoring.access'])->prefix('dashboard/monitoring')->name('dashboard.monitoring.')->group(function () {
@@ -75,6 +77,12 @@ Route::middleware(['admin.auth', 'monitoring.access'])->prefix('dashboard/monito
 
     Route::get('/settings', [MonitoringSettingsController::class, 'index'])->name('settings.index');
     Route::post('/settings', [MonitoringSettingsController::class, 'update'])->name('settings.update');
+
+    Route::get('/student-activities', [MonitoringStudentActivityController::class, 'index'])->name('student-activities.index');
+
+    Route::post('/maintenance/clear-logs', [MonitoringMaintenanceController::class, 'clearLogs'])->name('maintenance.clear-logs');
+    Route::get('/errors/export', [MonitoringMaintenanceController::class, 'exportErrors'])->name('errors.export');
+    Route::get('/errors/{error}/export', [MonitoringMaintenanceController::class, 'exportError'])->name('errors.export.single');
 });
 
 Route::redirect('/admin/monitoring', '/dashboard/monitoring');

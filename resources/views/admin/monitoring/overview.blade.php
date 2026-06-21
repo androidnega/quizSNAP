@@ -45,8 +45,8 @@
 <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 mt-4">
     <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
         <h2 class="text-sm font-semibold text-gray-900 mb-3">Server Health</h2>
-        @php $health = $stats['server_health'] ?? null; @endphp
-        @if($health)
+        @if($stats['server_health'] ?? null)
+            @php($health = $stats['server_health'])
             <div class="grid grid-cols-2 gap-3 text-sm">
                 <div><span class="text-gray-500">Status</span><p class="font-semibold capitalize">{{ $health->status }}</p></div>
                 <div><span class="text-gray-500">CPU</span><p class="font-semibold">{{ $health->cpu_usage ?? '—' }}%</p></div>

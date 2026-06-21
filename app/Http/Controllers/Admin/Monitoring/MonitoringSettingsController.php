@@ -4,13 +4,14 @@ namespace App\Http\Controllers\Admin\Monitoring;
 
 use App\Http\Controllers\Controller;
 use App\Models\MonitoringSetting;
+use App\Services\Monitoring\MonitoringLogMaintenanceService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class MonitoringSettingsController extends Controller
 {
-    public function index(): View
+    public function index(MonitoringLogMaintenanceService $maintenance): View
     {
         return view('admin.monitoring.settings.index', [
             'settings' => [
@@ -19,6 +20,7 @@ class MonitoringSettingsController extends Controller
                 'alert_cpu_threshold' => MonitoringSetting::get('alert_cpu_threshold', 90),
                 'alert_memory_threshold' => MonitoringSetting::get('alert_memory_threshold', 90),
             ],
+            'logCategories' => $maintenance->categories(),
         ]);
     }
 

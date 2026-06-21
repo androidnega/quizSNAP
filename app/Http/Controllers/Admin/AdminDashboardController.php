@@ -8,6 +8,7 @@ use App\Models\ClassGroup;
 use App\Models\Quiz;
 use App\Models\QuizSession;
 use App\Models\Setting;
+use App\Services\InfrastructureStatusService;
 use App\Services\LiveQuizSessionService;
 use App\Services\PageCacheService;
 use App\Services\SitePresenceService;
@@ -71,6 +72,7 @@ class AdminDashboardController extends Controller
         $update_estimated_end = $update_mode ? ($updateSettings[Setting::KEY_UPDATE_ESTIMATED_END] ?? null) : null;
         $liveVisitors = app(SitePresenceService::class)->countActive();
         $liveQuizTakers = app(LiveQuizSessionService::class)->countActive();
+        $infrastructure = app(InfrastructureStatusService::class)->snapshot();
 
         return view('admin.dashboard-admin', compact(
             'overview',
@@ -79,6 +81,7 @@ class AdminDashboardController extends Controller
             'update_estimated_end',
             'liveVisitors',
             'liveQuizTakers',
+            'infrastructure',
         ));
     }
 
@@ -95,6 +98,7 @@ class AdminDashboardController extends Controller
                 'success' => true,
                 'visitors' => app(SitePresenceService::class)->countActive(),
                 'quiz_takers' => app(LiveQuizSessionService::class)->countActive(),
+                'infrastructure' => app(InfrastructureStatusService::class)->snapshot(),
                 'as_of' => now()->toIso8601String(),
             ])
             ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')

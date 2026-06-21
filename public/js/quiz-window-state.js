@@ -74,7 +74,7 @@
         return { ok: false, error: lastError || new Error('unsupported') };
     }
 
-    /** Prefer the quiz content root so scrolling and clicks work inside Fullscreen API. */
+    /** Quiz content root, used only as a fallback fullscreen target. */
     function getPreferredFullscreenRoot() {
         return document.querySelector('.quiz-writing-content')
             || document.getElementById('quiz-mobile-root')
@@ -83,31 +83,28 @@
     }
 
     /**
-     * Request full screen starting from the clicked element (user gesture), then quiz root / documentElement.
-     * Browsers require requestFullscreen in the same turn as the click; call this synchronously from click.
+     * Request browser full screen for the WHOLE page (documentElement) on a user gesture.
+     *
+     * IMPORTANT: never full-screen the clicked button or its overlay. Those elements are
+     * hidden right after fullscreen starts; if one of them is the fullscreen element, the
+     * browser freezes the page in a non-interactive fullscreen (no scroll, no clicks).
+     * We full-screen the quiz content root (its `:fullscreen` CSS enables scrolling), then
+     * fall back to documentElement (`html:fullscreen` CSS) so the whole quiz stays visible
+     * and interactive.
+     *
+     * Browsers require requestFullscreen in the same turn as the click; call this
+     * synchronously from the click handler.
      */
     function requestFullscreenFromGesture(sourceEl) {
         if (isFullscreenOrMaximized()) {
             fsDebug('requestFullscreen skipped (already active)');
             return Promise.resolve();
         }
-        var candidates = [];
-        if (sourceEl && sourceEl.nodeType === 1) {
-            var node = sourceEl;
-            while (node) {
-                candidates.push(node);
-                if (node === document.documentElement) {
-                    break;
-                }
-                node = node.parentElement;
-            }
-        }
-        var preferredRoot = getPreferredFullscreenRoot();
-        if (preferredRoot) {
-            candidates.push(preferredRoot);
-        }
-        candidates.push(document.documentElement, document.body);
-        candidates = uniqueElements(candidates);
+        var candidates = uniqueElements([
+            getPreferredFullscreenRoot(),
+            document.documentElement,
+            document.body
+        ]);
         fsDebug('requestFullscreenFromGesture', { candidates: candidates.length, sourceId: sourceEl && sourceEl.id });
 
         var lastError = new Error('unsupported');

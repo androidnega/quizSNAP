@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\User;
+use Illuminate\Http\Request;
 
 final class EnterpriseCenterAccess
 {
@@ -43,5 +44,24 @@ final class EnterpriseCenterAccess
             $center,
             $label
         );
+    }
+
+    /** Routes a System Monitor account may use (dashboard hub + all enterprise centers). */
+    public static function systemMonitorRouteAllowed(Request $request): bool
+    {
+        if ($request->is('broadcasting/auth')) {
+            return true;
+        }
+
+        return $request->routeIs([
+            'dashboard',
+            'dashboard.live-stats',
+            'dashboard.monitoring.*',
+            'dashboard.operations.*',
+            'dashboard.intelligence.*',
+            'dashboard.profile.*',
+            'logout',
+            'logout.get',
+        ]);
     }
 }

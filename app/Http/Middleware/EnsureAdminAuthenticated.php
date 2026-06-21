@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\User;
+use App\Support\EnterpriseCenterAccess;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -52,16 +53,9 @@ class EnsureAdminAuthenticated
                 ->with('error', 'Session invalid. Please log in again.');
         }
 
-        // System Administrator: monitoring, operations, and intelligence centers only
+        // System Monitor: dashboard hub, profile, and all enterprise centers only.
         if ($user->role === User::ROLE_SYSTEM_ADMIN) {
-            $systemAdminAllowed = $request->is('broadcasting/auth')
-                || $request->routeIs('dashboard.monitoring.*')
-                || $request->routeIs('dashboard.operations.*')
-                || $request->routeIs('dashboard.intelligence.*')
-                || $request->routeIs('dashboard.profile.*')
-                || $request->routeIs('logout')
-                || $request->routeIs('logout.get');
-            if (! $systemAdminAllowed) {
+            if (! EnterpriseCenterAccess::systemMonitorRouteAllowed($request)) {
                 return redirect()->route('dashboard')
                     ->with('error', 'System Monitors can only access their dashboard and enterprise centers.');
             }

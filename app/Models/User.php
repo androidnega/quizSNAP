@@ -118,6 +118,14 @@ class User extends Authenticatable
         return $this->isSuperAdmin() || $this->isSystemAdministrator();
     }
 
+    /** Full access to Monitoring, Operations, and Intelligence centers. */
+    public function canAccessEnterpriseCenters(): bool
+    {
+        return $this->canAccessMonitoring()
+            && $this->canAccessOperations()
+            && $this->canAccessIntelligence();
+    }
+
     /** Administrator (Super Admin) and System Monitor only — not examiner or coordinator. */
     public function canAccessEnterpriseBroadcasting(): bool
     {

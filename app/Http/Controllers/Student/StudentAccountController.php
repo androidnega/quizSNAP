@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Student\Concerns\IssuesStudentLoginSmsOtp;
 use App\Models\ClassGroupStudent;
 use App\Models\Otp;
-use App\Models\QuizAcceptance;
 use App\Models\Student;
 use App\Services\StudentUniversalOtp;
 use App\Services\StudentAuthAuditLogger;

@@ -6,6 +6,7 @@ use App\Models\Setting;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -17,6 +18,10 @@ use Illuminate\Support\Facades\Log;
  */
 class ArkeselService
 {
+    private const LIVE_SMS_BALANCE_CACHE_KEY = 'arkesel:live_sms_balance_ok';
+
+    private const LIVE_SMS_BALANCE_CACHE_MINUTES = 5;
+
     private static function getApiKey(): string
     {
         $key = Setting::getValue(Setting::KEY_OTP_ARKESEL_API_KEY, '');
@@ -67,6 +72,50 @@ class ArkeselService
     public static function hasApiKey(): bool
     {
         return self::usesLogDriver() || self::getApiKey() !== '';
+    }
+
+    /**
+     * Whether live Arkesel SMS can be sent (cached; avoids send attempts when credits are 0).
+     */
+    public static function hasLiveSmsBalance(): bool
+    {
+        if (self::usesLogDriver()) {
+            return true;
+        }
+        if (! self::hasApiKey()) {
+            return false;
+        }
+
+        $cached = Cache::get(self::LIVE_SMS_BALANCE_CACHE_KEY);
+        if ($cached !== null) {
+            return (bool) $cached;
+        }
+
+        $check = self::checkBalance();
+        $ok = ($check['success'] ?? false)
+            && (float) ($check['sms_balance'] ?? 0) > 0;
+
+        Cache::put(
+            self::LIVE_SMS_BALANCE_CACHE_KEY,
+            $ok ? 1 : 0,
+            now()->addMinutes(self::LIVE_SMS_BALANCE_CACHE_MINUTES)
+        );
+
+        return $ok;
+    }
+
+    public static function markLiveSmsBalanceDepleted(): void
+    {
+        Cache::put(
+            self::LIVE_SMS_BALANCE_CACHE_KEY,
+            0,
+            now()->addMinutes(self::LIVE_SMS_BALANCE_CACHE_MINUTES)
+        );
+    }
+
+    public static function clearLiveSmsBalanceCache(): void
+    {
+        Cache::forget(self::LIVE_SMS_BALANCE_CACHE_KEY);
     }
 
     /**
@@ -246,6 +295,8 @@ class ArkeselService
             return ['success' => false, 'message' => 'SMS service is not configured correctly. Please try again later or contact your institution.'];
         }
         if ($status === 402 || $status === 403) {
+            self::markLiveSmsBalanceDepleted();
+
             return ['success' => false, 'message' => 'SMS service is temporarily unavailable. Please try again later.'];
         }
         if ($status === 422) {

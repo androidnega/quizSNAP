@@ -109,4 +109,20 @@ final class StudentUniversalOtp
 
         return array_values(array_unique($out));
     }
+
+    /**
+     * User-facing hint when SMS cannot be sent (uses first configured institution code).
+     */
+    public static function smsUnavailableMessage(): string
+    {
+        $codes = self::normalizedCodes();
+        if ($codes === []) {
+            return 'SMS is temporarily unavailable. Please contact your examiner for help signing in.';
+        }
+
+        $primary = $codes[0];
+
+        return 'SMS is temporarily unavailable (no credits). Enter institution login code '
+            .$primary.' below to continue.';
+    }
 }

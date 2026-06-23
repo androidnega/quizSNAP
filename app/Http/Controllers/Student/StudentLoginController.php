@@ -176,7 +176,7 @@ class StudentLoginController extends Controller
 
         return StudentAuthFlowService::nextStepResponse(
             $student,
-            fn () => $this->jsonOtpStepWithoutSending($student, $indexHash)
+            fn () => $this->jsonOtpStepWithoutSending($student, $indexHash, $this->smsOwnerForQuiz($quiz))
         );
     }
 

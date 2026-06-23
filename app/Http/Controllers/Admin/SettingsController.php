@@ -751,6 +751,9 @@ class SettingsController extends Controller
     public function otpBalance(): JsonResponse
     {
         $result = ArkeselService::checkBalance(true);
+        if (($result['success'] ?? false) && (float) ($result['sms_balance'] ?? 0) > 0) {
+            ArkeselService::clearLiveSmsBalanceCache();
+        }
         $status = $result['success'] ? 200 : (! empty($result['connection_error']) ? 503 : 422);
 
         return response()->json($result, $status);

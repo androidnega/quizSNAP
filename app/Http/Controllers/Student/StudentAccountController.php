@@ -236,7 +236,11 @@ class StudentAccountController extends Controller
     {
         return StudentAuthFlowService::nextStepResponse(
             $student,
-            fn () => $this->jsonOtpStepWithoutSending($student, $student->index_number_hash)
+            fn () => $this->jsonOtpStepWithoutSending(
+                $student,
+                $student->index_number_hash,
+                $this->smsOwnerForIndex($student->index_number)
+            )
         );
     }
 

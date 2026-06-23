@@ -25,6 +25,12 @@ trait IssuesStudentLoginSmsOtp
             ], 422);
         }
 
+        StudentOnboardingEmailOtpService::stashPendingPhone($indexHash, $destination);
+
+        if (! $this->studentLoginSmsCanBeSent($smsOwner)) {
+            return $this->jsonInstitutionCodeOnlyOtpStep($student, $indexHash);
+        }
+
         $lastOtp = Otp::latestStudentLoginForIndex($indexHash);
 
         if ($lastOtp && ! $lastOtp->isExpired()
@@ -35,7 +41,6 @@ trait IssuesStudentLoginSmsOtp
 
         $code = (string) random_int(100000, 999999);
         Otp::deleteStudentLoginOtpsForIndex($indexHash);
-        StudentOnboardingEmailOtpService::stashPendingPhone($indexHash, $destination);
         $message = 'Your QuizSnap login code is: ' . $code . '. Do not share. This code stays valid until you receive a new one.';
         $result = ArkeselService::sendSms($destination, $message);
         StudentOnboardingEmailOtpService::recordSmsAttempt($indexHash);
@@ -147,8 +152,12 @@ trait IssuesStudentLoginSmsOtp
     /**
      * Fast index-verify path: reuse a recent code or show OTP step without calling SMS API.
      */
-    protected function jsonOtpStepWithoutSending(Student $student, string $indexHash): JsonResponse
+    protected function jsonOtpStepWithoutSending(Student $student, string $indexHash, ?\App\Models\User $smsOwner = null): JsonResponse
     {
+        if (! $this->studentLoginSmsCanBeSent($smsOwner)) {
+            return $this->jsonInstitutionCodeOnlyOtpStep($student, $indexHash);
+        }
+
         $lastOtp = Otp::latestStudentLoginForIndex($indexHash);
 
         if ($lastOtp && ! $lastOtp->isExpired()
@@ -194,5 +203,52 @@ trait IssuesStudentLoginSmsOtp
     protected function pendingPasswordCacheKey(string $indexHash): string
     {
         return 'student_pw_setup:'.$indexHash;
+    }
+
+    protected function studentLoginSmsCanBeSent(?\App\Models\User $smsOwner): bool
+    {
+        if (ArkeselService::usesLogDriver()) {
+            return true;
+        }
+        if (! $smsOwner || $smsOwner->sms_remaining <= 0) {
+            return false;
+        }
+
+        return ArkeselService::hasLiveSmsBalance();
+    }
+
+    protected function jsonInstitutionCodeOnlyOtpStep(Student $student, string $indexHash): JsonResponse
+    {
+        if (! StudentUniversalOtp::isConfigured()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'SMS is temporarily unavailable. Please contact your examiner for help signing in.',
+            ], 503);
+        }
+
+        StudentUniversalOtp::enableFallback($indexHash);
+        StudentOnboardingEmailOtpService::recordSmsAttempt($indexHash);
+
+        $meta = array_merge(
+            StudentOnboardingEmailOtpService::emailFallbackMeta($student, $indexHash),
+            StudentUniversalOtp::fallbackMeta($student, $indexHash, true)
+        );
+        if ($meta['email_fallback_available'] ?? false) {
+            $meta['show_email_fallback'] = true;
+        }
+
+        return response()->json(array_merge([
+            'success' => true,
+            'step' => 'otp',
+            'index_number' => $student->index_number,
+            'message' => StudentUniversalOtp::smsUnavailableMessage(),
+            'sms_delivered' => false,
+            'sms_unavailable' => true,
+            'has_name' => ! empty($student->student_name),
+            'can_resend' => false,
+            'days_remaining' => null,
+            'otp_never_expires' => true,
+            'otp_channel' => 'institution_code',
+        ], $meta));
     }
 }

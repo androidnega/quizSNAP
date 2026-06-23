@@ -16,9 +16,9 @@ class SettingAuditObserver
         app(AuditTrailService::class)->log(
             'Settings Modified',
             Setting::class,
-            $setting->getKey(),
-            ['value' => $setting->getOriginal('value') ?? null],
-            ['value' => $setting->value ?? null]
+            null,
+            ['key' => $setting->getKey(), 'value' => $setting->getOriginal('value') ?? null],
+            ['key' => $setting->getKey(), 'value' => $setting->value ?? null]
         );
     }
 }

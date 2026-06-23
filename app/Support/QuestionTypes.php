@@ -38,11 +38,7 @@ final class QuestionTypes
     public static function inferTypeFromItem(array $item): string
     {
         if (isset($item['type']) && trim((string) $item['type']) !== '') {
-            $declared = self::normalize((string) $item['type']);
-            $raw = strtolower(trim((string) $item['type']));
-            if ($declared !== self::MCQ || in_array($raw, ['mcq', 'multiple_choice', 'multiple choice'], true)) {
-                return $declared;
-            }
+            return self::normalize((string) $item['type']);
         }
 
         $correct = self::extractCorrectAnswer($item);
@@ -78,7 +74,7 @@ final class QuestionTypes
      */
     public static function extractCorrectAnswer(array $item): mixed
     {
-        foreach (['correct', 'correctAnswer', 'answer'] as $key) {
+        foreach (['correct', 'correctAnswer', 'answer', 'expected_answer', 'expected', 'blank_answer', 'fill_answer'] as $key) {
             if (array_key_exists($key, $item)) {
                 return $item[$key];
             }
@@ -87,8 +83,66 @@ final class QuestionTypes
         return null;
     }
 
+    /**
+     * Expected answer text for fill-in questions (handles arrays and alternate AI keys).
+     *
+     * @param  array<string, mixed>  $item
+     */
+    public static function extractFillInAnswer(array $item): string
+    {
+        foreach (['correct', 'correctAnswer', 'answer', 'expected_answer', 'expected', 'blank_answer', 'fill_answer'] as $key) {
+            if (! array_key_exists($key, $item)) {
+                continue;
+            }
+            $parsed = self::parseFillInScalar($item[$key]);
+            if ($parsed !== '') {
+                return $parsed;
+            }
+        }
+
+        if (isset($item['acceptable_answers']) && is_array($item['acceptable_answers'])) {
+            foreach ($item['acceptable_answers'] as $entry) {
+                $parsed = self::parseFillInScalar($entry);
+                if ($parsed !== '') {
+                    return $parsed;
+                }
+            }
+        }
+
+        return '';
+    }
+
+    public static function parseFillInScalar(mixed $value): string
+    {
+        if (is_array($value)) {
+            foreach ($value as $entry) {
+                $parsed = self::parseFillInScalar($entry);
+                if ($parsed !== '') {
+                    return $parsed;
+                }
+            }
+
+            return '';
+        }
+        if (is_bool($value)) {
+            return $value ? 'true' : 'false';
+        }
+        if (! is_scalar($value)) {
+            return '';
+        }
+        $text = trim((string) $value);
+        if ($text === '' || strcasecmp($text, 'Array') === 0) {
+            return '';
+        }
+
+        return $text;
+    }
+
     public static function coerceCorrectToString(mixed $value): string
     {
+        if (is_array($value)) {
+            return self::parseFillInScalar($value);
+        }
         if (is_bool($value)) {
             return $value ? 'true' : 'false';
         }

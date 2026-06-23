@@ -230,7 +230,7 @@
 
     function poll() {
         fetch(statusUrl, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } })
-            .then(function(r) { return r.json(); })
+            .then(function(r) { return r.json().catch(function() { return {}; }); })
             .then(function(data) {
                 var status = data.status || 'idle';
                 if (status === 'running') {
@@ -242,15 +242,30 @@
                     var msg = document.getElementById('ai-generation-message');
                     if (bar) bar.style.width = pct + '%';
                     if (counts) counts.textContent = generated + ' / ' + target + ' in pool';
-                    if (msg && data.message) msg.textContent = data.message;
+                    if (msg) msg.textContent = data.message || ('Generating… ' + generated + ' of ' + target);
                     setTimeout(poll, pollMs);
                 } else if (status === 'completed') {
-                    window.location.reload();
+                    var doneMsg = document.getElementById('ai-generation-message');
+                    if (doneMsg) doneMsg.textContent = data.message || 'Generation complete. Refreshing…';
+                    setTimeout(function() { window.location.reload(); }, 600);
                 } else if (status === 'failed') {
-                    window.location.reload();
+                    banner.classList.remove('bg-indigo-50', 'border-indigo-300');
+                    banner.classList.add('bg-red-50', 'border-red-300');
+                    var msg = document.getElementById('ai-generation-message');
+                    if (msg) {
+                        msg.textContent = data.message || 'Question generation failed. Try again from the overview below.';
+                        msg.classList.remove('text-indigo-800');
+                        msg.classList.add('text-red-800');
+                    }
+                } else if (status === 'idle') {
+                    var idleMsg = document.getElementById('ai-generation-message');
+                    if (idleMsg && data.message) idleMsg.textContent = data.message;
+                    setTimeout(poll, pollMs);
                 }
             })
             .catch(function() {
+                var msg = document.getElementById('ai-generation-message');
+                if (msg) msg.textContent = 'Could not reach the server. Retrying…';
                 setTimeout(poll, pollMs * 2);
             });
     }

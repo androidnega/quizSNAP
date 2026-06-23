@@ -176,8 +176,8 @@ class AiQuestionService
             $errors[] = 'Question ' . $index . ': missing required key "text" or "question".';
         }
         if ($type === QuestionTypes::FILL_IN) {
-            $correct = QuestionTypes::extractCorrectAnswer($item);
-            if ($correct === null || (is_string($correct) && trim($correct) === '') || (is_array($correct))) {
+            $correct = QuestionTypes::extractFillInAnswer($item);
+            if ($correct === '') {
                 $errors[] = 'Question ' . $index . ': fill-in questions require "correct" (expected answer text).';
             }
 
@@ -316,7 +316,7 @@ class AiQuestionService
         $rawCorrect = QuestionTypes::extractCorrectAnswer($item);
 
         if ($type === QuestionTypes::FILL_IN) {
-            $correct = QuestionTypes::coerceCorrectToString($rawCorrect);
+            $correct = QuestionTypes::extractFillInAnswer($item);
             if ($correct === '') {
                 return null;
             }
@@ -500,6 +500,12 @@ class AiQuestionService
     public function generatePoolAndStore(Quiz $quiz, array $topics, int $count, ?string $sourceText = null, bool $geminiOnly = false): array
     {
         if (! $this->hasApiKey()) {
+            if (! self::isGenerationEnabled()) {
+                $this->lastApiError = 'AI question generation is disabled in Settings → AI.';
+            } else {
+                $this->lastApiError = 'DeepSeek API key not set. Add a key in Dashboard → Settings → AI.';
+            }
+
             return [];
         }
         $count = min($count, $this->getPerQuizLimit());
@@ -523,35 +529,143 @@ class AiQuestionService
             $context = AssessmentPromptBuilder::sourceMaterialBlock($sourceText);
         }
         $batchTypeCounts = $this->resolveBatchTypeCounts($quiz, $count);
-        $prompt = $context . $this->buildMixedTypePrompt($topicNames, $batchTypeCounts, true);
-        $result = $this->callAiWithUsage($prompt, $geminiOnly);
-        $content = $result['text'] ?? null;
-        $decoded = ($content !== null && $content !== '') ? $this->parseJsonArray($content) : null;
-        if (! is_array($decoded) || empty($decoded)) {
-            // Fallback: simpler prompt often works when the main one times out or returns bad JSON.
-            $fallbackCount = min(3, $count);
-            $ids = $this->generatePoolAndStoreSimple($quiz, $topicNames, $fallbackCount, $context, $geminiOnly);
-            if (! empty($ids)) {
-                return array_slice($ids, 0, $count);
+
+        return $this->generatePoolForTypeCounts($quiz, $topicNames, $batchTypeCounts, $context, $geminiOnly, $count);
+    }
+
+    /**
+     * Generate questions one type at a time (more reliable for fill-in and true/false).
+     *
+     * @param  array<string, int>  $typeCounts
+     * @return int[]
+     */
+    private function generatePoolForTypeCounts(
+        Quiz $quiz,
+        string $topicNames,
+        array $typeCounts,
+        string $context,
+        bool $geminiOnly,
+        int $maxItems,
+        ?int $batchNumber = null,
+        ?int $batchTotal = null,
+    ): array {
+        $ids = [];
+        $batchSuffix = ($batchNumber !== null && $batchTotal !== null)
+            ? "\nThis is batch {$batchNumber} of {$batchTotal}. Generate UNIQUE questions that differ from previous batches."
+            : '';
+
+        foreach ([QuestionTypes::MCQ, QuestionTypes::TRUE_FALSE, QuestionTypes::FILL_IN] as $type) {
+            $needed = (int) ($typeCounts[$type] ?? 0);
+            if ($needed < 1 || count($ids) >= $maxItems) {
+                continue;
             }
-            if ($count >= 1) {
-                $ids = $this->generateOneQuestionMinimal($quiz, $topicNames, $geminiOnly);
-                if (! empty($ids)) {
-                    return $ids;
+            $needed = min($needed, $maxItems - count($ids));
+            $singleTypeCounts = [$type => $needed];
+            $prompt = $context . $this->buildMixedTypePrompt($topicNames, $singleTypeCounts, true) . $batchSuffix;
+            $result = $this->callAiWithUsage($prompt, $geminiOnly);
+            $content = $result['text'] ?? null;
+            $decoded = ($content !== null && $content !== '') ? $this->parseJsonArray($content) : null;
+            $stored = [];
+
+            if (is_array($decoded) && $decoded !== []) {
+                $stored = $this->storeDecodedItems($quiz, $decoded, $topicNames, $needed, $type);
+                $ids = array_merge($ids, $stored);
+                if ($stored !== []) {
+                    $this->logGenerationUsage($quiz, $result, count($stored));
                 }
             }
-            return [];
+
+            $stillNeeded = $needed - count($stored);
+            if ($stillNeeded > 0) {
+                $fallbackIds = $this->generateSingleTypeFallback($quiz, $topicNames, $type, $stillNeeded, $context, $geminiOnly);
+                $ids = array_merge($ids, $fallbackIds);
+            }
         }
+
+        if ($ids === []) {
+            $this->setGenerationFailureMessage(null);
+        }
+
+        return array_slice($ids, 0, $maxItems);
+    }
+
+    /**
+     * @return int[]
+     */
+    private function storeDecodedItems(Quiz $quiz, array $decoded, string $topicNames, int $limit, string $expectedType): array
+    {
         $ids = [];
-        foreach (array_slice($decoded, 0, $count) as $item) {
+        $rejected = 0;
+        foreach ($decoded as $item) {
+            if (count($ids) >= $limit) {
+                break;
+            }
             if (! is_array($item)) {
+                continue;
+            }
+            if (QuestionTypes::inferTypeFromItem($item) !== $expectedType) {
+                $rejected++;
+
                 continue;
             }
             $poolId = $this->createPoolFromParsedItem($quiz, $item, $topicNames);
             if ($poolId !== null) {
                 $ids[] = $poolId;
+            } else {
+                $rejected++;
             }
         }
+
+        if ($ids === [] && $rejected > 0) {
+            $label = QuestionTypes::labels()[$expectedType] ?? $expectedType;
+            $this->lastApiError = 'AI returned ' . $rejected . ' ' . $label . ' item(s) in an invalid format. Check fill-in answers use plain text in "correct".';
+        }
+
+        return $ids;
+    }
+
+    /**
+     * @return int[]
+     */
+    private function generateSingleTypeFallback(
+        Quiz $quiz,
+        string $topicNames,
+        string $type,
+        int $count,
+        string $context,
+        bool $geminiOnly,
+    ): array {
+        if ($count < 1) {
+            return [];
+        }
+        $count = min($count, 3);
+        $prompt = match ($type) {
+            QuestionTypes::FILL_IN => AssessmentPromptBuilder::buildFillInOnlyPrompt($topicNames, $count, $context),
+            QuestionTypes::TRUE_FALSE => AssessmentPromptBuilder::buildTrueFalseOnlyPrompt($topicNames, $count, $context),
+            default => AssessmentPromptBuilder::buildSimpleMcqPrompt($topicNames, $count, $context),
+        };
+        $result = $this->callAiWithUsage($prompt, $geminiOnly);
+        $content = $result['text'] ?? null;
+        if ($content === null || $content === '') {
+            return [];
+        }
+        $decoded = $this->parseJsonArray($content);
+        if (! is_array($decoded) || $decoded === []) {
+            return [];
+        }
+        $ids = $this->storeDecodedItems($quiz, $decoded, $topicNames, $count, $type);
+        if ($ids !== []) {
+            $this->logGenerationUsage($quiz, $result, count($ids));
+        }
+
+        return $ids;
+    }
+
+    /**
+     * @param  array{text?: ?string, provider?: ?string, usage?: array<string, int>}  $result
+     */
+    private function logGenerationUsage(Quiz $quiz, array $result, int $questionsGenerated): void
+    {
         $usage = $result['usage'] ?? ['prompt_tokens' => 0, 'completion_tokens' => 0, 'total_tokens' => 0];
         AiGenerationLog::create([
             'quiz_id' => $quiz->id,
@@ -559,10 +673,9 @@ class AiQuestionService
             'completion_tokens' => $usage['completion_tokens'],
             'total_tokens' => $usage['total_tokens'] ?: ($usage['prompt_tokens'] + $usage['completion_tokens']),
             'provider' => $result['provider'] ?? null,
-            'questions_generated' => count($ids),
+            'questions_generated' => $questionsGenerated,
             'generated_at' => now(),
         ]);
-        return $ids;
     }
 
     /**
@@ -664,82 +777,61 @@ class AiQuestionService
     private function generatePoolInBatches(Quiz $quiz, array $topics, string $topicNames, int $totalCount, ?string $sourceText, int $batchSize, bool $geminiOnly = false): array
     {
         $allIds = [];
-        $totalPromptTokens = 0;
-        $totalCompletionTokens = 0;
-        $totalTokens = 0;
-        $provider = null;
-        
         $context = '';
         if ($sourceText !== null && $sourceText !== '') {
             $context = AssessmentPromptBuilder::sourceMaterialBlock($sourceText);
         }
-        
+
         $batches = (int) ceil($totalCount / $batchSize);
         for ($i = 0; $i < $batches; $i++) {
             $remaining = $totalCount - count($allIds);
             $batchCount = min($batchSize, $remaining);
-            
+
             if ($batchCount < 1) {
                 break;
             }
-            
+
             $batchNumber = $i + 1;
             $batchTypeCounts = $this->resolveBatchTypeCounts($quiz, $batchCount);
-            $prompt = $context . $this->buildMixedTypePrompt($topicNames, $batchTypeCounts, true)
-                . "\nThis is batch {$batchNumber} of {$batches}. Generate UNIQUE questions that differ from previous batches.";
-            
-            $result = $this->callAiWithUsage($prompt, $geminiOnly);
-            $content = $result['text'] ?? null;
-            
-            if ($content === null || $content === '') {
-                continue; // Skip failed batch, try next one
+            $batchIds = $this->generatePoolForTypeCounts(
+                $quiz,
+                $topicNames,
+                $batchTypeCounts,
+                $context,
+                $geminiOnly,
+                $batchCount,
+                $batchNumber,
+                $batches
+            );
+            foreach ($batchIds as $id) {
+                $allIds[] = $id;
             }
-            
-            $decoded = $this->parseJsonArray($content);
-            if (!is_array($decoded)) {
-                continue; // Skip invalid batch
-            }
-            
-            // Store questions from this batch
-            foreach (array_slice($decoded, 0, $batchCount) as $item) {
-                if (! is_array($item)) {
-                    continue;
-                }
-                $poolId = $this->createPoolFromParsedItem($quiz, $item, $topicNames);
-                if ($poolId !== null) {
-                    $allIds[] = $poolId;
-                }
-            }
-            
-            // Accumulate token usage
-            $usage = $result['usage'] ?? ['prompt_tokens' => 0, 'completion_tokens' => 0, 'total_tokens' => 0];
-            $totalPromptTokens += $usage['prompt_tokens'];
-            $totalCompletionTokens += $usage['completion_tokens'];
-            $totalTokens += $usage['total_tokens'];
-            if ($provider === null && isset($result['provider'])) {
-                $provider = $result['provider'];
-            }
-            
-            // Small delay between batches to avoid rate limits
+
             if ($i < $batches - 1) {
-                usleep(150000); // 0.15s between batches
+                usleep(150000);
             }
         }
-        
-        // Log total usage for all batches
-        if (!empty($allIds)) {
-            AiGenerationLog::create([
-                'quiz_id' => $quiz->id,
-                'prompt_tokens' => $totalPromptTokens,
-                'completion_tokens' => $totalCompletionTokens,
-                'total_tokens' => $totalTokens ?: ($totalPromptTokens + $totalCompletionTokens),
-                'provider' => $provider,
-                'questions_generated' => count($allIds),
-                'generated_at' => now(),
-            ]);
+
+        if ($allIds === [] && $this->lastApiError === null) {
+            $this->lastApiError = 'AI returned no questions after all batches. Check the DeepSeek API key and account balance in Settings → AI.';
         }
-        
+
         return $allIds;
+    }
+
+    private function setGenerationFailureMessage(?string $apiContent): void
+    {
+        if ($this->lastApiError !== null && $this->lastApiError !== '') {
+            return;
+        }
+
+        if ($apiContent !== null && trim($apiContent) !== '') {
+            $this->lastApiError = 'AI returned a response but questions could not be parsed. Try again or reduce the batch size.';
+
+            return;
+        }
+
+        $this->lastApiError = 'AI returned no questions. Check the DeepSeek API key and account balance in Settings → AI.';
     }
 
     /**

@@ -266,9 +266,26 @@ html:-webkit-full-screen .quiz-mobile-content-below-camera,
                         @endforeach
                     </div>
                     @endif
+                @elseif($question->type === 'fill_in')
+                    <div class="min-w-0">
+                        <label for="fill-{{ $question->id }}" class="block text-sm font-medium text-gray-600 mb-2">Fill in the blank</label>
+                        <input
+                            type="text"
+                            id="fill-{{ $question->id }}"
+                            name="q_{{ $question->id }}"
+                            data-question-id="{{ $question->id }}"
+                            data-answer-type="fill_in"
+                            value="{{ $savedAnswers[$question->id] ?? '' }}"
+                            placeholder="Type the missing word or phrase"
+                            autocomplete="off"
+                            spellcheck="false"
+                            class="input w-full min-w-0 rounded-xl border border-gray-300 px-3 py-3 text-base"
+                        >
+                    </div>
                 @else
                     <div class="min-w-0">
-                        <textarea name="q_{{ $question->id }}" data-question-id="{{ $question->id }}" rows="4" placeholder="Type your answer here..." class="input min-h-[100px] w-full min-w-0 rounded-xl border border-gray-300 px-3 py-2.5 text-sm">{{ $savedAnswers[$question->id] ?? '' }}</textarea>
+                        <label for="text-{{ $question->id }}" class="block text-sm font-medium text-gray-600 mb-2">Your answer</label>
+                        <textarea id="text-{{ $question->id }}" name="q_{{ $question->id }}" data-question-id="{{ $question->id }}" rows="4" placeholder="Type your answer here..." class="input min-h-[100px] w-full min-w-0 rounded-xl border border-gray-300 px-3 py-2.5 text-sm">{{ $savedAnswers[$question->id] ?? '' }}</textarea>
                     </div>
                 @endif
             </div>
@@ -414,6 +431,8 @@ document.addEventListener('DOMContentLoaded', function() {
             for (var qId in parsed) {
                 var name = 'q_' + qId;
                 var val = String(parsed[qId] || '');
+                var fill = form.querySelector('input[data-answer-type="fill_in"][name="' + name + '"]');
+                if (fill) { fill.value = val; continue; }
                 var ta = form.querySelector('textarea[name="' + name + '"]');
                 if (ta) { ta.value = val; continue; }
                 form.querySelectorAll('input[name="' + name + '"]').forEach(function(r) {
@@ -435,9 +454,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 answers[qId] = checked ? (checked.value || '') : '';
             }
         });
-        form.querySelectorAll('textarea[data-question-id]').forEach(function(ta) {
-            if (ta.name && ta.dataset && ta.dataset.questionId) {
-                answers[ta.dataset.questionId] = ta.value ? String(ta.value).trim() : '';
+        form.querySelectorAll('textarea[data-question-id], input[data-answer-type="fill_in"]').forEach(function(field) {
+            if (field.name && field.dataset && field.dataset.questionId) {
+                answers[field.dataset.questionId] = field.value ? String(field.value).trim() : '';
             }
         });
         try {
@@ -456,9 +475,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 answers[qId] = checked ? (checked.value || '') : '';
             }
         });
-        form.querySelectorAll('textarea[data-question-id]').forEach(function(ta) {
-            if (ta.name && ta.dataset && ta.dataset.questionId) {
-                answers[ta.dataset.questionId] = ta.value ? String(ta.value).trim() : '';
+        form.querySelectorAll('textarea[data-question-id], input[data-answer-type="fill_in"]').forEach(function(field) {
+            if (field.name && field.dataset && field.dataset.questionId) {
+                answers[field.dataset.questionId] = field.value ? String(field.value).trim() : '';
             }
         });
         try {
@@ -554,6 +573,8 @@ document.addEventListener('DOMContentLoaded', function() {
         var name = 'q_' + questionId;
         var radio = form.querySelector('input[name="' + name + '"]:checked');
         if (radio) return true;
+        var fill = form.querySelector('input[data-answer-type="fill_in"][name="' + name + '"]');
+        if (fill && fill.value && String(fill.value).trim() !== '') return true;
         var ta = form.querySelector('textarea[name="' + name + '"]');
         return ta && ta.value && String(ta.value).trim() !== '';
     }
@@ -582,8 +603,8 @@ document.addEventListener('DOMContentLoaded', function() {
         form.querySelectorAll('input[type="radio"][name^="q_"]').forEach(function(r) {
             if (!seen[r.name]) { seen[r.name] = true; if (form.querySelector('input[name="' + r.name + '"]:checked')) answered++; }
         });
-        form.querySelectorAll('textarea[data-question-id]').forEach(function(ta) {
-            if (ta.name && !seen[ta.name]) { seen[ta.name] = true; if (ta.value && String(ta.value).trim() !== '') answered++; }
+        form.querySelectorAll('textarea[data-question-id], input[data-answer-type="fill_in"]').forEach(function(field) {
+            if (field.name && !seen[field.name]) { seen[field.name] = true; if (field.value && String(field.value).trim() !== '') answered++; }
         });
         var el = document.getElementById('quiz-mobile-answered-summary');
         if (el) el.textContent = answered + ' of ' + total + ' questions answered.';

@@ -120,7 +120,7 @@
             + 'Each item MUST include: "type" ("mcq", "true_false", or "fill_in"), "text" (question text), "topic" (one listed topic).\n'
             + 'MCQ: "options" object with keys A,B,C,D and "correct" as one letter.\n'
             + 'True/false: "correct" as true or false (JSON boolean), "True"/"False", or A/B. Options optional.\n'
-            + 'Fill-in: "correct" as the expected short answer (no options).\n'
+            + 'Fill-in: "correct" as the expected short answer string (no options). Use ___ in the question text for the blank.\n'
             + 'Do not include explanations.\n'
             + 'Example: [{"type":"mcq","text":"A clinic receives... Which action is best?","options":{"A":"...","B":"...","C":"...","D":"..."},"correct":"B","topic":"..."},{"type":"true_false","text":"Given the scenario...","correct":"True","topic":"..."},{"type":"fill_in","text":"After the audit, the team concluded that ___ was the root cause.","correct":"answer","topic":"..."}]';
     }

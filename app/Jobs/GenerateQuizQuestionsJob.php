@@ -57,23 +57,24 @@ class GenerateQuizQuestionsJob implements ShouldQueue
             $sourceText = mb_substr($sourceText, 0, 50000) . "\n[... truncated ...]";
         }
 
-        $maxAttempts = 2;
+        $maxAttempts = 5;
 
         for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+            $quiz->refresh();
             $poolCount = $quiz->questionPools()->count();
             $remaining = max(0, $target - $poolCount);
             if ($remaining <= 0) {
                 break;
             }
 
-            // AiQuestionService batches up to 20 questions per API call internally.
             $aiService->generatePoolAndStore($quiz, $topicList, $remaining, $sourceText ?: null);
             $quiz->refresh();
-            AiQuizGenerationProgress::update($this->quizId, $quiz->questionPools()->count());
-
-            if ($quiz->questionPools()->count() >= 1) {
-                break;
-            }
+            $poolCount = $quiz->questionPools()->count();
+            AiQuizGenerationProgress::update(
+                $this->quizId,
+                $poolCount,
+                'Generated ' . $poolCount . ' of ' . $target . ' question(s)…'
+            );
         }
 
         $generatedCount = $quiz->questionPools()->count();
@@ -86,6 +87,25 @@ class GenerateQuizQuestionsJob implements ShouldQueue
             AiQuizGenerationProgress::fail($this->quizId, $msg);
             Log::warning('GenerateQuizQuestionsJob: no questions generated', [
                 'quiz_id' => $this->quizId,
+                'error' => $apiError,
+            ]);
+
+            return;
+        }
+
+        if ($generatedCount < $target) {
+            $apiError = $aiService->getLastApiError();
+            $msg = 'Only ' . $generatedCount . ' of ' . $target . ' questions were generated.';
+            if ($apiError) {
+                $msg .= ' ' . $apiError;
+            } else {
+                $msg .= ' Some types (e.g. fill-in) may have failed — try generating again from the quiz overview.';
+            }
+            AiQuizGenerationProgress::fail($this->quizId, $msg);
+            Log::warning('GenerateQuizQuestionsJob: partial generation', [
+                'quiz_id' => $this->quizId,
+                'generated' => $generatedCount,
+                'target' => $target,
                 'error' => $apiError,
             ]);
 

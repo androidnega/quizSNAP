@@ -72,11 +72,14 @@ class AiQuizGenerationProgress
     public static function complete(int $quizId, int $generated): void
     {
         $existing = self::safeCacheGet(self::key($quizId)) ?? [];
+        $target = (int) ($existing['target'] ?? $generated);
         self::safeCachePut(self::key($quizId), [
             'status' => 'completed',
             'generated' => $generated,
-            'target' => (int) ($existing['target'] ?? $generated),
-            'message' => 'Generation complete.',
+            'target' => $target,
+            'message' => $generated >= $target
+                ? 'Generation complete. ' . $generated . ' question(s) created.'
+                : 'Generation finished with ' . $generated . ' of ' . $target . ' question(s). Approve them or generate more.',
             'completed_at' => now()->toIso8601String(),
         ], now()->addHours(24));
     }

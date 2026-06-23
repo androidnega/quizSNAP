@@ -113,6 +113,7 @@
                         <div class="w-full bg-gray-200 rounded-full h-2">
                             <div id="ai-batch-bar-{{ $quiz->id }}" class="bg-indigo-600 h-2 rounded-full transition-all duration-300" style="width:0%"></div>
                         </div>
+                        <p id="ai-batch-alert-{{ $quiz->id }}" class="hidden mt-2 text-sm rounded-lg px-3 py-2" role="alert"></p>
                     </div>
                 </div>
 
@@ -125,65 +126,142 @@ function startAiBatchGeneration(quizId, batchUrl, topics, target) {
     var progressWrap = document.getElementById('ai-batch-progress-' + quizId);
     var statusEl = document.getElementById('ai-batch-status-' + quizId);
     var barEl = document.getElementById('ai-batch-bar-' + quizId);
+    var alertEl = document.getElementById('ai-batch-alert-' + quizId);
     var csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
 
     btn.disabled = true;
     progressWrap.classList.remove('hidden');
     statusEl.textContent = 'Connecting to AI…';
+    statusEl.className = 'text-sm text-indigo-700 font-medium';
+    if (alertEl) {
+        alertEl.classList.add('hidden');
+        alertEl.textContent = '';
+    }
 
-    var totalGenerated = 0;
     var isFirst = true;
-    var zeroRetries = 0;
-    var maxZeroRetries = 3;
+
+    function extractApiError(data, status) {
+        if (!data || typeof data !== 'object') {
+            return status >= 500
+                ? 'Server error (HTTP ' + status + '). Try again or contact support.'
+                : 'Could not generate questions (HTTP ' + status + ').';
+        }
+        if (data.error) return data.error;
+        if (data.message && data.success === false) return data.message;
+        if (data.errors) {
+            var flat = [];
+            Object.keys(data.errors).forEach(function(k) {
+                var v = data.errors[k];
+                if (Array.isArray(v)) flat = flat.concat(v);
+                else flat.push(String(v));
+            });
+            if (flat.length) return flat.join(' ');
+        }
+        return null;
+    }
+
+    function parseJsonResponse(r) {
+        return r.text().then(function(text) {
+            var data = {};
+            if (text) {
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    var msg = 'Unexpected server response.';
+                    if (r.status === 419 || (text && text.indexOf('Page Expired') !== -1)) {
+                        msg = 'Session expired. Refresh the page and try again.';
+                    } else if (r.status === 401 || r.status === 403) {
+                        msg = 'You are not signed in or lack permission. Refresh and sign in again.';
+                    } else if (r.status >= 500) {
+                        msg = 'Server error (HTTP ' + r.status + '). Try again or contact support.';
+                    }
+                    return { ok: false, status: r.status, data: { success: false, error: msg } };
+                }
+            }
+            return { ok: r.ok, status: r.status, data: data };
+        });
+    }
+
+    function showAlert(msg, isError) {
+        if (!alertEl) return;
+        alertEl.textContent = msg;
+        alertEl.classList.remove('hidden', 'bg-red-50', 'text-red-800', 'border', 'border-red-200', 'bg-green-50', 'text-green-800', 'border-green-200');
+        if (isError) {
+            alertEl.classList.add('bg-red-50', 'text-red-800', 'border', 'border-red-200');
+        } else {
+            alertEl.classList.add('bg-green-50', 'text-green-800', 'border', 'border-green-200');
+        }
+    }
 
     function showError(msg) {
-        statusEl.textContent = msg;
+        statusEl.textContent = 'Generation failed';
         statusEl.className = 'text-sm text-red-600 font-medium';
         barEl.classList.add('bg-red-500');
-        barEl.classList.remove('bg-indigo-600');
+        barEl.classList.remove('bg-indigo-600', 'bg-green-500');
+        showAlert(msg, true);
         btn.disabled = false;
+    }
+
+    function showSuccess(msg, soFar) {
+        barEl.style.width = '100%';
+        barEl.classList.add('bg-green-500');
+        barEl.classList.remove('bg-indigo-600', 'bg-red-500');
+        statusEl.textContent = 'Generation complete';
+        statusEl.className = 'text-sm text-green-700 font-medium';
+        showAlert(msg || ('Done! ' + soFar + ' question(s) in pool. Refreshing…'), false);
     }
 
     function runBatch() {
         var body = new URLSearchParams({ target: target, topics: topics, first_call: isFirst ? '1' : '0', _token: csrfToken });
         isFirst = false;
 
-        fetch(batchUrl, { method: 'POST', headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' }, body: body })
-            .then(function(r) { return r.json(); })
-            .then(function(data) {
-                if (data.error) {
-                    showError('Error: ' + data.error);
+        fetch(batchUrl, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: body
+        })
+            .then(parseJsonResponse)
+            .then(function(res) {
+                var data = res.data || {};
+                if (!res.ok || data.success === false) {
+                    showError(extractApiError(data, res.status) || 'AI question generation failed. Check Settings → AI.');
                     return;
                 }
-                var got = data.generated || 0;
-                if (got === 0) {
-                    zeroRetries++;
-                    if (zeroRetries >= maxZeroRetries) {
-                        showError('AI returned 0 questions after ' + maxZeroRetries + ' attempts. Check the DeepSeek API key in Settings → AI and account balance.');
-                        return;
-                    }
-                } else {
-                    zeroRetries = 0;
+                if (data.error) {
+                    showError(data.error);
+                    return;
                 }
-                totalGenerated += got;
-                var soFar = data.total_so_far || 0;
+
+                var got = data.generated || 0;
+                var soFar = data.total_so_far != null ? data.total_so_far : 0;
                 var pct = Math.min(100, Math.round((soFar / target) * 100));
                 barEl.style.width = pct + '%';
-                statusEl.textContent = 'Generated ' + soFar + ' of ' + target + ' questions (' + pct + '%)…';
+                barEl.classList.remove('bg-red-500', 'bg-green-500');
+                barEl.classList.add('bg-indigo-600');
 
                 if (data.done) {
-                    barEl.style.width = '100%';
-                    barEl.classList.add('bg-green-500');
-                    barEl.classList.remove('bg-indigo-600');
-                    statusEl.textContent = '✓ Done! ' + soFar + ' questions in pool. Refreshing page…';
-                    statusEl.className = 'text-sm text-green-700 font-medium';
-                    setTimeout(function() { window.location.reload(); }, 1200);
-                } else {
-                    setTimeout(runBatch, 400);
+                    if (soFar < 1) {
+                        showError('AI finished but no questions were created. Check the DeepSeek API key in Settings → AI and account balance.');
+                        return;
+                    }
+                    showSuccess(data.message || ('Done! ' + soFar + ' of ' + target + ' questions in pool.'), soFar);
+                    setTimeout(function() { window.location.reload(); }, 1400);
+                    return;
                 }
+
+                statusEl.textContent = data.message || ('Generated ' + soFar + ' of ' + target + ' questions (' + pct + '%)…');
+                statusEl.className = 'text-sm text-indigo-700 font-medium';
+                if (got > 0 && alertEl) {
+                    showAlert(data.message || ('Batch saved: ' + got + ' question(s).'), false);
+                }
+                setTimeout(runBatch, 400);
             })
-            .catch(function(err) {
-                showError('Network error. Please try again.');
+            .catch(function() {
+                showError('Network error. Check your connection and try again.');
             });
     }
 

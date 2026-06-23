@@ -63,6 +63,8 @@ B. True / false
 C. Fill-in-the-blank
 - Context-based stems; students apply concepts to complete the statement.
 - Expected answers should be concise (a word, phrase, or short term), not an essay.
+- Use ___ in the question text to show the blank.
+- JSON: "type" must be "fill_in", "correct" must be a plain string (not A/B/C/D), never include "options".
 TEXT;
     }
 
@@ -111,7 +113,7 @@ TEXT;
             . "Each item MUST include: \"type\" (\"mcq\", \"true_false\", or \"fill_in\"), \"text\" (question text), \"topic\" (one listed topic).\n"
             . "MCQ items: \"options\" object with keys A,B,C,D and \"correct\" as one letter.\n"
             . "True/false items: \"correct\" as True or False (no options required).\n"
-            . "Fill-in items: \"correct\" as the expected short answer text (no options).\n";
+            . "Fill-in items: \"type\" must be \"fill_in\"; \"text\" must include ___ for the blank; \"correct\" must be a plain JSON string answer (not an array, not A-D); do NOT include \"options\".\n";
 
         if ($includeExplanations) {
             $prompt .= "For MCQ and true/false, include \"explanation_wrong\" and \"explanation_correct\" (brief, pedagogical).\n";
@@ -171,5 +173,25 @@ TEXT;
             . "Topics: {$topicNames}. Generate exactly {$count} multiple choice questions. "
             . 'Reply with ONLY a JSON array, no other text. Each item: {"text":"question","options":{"A":"...","B":"...","C":"...","D":"..."},"correct":"A"}. '
             . 'Example: [{"text":"A manager notices declining sales in Q2. What should they analyze first?","options":{"A":"...","B":"...","C":"...","D":"..."},"correct":"B"}]';
+    }
+
+    public static function buildFillInOnlyPrompt(string $topicNames, int $count, string $contextPrefix = ''): string
+    {
+        return $contextPrefix
+            . self::compactQualityReminder()
+            . "Topics: {$topicNames}.\n"
+            . "Generate exactly {$count} fill-in-the-blank question(s).\n"
+            . "CRITICAL: each item must be {\"type\":\"fill_in\",\"text\":\"context with ___ blank\",\"correct\":\"expected answer\",\"topic\":\"...\"}.\n"
+            . "\"correct\" must be a JSON string. Do NOT use an array. Do NOT include \"options\". Do NOT use A/B/C/D as the answer.\n"
+            . 'Reply with ONLY a JSON array.';
+    }
+
+    public static function buildTrueFalseOnlyPrompt(string $topicNames, int $count, string $contextPrefix = ''): string
+    {
+        return $contextPrefix
+            . self::compactQualityReminder()
+            . "Topics: {$topicNames}.\n"
+            . "Generate exactly {$count} scenario-based true/false question(s).\n"
+            . 'Each item: {"type":"true_false","text":"...","correct":"True","topic":"..."} or "False". Reply with ONLY a JSON array.';
     }
 }

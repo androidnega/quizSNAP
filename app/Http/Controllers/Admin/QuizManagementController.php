@@ -233,7 +233,9 @@ class QuizManagementController extends Controller
                 'generated' => $poolCount,
                 'target' => $target,
                 'percent' => min(100, (int) round(($poolCount / $target) * 100)),
-                'message' => null,
+                'message' => $poolCount > 0
+                    ? 'Generation complete. ' . $poolCount . ' question(s) in pool.'
+                    : 'Waiting for generation to start…',
             ]);
         }
 
@@ -1630,9 +1632,35 @@ class QuizManagementController extends Controller
         $this->authorize('update', $quiz);
         $user = $this->adminUser();
         if (! $user) {
-            return response()->json(['error' => 'Unauthorized.'], 401);
+            return response()->json(['success' => false, 'error' => 'Unauthorized.'], 401);
         }
 
+        try {
+            return $this->runGenerateBatch($request, $quiz, $user);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $message = collect($e->errors())->flatten()->first()
+                ?? 'Invalid generation request. Check topics and target count.';
+
+            return response()->json([
+                'success' => false,
+                'error' => $message,
+                'generated' => 0,
+                'done' => false,
+            ], 422);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Question generation failed unexpectedly. Please try again.',
+                'generated' => 0,
+                'done' => false,
+            ], 500);
+        }
+    }
+
+    private function runGenerateBatch(Request $request, Quiz $quiz, \App\Models\User $user): \Illuminate\Http\JsonResponse
+    {
         $validated = $request->validate([
             'target'     => 'required|integer|min:1|max:250',
             'topics'     => 'nullable|string|max:1000',
@@ -1641,7 +1669,7 @@ class QuizManagementController extends Controller
 
         $aiService = app(AiQuestionService::class);
         if (! $aiService->hasApiKey()) {
-            return response()->json(['error' => 'AI generation is unavailable. Add a DeepSeek API key in Dashboard → Settings → AI.'], 422);
+            return response()->json(['success' => false, 'error' => 'AI generation is unavailable. Add a DeepSeek API key in Dashboard → Settings → AI.'], 422);
         }
 
         $target      = (int) $validated['target'];
@@ -1664,7 +1692,7 @@ class QuizManagementController extends Controller
             if ($remaining > 0 && ! $tokenService->canUse($user)) {
                 $status = $tokenService->getStatus($user);
 
-                return response()->json(['error' => $status['message'] ?? 'No AI quiz tokens left.'], 422);
+                return response()->json(['success' => false, 'error' => $status['message'] ?? 'No AI quiz tokens left.'], 422);
             }
 
             if ($remaining > 0) {
@@ -1676,9 +1704,12 @@ class QuizManagementController extends Controller
             \Illuminate\Support\Facades\Cache::forget($tokenPendingKey);
 
             return response()->json([
+                'success' => true,
+                'message' => 'Generation already complete.',
                 'generated'      => 0,
                 'questions_count' => $currentCount,
                 'pool_count'      => $poolCount,
+                'total_so_far'    => $totalSoFar,
                 'target'          => $target,
                 'done'            => true,
             ]);
@@ -1709,11 +1740,13 @@ class QuizManagementController extends Controller
         // If the AI service returned nothing (API failure, bad key, etc.) return 200 with error
         // so the browser always gets JSON (no HTML error page) and the JS can show the message.
         if ($generated === 0) {
+            \Illuminate\Support\Facades\Cache::forget($tokenPendingKey);
             $apiError = $aiService->getLastApiError();
             $message = $apiError
                 ? 'AI returned 0 questions. ' . $apiError
                 : 'AI returned 0 questions. Check the DeepSeek API key in Dashboard → Settings → AI and that your account has balance.';
             return response()->json([
+                'success' => false,
                 'error' => $message,
                 'generated' => 0,
                 'questions_count' => $currentCount,
@@ -1728,8 +1761,15 @@ class QuizManagementController extends Controller
         $newPool    = $quiz->questionPools()->count();
         $newTotal   = $newCount + $newPool;
         $done       = $newTotal >= $target;
+        $batchMessage = $generated === 1
+            ? 'Generated 1 question (' . $newTotal . ' of ' . $target . ').'
+            : 'Generated ' . $generated . ' questions (' . $newTotal . ' of ' . $target . ').';
 
         return response()->json([
+            'success' => true,
+            'message' => $done
+                ? 'Generation complete. ' . $newTotal . ' question(s) in pool.'
+                : $batchMessage,
             'generated'       => $generated,
             'questions_count'  => $newCount,
             'pool_count'       => $newPool,

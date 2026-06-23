@@ -371,9 +371,26 @@ html:-webkit-full-screen .quiz-main-content,
                                 @endforeach
                             </div>
                             @endif
+                        @elseif($question->type === 'fill_in')
+                            <div class="ml-11 min-w-0">
+                                <label for="fill-{{ $question->id }}" class="block text-sm font-medium text-gray-600 mb-2">Fill in the blank</label>
+                                <input
+                                    type="text"
+                                    id="fill-{{ $question->id }}"
+                                    name="q_{{ $question->id }}"
+                                    data-question-id="{{ $question->id }}"
+                                    data-answer-type="fill_in"
+                                    value="{{ $savedAnswers[$question->id] ?? '' }}"
+                                    placeholder="Type the missing word or phrase"
+                                    autocomplete="off"
+                                    spellcheck="false"
+                                    class="input w-full min-w-0 text-base py-2.5"
+                                >
+                            </div>
                         @else
                             <div class="ml-11 min-w-0">
-                                <textarea name="q_{{ $question->id }}" data-question-id="{{ $question->id }}" rows="4" placeholder="Type your answer here..." class="input min-h-[100px] w-full min-w-0">{{ $savedAnswers[$question->id] ?? '' }}</textarea>
+                                <label for="text-{{ $question->id }}" class="block text-sm font-medium text-gray-600 mb-2">Your answer</label>
+                                <textarea id="text-{{ $question->id }}" name="q_{{ $question->id }}" data-question-id="{{ $question->id }}" rows="4" placeholder="Type your answer here..." class="input min-h-[100px] w-full min-w-0">{{ $savedAnswers[$question->id] ?? '' }}</textarea>
                             </div>
                         @endif
                     </div>
@@ -545,6 +562,8 @@ document.addEventListener('DOMContentLoaded', function() {
         var name = 'q_' + questionId;
         var radio = form.querySelector('input[name="' + name + '"]:checked');
         if (radio) return true;
+        var fillInput = form.querySelector('input[data-answer-type="fill_in"][name="' + name + '"]');
+        if (fillInput && fillInput.value && fillInput.value.trim() !== '') return true;
         var ta = form.querySelector('textarea[name="' + name + '"]');
         if (ta && ta.value && ta.value.trim() !== '') return true;
         var select = form.querySelector('select[name="' + name + '"]');
@@ -610,10 +629,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (form.querySelector('input[name="' + name + '"]:checked')) answered++;
             }
         });
-        form.querySelectorAll('textarea[data-question-id]').forEach(function(ta) {
-            if (ta.name && !seenNames[ta.name]) {
-                seenNames[ta.name] = true;
-                if (ta.value && ta.value.trim() !== '') answered++;
+        form.querySelectorAll('textarea[data-question-id], input[data-answer-type="fill_in"]').forEach(function(field) {
+            if (field.name && !seenNames[field.name]) {
+                seenNames[field.name] = true;
+                if (field.value && field.value.trim() !== '') answered++;
             }
         });
         var el = document.getElementById('quiz-answered-summary');

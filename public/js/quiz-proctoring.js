@@ -653,7 +653,7 @@
     /** Push all current form answers into savePending so they are included in the next flush. */
     function pushAllFormAnswersToSavePending() {
         if (!quizForm) return;
-        quizForm.querySelectorAll('input[type="radio"], textarea').forEach(function (el) {
+        quizForm.querySelectorAll('input[type="radio"], textarea, input[data-answer-type="fill_in"]').forEach(function (el) {
             var questionId = el.dataset.questionId || (el.name && el.name.replace('q_', ''));
             if (!questionId) return;
             var val = '';
@@ -831,7 +831,7 @@
     else window.addEventListener('load', loadPendingFromStorageAndFlush);
 
     if (quizForm) {
-        quizForm.querySelectorAll('input[type="radio"], textarea').forEach(function (el) {
+        quizForm.querySelectorAll('input[type="radio"], textarea, input[data-answer-type="fill_in"]').forEach(function (el) {
             const questionId = el.dataset.questionId || (el.name && el.name.replace('q_', ''));
             const getVal = function () {
                 if (el.type === 'radio') {

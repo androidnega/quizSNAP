@@ -1278,18 +1278,33 @@
                 if (status === 'running') {
                     setProgress(pct, generated, target, msg, false);
                     if (elapsed > 120000 && generated === 0 && stuckPollCount > 8) {
-                        showError('Generation is taking too long with no questions yet. Run: php artisan queue:work — or restart with ./start-local.sh');
-                        if (progressStatus) progressStatus.textContent = 'Stalled';
+                        showError('Generation is taking too long with no questions yet. Check Settings → AI (DeepSeek API key) and ensure the queue worker is running.');
+                        if (progressStatus) progressStatus.textContent = 'Generation stalled';
                         return;
                     }
                     pollTimer = setTimeout(function() { pollStatus(statusUrl, redirectUrl); }, 900);
                 } else if (status === 'completed') {
-                    setProgress(100, generated, target, 'Done', false);
-                    setTimeout(function() { window.location.href = redirectUrl; }, 350);
+                    var doneMsg = data.message || ('Generation complete. ' + generated + ' of ' + target + ' question(s) created.');
+                    setProgress(100, generated, target, doneMsg, false);
+                    if (errorEl) errorEl.classList.add('hidden');
+                    setTimeout(function() { window.location.href = redirectUrl; }, 800);
                 } else if (status === 'failed') {
-                    showError(data.message || 'Question generation failed. Try again or check Settings → AI.');
+                    showError(data.message || 'Question generation failed. Check Settings → AI (DeepSeek API key and account balance), then try again.');
                     if (progressStatus) progressStatus.textContent = 'Generation failed';
                     if (progressWrap) progressWrap.classList.remove('hidden');
+                } else if (status === 'idle') {
+                    if (generated > 0) {
+                        setProgress(100, generated, target, 'Generation complete. ' + generated + ' question(s) in pool.', false);
+                        setTimeout(function() { window.location.href = redirectUrl; }, 800);
+                    } else if (elapsed > 90000) {
+                        showError('No progress detected. Ensure the DeepSeek API key is set in Settings → AI, then try again.');
+                    } else {
+                        var waitMsg = elapsed > 15000
+                            ? 'Waiting for background generation to start…'
+                            : 'Starting generation…';
+                        setProgress(pct, generated, target, waitMsg, false);
+                        pollTimer = setTimeout(function() { pollStatus(statusUrl, redirectUrl); }, 900);
+                    }
                 } else if (elapsed > 90000 && generated === 0) {
                     showError('No progress detected. Ensure DeepSeek API key is set in Settings → AI, then try again.');
                 } else {
@@ -1297,6 +1312,10 @@
                 }
             })
             .catch(function() {
+                if (pollStartedAt && (Date.now() - pollStartedAt) > 120000) {
+                    showError('Lost connection while checking generation status. Refresh the page to see if questions were created.');
+                    return;
+                }
                 pollTimer = setTimeout(function() { pollStatus(statusUrl, redirectUrl); }, 1500);
             });
     }

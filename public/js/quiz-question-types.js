@@ -62,6 +62,45 @@
         }
     }
 
+    function designGuidelines() {
+        return 'You are an expert assessment designer and examiner.\n'
+            + 'Your task is to generate challenging, application-based exam questions from the topics provided.\n\n'
+            + 'QUALITY PRIORITY (default for most questions):\n'
+            + '- Prefer application of knowledge, critical thinking, problem-solving, analysis, and evaluation.\n'
+            + '- Use realistic workplace, business, scientific, educational, social, or industry scenarios when appropriate.\n'
+            + '- Use short case studies or situational stems so students must think before answering.\n'
+            + '- Every question should require reasoning, not bare memorization.\n\n'
+            + 'AVOID as the default style (do not make these the majority):\n'
+            + '- Simple recall phrasing such as "Define...", "What is...", "List...", "State...", "Mention...".\n'
+            + '- Questions answerable by copying a single sentence from memory without understanding.\n\n'
+            + 'ALLOWED:\n'
+            + '- Occasional recall or definition questions when they fit the topic, but keep them a minority.\n'
+            + '- Direct factual checks when embedded in a scenario or when needed for balance.\n\n'
+            + 'TARGET COGNITIVE MIX (approximate across the full set):\n'
+            + '- 30% Application\n'
+            + '- 40% Analysis\n'
+            + '- 20% Evaluation\n'
+            + '- 10% Creation / synthesis\n\n'
+            + 'TARGET DIFFICULTY MIX (approximate across the full set):\n'
+            + '- 20% Easy\n'
+            + '- 50% Moderate\n'
+            + '- 30% Difficult';
+    }
+
+    function typeAuthoringRules() {
+        return 'PER-TYPE RULES:\n\n'
+            + 'A. Multiple choice (MCQ)\n'
+            + '- Use short case studies or realistic scenarios when possible.\n'
+            + '- Exactly 4 options (A–D); only one best answer.\n'
+            + '- Distractors must be plausible and test misunderstanding, not trick wording.\n\n'
+            + 'B. True / false\n'
+            + '- Scenario-based; test reasoning and judgment, not bare definitions.\n'
+            + '- The statement should require evaluating a situation or claim.\n\n'
+            + 'C. Fill-in-the-blank\n'
+            + '- Context-based stems; students apply concepts to complete the statement.\n'
+            + '- Expected answers should be concise (a word, phrase, or short term), not an essay.';
+    }
+
     function buildGeneratedPrompt(topicsArray, typeCounts) {
         var topicList = topicsArray.length ? topicsArray.join(', ') : 'General knowledge';
         var counts = typeCounts || getTypeCountsFromForm();
@@ -71,17 +110,19 @@
         var parts = [];
         if (counts.mcq > 0) parts.push(counts.mcq + ' multiple choice (MCQ) with exactly 4 options (A–D)');
         if (counts.true_false > 0) parts.push(counts.true_false + ' true/false');
-        if (counts.fill_in > 0) parts.push(counts.fill_in + ' fill-in-the-blank (short answer)');
-        return 'Use ONLY these precise topics—do not add or substitute others: ' + topicList + '.\n'
-            + 'Generate exactly ' + total + ' quiz questions that clearly align with these topics: ' + parts.join(', ') + '.\n'
-            + 'Difficulty: moderate.\n'
+        if (counts.fill_in > 0) parts.push(counts.fill_in + ' fill-in-the-blank');
+        return designGuidelines() + '\n\n'
+            + typeAuthoringRules() + '\n\n'
+            + 'TOPICS — use ONLY these precise topics; do not add or substitute others: ' + topicList + '.\n'
+            + 'Generate exactly ' + total + ' quiz questions aligned with those topics: ' + parts.join(', ') + '.\n'
+            + 'Distribute questions across the listed topics. Each item must tag one listed topic.\n'
             + 'Reply with a JSON array only, no other text before or after.\n'
             + 'Each item MUST include: "type" ("mcq", "true_false", or "fill_in"), "text" (question text), "topic" (one listed topic).\n'
             + 'MCQ: "options" object with keys A,B,C,D and "correct" as one letter.\n'
             + 'True/false: "correct" as true or false (JSON boolean), "True"/"False", or A/B. Options optional.\n'
             + 'Fill-in: "correct" as the expected short answer (no options).\n'
             + 'Do not include explanations.\n'
-            + 'Example: [{"type":"mcq","text":"...?","options":{"A":"...","B":"...","C":"...","D":"..."},"correct":"A","topic":"..."},{"type":"true_false","text":"...","correct":"True","topic":"..."},{"type":"fill_in","text":"...","correct":"answer","topic":"..."}]';
+            + 'Example: [{"type":"mcq","text":"A clinic receives... Which action is best?","options":{"A":"...","B":"...","C":"...","D":"..."},"correct":"B","topic":"..."},{"type":"true_false","text":"Given the scenario...","correct":"True","topic":"..."},{"type":"fill_in","text":"After the audit, the team concluded that ___ was the root cause.","correct":"answer","topic":"..."}]';
     }
 
     function coerceCorrectToString(value) {

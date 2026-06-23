@@ -7,6 +7,7 @@ use App\Models\Question;
 use App\Models\QuestionPool;
 use App\Models\Quiz;
 use App\Models\Setting;
+use App\Support\AssessmentPromptBuilder;
 use App\Support\QuestionTypes;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -236,39 +237,7 @@ class AiQuestionService
      */
     public function buildMixedTypePrompt(string $topicNames, array $typeCounts, bool $includeExplanations = false): string
     {
-        $counts = QuestionTypes::normalizeCounts($typeCounts);
-        $total = array_sum($counts);
-        if ($total < 1) {
-            $counts[QuestionTypes::MCQ] = 1;
-            $total = 1;
-        }
-        $parts = [];
-        if ($counts[QuestionTypes::MCQ] > 0) {
-            $parts[] = $counts[QuestionTypes::MCQ] . ' multiple choice (MCQ) with exactly 4 options (A–D)';
-        }
-        if ($counts[QuestionTypes::TRUE_FALSE] > 0) {
-            $parts[] = $counts[QuestionTypes::TRUE_FALSE] . ' true/false';
-        }
-        if ($counts[QuestionTypes::FILL_IN] > 0) {
-            $parts[] = $counts[QuestionTypes::FILL_IN] . ' fill-in-the-blank (short answer)';
-        }
-        $mix = implode(', ', $parts);
-        $prompt = 'Use ONLY these precise topics—do not add or substitute others: ' . $topicNames . ".\n"
-            . 'Generate exactly ' . $total . ' quiz questions that clearly align with these topics: ' . $mix . ".\n"
-            . "Base each question on information directly relevant to one or more of the listed topics.\n"
-            . "Reply with a JSON array only, no other text.\n"
-            . "Each item MUST include: \"type\" (\"mcq\", \"true_false\", or \"fill_in\"), \"text\" (question text), \"topic\" (one listed topic).\n"
-            . "MCQ items: \"options\" object with keys A,B,C,D and \"correct\" as one letter.\n"
-            . "True/false items: \"correct\" as True or False (no options required).\n"
-            . "Fill-in items: \"correct\" as the expected short answer text (no options).\n";
-        if ($includeExplanations) {
-            $prompt .= "For MCQ and true/false, also include \"explanation_wrong\" and \"explanation_correct\".\n";
-        } else {
-            $prompt .= "Do not include explanations.\n";
-        }
-        $prompt .= 'Example: [{"type":"mcq","text":"...?","options":{"A":"...","B":"...","C":"...","D":"..."},"correct":"A","topic":"..."},{"type":"true_false","text":"...","correct":"True","topic":"..."},{"type":"fill_in","text":"...","correct":"expected answer","topic":"..."}]';
-
-        return $prompt;
+        return AssessmentPromptBuilder::buildMixedTypePrompt($topicNames, $typeCounts, $includeExplanations);
     }
 
     /**
@@ -551,7 +520,7 @@ class AiQuestionService
         // Single batch for smaller requests
         $context = '';
         if ($sourceText !== null && $sourceText !== '') {
-            $context = "Use the following material as the primary source for generating exam questions. Base questions on this content.\n\n---\n" . mb_substr($sourceText, 0, 80000) . "\n---\n\n";
+            $context = AssessmentPromptBuilder::sourceMaterialBlock($sourceText);
         }
         $batchTypeCounts = $this->resolveBatchTypeCounts($quiz, $count);
         $prompt = $context . $this->buildMixedTypePrompt($topicNames, $batchTypeCounts, true);
@@ -561,7 +530,7 @@ class AiQuestionService
         if (! is_array($decoded) || empty($decoded)) {
             // Fallback: simpler prompt often works when the main one times out or returns bad JSON.
             $fallbackCount = min(3, $count);
-            $ids = $this->generatePoolAndStoreSimple($quiz, $topicNames, $fallbackCount, '', $geminiOnly);
+            $ids = $this->generatePoolAndStoreSimple($quiz, $topicNames, $fallbackCount, $context, $geminiOnly);
             if (! empty($ids)) {
                 return array_slice($ids, 0, $count);
             }
@@ -601,7 +570,7 @@ class AiQuestionService
      */
     private function generateOneQuestionMinimal(Quiz $quiz, string $topicNames, bool $geminiOnly = false): array
     {
-        $prompt = "Topic: {$topicNames}. Write 1 multiple choice question. Reply with ONLY this JSON array (no other text): [{\"text\":\"Your question here\",\"options\":{\"A\":\"\",\"B\":\"\",\"C\":\"\",\"D\":\"\"},\"correct\":\"A\"}]";
+        $prompt = AssessmentPromptBuilder::buildMinimalMcqPrompt($topicNames);
         $result = $this->callAiWithUsage($prompt, $geminiOnly);
         $content = $result['text'] ?? null;
         if ($content === null || $content === '') {
@@ -645,10 +614,7 @@ class AiQuestionService
      */
     private function generatePoolAndStoreSimple(Quiz $quiz, string $topicNames, int $count, string $context = '', bool $geminiOnly = false): array
     {
-        $prompt = $context
-            . "Topics: {$topicNames}. Generate exactly {$count} multiple choice questions. "
-            . "Reply with ONLY a JSON array, no other text. Each item: {\"text\":\"question\",\"options\":{\"A\":\"...\",\"B\":\"...\",\"C\":\"...\",\"D\":\"...\"},\"correct\":\"A\"}. "
-            . "Example: [{\"text\":\"What is 2+2?\",\"options\":{\"A\":\"3\",\"B\":\"4\",\"C\":\"5\",\"D\":\"6\"},\"correct\":\"B\"}]";
+        $prompt = AssessmentPromptBuilder::buildSimpleMcqPrompt($topicNames, $count, $context);
         $result = $this->callAiWithUsage($prompt, $geminiOnly);
         $content = $result['text'] ?? null;
         if ($content === null || $content === '') {
@@ -705,7 +671,7 @@ class AiQuestionService
         
         $context = '';
         if ($sourceText !== null && $sourceText !== '') {
-            $context = "Use the following material as the primary source for generating exam questions. Base questions on this content.\n\n---\n" . mb_substr($sourceText, 0, 80000) . "\n---\n\n";
+            $context = AssessmentPromptBuilder::sourceMaterialBlock($sourceText);
         }
         
         $batches = (int) ceil($totalCount / $batchSize);
@@ -803,11 +769,7 @@ class AiQuestionService
         }
         
         // Single batch for smaller requests
-        $prompt = "Use ONLY these precise topics—do not add or substitute others: {$topicNames}. "
-            . "Generate exactly {$count} multiple choice quiz questions (MCQ) that clearly align with these topics. "
-            . "Base each question on information directly relevant to one or more of the listed topics. "
-            . "For each question provide: question text, 4 options (A,B,C,D), and the correct letter. "
-            . "Format as JSON array only: [{\"text\":\"...\",\"options\":{\"A\":\"...\",\"B\":\"...\",\"C\":\"...\",\"D\":\"...\"},\"correct\":\"A\"}]";
+        $prompt = AssessmentPromptBuilder::buildMcqOnlyPrompt($topicNames, $count);
         $result = $this->callAiWithUsage($prompt);
         $content = $result['text'] ?? null;
         if ($content === null || $content === '') {
@@ -872,12 +834,7 @@ class AiQuestionService
             }
             
             $batchNumber = $i + 1;
-            $prompt = "Use ONLY these precise topics—do not add or substitute others: {$topicNames}. "
-                . "Generate exactly {$batchCount} multiple choice quiz questions (MCQ) that clearly align with these topics. "
-                . "This is batch {$batchNumber} of {$batches}. Generate UNIQUE questions that differ from previous batches. "
-                . "Base each question on information directly relevant to one or more of the listed topics. "
-                . "For each question provide: question text, 4 options (A,B,C,D), and the correct letter. "
-                . "Format as JSON array only: [{\"text\":\"...\",\"options\":{\"A\":\"...\",\"B\":\"...\",\"C\":\"...\",\"D\":\"...\"},\"correct\":\"A\"}]";
+            $prompt = AssessmentPromptBuilder::buildMcqOnlyPrompt($topicNames, $batchCount, $batchNumber, $batches);
             
             $result = $this->callAiWithUsage($prompt);
             $content = $result['text'] ?? null;

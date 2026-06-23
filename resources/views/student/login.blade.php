@@ -141,6 +141,36 @@
                 <p id="otp-days-remaining" class="text-center text-sm text-gray-500 mt-1 hidden" aria-live="polite"></p>
                 <button type="button" id="btn-back-to-phone" class="w-full py-2 px-4 text-sm font-medium rounded-lg text-gray-700 bg-gray-200 hover:bg-gray-300">← Back</button>
             </div>
+
+            @if(!empty($password_login_enabled))
+            <div id="step-setup-password" class="space-y-4 hidden">
+                <p class="text-sm text-gray-600" id="setup-password-message">Phone verified. Create a password for your account.</p>
+                <div>
+                    <label for="onboard_setup_password" class="block text-sm font-medium text-gray-700 mb-1">Password (min {{ \App\Models\Student::PASSWORD_MIN_LENGTH }} characters)</label>
+                    <input type="password" id="onboard_setup_password" autocomplete="new-password" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                </div>
+                <div>
+                    <label for="onboard_setup_password_confirmation" class="block text-sm font-medium text-gray-700 mb-1">Confirm password</label>
+                    <input type="password" id="onboard_setup_password_confirmation" autocomplete="new-password" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                </div>
+                <div id="setup-password-error" class="hidden">
+                    <div class="bg-danger-50 border border-danger-200 rounded-lg p-3 text-sm text-danger-800" id="setup-password-error-text"></div>
+                </div>
+                <button type="button" id="btn-setup-password" class="w-full py-2.5 px-4 text-sm font-semibold rounded-lg text-white bg-primary-600 hover:bg-primary-700">Continue</button>
+            </div>
+
+            <div id="step-setup-name" class="space-y-4 hidden">
+                <p class="text-sm text-gray-600" id="setup-name-message">What name should we show on your account?</p>
+                <div>
+                    <label for="setup_student_name" class="block text-sm font-medium text-gray-700 mb-1">Your name</label>
+                    <input type="text" id="setup_student_name" placeholder="Full name" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-primary-500" autocomplete="name" style="text-transform: capitalize;">
+                </div>
+                <div id="setup-name-error" class="hidden">
+                    <div class="bg-danger-50 border border-danger-200 rounded-lg p-3 text-sm text-danger-800" id="setup-name-error-text"></div>
+                </div>
+                <button type="button" id="btn-setup-name" class="w-full py-2.5 px-4 text-sm font-semibold rounded-lg text-white bg-primary-600 hover:bg-primary-700">Continue</button>
+            </div>
+            @endif
         </div>
     </div>
 </div>
@@ -196,6 +226,8 @@
     var stepPhone = document.getElementById('step-phone');
     var stepOtp = document.getElementById('step-otp');
     var stepPassword = document.getElementById('step-password');
+    var stepSetupPassword = document.getElementById('step-setup-password');
+    var stepSetupName = document.getElementById('step-setup-name');
     var indexInput = document.getElementById('index_number');
     var emailInput = document.getElementById('student_email');
     var phoneInput = document.getElementById('phone');
@@ -213,11 +245,55 @@
         stepPhone.classList.add('hidden');
         stepOtp.classList.add('hidden');
         if (stepPassword) stepPassword.classList.add('hidden');
+        if (stepSetupPassword) stepSetupPassword.classList.add('hidden');
+        if (stepSetupName) stepSetupName.classList.add('hidden');
         if (step === 'index') stepIndex.classList.remove('hidden');
         else if (step === 'email' && stepEmail) stepEmail.classList.remove('hidden');
         else if (step === 'phone') stepPhone.classList.remove('hidden');
         else if (step === 'password' && stepPassword) stepPassword.classList.remove('hidden');
+        else if (step === 'setup_password' && stepSetupPassword) stepSetupPassword.classList.remove('hidden');
+        else if (step === 'setup_name' && stepSetupName) stepSetupName.classList.remove('hidden');
         else if (step === 'otp') stepOtp.classList.remove('hidden');
+    }
+
+    function handleLoginStepData(data) {
+        if (!data) return;
+        if (data.index_number) currentIndexNumber = data.index_number;
+        if (data.redirect) {
+            window.location.href = data.redirect;
+            return;
+        }
+        if ((data.step === 'email' || data.step === 'setup_email') && stepEmail) {
+            document.getElementById('email-step-message').textContent = data.message || 'Enter your email address.';
+            if (emailInput) emailInput.value = data.prefill_email || emailInput.value || '';
+            showError('email-error', '');
+            showStep('email');
+        } else if (data.step === 'setup_password' && stepSetupPassword) {
+            document.getElementById('setup-password-message').textContent = data.message || 'Create a password for your account.';
+            showError('setup-password-error', '');
+            var osp = document.getElementById('onboard_setup_password');
+            var ospc = document.getElementById('onboard_setup_password_confirmation');
+            if (osp) osp.value = '';
+            if (ospc) ospc.value = '';
+            showStep('setup_password');
+        } else if (data.step === 'setup_name' && stepSetupName) {
+            document.getElementById('setup-name-message').textContent = data.message || 'What name should we show on your account?';
+            showError('setup-name-error', '');
+            var sn = document.getElementById('setup_student_name');
+            if (sn) sn.value = data.prefill_name || '';
+            showStep('setup_name');
+        } else if (data.step === 'password' && passwordLoginEnabled && stepPassword) {
+            document.getElementById('password-step-message').textContent = data.message || 'Enter your password.';
+            showError('password-error', '');
+            var lp = document.getElementById('login_password');
+            if (lp) lp.value = '';
+            showStep('password');
+        } else if (data.step === 'phone') {
+            document.getElementById('phone-step-message').textContent = data.message || 'Enter your active phone number.';
+            showStep('phone');
+        } else if (data.step === 'otp') {
+            applyOtpStepData(data);
+        }
     }
 
     function showError(elId, text) {
@@ -517,7 +593,6 @@
         }
         showError('phone-error', '');
         setLoading(this, true);
-        this.dataset.originalText = this.textContent;
         var sendBody = { index_number: currentIndexNumber, phone: phone };
         if (requirePasswordSetup) {
             var sp = document.getElementById('setup_password');
@@ -702,7 +777,6 @@
         }
         showError('otp-error', '');
         setLoading(this, true);
-        this.dataset.originalText = this.textContent;
         var payload = { index_number: currentIndexNumber, code: code };
         if (nameInput && nameInput.value.trim()) payload.student_name = nameInput.value.trim();
         var verifyUrl = '{{ route("student.account.verify-otp") }}';
@@ -730,13 +804,89 @@
                 updateUniversalFallbackUi(data, true);
                 return;
             }
-            if (data.redirect) window.location.href = data.redirect;
+            handleLoginStepData(data);
         })
         .catch(function(err) {
             setLoading(document.getElementById('btn-verify-otp'), false);
             showError('otp-error', (err && err.message) ? err.message : 'Network error. Please try again.');
         });
     });
+
+    if (document.getElementById('btn-setup-password')) {
+        document.getElementById('btn-setup-password').addEventListener('click', function() {
+            var password = (document.getElementById('onboard_setup_password') || {}).value || '';
+            var confirmation = (document.getElementById('onboard_setup_password_confirmation') || {}).value || '';
+            if (!password || password.length < studentPasswordMinLength) {
+                showError('setup-password-error', 'Password must be at least ' + studentPasswordMinLength + ' characters.');
+                return;
+            }
+            if (password !== confirmation) {
+                showError('setup-password-error', 'Password confirmation does not match.');
+                return;
+            }
+            showError('setup-password-error', '');
+            setLoading(this, true);
+            ensureFreshCsrf().then(function() {
+                return fetch('{{ route("student.account.setup-password") }}', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: jsonHeaders(csrf),
+                    body: JSON.stringify({
+                        index_number: currentIndexNumber,
+                        password: password,
+                        password_confirmation: confirmation
+                    })
+                });
+            })
+            .then(function(r) { return parseJsonResponse(r); })
+            .then(function(data) {
+                setLoading(document.getElementById('btn-setup-password'), false);
+                if (!data.success) {
+                    showError('setup-password-error', data.message || 'Could not save password.');
+                    return;
+                }
+                handleLoginStepData(data);
+            })
+            .catch(function(err) {
+                setLoading(document.getElementById('btn-setup-password'), false);
+                showError('setup-password-error', (err && err.message) ? err.message : 'Network error. Please try again.');
+            });
+        });
+    }
+
+    if (document.getElementById('btn-setup-name')) {
+        document.getElementById('btn-setup-name').addEventListener('click', function() {
+            var nameEl = document.getElementById('setup_student_name');
+            var name = nameEl && nameEl.value ? nameEl.value.trim() : '';
+            if (!name) {
+                showError('setup-name-error', 'Please enter your name.');
+                return;
+            }
+            showError('setup-name-error', '');
+            setLoading(this, true);
+            ensureFreshCsrf().then(function() {
+                return fetch('{{ route("student.account.setup-name") }}', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: jsonHeaders(csrf),
+                    body: JSON.stringify({ index_number: currentIndexNumber, student_name: name })
+                });
+            })
+            .then(function(r) { return parseJsonResponse(r); })
+            .then(function(data) {
+                setLoading(document.getElementById('btn-setup-name'), false);
+                if (!data.success) {
+                    showError('setup-name-error', data.message || 'Could not save name.');
+                    return;
+                }
+                handleLoginStepData(data);
+            })
+            .catch(function(err) {
+                setLoading(document.getElementById('btn-setup-name'), false);
+                showError('setup-name-error', (err && err.message) ? err.message : 'Network error. Please try again.');
+            });
+        });
+    }
 
     var btnShowEmailFallback = document.getElementById('btn-show-email-fallback');
     if (btnShowEmailFallback) {

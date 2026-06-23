@@ -483,10 +483,7 @@ class StudentAccountController extends Controller
 
             $this->completeStudentLogin($student, $phone ?? null, $name, false);
 
-            return response()->json([
-                'success' => true,
-                'redirect' => $this->studentLoginRedirect($student),
-            ]);
+            return $this->loginRedirectJson($student);
         }
 
         // Examiner fallback: one-time use; mark used_at
@@ -841,8 +838,27 @@ class StudentAccountController extends Controller
 
         return response()->json([
             'success' => true,
-            'redirect' => $this->studentLoginRedirect($student),
+            'redirect' => $this->safeStudentLoginRedirect($student),
         ]);
+    }
+
+    private function loginRedirectJson(Student $student): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'redirect' => $this->safeStudentLoginRedirect($student),
+        ]);
+    }
+
+    private function safeStudentLoginRedirect(Student $student): string
+    {
+        try {
+            return $this->studentLoginRedirect($student);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return route('dashboard');
+        }
     }
 
     private function beginDashboardLogin(): void

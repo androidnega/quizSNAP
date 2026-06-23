@@ -564,7 +564,6 @@
         }
         showError('phone-error', '');
         setLoading(this, true);
-        this.dataset.originalText = this.textContent;
         var sendBody = { index_number: currentIndexNumber, phone: phone };
         ensureFreshCsrf().then(function() {
             return fetch('{{ route("student.account.send-otp") }}', {
@@ -743,7 +742,6 @@
         }
         showError('otp-error', '');
         setLoading(this, true);
-        this.dataset.originalText = this.textContent;
         var payload = { index_number: currentIndexNumber, code: code };
         var verifyUrl = '{{ route("student.account.verify-otp") }}';
         function doVerify() {

@@ -1433,6 +1433,15 @@ class StudentQuizController extends Controller
             session(['quiz_session_token' => $token]);
         }
 
+        if ($session->ended_at !== null && ! $session->result) {
+            try {
+                $this->finalizeQuiz($session->fresh());
+                $session->load('result');
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+
         $assignedCorrect = $session->assigned_correct_answers ?? [];
         $assignedIds = collect($session->assigned_question_ids ?? [])
             ->map(fn ($id) => (int) $id)

@@ -72,9 +72,23 @@ class ArkeselService
     /**
      * @return array{success: false, message: string, detail?: string, connection_error?: true}
      */
+    private static function logSafely(string $level, string $message, array $context = []): void
+    {
+        try {
+            match ($level) {
+                'info' => Log::info($message, $context),
+                'warning' => Log::warning($message, $context),
+                'error' => Log::error($message, $context),
+                default => null,
+            };
+        } catch (\Throwable) {
+            // Never let log file permission errors break OTP/SMS flows.
+        }
+    }
+
     private static function connectionFailure(string $context, ConnectionException $e, bool $includeDetail): array
     {
-        Log::warning('Arkesel '.$context.' connection failed', ['message' => $e->getMessage()]);
+        self::logSafely('warning', 'Arkesel '.$context.' connection failed', ['message' => $e->getMessage()]);
 
         $hint = self::usesLogDriver()
             ? 'SMS log mode is on (ARKESEL_DRIVER=log). Set ARKESEL_DRIVER=live to send real SMS.'
@@ -160,7 +174,7 @@ class ArkeselService
         }
 
         if (self::usesLogDriver()) {
-            Log::info('[QuizSnap SMS — log driver]', [
+            self::logSafely('info', '[QuizSnap SMS — log driver]', [
                 'recipient' => $recipient,
                 'message' => $message,
             ]);
@@ -206,13 +220,13 @@ class ArkeselService
         $body = $response->json();
         $status = $response->status();
 
-        Log::info('Arkesel SMS response', ['status' => $status, 'body' => $body]);
+        self::logSafely('info', 'Arkesel SMS response', ['status' => $status, 'body' => $body]);
 
         if ($status === 200 && isset($body['status']) && $body['status'] === 'success') {
             $data = $body['data'] ?? [];
             foreach (is_array($data) ? $data : [] as $item) {
                 if (isset($item['invalid numbers']) && is_array($item['invalid numbers']) && in_array($recipient, $item['invalid numbers'], true)) {
-                    Log::warning('Arkesel SMS recipient invalid', ['recipient' => $recipient]);
+                    self::logSafely('warning', 'Arkesel SMS recipient invalid', ['recipient' => $recipient]);
 
                     return ['success' => false, 'message' => 'Phone number not valid for SMS delivery. Use international format (e.g. 233544919953 for Ghana).'];
                 }
@@ -226,7 +240,7 @@ class ArkeselService
             $errorMessage = json_encode($errorMessage);
         }
 
-        Log::warning('Arkesel SMS send failed', ['status' => $status, 'body' => $body]);
+        self::logSafely('warning', 'Arkesel SMS send failed', ['status' => $status, 'body' => $body]);
 
         if ($status === 401) {
             return ['success' => false, 'message' => 'SMS service is not configured correctly. Please try again later or contact your institution.'];
@@ -257,7 +271,7 @@ class ArkeselService
         }
 
         if (($result['connection_error'] ?? false) && self::allowLocalConnectionFallback()) {
-            Log::warning('[QuizSnap SMS — Arkesel unreachable, local test code only]', [
+            self::logSafely('warning', '[QuizSnap SMS — Arkesel unreachable, local test code only]', [
                 'recipient' => $recipient,
                 'code' => $code,
             ]);

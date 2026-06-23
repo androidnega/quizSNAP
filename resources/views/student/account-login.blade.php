@@ -184,6 +184,22 @@
                 return csrf;
             });
     }
+    function parseJsonResponse(r) {
+        var ct = (r.headers.get('content-type') || '').toLowerCase();
+        if (ct.indexOf('application/json') === -1) {
+            return Promise.reject(new Error(r.status >= 500
+                ? 'Server error. Please try again in a moment.'
+                : 'Unexpected response from server.'));
+        }
+        return r.json().then(function(data) {
+            if (!r.ok && data && !data.message) {
+                data.message = r.status >= 500
+                    ? 'Server error. Please try again in a moment.'
+                    : 'Request failed. Please try again.';
+            }
+            return data;
+        });
+    }
     function postJson(url, payload, timeoutMs) {
         var controller = new AbortController();
         var timer = setTimeout(function() { controller.abort(); }, timeoutMs || 12000);
@@ -206,7 +222,7 @@
             })
             .then(function(r) {
                 clearTimeout(timer);
-                return r.json().then(function(data) {
+                return parseJsonResponse(r).then(function(data) {
                     return { ok: r.ok, status: r.status, data: data };
                 });
             })
@@ -489,7 +505,7 @@
                 if (r.status === 419) return ensureFreshCsrf().then(function() { return doPw(); });
                 return r;
             })
-            .then(function(r) { return r.json(); })
+            .then(function(r) { return parseJsonResponse(r); })
             .then(function(data) {
                 setLoading(document.getElementById('btn-verify-password'), false);
                 if (!data.success) {
@@ -498,9 +514,9 @@
                 }
                 if (data.redirect) window.location.href = data.redirect;
             })
-            .catch(function() {
+            .catch(function(err) {
                 setLoading(document.getElementById('btn-verify-password'), false);
-                showError('password-error', 'Network error. Please try again.');
+                showError('password-error', (err && err.message) ? err.message : 'Network error. Please try again.');
             });
         });
     }
@@ -558,7 +574,7 @@
                 body: JSON.stringify(sendBody)
             });
         })
-        .then(function(r) { return r.json(); })
+        .then(function(r) { return parseJsonResponse(r); })
         .then(function(data) {
             setLoading(document.getElementById('btn-send-otp'), false);
             if (!data.success) {
@@ -583,9 +599,9 @@
             updateUniversalFallbackUi(data, false);
             showError('otp-error', '');
         })
-        .catch(function() {
+        .catch(function(err) {
             setLoading(document.getElementById('btn-send-otp'), false);
-            showError('phone-error', 'Network error. Please try again.');
+            showError('phone-error', (err && err.message) ? err.message : 'Network error. Please try again.');
             var sendBtn = document.getElementById('btn-send-otp');
             if (sendBtn) { sendBtn.dataset.originalText = 'Try again'; sendBtn.textContent = 'Try again'; }
         });
@@ -745,7 +761,7 @@
             }
             return r;
         })
-        .then(function(r) { return r.json(); })
+        .then(function(r) { return parseJsonResponse(r); })
         .then(function(data) {
             setLoading(document.getElementById('btn-verify-otp'), false);
             if (!data.success) {
@@ -757,9 +773,9 @@
             if (redirectIfReady(data)) return;
             handleLoginStepData(data, currentIndexNumber);
         })
-        .catch(function() {
+        .catch(function(err) {
             setLoading(document.getElementById('btn-verify-otp'), false);
-            showError('otp-error', 'Network error. Please try again.');
+            showError('otp-error', (err && err.message) ? err.message : 'Network error. Please try again.');
         });
     });
 

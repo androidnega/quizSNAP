@@ -83,14 +83,31 @@ trait IssuesStudentLoginSmsOtp
                 $msg = 'SMS could not be sent (network). Enter the institution login code from your examiner, or try email fallback below.';
             } elseif (($result['connection_error'] ?? false) && ($meta['email_fallback_available'] ?? false)) {
                 $msg = 'SMS could not be sent (network). Try the email code option below.';
+            } elseif (($meta['universal_fallback_available'] ?? false)) {
+                $msg = 'SMS could not be sent. Enter your institution login code below to continue.';
             } elseif (strpos($msg, 'try again') === false && strpos($msg, 'Try again') === false) {
                 $msg .= ' Please try again.';
+            }
+
+            if ($meta['universal_fallback_available'] ?? false) {
+                return response()->json(array_merge([
+                    'success' => true,
+                    'step' => 'otp',
+                    'index_number' => $student->index_number,
+                    'message' => $msg,
+                    'sms_delivered' => false,
+                    'has_name' => ! empty($student->student_name),
+                    'can_resend' => true,
+                    'days_remaining' => null,
+                    'otp_never_expires' => true,
+                    'otp_channel' => 'sms',
+                ], $meta));
             }
 
             return response()->json(array_merge([
                 'success' => false,
                 'message' => $msg,
-                'step' => ($meta['universal_fallback_available'] ?? false) || ($meta['email_fallback_available'] ?? false) ? 'otp' : null,
+                'step' => ($meta['email_fallback_available'] ?? false) ? 'otp' : null,
             ], $meta), 422);
         }
 

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Student\Concerns\IssuesStudentLoginSmsOtp;
 use App\Models\ClassGroupStudent;
 use App\Models\Otp;
+use App\Models\Quiz;
 use App\Models\Student;
 use App\Services\StudentUniversalOtp;
 use App\Services\StudentAuthAuditLogger;
@@ -571,10 +572,14 @@ class StudentAccountController extends Controller
             }
 
             $locked = StudentAuthThrottleService::isLocked(StudentAuthThrottleService::TYPE_OTP, $indexHash);
+            $failureMessage = StudentAuthThrottleService::failureMessage(StudentAuthThrottleService::TYPE_OTP, $indexHash);
+            if (($fallbackMeta['universal_fallback_available'] ?? false) && ! $locked) {
+                $failureMessage = 'That code did not match. If SMS failed, enter your institution login code instead.';
+            }
 
             return response()->json(array_merge([
                 'success' => false,
-                'message' => StudentAuthThrottleService::failureMessage(StudentAuthThrottleService::TYPE_OTP, $indexHash),
+                'message' => $failureMessage,
                 'attempts_remaining' => StudentAuthThrottleService::remainingAttempts(StudentAuthThrottleService::TYPE_OTP, $indexHash),
                 'locked' => $locked,
             ], $fallbackMeta), $locked ? 429 : 422);

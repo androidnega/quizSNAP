@@ -59,7 +59,7 @@ class SettingsController extends Controller
             Setting::KEY_AI_QUIZ_COOLDOWN_HOURS => '24',
             Setting::KEY_LANDING_HERO_ENABLED => '1',
             Setting::KEY_LANDING_SHOW_QUIZ_TOKEN => '0',
-            Setting::KEY_STUDENT_DASHBOARD_BANNER_ENABLED => '1',
+            Setting::KEY_STUDENT_DASHBOARD_BANNER_ENABLED => '0',
             Setting::KEY_STUDENT_DASHBOARD_BANNER_MODE => 'image',
             Setting::KEY_STUDENT_DASHBOARD_BANNER_TITLE => 'Challenge Yourself.',
             Setting::KEY_STUDENT_DASHBOARD_BANNER_TITLE_ACCENT => 'Achieve More.',
@@ -86,7 +86,8 @@ class SettingsController extends Controller
         $bannerImages = json_decode($bannerImagesRaw ?: '[]', true) ?: [];
 
         $currentUser = auth()->user() ?? User::find(session('admin_user_id'));
-        $isSuperAdmin = ($currentUser && $currentUser->isSuperAdmin()) || session('admin_role') === User::ROLE_SUPER_ADMIN;
+        $isSuperAdmin = ($currentUser && $currentUser->isSuperAdmin())
+            || in_array(session('admin_role'), [User::ROLE_SUPER_ADMIN, User::ROLE_LEGACY_ADMIN], true);
         $canManageProctoring = $isSuperAdmin;
         $canManageBackup = $isSuperAdmin;
         $digestRecipient = $canManageBackup ? Setting::getDigestRecipientValue() : null;
@@ -144,7 +145,7 @@ class SettingsController extends Controller
             'login_hero_image' => $settings[Setting::KEY_LOGIN_HERO_IMAGE] ?? null,
             'theme_preset' => app(\App\Services\ThemeService::class)->activePresetId(),
             'theme_presets' => app(\App\Services\ThemeService::class)->allPresets(),
-            'student_dashboard_banner_enabled' => ($settings[Setting::KEY_STUDENT_DASHBOARD_BANNER_ENABLED] ?? '1') === '1',
+            'student_dashboard_banner_enabled' => ($settings[Setting::KEY_STUDENT_DASHBOARD_BANNER_ENABLED] ?? '0') === '1',
             'student_dashboard_banner_mode' => $settings[Setting::KEY_STUDENT_DASHBOARD_BANNER_MODE] ?? 'image',
             'student_dashboard_banner_title' => $settings[Setting::KEY_STUDENT_DASHBOARD_BANNER_TITLE] ?? 'Challenge Yourself.',
             'student_dashboard_banner_title_accent' => $settings[Setting::KEY_STUDENT_DASHBOARD_BANNER_TITLE_ACCENT] ?? 'Achieve More.',
@@ -159,6 +160,7 @@ class SettingsController extends Controller
             'supabase_service_key_masked' => $supabaseKey
                 ? (strlen($supabaseKey) > 8 ? substr($supabaseKey, 0, 4).'…'.substr($supabaseKey, -4) : '••••')
                 : null,
+            'is_super_admin' => $isSuperAdmin,
             'can_manage_proctoring' => $canManageProctoring,
             'can_manage_backup' => $canManageBackup,
             'show_backup_tab' => $canManageBackup,
@@ -794,6 +796,7 @@ class SettingsController extends Controller
     {
         $user = auth()->user() ?? User::find(session('admin_user_id'));
 
-        return ($user && $user->isSuperAdmin()) || session('admin_role') === User::ROLE_SUPER_ADMIN;
+        return ($user && $user->isSuperAdmin())
+            || in_array(session('admin_role'), [User::ROLE_SUPER_ADMIN, User::ROLE_LEGACY_ADMIN], true);
     }
 }

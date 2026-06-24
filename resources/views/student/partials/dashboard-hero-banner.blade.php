@@ -15,44 +15,18 @@
     if (is_string($bannerImageUrl) && $bannerImageUrl !== '' && ! preg_match('#^https?://#i', $bannerImageUrl)) {
         $bannerImageUrl = asset(ltrim($bannerImageUrl, '/'));
     }
-    $bundledSlug = 'student-dashboard-fathers-day-banner';
-    $legacyBundledSlug = 'student-dashboard-midsem-exams-good-luck-banner';
-    $usesBundledBanner = $mode === 'image' && (
-        empty($image)
-        || str_contains((string) $image, $bundledSlug)
-        || str_contains((string) $image, $legacyBundledSlug)
-    );
-    $bundledBase = asset('images/' . $bundledSlug);
     $showBanner = ! empty($banner['enabled']) && (
-        ($mode === 'image' && ($usesBundledBanner || ! empty($bannerImageUrl)))
+        ($mode === 'image' && ! empty($bannerImageUrl))
         || ($mode === 'image_text')
     );
-    $bannerAlt = 'Happy Father\'s Day. Thank you for your love, guidance, strength, and for being my greatest inspiration. Emmanuel Kofi Kwofie, Planning Committee Chair — FASSA.';
+    $bannerAlt = trim(($banner['title'] ?? '') . ' ' . ($banner['title_accent'] ?? '')) ?: 'Student dashboard banner';
 @endphp
 
 @if($showBanner)
-@if($mode === 'image' && ($usesBundledBanner || ! empty($bannerImageUrl)))
-{{-- Wide hero banner (1024×374): responsive WebP with JPEG fallback --}}
+@if($mode === 'image' && ! empty($bannerImageUrl))
+{{-- Wide hero banner: responsive image --}}
 <section aria-label="Dashboard banner" class="sd-hero-banner w-full min-w-0 h-full flex flex-col">
     <figure class="sd-hero-banner__media relative m-0 w-full flex-1 min-h-[168px] overflow-hidden rounded-2xl lg:rounded-3xl bg-[#f8fafc] aspect-[1024/374] h-full">
-        @if($usesBundledBanner)
-        <picture>
-            <source type="image/webp"
-                    srcset="{{ $bundledBase }}-640.webp 640w, {{ $bundledBase }}.webp 1024w"
-                    sizes="(max-width: 768px) 100vw, 100vw">
-            <source type="image/jpeg"
-                    srcset="{{ $bundledBase }}-640.jpg 640w, {{ $bundledBase }}.jpg 1024w"
-                    sizes="(max-width: 768px) 100vw, 100vw">
-            <img src="{{ $bundledBase }}.jpg"
-                 alt="{{ $bannerAlt }}"
-                 class="sd-hero-banner__img absolute inset-0 block h-full w-full object-contain object-center"
-                 width="1024"
-                 height="374"
-                 loading="eager"
-                 decoding="async"
-                 fetchpriority="high">
-        </picture>
-        @else
         <img src="{{ e($bannerImageUrl) }}"
              alt="{{ $bannerAlt }}"
              class="sd-hero-banner__img absolute inset-0 block h-full w-full object-contain object-center"
@@ -61,7 +35,6 @@
              loading="eager"
              decoding="async"
              fetchpriority="high">
-        @endif
     </figure>
 </section>
 @elseif($mode === 'image_text')

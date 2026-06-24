@@ -28,7 +28,7 @@
                             <svg class="w-4 h-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                             General
                         </button>
-                        @if(session('admin_role') === 'super_admin')
+                        @if($is_super_admin ?? false)
                         <button type="button" class="settings-tab-btn whitespace-nowrap px-4 py-3 sm:px-6 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm touch-manipulation min-h-[44px]" data-tab="student-dashboard" id="tab-btn-student-dashboard">
                             <svg class="w-4 h-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/></svg>
                             Student dashboard
@@ -644,7 +644,7 @@
                 </div>
                 </div>
                 @endif
-                @if(session('admin_role') === 'super_admin')
+                @if($is_super_admin ?? false)
                 <!-- Tab: Student dashboard banner -->
                 <div class="settings-tab-content p-6 hidden" data-tab-content="student-dashboard" id="tab-content-student-dashboard">
                     <div class="mb-6">
@@ -686,7 +686,7 @@
                     <div class="space-y-6">
                         <div class="rounded-lg border border-gray-200 bg-gray-50/50 p-5 space-y-4">
                             <label class="flex items-start gap-3 cursor-pointer group">
-                                <input type="checkbox" name="student_dashboard_banner_enabled" value="1" {{ old('student_dashboard_banner_enabled', $student_dashboard_banner_enabled ?? true) ? 'checked' : '' }} class="w-4 h-4 mt-0.5 text-primary-600 border-gray-300 rounded focus:ring-primary-500 shrink-0">
+                                <input type="checkbox" name="student_dashboard_banner_enabled" value="1" {{ old('student_dashboard_banner_enabled', $student_dashboard_banner_enabled ?? false) ? 'checked' : '' }} class="w-4 h-4 mt-0.5 text-primary-600 border-gray-300 rounded focus:ring-primary-500 shrink-0">
                                 <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900">Show banner on student dashboard</span>
                             </label>
                         </div>

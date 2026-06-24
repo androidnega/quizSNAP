@@ -226,11 +226,11 @@ class Setting extends Model
             self::KEY_STUDENT_DASHBOARD_BANNER_SUBTITLE,
             self::KEY_STUDENT_DASHBOARD_BANNER_IMAGES,
         ], [
-            self::KEY_STUDENT_DASHBOARD_BANNER_ENABLED => '1',
+            self::KEY_STUDENT_DASHBOARD_BANNER_ENABLED => '0',
             self::KEY_STUDENT_DASHBOARD_BANNER_MODE => 'image',
             self::KEY_STUDENT_DASHBOARD_BANNER_TITLE => 'Challenge Yourself.',
             self::KEY_STUDENT_DASHBOARD_BANNER_TITLE_ACCENT => 'Achieve More.',
-            self::KEY_STUDENT_DASHBOARD_BANNER_SUBTITLE => 'Take quizzes, track progress and achieve your goals every day.',
+            self::KEY_STUDENT_DASHBOARD_BANNER_SUBTITLE => '',
             self::KEY_STUDENT_DASHBOARD_BANNER_IMAGES => '[]',
         ]);
 
@@ -245,16 +245,14 @@ class Setting extends Model
             $mode = 'image';
         }
 
-        $defaultImage = asset('images/student-dashboard-fathers-day-banner.webp');
-
         return [
-            'enabled' => ($s[self::KEY_STUDENT_DASHBOARD_BANNER_ENABLED] ?? '1') === '1',
+            'enabled' => ($s[self::KEY_STUDENT_DASHBOARD_BANNER_ENABLED] ?? '0') === '1',
             'mode' => $mode,
             'title' => ($s[self::KEY_STUDENT_DASHBOARD_BANNER_TITLE] ?? 'Challenge Yourself.') ?: 'Challenge Yourself.',
             'title_accent' => ($s[self::KEY_STUDENT_DASHBOARD_BANNER_TITLE_ACCENT] ?? 'Achieve More.') ?: 'Achieve More.',
-            'subtitle' => ($s[self::KEY_STUDENT_DASHBOARD_BANNER_SUBTITLE] ?? 'Take quizzes, track progress and achieve your goals every day.') ?: 'Take quizzes, track progress and achieve your goals every day.',
-            'image' => $images[0] ?? $defaultImage,
-            'images' => $images !== [] ? $images : [$defaultImage],
+            'subtitle' => ($s[self::KEY_STUDENT_DASHBOARD_BANNER_SUBTITLE] ?? '') ?: '',
+            'image' => $images[0] ?? null,
+            'images' => $images,
         ];
     }
 

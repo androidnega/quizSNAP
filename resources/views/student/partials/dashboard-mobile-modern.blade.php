@@ -1,36 +1,4 @@
 @php
-    $banner = $dashboardBanner ?? \App\Models\Setting::getStudentDashboardBannerConfig();
-    $bannerMode = $banner['mode'] ?? 'image';
-    $bannerImage = $banner['image'] ?? null;
-    if (empty($bannerImage) && ! empty($banner['images'][0] ?? null)) {
-        $bannerImage = $banner['images'][0];
-    }
-    if (empty($bannerImage)) {
-        $fallback = trim((string) \App\Models\Setting::getValue(\App\Models\Setting::KEY_LOGIN_HERO_IMAGE, ''));
-        if ($fallback !== '' && $bannerMode === 'image_text') {
-            $bannerImage = $fallback;
-        }
-    }
-    $bannerImageUrl = $bannerImage;
-    if (is_string($bannerImageUrl) && $bannerImageUrl !== '' && ! preg_match('#^https?://#i', $bannerImageUrl)) {
-        $bannerImageUrl = asset(ltrim($bannerImageUrl, '/'));
-    }
-    $bundledSlug = 'student-dashboard-fathers-day-banner';
-    $legacyBundledSlug = 'student-dashboard-midsem-exams-good-luck-banner';
-    $usesBundledBanner = $bannerMode === 'image' && (
-        empty($bannerImage)
-        || str_contains((string) $bannerImage, $bundledSlug)
-        || str_contains((string) $bannerImage, $legacyBundledSlug)
-    );
-    $bundledBase = asset('images/' . $bundledSlug);
-    $bannerAlt = 'Happy Father\'s Day. Thank you for your love, guidance, strength, and for being my greatest inspiration. Emmanuel Kofi Kwofie, Planning Committee Chair — FASSA.';
-    $showMobileBanner = ! empty($banner['enabled']) && (
-        ($bannerMode === 'image' && ($usesBundledBanner || ! empty($bannerImageUrl)))
-        || $bannerMode === 'image_text'
-    );
-    $promoTitle = $banner['title'] ?? 'Challenge Yourself.';
-    $promoAccent = $banner['title_accent'] ?? 'Achieve More.';
-    $promoSubtitle = trim($banner['subtitle'] ?? '');
     $displayName = $displayName ?? $student?->first_name ?? 'User';
     $initials = $student?->initials ?? strtoupper(substr(trim($displayName), 0, 1));
     $myQuizTitle = $hasScheduled ? $scheduledQuiz->title : ($lastQuiz?->quiz?->title ?? 'Browse quizzes');
@@ -68,64 +36,6 @@
             </a>
         </div>
     </header>
-
-    @if($showMobileBanner)
-    <section class="md-dash__banner" aria-label="Dashboard banner">
-        @if($bannerMode === 'image' && ($usesBundledBanner || ! empty($bannerImageUrl)))
-        <figure class="md-dash__banner-media">
-            @if($usesBundledBanner)
-            <picture>
-                <source type="image/webp"
-                        srcset="{{ $bundledBase }}-640.webp 640w, {{ $bundledBase }}.webp 1024w"
-                        sizes="100vw">
-                <source type="image/jpeg"
-                        srcset="{{ $bundledBase }}-640.jpg 640w, {{ $bundledBase }}.jpg 1024w"
-                        sizes="100vw">
-                <img src="{{ $bundledBase }}.jpg"
-                     alt="{{ $bannerAlt }}"
-                     class="md-dash__banner-img"
-                     width="1024"
-                     height="374"
-                     loading="eager"
-                     decoding="async"
-                     fetchpriority="high">
-            </picture>
-            @else
-            <img src="{{ e($bannerImageUrl) }}"
-                 alt="{{ $bannerAlt }}"
-                 class="md-dash__banner-img"
-                 width="1024"
-                 height="374"
-                 loading="eager"
-                 decoding="async"
-                 fetchpriority="high">
-            @endif
-        </figure>
-        @elseif($bannerMode === 'image_text')
-        <div class="md-dash__banner-card">
-            @if(! empty($bannerImageUrl))
-            <figure class="md-dash__banner-media md-dash__banner-media--compact">
-                <img src="{{ e($bannerImageUrl) }}"
-                     alt=""
-                     class="md-dash__banner-img"
-                     loading="eager"
-                     decoding="async"
-                     referrerpolicy="no-referrer">
-            </figure>
-            @endif
-            <div class="md-dash__banner-copy">
-                <h2 class="md-dash__banner-title">
-                    {{ $promoTitle }}
-                    <span class="md-dash__banner-accent">{{ $promoAccent }}</span>
-                </h2>
-                @if($promoSubtitle !== '')
-                <p class="md-dash__banner-sub">{{ $promoSubtitle }}</p>
-                @endif
-            </div>
-        </div>
-        @endif
-    </section>
-    @endif
 
     <section class="md-dash__section" aria-label="My quiz">
         <div class="md-dash__section-head">

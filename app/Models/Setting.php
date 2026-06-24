@@ -226,10 +226,10 @@ class Setting extends Model
             self::KEY_STUDENT_DASHBOARD_BANNER_SUBTITLE,
             self::KEY_STUDENT_DASHBOARD_BANNER_IMAGES,
         ], [
-            self::KEY_STUDENT_DASHBOARD_BANNER_ENABLED => '0',
+            self::KEY_STUDENT_DASHBOARD_BANNER_ENABLED => '1',
             self::KEY_STUDENT_DASHBOARD_BANNER_MODE => 'image',
-            self::KEY_STUDENT_DASHBOARD_BANNER_TITLE => 'Challenge Yourself.',
-            self::KEY_STUDENT_DASHBOARD_BANNER_TITLE_ACCENT => 'Achieve More.',
+            self::KEY_STUDENT_DASHBOARD_BANNER_TITLE => 'Learn Today.',
+            self::KEY_STUDENT_DASHBOARD_BANNER_TITLE_ACCENT => 'Lead Tomorrow.',
             self::KEY_STUDENT_DASHBOARD_BANNER_SUBTITLE => '',
             self::KEY_STUDENT_DASHBOARD_BANNER_IMAGES => '[]',
         ]);
@@ -245,14 +245,16 @@ class Setting extends Model
             $mode = 'image';
         }
 
+        $defaultImage = self::STUDENT_DASHBOARD_DEFAULT_BANNER_PATH;
+
         return [
-            'enabled' => ($s[self::KEY_STUDENT_DASHBOARD_BANNER_ENABLED] ?? '0') === '1',
+            'enabled' => ($s[self::KEY_STUDENT_DASHBOARD_BANNER_ENABLED] ?? '1') === '1',
             'mode' => $mode,
-            'title' => ($s[self::KEY_STUDENT_DASHBOARD_BANNER_TITLE] ?? 'Challenge Yourself.') ?: 'Challenge Yourself.',
-            'title_accent' => ($s[self::KEY_STUDENT_DASHBOARD_BANNER_TITLE_ACCENT] ?? 'Achieve More.') ?: 'Achieve More.',
+            'title' => ($s[self::KEY_STUDENT_DASHBOARD_BANNER_TITLE] ?? 'Learn Today.') ?: 'Learn Today.',
+            'title_accent' => ($s[self::KEY_STUDENT_DASHBOARD_BANNER_TITLE_ACCENT] ?? 'Lead Tomorrow.') ?: 'Lead Tomorrow.',
             'subtitle' => ($s[self::KEY_STUDENT_DASHBOARD_BANNER_SUBTITLE] ?? '') ?: '',
-            'image' => $images[0] ?? null,
-            'images' => $images,
+            'image' => $images[0] ?? $defaultImage,
+            'images' => $images !== [] ? $images : [$defaultImage],
         ];
     }
 
@@ -287,6 +289,10 @@ class Setting extends Model
     public const KEY_THEME_PRESET = 'theme_preset';
 
     /** Student dashboard hero banner (Super Admin). */
+    public const STUDENT_DASHBOARD_DEFAULT_BANNER_SLUG = 'student-dashboard-csd-banner';
+
+    public const STUDENT_DASHBOARD_DEFAULT_BANNER_PATH = '/images/student-dashboard-csd-banner.webp';
+
     public const KEY_STUDENT_DASHBOARD_BANNER_ENABLED = 'student_dashboard_banner_enabled';
     /** Banner layout: image (image only) or image_text (text left, image right). */
     public const KEY_STUDENT_DASHBOARD_BANNER_MODE = 'student_dashboard_banner_mode';

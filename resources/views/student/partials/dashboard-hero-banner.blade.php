@@ -15,18 +15,75 @@
     if (is_string($bannerImageUrl) && $bannerImageUrl !== '' && ! preg_match('#^https?://#i', $bannerImageUrl)) {
         $bannerImageUrl = asset(ltrim($bannerImageUrl, '/'));
     }
+    $bundledSlug = \App\Models\Setting::STUDENT_DASHBOARD_DEFAULT_BANNER_SLUG;
+    $usesBundledBanner = $mode === 'image' && (
+        empty($image)
+        || str_contains((string) $image, $bundledSlug)
+    );
+    $bundledBase = asset('images/' . $bundledSlug);
     $showBanner = ! empty($banner['enabled']) && (
-        ($mode === 'image' && ! empty($bannerImageUrl))
+        ($mode === 'image' && ($usesBundledBanner || ! empty($bannerImageUrl)))
         || ($mode === 'image_text')
     );
-    $bannerAlt = trim(($banner['title'] ?? '') . ' ' . ($banner['title_accent'] ?? '')) ?: 'Student dashboard banner';
+    $bannerAlt = 'Learn Today, Lead Tomorrow. CSD-TTU — Research, Innovate, Build.';
+    $mobileLayout = ! empty($bannerLayout) && $bannerLayout === 'mobile';
 @endphp
 
 @if($showBanner)
-@if($mode === 'image' && ! empty($bannerImageUrl))
-{{-- Wide hero banner: responsive image --}}
+@if($mode === 'image' && ($usesBundledBanner || ! empty($bannerImageUrl)))
+@if($mobileLayout)
+<section class="md-dash__banner" aria-label="Dashboard banner">
+    <figure class="md-dash__banner-media">
+        @if($usesBundledBanner)
+        <picture>
+            <source type="image/webp"
+                    srcset="{{ $bundledBase }}-640.webp 640w, {{ $bundledBase }}.webp 1024w"
+                    sizes="100vw">
+            <source type="image/jpeg"
+                    srcset="{{ $bundledBase }}-640.jpg 640w, {{ $bundledBase }}.jpg 1024w"
+                    sizes="100vw">
+            <img src="{{ $bundledBase }}.jpg"
+                 alt="{{ $bannerAlt }}"
+                 class="md-dash__banner-img"
+                 width="1024"
+                 height="374"
+                 loading="eager"
+                 decoding="async"
+                 fetchpriority="high">
+        </picture>
+        @else
+        <img src="{{ e($bannerImageUrl) }}"
+             alt="{{ $bannerAlt }}"
+             class="md-dash__banner-img"
+             width="1024"
+             height="374"
+             loading="eager"
+             decoding="async"
+             fetchpriority="high">
+        @endif
+    </figure>
+</section>
+@else
 <section aria-label="Dashboard banner" class="sd-hero-banner w-full min-w-0 h-full flex flex-col">
-    <figure class="sd-hero-banner__media relative m-0 w-full flex-1 min-h-[168px] overflow-hidden rounded-2xl lg:rounded-3xl bg-[#f8fafc] aspect-[1024/374] h-full">
+    <figure class="sd-hero-banner__media relative m-0 w-full flex-1 min-h-[168px] overflow-hidden rounded-2xl lg:rounded-3xl bg-white aspect-[1024/374] h-full border border-slate-200/80">
+        @if($usesBundledBanner)
+        <picture>
+            <source type="image/webp"
+                    srcset="{{ $bundledBase }}-640.webp 640w, {{ $bundledBase }}.webp 1024w"
+                    sizes="(max-width: 1024px) 100vw, 66vw">
+            <source type="image/jpeg"
+                    srcset="{{ $bundledBase }}-640.jpg 640w, {{ $bundledBase }}.jpg 1024w"
+                    sizes="(max-width: 1024px) 100vw, 66vw">
+            <img src="{{ $bundledBase }}.jpg"
+                 alt="{{ $bannerAlt }}"
+                 class="sd-hero-banner__img absolute inset-0 block h-full w-full object-contain object-center"
+                 width="1024"
+                 height="374"
+                 loading="eager"
+                 decoding="async"
+                 fetchpriority="high">
+        </picture>
+        @else
         <img src="{{ e($bannerImageUrl) }}"
              alt="{{ $bannerAlt }}"
              class="sd-hero-banner__img absolute inset-0 block h-full w-full object-contain object-center"
@@ -35,8 +92,10 @@
              loading="eager"
              decoding="async"
              fetchpriority="high">
+        @endif
     </figure>
 </section>
+@endif
 @elseif($mode === 'image_text')
 {{-- Image + text: text left, image right --}}
 <section aria-label="Dashboard banner" class="w-full min-w-0 h-full flex flex-col">

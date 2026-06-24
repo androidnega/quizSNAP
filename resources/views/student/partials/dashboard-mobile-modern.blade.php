@@ -37,6 +37,8 @@
         </div>
     </header>
 
+    @include('student.partials.dashboard-hero-banner', ['bannerLayout' => 'mobile'])
+
     <section class="md-dash__section" aria-label="My quiz">
         <div class="md-dash__section-head">
             <h2 class="md-dash__section-title">My quiz</h2>

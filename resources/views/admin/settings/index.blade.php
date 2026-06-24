@@ -686,7 +686,7 @@
                     <div class="space-y-6">
                         <div class="rounded-lg border border-gray-200 bg-gray-50/50 p-5 space-y-4">
                             <label class="flex items-start gap-3 cursor-pointer group">
-                                <input type="checkbox" name="student_dashboard_banner_enabled" value="1" {{ old('student_dashboard_banner_enabled', $student_dashboard_banner_enabled ?? false) ? 'checked' : '' }} class="w-4 h-4 mt-0.5 text-primary-600 border-gray-300 rounded focus:ring-primary-500 shrink-0">
+                                <input type="checkbox" name="student_dashboard_banner_enabled" value="1" {{ old('student_dashboard_banner_enabled', $student_dashboard_banner_enabled ?? true) ? 'checked' : '' }} class="w-4 h-4 mt-0.5 text-primary-600 border-gray-300 rounded focus:ring-primary-500 shrink-0">
                                 <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900">Show banner on student dashboard</span>
                             </label>
                         </div>

@@ -17,7 +17,6 @@
 @php
     use App\Support\SupportContact;
 
-    $studentNavHome = request()->routeIs('dashboard') && !request()->routeIs('dashboard.my-*') && !request()->routeIs('dashboard.course-materials') && !request()->routeIs('dashboard.calendar');
     $breadcrumbLabel = 'Dashboard';
     if (request()->routeIs('dashboard.my-quizzes*')) { $breadcrumbLabel = 'Quizzes'; }
     elseif (request()->routeIs('dashboard.course-materials')) { $breadcrumbLabel = 'Materials'; }
@@ -58,14 +57,6 @@
                 'variant' => 'on-brand',
                 'class' => 'hidden lg:inline-flex shrink-0',
             ])
-
-            <nav class="hidden lg:flex items-center gap-1 flex-1 justify-center min-w-0" aria-label="Dashboard navigation">
-                <a href="{{ route('dashboard') }}" class="px-3 xl:px-4 py-2 rounded-xl text-sm font-semibold transition-colors theme-header-text {{ $studentNavHome ? 'theme-nav-active' : 'theme-nav-idle' }}"><i class="fas fa-home mr-1.5 xl:mr-2 text-xs"></i>Home</a>
-                <a href="{{ route('dashboard.my-quizzes') }}" class="px-3 xl:px-4 py-2 rounded-xl text-sm font-semibold transition-colors theme-header-text {{ request()->routeIs('dashboard.my-quizzes*') ? 'theme-nav-active' : 'theme-nav-idle' }}"><i class="fas fa-clipboard-list mr-1.5 xl:mr-2 text-xs"></i>Quizzes</a>
-                <a href="{{ route('dashboard.calendar') }}" class="px-3 xl:px-4 py-2 rounded-xl text-sm font-semibold transition-colors theme-header-text {{ request()->routeIs('dashboard.calendar') ? 'theme-nav-active' : 'theme-nav-idle' }}"><i class="fas fa-calendar-alt mr-1.5 xl:mr-2 text-xs"></i>Calendar</a>
-                <a href="{{ route('dashboard.course-materials') }}" class="px-3 xl:px-4 py-2 rounded-xl text-sm font-semibold transition-colors theme-header-text {{ request()->routeIs('dashboard.course-materials') ? 'theme-nav-active' : 'theme-nav-idle' }}"><i class="fas fa-book mr-1.5 xl:mr-2 text-xs"></i>Materials</a>
-                <a href="{{ route('dashboard.my-profile') }}" class="px-3 xl:px-4 py-2 rounded-xl text-sm font-semibold transition-colors theme-header-text {{ request()->routeIs('dashboard.my-profile') ? 'theme-nav-active' : 'theme-nav-idle' }}"><i class="fas fa-user mr-1.5 xl:mr-2 text-xs"></i>Profile</a>
-            </nav>
 
             @if(isset($student) && $student)
             <div class="relative shrink-0" id="student-profile-menu">

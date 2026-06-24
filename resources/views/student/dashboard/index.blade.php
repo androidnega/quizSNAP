@@ -28,6 +28,8 @@ min-h-screen @if(($studentDashboardMobileLayout ?? \App\Models\Setting::getStude
         </div>
     </header>
 
+    @include('student.partials.dashboard-pill-nav', ['class' => 'hidden lg:block xl:mb-0'])
+
     @if(! $isModernMobile)
         @include('student.partials.dashboard-pill-nav', ['class' => 'lg:hidden mb-3', 'compact' => true, 'mobile' => true])
     @endif

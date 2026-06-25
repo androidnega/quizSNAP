@@ -14,7 +14,8 @@ class AdjustQuizSessionResultCommand extends Command
         {--correct= : New correct answer count}
         {--total= : Total questions (defaults to the existing result total)}
         {--quiz= : Optional quiz id to verify, e.g. 56}
-        {--dry-run : Show the change without saving}';
+        {--dry-run : Show the change without saving}
+        {--force : Save without confirmation prompt}';
 
     protected $description = 'Update a stored quiz session result (score and correct/total counts).';
 
@@ -82,7 +83,7 @@ class AdjustQuizSessionResultCommand extends Command
             return Command::SUCCESS;
         }
 
-        if (! $this->confirm('Save this result change?', true)) {
+        if (! $this->option('force') && ! $this->confirm('Save this result change?', true)) {
             $this->warn('Cancelled.');
 
             return Command::SUCCESS;

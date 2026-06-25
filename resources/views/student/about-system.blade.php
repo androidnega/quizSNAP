@@ -2,6 +2,10 @@
 
 @php
     $appName = \App\Models\Setting::getValue(\App\Models\Setting::KEY_APP_NAME, config('app.name', 'QuizSnap'));
+    $proctoringThresholds = \App\Models\Setting::getProctoringThresholds();
+    $tabSwitchLimit = $proctoringThresholds['tab_switch_limit'];
+    $outOfFrameSeconds = $proctoringThresholds['out_of_frame_seconds'];
+    $multipleFacesSeconds = $proctoringThresholds['multiple_faces_seconds'];
 @endphp
 
 @section('title', 'About ' . $appName)
@@ -71,6 +75,53 @@
         padding: 1.25rem;
         margin-top: 0.5rem;
     }
+    .about-rules-box {
+        border-radius: 1rem;
+        padding: 1.25rem;
+        margin-top: 0.75rem;
+    }
+    .about-rules-box--critical {
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+    }
+    .about-rules-box--warning {
+        background: #fffbeb;
+        border: 1px solid #fde68a;
+    }
+    .about-rules-box--info {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+    }
+    .about-rules-box h3 {
+        font-size: 1rem;
+        font-weight: 700;
+        margin: 0 0 0.625rem;
+    }
+    .about-rules-box--critical h3 { color: #991b1b; }
+    .about-rules-box--warning h3 { color: #92400e; }
+    .about-rules-box--info h3 { color: #0f172a; }
+    .about-rules-list {
+        margin: 0;
+        padding-left: 1.25rem;
+        color: #334155;
+        font-size: 0.9375rem;
+        line-height: 1.65;
+    }
+    .about-rules-list li { margin-bottom: 0.5rem; }
+    .about-rules-list li:last-child { margin-bottom: 0; }
+    .about-rule-tag {
+        display: inline-block;
+        font-size: 0.6875rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        padding: 0.125rem 0.5rem;
+        border-radius: 9999px;
+        vertical-align: middle;
+        margin-right: 0.375rem;
+    }
+    .about-rule-tag--critical { background: #fee2e2; color: #991b1b; }
+    .about-rule-tag--warning { background: #fef3c7; color: #92400e; }
     .about-cta {
         margin-top: 2rem;
         padding-top: 1.5rem;
@@ -150,11 +201,69 @@
                         </div>
                     </div>
                     <div class="about-section-body">
-                        <p><strong>Timer:</strong> A countdown begins when you start. Complete the quiz before time runs out.</p>
-                        <p><strong>Answer questions:</strong> Select your answers carefully on each screen.</p>
-                        <p><strong>Auto-save:</strong> Your answers are saved automatically as you progress.</p>
-                        <p><strong>Stay focused:</strong> Remain on the quiz tab. Switching tabs may be logged as a violation.</p>
-                        <p><strong>Desktop recommended:</strong> QuizSnap is optimized for desktop browsers with a working webcam.</p>
+                        <p><strong>Timer:</strong> The clock starts when you begin. Finish before time runs out.</p>
+                        <p><strong>Full screen:</strong> Proctored quizzes run in full screen. Stay in full screen for the whole attempt.</p>
+                        <p><strong>Answer questions:</strong> Read each question carefully. Your answers save automatically as you go.</p>
+                        <p><strong>One tab only:</strong> Keep the quiz tab open and in front of you. Do not open other apps, windows, or browser tabs.</p>
+                        <p><strong>Camera on:</strong> Your face should stay clearly visible. Sit in a quiet place with good lighting.</p>
+                        <p><strong>Desktop or laptop:</strong> Use a computer with a working webcam. Phones are not recommended for proctored exams.</p>
+                    </div>
+                </div>
+
+                <div class="about-section">
+                    <div class="about-section-head">
+                        <div class="about-icon" style="background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);">
+                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                        </div>
+                        <div>
+                            <h2 class="text-lg sm:text-xl font-semibold text-slate-900">Quiz Rules &amp; Auto-Submit</h2>
+                            <p class="text-sm text-slate-500 mt-0.5">Read this before you start — breaking these rules can end your quiz early</p>
+                        </div>
+                    </div>
+                    <div class="about-section-body">
+                        <p>
+                            During a proctored quiz, {{ $appName }} watches your camera, screen focus, and exam behaviour to keep the test fair.
+                            Some mistakes only give a <strong>warning</strong>. Others are <strong>critical</strong> and can
+                            <strong>submit your quiz immediately</strong>, even if time is still left.
+                        </p>
+
+                        <div class="about-rules-box about-rules-box--critical">
+                            <h3>Critical rules — quiz can end immediately</h3>
+                            <p class="text-sm text-red-900 mb-3">The first time you do any of these, your quiz may be submitted straight away. You cannot continue after that.</p>
+                            <ul class="about-rules-list">
+                                <li><span class="about-rule-tag about-rule-tag--critical">Critical</span><strong>Phone or prohibited object:</strong> A phone, tablet, or similar item appears in your camera view.</li>
+                                <li><span class="about-rule-tag about-rule-tag--critical">Critical</span><strong>Screenshot attempt:</strong> Trying to capture the screen (for example with keyboard shortcuts or screen capture tools).</li>
+                                <li><span class="about-rule-tag about-rule-tag--critical">Critical</span><strong>Copy or paste:</strong> Copying, cutting, or pasting text during the quiz.</li>
+                                <li><span class="about-rule-tag about-rule-tag--critical">Critical</span><strong>Different device or location:</strong> Continuing the same quiz from another IP address or network (for example switching computers mid-exam).</li>
+                                <li><span class="about-rule-tag about-rule-tag--critical">Critical</span><strong>Leaving full screen again:</strong> The first time you exit full screen you get a strong warning. If you leave full screen or resize the window a second time, the quiz is submitted.</li>
+                                <li><span class="about-rule-tag about-rule-tag--critical">Critical</span><strong>Face away too long:</strong> Your face is missing from the camera for about <strong>{{ $outOfFrameSeconds }} seconds</strong> in a row.</li>
+                                <li><span class="about-rule-tag about-rule-tag--critical">Critical</span><strong>More than one person:</strong> Two or more faces stay in the camera for about <strong>{{ $multipleFacesSeconds }} seconds</strong> in a row.</li>
+                            </ul>
+                        </div>
+
+                        <div class="about-rules-box about-rules-box--warning">
+                            <h3>Repeated mistakes — quiz ends after several warnings</h3>
+                            <p class="text-sm text-amber-900 mb-3">These build up. If you keep doing them, your quiz will be submitted even if you still have time left.</p>
+                            <ul class="about-rules-list">
+                                <li><span class="about-rule-tag about-rule-tag--warning">Warning</span><strong>Switching tabs or minimizing:</strong> Leaving the quiz tab or blurring the window is logged. After <strong>{{ $tabSwitchLimit }}</strong> tab-switch or minimize events, your quiz is auto-submitted.</li>
+                                <li><span class="about-rule-tag about-rule-tag--warning">Warning</span><strong>Staying away from the quiz tab:</strong> If you switch away and stay in another tab or app for about <strong>20 seconds</strong>, the quiz can be submitted automatically.</li>
+                                <li><span class="about-rule-tag about-rule-tag--warning">Warning</span><strong>Many short face warnings:</strong> Repeated “face out of frame” warnings (even if each one is brief) can also lead to auto-submit after too many occurrences.</li>
+                            </ul>
+                        </div>
+
+                        <div class="about-rules-box about-rules-box--info">
+                            <h3>Logged as warnings — try to avoid, but not instant submit on their own</h3>
+                            <ul class="about-rules-list">
+                                <li><span class="about-rule-tag about-rule-tag--warning">Warning</span><strong>Head turns:</strong> Looking far left, right, up, or down is recorded. It does not end the quiz by itself, but examiners can review it.</li>
+                                <li><span class="about-rule-tag about-rule-tag--warning">Warning</span><strong>Static face:</strong> The system may flag if your face looks unnaturally still (for example a photo on screen).</li>
+                                <li><span class="about-rule-tag about-rule-tag--warning">Warning</span><strong>Right-click:</strong> Right-clicking is blocked and logged. It does not auto-submit on its own.</li>
+                                <li><span class="about-rule-tag about-rule-tag--warning">Warning</span><strong>Brief camera issues:</strong> Short glitches, a momentary face loss, or a quick look away may count as warnings — fix your position quickly.</li>
+                                <li><span class="about-rule-tag about-rule-tag--warning">Warning</span><strong>Camera disconnected:</strong> If your camera stops working, reconnect as fast as you can and tell your lecturer if needed.</li>
+                            </ul>
+                        </div>
+
+                        <p class="mt-4"><strong>What happens after auto-submit?</strong> Your answers up to that point are saved and marked. Your lecturer can see violation logs and camera captures. The result may be held for review in serious cases.</p>
+                        <p><strong>Network problems:</strong> A short internet drop does <em>not</em> auto-submit your quiz. Answers sync when you reconnect. Do not refresh the page unless your lecturer tells you to.</p>
                     </div>
                 </div>
 
@@ -164,20 +273,18 @@
                             <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
                         </div>
                         <div>
-                            <h2 class="text-lg sm:text-xl font-semibold text-slate-900">Proctoring & Security</h2>
-                            <p class="text-sm text-slate-500 mt-0.5">What is monitored during a proctored quiz</p>
+                            <h2 class="text-lg sm:text-xl font-semibold text-slate-900">What We Monitor</h2>
+                            <p class="text-sm text-slate-500 mt-0.5">A simple summary of proctoring</p>
                         </div>
                     </div>
                     <div class="about-section-body">
                         <ul>
-                            <li><strong>Face verification & camera:</strong> Pre- and post-quiz photos confirm your identity.</li>
-                            <li><strong>Screen focus:</strong> Leaving the quiz tab or resizing the window may be logged.</li>
-                            <li><strong>Multiple faces:</strong> More than one face in frame is recorded for review.</li>
-                            <li><strong>Clipboard & screenshots:</strong> Copy/paste and screenshot attempts are serious violations.</li>
-                            <li><strong>Devices & network:</strong> Using a second device or different IP may be flagged.</li>
+                            <li><strong>Identity photos:</strong> A photo at the start (and usually at the end) to confirm it is you.</li>
+                            <li><strong>Live camera:</strong> Your face during the quiz, with snapshots when certain violations happen.</li>
+                            <li><strong>Screen focus:</strong> Whether you stay on the quiz tab and in full screen.</li>
+                            <li><strong>Exam behaviour:</strong> Copy/paste, screenshots, extra faces, phones, and similar actions.</li>
+                            <li><strong>Device &amp; network:</strong> The device and connection used for the attempt.</li>
                         </ul>
-                        <p class="mt-3"><strong>Auto-submit:</strong> Repeated or serious violations can automatically submit your quiz for examiner review.</p>
-                        <p><strong>Network problems:</strong> Brief disconnections do not auto-submit; answers sync when you reconnect.</p>
                     </div>
                 </div>
 
@@ -218,13 +325,15 @@
                 </div>
 
                 <div class="about-highlight">
-                    <h2 class="text-lg font-semibold text-blue-900 mb-3">Tips for Success</h2>
+                    <h2 class="text-lg font-semibold text-blue-900 mb-3">Tips for a smooth quiz</h2>
                     <ul class="text-slate-700 space-y-2 text-sm sm:text-base">
-                        <li>Test your camera and internet connection before starting.</li>
-                        <li>Keep your face visible during photo capture.</li>
-                        <li>Do not switch tabs during the quiz.</li>
-                        <li>Read each question carefully and manage your time.</li>
-                        <li>Use a quiet environment with good lighting.</li>
+                        <li>Read this page and test your camera before the exam starts.</li>
+                        <li>Use full screen and do not resize or minimize the browser.</li>
+                        <li>Stay on the quiz tab — do not open WhatsApp, notes, or other websites.</li>
+                        <li>Keep your face centered and well lit. Only you should be in the camera.</li>
+                        <li>Put your phone away and out of sight before you begin.</li>
+                        <li>Do not copy, paste, or screenshot anything during the quiz.</li>
+                        <li>Use a stable internet connection on one computer for the whole attempt.</li>
                     </ul>
                 </div>
 

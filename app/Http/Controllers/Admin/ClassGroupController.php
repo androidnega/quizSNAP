@@ -140,6 +140,11 @@ class ClassGroupController extends Controller
             $query->where('academic_year_id', $academicYearId);
         }
 
+        $institutionId = $request->query('institution_id');
+        if ($institutionId && $user?->isSuperAdmin()) {
+            $query->whereHas('examiner', fn ($e) => $e->where('institution_id', $institutionId));
+        }
+
         $classGroups = $query->paginate(24)->withQueryString();
 
         $user = $this->adminUser();
@@ -166,6 +171,9 @@ class ClassGroupController extends Controller
             : collect();
         $quizCategories = \App\Models\QuizCategory::ordered();
         $academicYears = \App\Models\AcademicYear::orderBy('year', 'desc')->get(['id', 'year']);
+        $institutions = $user?->isSuperAdmin()
+            ? \App\Models\Institution::orderBy('name')->get(['id', 'name', 'region'])
+            : collect();
 
         // Class groups that have at least one session with recent activity (same criteria as live proctor: heartbeat in last 2 min or started in last 5 min).
         // For examiners: only show "Live" for class groups where the live quiz is in a course assigned to this examiner (so examiner B does not see examiner A's live quiz).
@@ -196,7 +204,7 @@ class ClassGroupController extends Controller
             $classGroupIdsWithLiveSessions = $query->distinct()->pluck('quizzes.class_group_id')->all();
         }
 
-        return view('admin.class-groups.index', compact('classGroups', 'levels', 'courses', 'lecturers', 'quizCategories', 'academicYears', 'classGroupIdsWithLiveSessions'));
+        return view('admin.class-groups.index', compact('classGroups', 'levels', 'courses', 'lecturers', 'quizCategories', 'academicYears', 'institutions', 'classGroupIdsWithLiveSessions'));
     }
 
     public function create(): View

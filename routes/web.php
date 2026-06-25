@@ -230,6 +230,9 @@ Route::middleware('admin.auth')->group(function () {
         Route::delete('/class-groups/{classGroupId}/students/{student}/phone', [ClassGroupController::class, 'removeStudentPhone'])->name('class-groups.students.remove-phone');
         Route::post('/class-groups/{classGroupId}/students/{student}/fallback-code', [ClassGroupController::class, 'generateFallbackCode'])->name('class-groups.students.fallback-code');
 
+        // Super Admin + Coordinator: global student search (scoped by role)
+        Route::get('/students', [\App\Http\Controllers\Admin\StaffStudentsController::class, 'index'])->name('students.index');
+
         // Exam calendar (midsem & end-of-semester) — coordinator assigns by class group; students see on dashboard
         Route::get('/exam-calendar', [ExamCalendarController::class, 'index'])->name('exam-calendar.index');
         Route::get('/exam-calendar/create', [ExamCalendarController::class, 'create'])->name('exam-calendar.create');
@@ -252,7 +255,6 @@ Route::middleware('admin.auth')->group(function () {
         // Quizzes — examiner only
         Route::middleware('examiner.only')->group(function () {
             Route::get('/quizzes-ping', fn () => response('OK', 200, ['Content-Type' => 'text/plain; charset=utf-8']))->name('quizzes.ping');
-            Route::get('/students', fn () => redirect()->route('dashboard.class-groups.index', [], 301))->name('students.index');
             Route::get('/attendance', fn () => redirect()->route('dashboard.class-groups.index', [], 301))->name('attendance.index');
             Route::get('/quizzes', [QuizManagementController::class, 'index'])->name('quizzes.index');
             Route::get('/quizzes/create', [QuizManagementController::class, 'create'])->name('quizzes.create');

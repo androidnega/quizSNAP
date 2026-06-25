@@ -228,12 +228,14 @@ class User extends Authenticatable
         if ($this->isSuperAdmin()) {
             return ClassGroup::pluck('id')->all();
         }
-        if ($this->isCoordinator()) {
+        if ($this->role === self::ROLE_COORDINATOR || (bool) ($this->attributes['coordinator'] ?? false)) {
             $q = ClassGroup::query();
             if ($this->faculty_id) {
                 $q->whereHas('examiner', fn ($e) => $e->where('faculty_id', $this->faculty_id));
             } elseif ($this->department_id) {
                 $q->whereHas('examiner', fn ($e) => $e->where('department_id', $this->department_id));
+            } elseif ($this->institution_id) {
+                $q->whereHas('examiner', fn ($e) => $e->where('institution_id', $this->institution_id));
             }
 
             return $q->pluck('id')->all();

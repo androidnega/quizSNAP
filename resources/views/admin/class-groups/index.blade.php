@@ -65,6 +65,17 @@
             </select>
         </div>
         @endif
+        @if(isset($institutions) && $institutions->isNotEmpty())
+        <div>
+            <label for="filter_institution" class="block text-xs font-medium text-gray-500 mb-1">Institution</label>
+            <select name="institution_id" id="filter_institution" class="block w-full min-w-[180px] rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-gray-400 focus:ring-1 focus:ring-gray-300 focus:outline-none filter-auto-submit">
+                <option value="">All institutions</option>
+                @foreach($institutions as $inst)
+                    <option value="{{ $inst->id }}" {{ request('institution_id') == $inst->id ? 'selected' : '' }}>{{ $inst->display_name }}</option>
+                @endforeach
+            </select>
+        </div>
+        @endif
         @if($lecturers->isNotEmpty())
         <div>
             <label for="filter_lecturer" class="block text-xs font-medium text-gray-500 mb-1">Lecturer</label>

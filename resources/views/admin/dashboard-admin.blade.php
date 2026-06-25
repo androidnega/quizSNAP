@@ -6,7 +6,7 @@
 @section('dashboard_content')
 <div class="w-full min-w-0 space-y-4 sm:space-y-6">
     <div class="min-w-0">
-        <p class="text-sm sm:text-base text-gray-600">Courses, users, class groups (view only), and system settings</p>
+        <p class="text-sm sm:text-base text-gray-600">Institutions, users, students, class groups, and system settings</p>
     </div>
 
     {{-- Update mode: very slim height, clean, no animation; countdown mm:ss, no overflow --}}
@@ -141,6 +141,14 @@
     <section class="rounded-lg border border-gray-200 bg-white p-3 sm:p-4 min-w-0">
         <h2 class="text-xs font-semibold text-gray-700 mb-3">Quick links</h2>
         <div class="flex flex-wrap gap-2 sm:gap-2">
+            <a href="{{ route('dashboard.students.index') }}" class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 min-h-[44px] hover:bg-gray-100 hover:border-gray-300 transition-colors touch-manipulation" title="Search and manage all students">
+                <span class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-white text-gray-500"><svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/></svg></span>
+                <span class="text-sm font-medium text-gray-900">Students</span>
+            </a>
+            <a href="{{ route('dashboard.class-groups.index') }}" class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 min-h-[44px] hover:bg-gray-100 hover:border-gray-300 transition-colors touch-manipulation" title="Browse class groups across institutions">
+                <span class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-white text-gray-500"><svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg></span>
+                <span class="text-sm font-medium text-gray-900">Class Groups</span>
+            </a>
             <a href="{{ route('dashboard.settings.index') }}" class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 min-h-[44px] hover:bg-gray-100 hover:border-gray-300 transition-colors touch-manipulation" title="Configure app, mail, AI, and storage">
                 <span class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-white text-gray-500"><svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg></span>
                 <span class="text-sm font-medium text-gray-900">Settings</span>

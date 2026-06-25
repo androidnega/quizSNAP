@@ -70,6 +70,7 @@ class EnsureAdminAuthenticated
         $coordinatorAllowed = $request->routeIs('dashboard.profile.*')
             || $request->routeIs('dashboard.coordinators.*')
             || $request->routeIs('dashboard.class-groups.*')
+            || $request->routeIs('dashboard.students.*')
             || $request->routeIs('dashboard.courses.*')
             || $request->routeIs('dashboard.exam-calendar.*')
             || $request->routeIs('logout');

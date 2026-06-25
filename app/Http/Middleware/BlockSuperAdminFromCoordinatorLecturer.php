@@ -8,9 +8,9 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Block Super Admin from accessing coordinator/lecturer pages.
- * Admin only manages: Institutions, Users (examiners/coordinators), Settings, Reset.
- * Admin cannot access: Class groups, Courses, Quizzes, Docu Mentor coordinator area.
+ * Block Super Admin from coordinator/lecturer academic workflows.
+ * Super Admin may access class groups and students (all institutions) for roster management.
+ * Super Admin cannot access: Courses, Quizzes, Docu Mentor coordinator area, exam calendar.
  */
 class BlockSuperAdminFromCoordinatorLecturer
 {
@@ -21,14 +21,15 @@ class BlockSuperAdminFromCoordinatorLecturer
             return $next($request);
         }
 
-        $blocked = $request->routeIs('dashboard.class-groups.*')
-            || $request->routeIs('dashboard.courses.*')
+        $blocked = $request->routeIs('dashboard.courses.*')
             || $request->routeIs('dashboard.quizzes.*')
-            || $request->routeIs('dashboard.coordinators.*');
+            || $request->routeIs('dashboard.coordinators.*')
+            || $request->routeIs('dashboard.exam-calendar.*')
+            || $request->routeIs('dashboard.student-notifications.*');
 
         if ($blocked) {
             return redirect()->route('dashboard')
-                ->with('error', 'This section is for coordinators and lecturers only. Use Institutions and Users to manage staff.');
+                ->with('error', 'This section is for coordinators and lecturers only. Use Class Groups or Students to manage rosters, or Institutions and Users for staff.');
         }
 
         return $next($request);

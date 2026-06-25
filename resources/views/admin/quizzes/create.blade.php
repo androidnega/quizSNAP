@@ -80,11 +80,81 @@
 #ai-generate-btn {
     min-height: 0;
 }
+#ai-generate-live {
+    margin-top: 0.75rem;
+    border: 1px solid #e0e7ff;
+    border-radius: 0.625rem;
+    background: #fff;
+    padding: 0.75rem;
+}
+#ai-generate-live-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 16rem;
+    overflow-y: auto;
+}
+.ai-live-item {
+    display: flex;
+    gap: 0.625rem;
+    align-items: flex-start;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f1f5f9;
+    animation: ai-live-fade-in 0.35s ease;
+}
+.ai-live-item:last-child { border-bottom: none; }
+@keyframes ai-live-fade-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.ai-live-index {
+    flex-shrink: 0;
+    font-size: 0.625rem;
+    font-weight: 700;
+    color: #6366f1;
+    background: #eef2ff;
+    border-radius: 0.375rem;
+    padding: 0.125rem 0.375rem;
+    margin-top: 0.125rem;
+}
+.ai-live-body { min-width: 0; flex: 1; }
+.ai-live-meta {
+    font-size: 0.625rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #64748b;
+    margin-bottom: 0.125rem;
+}
+.ai-live-text {
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    color: #1e293b;
+}
+.ai-live-cursor {
+    display: inline-block;
+    width: 2px;
+    height: 0.9em;
+    background: #6366f1;
+    margin-left: 1px;
+    vertical-align: text-bottom;
+    animation: ai-live-blink 0.8s step-end infinite;
+}
+@keyframes ai-live-blink {
+    50% { opacity: 0; }
+}
+#ai-generate-done {
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+    border-radius: 0.625rem;
+    border: 1px solid #bbf7d0;
+    background: #f0fdf4;
+}
 </style>
 @endpush
 
 @section('dashboard_content')
-<div class="w-full max-w-5xl mx-auto min-w-0 overflow-x-hidden">
+<div class="w-full max-w-5xl mx-auto min-w-0 overflow-x-hidden" data-quizsnap-skip-live-reload="1">
     <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-5 md:p-8">
             @if(session('success'))
                 <div class="alert alert-success mb-6">
@@ -369,6 +439,17 @@
                                 <div id="ai-generate-bar" class="ai-progress-fill" style="width:0%"></div>
                             </div>
                             <p id="ai-generate-counts" class="text-[10px] text-slate-500 mt-1 tabular-nums">0 / 0</p>
+                        </div>
+                        <div id="ai-generate-live" class="hidden" aria-live="polite">
+                            <p class="text-[11px] font-semibold text-indigo-800 mb-2">Writing questions…</p>
+                            <ul id="ai-generate-live-list"></ul>
+                        </div>
+                        <div id="ai-generate-done" class="hidden" role="status">
+                            <p id="ai-generate-done-msg" class="text-sm font-medium text-green-800 mb-2"></p>
+                            <div class="flex flex-wrap gap-2">
+                                <a href="#" id="ai-generate-open-quiz" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 no-underline">Open quiz to review</a>
+                                <button type="button" id="ai-generate-stay-btn" class="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50">Stay on this page</button>
+                            </div>
                         </div>
                         <p id="ai-generate-error" class="hidden text-xs text-red-600 mt-2" role="alert"></p>
                     </div>
@@ -1153,16 +1234,21 @@
     var progressStatus = document.getElementById('ai-generate-status');
     var progressCounts = document.getElementById('ai-generate-counts');
     var errorEl = document.getElementById('ai-generate-error');
+    var liveWrap = document.getElementById('ai-generate-live');
+    var liveList = document.getElementById('ai-generate-live-list');
+    var doneWrap = document.getElementById('ai-generate-done');
+    var doneMsg = document.getElementById('ai-generate-done-msg');
+    var openQuizLink = document.getElementById('ai-generate-open-quiz');
+    var stayBtn = document.getElementById('ai-generate-stay-btn');
     var topicsValue = document.getElementById('topics-value');
     var sourceScript = document.getElementById('source_script');
     var sourceOutline = document.getElementById('source_outline');
     if (!form || !generateBtn) return;
 
     var generating = false;
-    var pollTimer = null;
-    var pollStartedAt = 0;
-    var lastPollGenerated = -1;
-    var stuckPollCount = 0;
+    var batchTimer = null;
+    var seenQuestionIds = {};
+    var liveQuestionIndex = 0;
     var csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
 
     function parseJsonResponse(r) {
@@ -1250,74 +1336,124 @@
         generating = false;
         generateBtn.disabled = false;
         if (panel) panel.classList.remove('ai-generating');
+        if (batchTimer) clearTimeout(batchTimer);
     }
 
-    function pollStatus(statusUrl, redirectUrl) {
-        fetch(statusUrl, { headers: jsonFetchHeaders() })
-            .then(parseJsonResponse)
-            .then(function(res) {
-                if (!res.ok) {
-                    showError(res.data.error || ('Could not read generation status (HTTP ' + res.status + ').'));
-                    return;
-                }
-                var data = res.data;
-                var status = data.status || 'idle';
-                var target = Math.max(1, parseInt(data.target, 10) || 1);
-                var generated = parseInt(data.generated, 10) || 0;
-                var pct = data.percent != null ? parseInt(data.percent, 10) : Math.min(100, Math.round((generated / target) * 100));
-                var msg = data.message || ('Generating… ' + generated + ' of ' + target);
-                var elapsed = pollStartedAt ? (Date.now() - pollStartedAt) : 0;
+    function typewriter(el, text, speedMs, done) {
+        if (!el) {
+            if (done) done();
+            return;
+        }
+        var i = 0;
+        var cursor = document.createElement('span');
+        cursor.className = 'ai-live-cursor';
+        cursor.setAttribute('aria-hidden', 'true');
+        el.textContent = '';
+        el.appendChild(cursor);
+        function tick() {
+            if (i < text.length) {
+                cursor.before(document.createTextNode(text.charAt(i)));
+                i++;
+                batchTimer = setTimeout(tick, speedMs);
+            } else {
+                cursor.remove();
+                if (done) done();
+            }
+        }
+        tick();
+    }
 
-                if (generated === lastPollGenerated) {
-                    stuckPollCount++;
-                } else {
-                    stuckPollCount = 0;
-                    lastPollGenerated = generated;
-                }
+    function appendLiveQuestion(item) {
+        if (!liveList || !item || seenQuestionIds[item.id]) return;
+        seenQuestionIds[item.id] = true;
+        liveQuestionIndex++;
+        if (liveWrap) liveWrap.classList.remove('hidden');
+        var li = document.createElement('li');
+        li.className = 'ai-live-item';
+        li.setAttribute('data-question-id', String(item.id));
+        var meta = (item.type_label || item.type || 'Question') + (item.topic ? ' · ' + item.topic : '');
+        li.innerHTML =
+            '<span class="ai-live-index">#' + liveQuestionIndex + '</span>' +
+            '<div class="ai-live-body">' +
+                '<div class="ai-live-meta"></div>' +
+                '<div class="ai-live-text"></div>' +
+            '</div>';
+        li.querySelector('.ai-live-meta').textContent = meta;
+        liveList.appendChild(li);
+        liveList.scrollTop = liveList.scrollHeight;
+        typewriter(li.querySelector('.ai-live-text'), item.text || 'Question', 10);
+    }
 
-                if (status === 'running') {
-                    setProgress(pct, generated, target, msg, false);
-                    if (elapsed > 120000 && generated === 0 && stuckPollCount > 8) {
-                        showError('Generation is taking too long with no questions yet. Check Settings → AI (DeepSeek API key) and ensure the queue worker is running.');
-                        if (progressStatus) progressStatus.textContent = 'Generation stalled';
+    function ingestNewQuestions(items) {
+        if (!Array.isArray(items)) return;
+        items.forEach(function(item) {
+            appendLiveQuestion(item);
+        });
+    }
+
+    function showComplete(message, redirectUrl) {
+        generating = false;
+        generateBtn.disabled = false;
+        if (panel) panel.classList.remove('ai-generating');
+        setProgress(100, null, null, message, false);
+        if (errorEl) errorEl.classList.add('hidden');
+        if (doneWrap) doneWrap.classList.remove('hidden');
+        if (doneMsg) doneMsg.textContent = message || 'Generation complete.';
+        if (openQuizLink && redirectUrl) {
+            openQuizLink.href = redirectUrl;
+            openQuizLink.classList.remove('hidden');
+        }
+    }
+
+    function runBatch(batchUrl, topics, target, redirectUrl) {
+        var isFirst = true;
+        var body = null;
+
+        function nextBatch() {
+            body = new URLSearchParams({
+                target: String(target),
+                topics: topics || '',
+                first_call: isFirst ? '1' : '0',
+                _token: csrfToken
+            });
+            isFirst = false;
+
+            fetch(batchUrl, {
+                method: 'POST',
+                headers: Object.assign({}, jsonFetchHeaders(), { 'Content-Type': 'application/x-www-form-urlencoded' }),
+                body: body.toString()
+            })
+                .then(parseJsonResponse)
+                .then(function(res) {
+                    var data = res.data || {};
+                    if (!res.ok || data.success === false) {
+                        var err = data.error || data.message || ('Generation failed (HTTP ' + res.status + ').');
+                        showError(err);
                         return;
                     }
-                    pollTimer = setTimeout(function() { pollStatus(statusUrl, redirectUrl); }, 900);
-                } else if (status === 'completed') {
-                    var doneMsg = data.message || ('Generation complete. ' + generated + ' of ' + target + ' question(s) created.');
-                    setProgress(100, generated, target, doneMsg, false);
-                    if (errorEl) errorEl.classList.add('hidden');
-                    setTimeout(function() { window.location.href = redirectUrl; }, 800);
-                } else if (status === 'failed') {
-                    showError(data.message || 'Question generation failed. Check Settings → AI (DeepSeek API key and account balance), then try again.');
-                    if (progressStatus) progressStatus.textContent = 'Generation failed';
-                    if (progressWrap) progressWrap.classList.remove('hidden');
-                } else if (status === 'idle') {
-                    if (generated > 0) {
-                        setProgress(100, generated, target, 'Generation complete. ' + generated + ' question(s) in pool.', false);
-                        setTimeout(function() { window.location.href = redirectUrl; }, 800);
-                    } else if (elapsed > 90000) {
-                        showError('No progress detected. Ensure the DeepSeek API key is set in Settings → AI, then try again.');
-                    } else {
-                        var waitMsg = elapsed > 15000
-                            ? 'Waiting for background generation to start…'
-                            : 'Starting generation…';
-                        setProgress(pct, generated, target, waitMsg, false);
-                        pollTimer = setTimeout(function() { pollStatus(statusUrl, redirectUrl); }, 900);
+
+                    var soFar = data.total_so_far != null ? data.total_so_far : 0;
+                    var pct = Math.min(100, Math.round((soFar / Math.max(1, target)) * 100));
+                    setProgress(pct, soFar, target, data.message || ('Generated ' + soFar + ' of ' + target + '…'), false);
+                    ingestNewQuestions(data.new_questions);
+
+                    if (data.done) {
+                        if (soFar < 1) {
+                            showError('AI finished but no questions were created. Check Settings → AI (DeepSeek API key and balance).');
+                            return;
+                        }
+                        showComplete(data.message || ('Done! ' + soFar + ' question(s) in pool.'), redirectUrl);
+                        return;
                     }
-                } else if (elapsed > 90000 && generated === 0) {
-                    showError('No progress detected. Ensure DeepSeek API key is set in Settings → AI, then try again.');
-                } else {
-                    pollTimer = setTimeout(function() { pollStatus(statusUrl, redirectUrl); }, 900);
-                }
-            })
-            .catch(function() {
-                if (pollStartedAt && (Date.now() - pollStartedAt) > 120000) {
-                    showError('Lost connection while checking generation status. Refresh the page to see if questions were created.');
-                    return;
-                }
-                pollTimer = setTimeout(function() { pollStatus(statusUrl, redirectUrl); }, 1500);
-            });
+
+                    batchTimer = setTimeout(nextBatch, 450);
+                })
+                .catch(function() {
+                    showError('Network error during generation. Your quiz was created — open it from Quizzes to check the pool or try again.');
+                });
+        }
+
+        nextBatch();
     }
 
     function startGeneration() {
@@ -1354,15 +1490,20 @@
         }
 
         if (errorEl) errorEl.classList.add('hidden');
+        if (doneWrap) doneWrap.classList.add('hidden');
+        if (liveWrap) liveWrap.classList.remove('hidden');
+        if (liveList) liveList.innerHTML = '';
+        seenQuestionIds = {};
+        liveQuestionIndex = 0;
         generating = true;
         generateBtn.disabled = true;
         if (panel) panel.classList.add('ai-generating');
         if (progressWrap) progressWrap.classList.remove('hidden');
         if (progressStatus) {
-            progressStatus.textContent = 'Starting…';
+            progressStatus.textContent = 'Creating quiz…';
             progressStatus.classList.remove('hidden');
         }
-        setProgress(0, 0, 0, 'Starting…', false);
+        setProgress(0, 0, 0, 'Creating quiz…', false);
 
         var formData = new FormData(form);
         formData.set('question_source', 'ai');
@@ -1389,17 +1530,20 @@
                 var data = res.data;
                 if (data.multiple) {
                     setProgress(100, 0, 0, data.message || 'Quizzes created.', false);
-                    setTimeout(function() {
-                        window.location.href = data.redirect_url || @json(route('dashboard.quizzes.index'));
-                    }, 900);
+                    showComplete(data.message || 'Quizzes created.', data.redirect_url || @json(route('dashboard.quizzes.index')));
                     return;
                 }
                 var target = data.target || 0;
-                pollStartedAt = Date.now();
-                lastPollGenerated = -1;
-                stuckPollCount = 0;
+                var redirectUrl = data.redirect_url || '';
+                var topics = data.topics || (topicsValue && topicsValue.value) || '';
                 setProgress(0, 0, target, data.message || 'Generating questions…', false);
-                pollStatus(data.status_url, data.redirect_url);
+
+                if (data.batch_url && data.generation_mode === 'batch') {
+                    runBatch(data.batch_url, topics, target, redirectUrl);
+                    return;
+                }
+
+                showError('Could not start AI generation. Refresh the page and try again.');
             })
             .catch(function() {
                 showError('Network error. Check your connection and try again.');
@@ -1415,8 +1559,16 @@
         }
     });
 
-    window.addEventListener('beforeunload', function() {
-        if (pollTimer) clearTimeout(pollTimer);
+    if (stayBtn) {
+        stayBtn.addEventListener('click', function() {
+            if (doneWrap) doneWrap.classList.add('hidden');
+        });
+    }
+
+    window.addEventListener('beforeunload', function(e) {
+        if (!generating) return;
+        e.preventDefault();
+        e.returnValue = '';
     });
 })();
 </script>

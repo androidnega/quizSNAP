@@ -27,6 +27,14 @@
             return null;
         }
 
+        // Quiz create/edit and in-page AI generation: never auto-reload (would interrupt generation UI).
+        if (/\/dashboard\/quizzes\/(create|edit)(\/|$)/.test(path)) {
+            return null;
+        }
+        if (document.querySelector('[data-quizsnap-skip-live-reload]')) {
+            return null;
+        }
+
         // Quiz detail tabs (overview, sessions, scores): never full-page reload.
         // Examiners stay on the sessions table; live updates belong on monitoring dashboards.
         if (/\/dashboard\/quizzes\/\d+(\/|$)/.test(path)) {

@@ -33,6 +33,7 @@ use App\Services\QuizBackupService;
 use App\Services\StudentNotificationService;
 use App\Services\DocumentTextExtractor;
 use App\Support\QuestionTypes;
+use Illuminate\Support\Str;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -246,6 +247,7 @@ class QuizManagementController extends Controller
         $target = max(1, (int) ($progress['target'] ?? $quiz->number_of_questions));
         $generated = (int) ($progress['generated'] ?? 0);
         $progress['percent'] = min(100, (int) round(($generated / $target) * 100));
+        $progress['recent_questions'] = $this->recentPoolQuestionPreviews($quiz, 20);
 
         return response()->json($progress);
     }
@@ -279,6 +281,8 @@ class QuizManagementController extends Controller
         $statusUrl = route($this->staffRoutePrefix() . '.quizzes.ai-generation-status', $quiz);
         $redirectUrl = route($this->staffRoutePrefix() . '.quizzes.show', ['quiz' => $quiz->id]);
 
+        $topicsStr = $this->quizTopicsString($quiz);
+
         if ($this->wantsJsonResponse($request)) {
             return response()->json([
                 'success' => true,
@@ -288,6 +292,9 @@ class QuizManagementController extends Controller
                 'percent' => 0,
                 'status' => 'running',
                 'status_url' => $statusUrl,
+                'batch_url' => route($this->staffRoutePrefix() . '.quizzes.ai-generate', $quiz),
+                'topics' => $topicsStr,
+                'generation_mode' => 'batch',
                 'redirect_url' => $redirectUrl,
                 'message' => $message,
             ]);
@@ -656,6 +663,7 @@ class QuizManagementController extends Controller
 
             $target = $poolTotal;
             $topicList = ! empty($topics) ? $topics : [['name' => 'General knowledge']];
+            $useClientBatch = $this->wantsJsonResponse($request) && count($quizTargets) === 1;
             $createdQuizzes = [];
             foreach ($quizTargets as $classGroupId) {
                 $createData = $classGroupId
@@ -665,11 +673,15 @@ class QuizManagementController extends Controller
                 if (! $quiz || ! $quiz->id) {
                     return $this->createQuizFormError($request, 'Failed to create quiz.');
                 }
-                AiQuizGenerationProgress::start((int) $quiz->id, $target);
-                $this->dispatchQuizGenerationJob((int) $quiz->id, $topicList, $target, (int) $user->id);
+                if (! $useClientBatch) {
+                    AiQuizGenerationProgress::start((int) $quiz->id, $target);
+                    $this->dispatchQuizGenerationJob((int) $quiz->id, $topicList, $target, (int) $user->id);
+                }
                 $createdQuizzes[] = $quiz;
             }
-            $this->processAiQueueAfterResponse(count($createdQuizzes));
+            if (! $useClientBatch) {
+                $this->processAiQueueAfterResponse(count($createdQuizzes));
+            }
 
             $quizCount = count($createdQuizzes);
             $message = $quizCount > 1
@@ -1729,8 +1741,9 @@ class QuizManagementController extends Controller
         }
 
         @set_time_limit(300);
-        $ids       = $aiService->generatePoolAndStore($quiz, $topics, $batchSize, $sourceText ?: null);
+        $ids = $aiService->generatePoolAndStore($quiz, $topics, $batchSize, $sourceText ?: null);
         $generated = count($ids);
+        $newQuestions = $this->recentPoolQuestionPreviews($quiz, 10, $ids);
 
         if ($generated > 0 && \Illuminate\Support\Facades\Cache::get($tokenPendingKey)) {
             $tokenService->consume($user);
@@ -1770,13 +1783,60 @@ class QuizManagementController extends Controller
             'message' => $done
                 ? 'Generation complete. ' . $newTotal . ' question(s) in pool.'
                 : $batchMessage,
-            'generated'       => $generated,
-            'questions_count'  => $newCount,
-            'pool_count'       => $newPool,
-            'total_so_far'     => $newTotal,
-            'target'           => $target,
-            'done'             => $done,
+            'generated' => $generated,
+            'questions_count' => $newCount,
+            'pool_count' => $newPool,
+            'total_so_far' => $newTotal,
+            'target' => $target,
+            'done' => $done,
+            'new_questions' => $newQuestions,
         ]);
+    }
+
+    private function quizTopicsString(Quiz $quiz): string
+    {
+        $raw = $quiz->topics;
+        if (is_string($raw)) {
+            $decoded = json_decode($raw, true);
+            if (is_array($decoded)) {
+                $names = array_filter(array_map(static fn ($t) => is_array($t) ? trim((string) ($t['name'] ?? '')) : '', $decoded));
+
+                return implode(', ', $names) ?: 'General knowledge';
+            }
+
+            return trim($raw) !== '' ? trim($raw) : 'General knowledge';
+        }
+
+        return 'General knowledge';
+    }
+
+    /**
+     * @param  list<int>  $onlyIds
+     * @return list<array{id: int, type: string, type_label: string, text: string, topic: string|null}>
+     */
+    private function recentPoolQuestionPreviews(Quiz $quiz, int $limit = 15, array $onlyIds = []): array
+    {
+        $query = $quiz->questionPools()->orderByDesc('id');
+        if ($onlyIds !== []) {
+            $query->whereIn('id', $onlyIds)->orderBy('id');
+        }
+
+        return $query->limit(max(1, $limit))
+            ->get(['id', 'type', 'question_text', 'topic'])
+            ->map(function (QuestionPool $pool) {
+                $type = QuestionTypes::normalize((string) ($pool->type ?? QuestionTypes::MCQ));
+                $text = trim(strip_tags((string) ($pool->question_text ?? '')));
+
+                return [
+                    'id' => (int) $pool->id,
+                    'type' => $type,
+                    'type_label' => QuestionTypes::labels()[$type] ?? strtoupper($type),
+                    'text' => Str::limit($text !== '' ? $text : 'Question', 280),
+                    'topic' => is_string($pool->topic) && trim($pool->topic) !== '' ? trim($pool->topic) : null,
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     /**

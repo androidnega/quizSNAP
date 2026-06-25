@@ -76,7 +76,7 @@
             <p class="mt-3 text-xs font-medium text-violet-700">Schedule midsem & finals</p>
         </a>
 
-        <div class="flex flex-col rounded-lg border border-gray-200 bg-gray-50 p-5 sm:p-6">
+        <a href="{{ route('dashboard.students.index') }}" class="flex flex-col rounded-lg border border-gray-200 bg-gray-50 p-5 hover:bg-gray-100 sm:p-6 no-underline">
             <div class="flex flex-1 items-start justify-between gap-3">
                 <div class="min-w-0 flex-1">
                     <p class="text-sm font-medium text-gray-700">Students</p>
@@ -86,8 +86,8 @@
                     <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
                 </span>
             </div>
-            <p class="mt-3 text-xs font-medium text-gray-600">{{ $stats['examiners'] }} examiner{{ $stats['examiners'] === 1 ? '' : 's' }} in your faculty</p>
-        </div>
+            <p class="mt-3 text-xs font-medium text-gray-600">Search &amp; manage in your scope</p>
+        </a>
     </div>
 
     <section class="rounded-lg border border-gray-200 bg-white p-4">
@@ -97,6 +97,7 @@
             <a href="{{ route('dashboard.class-groups.create') }}" class="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors">New class group</a>
             @endcan
             <a href="{{ route('dashboard.class-groups.index') }}" class="inline-flex items-center px-2.5 py-1.5 text-xs font-medium text-gray-800 bg-action-100 rounded border border-action-200 hover:bg-action-200">Class groups</a>
+            <a href="{{ route('dashboard.students.index') }}" class="inline-flex items-center px-2.5 py-1.5 text-xs font-medium text-gray-800 bg-gray-100 rounded border border-gray-300 hover:bg-gray-200">Students</a>
             <a href="{{ route('dashboard.courses.index') }}" class="inline-flex items-center px-2.5 py-1.5 text-xs font-medium text-gray-800 bg-primary-50 rounded border border-primary-200 hover:bg-primary-100">Courses</a>
             <a href="{{ route('dashboard.exam-calendar.index') }}" class="inline-flex items-center px-2.5 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 rounded border border-gray-200 hover:bg-gray-100">Exam calendar</a>
         </div>

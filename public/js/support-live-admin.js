@@ -6,6 +6,10 @@
 
     var cfg = window.QuizSnapLiveSupportAdmin || {};
     var prefix = cfg.prefix || '';
+
+    if (prefix === 'staff-fab-' && document.getElementById('live-support-remote-video')) {
+        return;
+    }
     var queueEl = document.getElementById(prefix + 'live-support-queue');
     var messagesEl = document.getElementById(prefix + 'live-support-messages');
     var inputEl = document.getElementById(prefix + 'live-support-input');
@@ -753,12 +757,23 @@
 
     function queueRemoteIce(candidate) {
         if (!candidate) return;
-        var ice = candidate instanceof RTCIceCandidate ? candidate : new RTCIceCandidate(candidate);
+        var ice = media() && media().parseIceCandidate
+            ? media().parseIceCandidate(candidate)
+            : (candidate instanceof RTCIceCandidate ? candidate : new RTCIceCandidate(candidate));
+        if (!ice) return;
         if (pc && pc.remoteDescription && pc.remoteDescription.type) {
             pc.addIceCandidate(ice).catch(function () {});
         } else {
             pendingRemoteIce.push(ice);
         }
+    }
+
+    function attachRemoteStreamFromPc() {
+        if (!pc || !remoteVideo) return false;
+        if (media() && media().attachVideoFromReceivers) {
+            return media().attachVideoFromReceivers(pc, remoteVideo, remoteVideoWrap);
+        }
+        return false;
     }
 
     function flushRemoteIce() {
@@ -770,7 +785,7 @@
     }
 
     function handleOffer(sdp, messageId) {
-        if (!remoteVideo || !sdp) return;
+        if (!sdp) return;
         var normalized = media() && media().normalizeSdp ? media().normalizeSdp(sdp) : sdp;
         if (!normalized) return;
         if (messageId && messageId === lastHandledOfferId) return;
@@ -784,6 +799,7 @@
                 media().attachRemoteTrack(remoteVideo, remoteVideoWrap, ev);
             } else if (remoteVideo && ev.streams && ev.streams[0]) {
                 remoteVideo.srcObject = ev.streams[0];
+                remoteVideo.muted = true;
                 remoteVideo.classList.remove('hidden');
                 if (remoteVideoWrap) remoteVideoWrap.classList.remove('hidden');
                 remoteVideo.play().catch(function () {});
@@ -794,7 +810,14 @@
             if (ev.candidate) sendSignal({ signal: 'ice', candidate: ev.candidate });
         };
         pc.onconnectionstatechange = function () {
-            if (pc && pc.connectionState === 'failed') hideRemoteVideo();
+            if (!pc) return;
+            if (pc.connectionState === 'connected' || pc.connectionState === 'completed') {
+                attachRemoteStreamFromPc();
+                showRemoteVideo();
+            }
+            if (pc.connectionState === 'failed') {
+                hideRemoteVideo();
+            }
         };
         pc.setRemoteDescription(new RTCSessionDescription(normalized))
             .then(function () {
@@ -804,6 +827,8 @@
             .then(function (answer) { return pc.setLocalDescription(answer).then(function () { return answer; }); })
             .then(function (answer) {
                 sendSignal({ signal: 'answer', sdp: answer });
+                setTimeout(attachRemoteStreamFromPc, 500);
+                setTimeout(attachRemoteStreamFromPc, 2000);
             })
             .catch(function () {
                 hideRemoteVideo();

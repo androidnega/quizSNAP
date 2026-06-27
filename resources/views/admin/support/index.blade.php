@@ -476,7 +476,7 @@
             </div>
             <div id="live-support-remote-video-wrap" class="hidden">
                 <p class="live-support-remote-video__label">Student screen (live)</p>
-                <video id="live-support-remote-video" autoplay playsinline></video>
+                <video id="live-support-remote-video" autoplay playsinline muted></video>
             </div>
             <div id="live-support-recording-wave" class="qs-live-recording-wave" aria-live="polite">
                 <span class="qs-live-recording-wave__label">Recording…</span>

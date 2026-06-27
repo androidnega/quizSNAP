@@ -267,20 +267,53 @@
     }
 
     function rtcConfig() {
+        var servers = [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' },
+        ];
+        var extra = window.QuizSnapSupportRtcConfig || {};
+        if (extra.iceServers && extra.iceServers.length) {
+            servers = servers.concat(extra.iceServers);
+        } else {
+            servers.push({
+                urls: [
+                    'turn:openrelay.metered.ca:80',
+                    'turn:openrelay.metered.ca:443',
+                    'turn:openrelay.metered.ca:443?transport=tcp',
+                ],
+                username: 'openrelayproject',
+                credential: 'openrelayproject',
+            });
+        }
         return {
-            iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302' },
-            ],
+            iceServers: servers,
+            iceCandidatePoolSize: 4,
         };
     }
 
-    function normalizeSdp(sdp) {
-        if (!sdp) return null;
-        if (typeof sdp === 'string') return { type: 'offer', sdp: sdp };
-        if (sdp.type && sdp.sdp) return { type: sdp.type, sdp: sdp.sdp };
-        return null;
+    function parseIceCandidate(raw) {
+        if (!raw) return null;
+        if (raw instanceof RTCIceCandidate) return raw;
+        try {
+            return new RTCIceCandidate(raw);
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function ensureVideoPlays(videoEl) {
+        if (!videoEl) return;
+        videoEl.muted = true;
+        videoEl.setAttribute('playsinline', '');
+        videoEl.setAttribute('autoplay', '');
+        function attempt() {
+            var p = videoEl.play();
+            if (p && typeof p.catch === 'function') p.catch(function () {});
+        }
+        attempt();
+        setTimeout(attempt, 300);
+        setTimeout(attempt, 1200);
     }
 
     function attachRemoteTrack(videoEl, wrapEl, ev) {
@@ -289,7 +322,28 @@
         videoEl.srcObject = stream;
         videoEl.classList.remove('hidden');
         if (wrapEl) wrapEl.classList.remove('hidden');
-        videoEl.play().catch(function () {});
+        ensureVideoPlays(videoEl);
+        ev.track.onunmute = function () { ensureVideoPlays(videoEl); };
+    }
+
+    function attachVideoFromReceivers(pc, videoEl, wrapEl) {
+        if (!pc || !videoEl) return false;
+        var tracks = pc.getReceivers()
+            .map(function (r) { return r.track; })
+            .filter(function (t) { return t && t.kind === 'video'; });
+        if (!tracks.length) return false;
+        videoEl.srcObject = new MediaStream(tracks);
+        videoEl.classList.remove('hidden');
+        if (wrapEl) wrapEl.classList.remove('hidden');
+        ensureVideoPlays(videoEl);
+        return true;
+    }
+
+    function normalizeSdp(sdp) {
+        if (!sdp) return null;
+        if (typeof sdp === 'string') return { type: 'offer', sdp: sdp };
+        if (sdp.type && sdp.sdp) return { type: sdp.type, sdp: sdp.sdp };
+        return null;
     }
 
     function processWebRtcBatch(messages, handler) {
@@ -320,7 +374,10 @@
         packRtcMeta: packRtcMeta,
         rtcConfig: rtcConfig,
         normalizeSdp: normalizeSdp,
+        parseIceCandidate: parseIceCandidate,
         attachRemoteTrack: attachRemoteTrack,
+        attachVideoFromReceivers: attachVideoFromReceivers,
+        ensureVideoPlays: ensureVideoPlays,
         processWebRtcBatch: processWebRtcBatch,
     };
 })();

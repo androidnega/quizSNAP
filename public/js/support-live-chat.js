@@ -846,7 +846,10 @@
 
     function queueRemoteIce(candidate) {
         if (!candidate) return;
-        var ice = candidate instanceof RTCIceCandidate ? candidate : new RTCIceCandidate(candidate);
+        var ice = media() && media().parseIceCandidate
+            ? media().parseIceCandidate(candidate)
+            : (candidate instanceof RTCIceCandidate ? candidate : new RTCIceCandidate(candidate));
+        if (!ice) return;
         if (state.pc && state.pc.remoteDescription && state.pc.remoteDescription.type) {
             state.pc.addIceCandidate(ice).catch(function () {});
         } else {
@@ -895,7 +898,18 @@
                 state.pc.onicecandidate = function (ev) {
                     if (ev.candidate) sendSignal({ signal: 'ice', candidate: ev.candidate });
                 };
-                return state.pc.createOffer();
+                state.pc.onconnectionstatechange = function () {
+                    if (!state.pc) return;
+                    if (state.pc.connectionState === 'connected' || state.pc.connectionState === 'completed') {
+                        setStatus('Sharing your screen…', 'online');
+                    } else if (state.pc.connectionState === 'failed') {
+                        setStatus('Screen share connection failed. Try again.');
+                    }
+                };
+                return state.pc.createOffer({
+                    offerToReceiveAudio: false,
+                    offerToReceiveVideo: false,
+                });
             })
             .then(function (offer) {
                 return state.pc.setLocalDescription(offer).then(function () { return offer; });

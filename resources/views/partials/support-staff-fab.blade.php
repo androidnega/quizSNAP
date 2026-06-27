@@ -238,6 +238,44 @@
         background: #fffbeb;
         border-bottom: 1px solid #fde68a;
     }
+    .staff-support-fab-remote-video {
+        background: #0f172a;
+        border-bottom: 1px solid #1e293b;
+    }
+    .staff-support-fab-remote-video.hidden { display: none; }
+    .staff-support-fab-remote-video__label {
+        margin: 0;
+        padding: 0.375rem 0.875rem 0.125rem;
+        font-size: 0.625rem;
+        font-weight: 600;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+    #staff-fab-live-support-remote-video {
+        width: 100%;
+        max-height: 7rem;
+        display: block;
+        object-fit: contain;
+        background: #0f172a;
+    }
+    .staff-support-fab-toolbar {
+        display: flex;
+        gap: 0.375rem;
+        padding: 0.375rem 0.875rem;
+        border-bottom: 1px solid #e2e8f0;
+        background: #fff;
+    }
+    .staff-support-fab-toolbar button {
+        border: 1px solid #cbd5e1;
+        background: #fff;
+        color: #334155;
+        border-radius: 9999px;
+        padding: 0.25rem 0.625rem;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        cursor: pointer;
+    }
 </style>
 <div class="staff-support-fab-wrap" id="staff-support-fab-wrap">
     <div class="staff-support-fab-panel" id="staff-support-fab-panel" aria-hidden="true">
@@ -252,6 +290,13 @@
             <span class="qs-typing-label"></span>
         </div>
         <div id="staff-fab-live-support-taken-notice" class="live-support-taken-notice" hidden></div>
+        <div id="staff-fab-live-support-remote-video-wrap" class="staff-support-fab-remote-video hidden">
+            <p class="staff-support-fab-remote-video__label">Student screen</p>
+            <video id="staff-fab-live-support-remote-video" autoplay playsinline muted></video>
+        </div>
+        <div class="staff-support-fab-toolbar">
+            <button type="button" id="staff-fab-live-support-screen-btn">Request screen share</button>
+        </div>
         <div id="staff-fab-live-support-messages" aria-live="polite"></div>
         <div id="staff-fab-live-support-recording-wave" class="qs-live-recording-wave" aria-live="polite">
             <span class="qs-live-recording-wave__label">Recording…</span>

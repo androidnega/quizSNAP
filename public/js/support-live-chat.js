@@ -193,7 +193,12 @@
         scrollBottom();
 
         if (fromEcho && msg.sender_type === 'admin' && sounds()) {
-            sounds().playMessage();
+            if (!panel || !panel.classList.contains('is-open')) {
+                sounds().startMessageAlert(state.uuid);
+            } else {
+                sounds().stopMessageAlert();
+                sounds().playMessageOnce();
+            }
         }
     }
 
@@ -277,6 +282,7 @@
             state.isTyping = false;
             sendTypingSignal(false);
         }, 1400);
+        if (sounds()) sounds().playTypingLocal();
     }
 
     function bindEcho() {
@@ -609,6 +615,7 @@
         open: function (opts) {
             opts = opts || {};
             setOpen(true);
+            if (sounds()) sounds().stopMessageAlert();
             clearHiddenCloseTimer();
             state.agentDongPlayed = false;
             if (requiresGuestDetails() && !opts._intakeComplete) {

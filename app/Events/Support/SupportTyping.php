@@ -23,9 +23,15 @@ class SupportTyping implements ShouldBroadcastNow
     /** @return array<int, \Illuminate\Broadcasting\Channel> */
     public function broadcastOn(): array
     {
-        return [
+        $channels = [
             new PrivateChannel('support-session.'.$this->session->uuid),
         ];
+
+        if ($this->senderType === 'student') {
+            $channels[] = new PrivateChannel('support-inbox');
+        }
+
+        return $channels;
     }
 
     public function broadcastAs(): string

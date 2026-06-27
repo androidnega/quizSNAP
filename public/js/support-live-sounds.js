@@ -1,12 +1,17 @@
 /**
- * QuizSnap live support — subtle message and typing sounds (Web Audio API).
+ * QuizSnap live support — message alerts, continuous ring, and typing sounds.
  */
 (function () {
     'use strict';
 
     var ctx = null;
     var typingLastAt = 0;
-    var TYPING_COOLDOWN_MS = 120;
+    var localTypingLastAt = 0;
+    var TYPING_COOLDOWN_MS = 80;
+    var LOCAL_TYPING_COOLDOWN_MS = 100;
+    var alertTimer = null;
+    var alertSessionUuid = null;
+    var ALERT_INTERVAL_MS = 2600;
 
     function audioContext() {
         if (!ctx) {
@@ -39,11 +44,40 @@
         osc.stop(now + duration + 0.02);
     }
 
+    function playMessageOnce() {
+        tone(880, 0.12, 0.055, 'sine');
+        setTimeout(function () { tone(1175, 0.14, 0.05, 'sine'); }, 90);
+    }
+
+    function playRingBurst() {
+        tone(784, 0.18, 0.07, 'sine');
+        setTimeout(function () { tone(988, 0.18, 0.065, 'sine'); }, 200);
+        setTimeout(function () { tone(784, 0.18, 0.06, 'sine'); }, 400);
+        setTimeout(function () { tone(988, 0.22, 0.055, 'sine'); }, 620);
+    }
+
+    function startMessageAlert(sessionUuid) {
+        alertSessionUuid = sessionUuid || 'any';
+        playRingBurst();
+        if (alertTimer) return;
+        alertTimer = setInterval(playRingBurst, ALERT_INTERVAL_MS);
+    }
+
+    function stopMessageAlert() {
+        if (alertTimer) {
+            clearInterval(alertTimer);
+            alertTimer = null;
+        }
+        alertSessionUuid = null;
+    }
+
     window.QuizSnapSupportSounds = {
         playMessage: function () {
-            tone(880, 0.12, 0.05, 'sine');
-            setTimeout(function () { tone(1175, 0.14, 0.045, 'sine'); }, 90);
+            playMessageOnce();
         },
+        playMessageOnce: playMessageOnce,
+        startMessageAlert: startMessageAlert,
+        stopMessageAlert: stopMessageAlert,
         playAgentAvailable: function () {
             tone(523, 0.35, 0.06, 'sine');
             setTimeout(function () { tone(659, 0.45, 0.055, 'sine'); }, 180);
@@ -53,7 +87,14 @@
             var now = Date.now();
             if (now - typingLastAt < TYPING_COOLDOWN_MS) return;
             typingLastAt = now;
-            tone(520, 0.03, 0.018, 'triangle');
+            tone(620, 0.045, 0.032, 'triangle');
+            setTimeout(function () { tone(740, 0.04, 0.026, 'triangle'); }, 50);
+        },
+        playTypingLocal: function () {
+            var now = Date.now();
+            if (now - localTypingLastAt < LOCAL_TYPING_COOLDOWN_MS) return;
+            localTypingLastAt = now;
+            tone(520, 0.028, 0.014, 'triangle');
         },
         unlock: function () {
             audioContext();

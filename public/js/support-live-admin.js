@@ -41,6 +41,29 @@
         return window.QuizSnapSupportSounds || null;
     }
 
+    function isStaffPanelOpen() {
+        if (prefix === 'staff-fab-') {
+            var wrap = document.getElementById('staff-support-fab-wrap');
+            return !!(wrap && wrap.classList.contains('is-open'));
+        }
+        return true;
+    }
+
+    function shouldContinuousAlert(sessionUuid) {
+        if (!sessionUuid || activeUuid !== sessionUuid) return true;
+        return !isStaffPanelOpen();
+    }
+
+    function notifyIncomingStudentMessage(msg, sessionUuid, fromEcho) {
+        if (!fromEcho || !msg || msg.sender_type !== 'student' || !sounds()) return;
+        if (shouldContinuousAlert(sessionUuid)) {
+            sounds().startMessageAlert(sessionUuid);
+        } else {
+            sounds().stopMessageAlert();
+            sounds().playMessageOnce();
+        }
+    }
+
     function csrf() {
         var m = document.querySelector('meta[name="csrf-token"]');
         return m ? m.getAttribute('content') : '';
@@ -230,9 +253,7 @@
         if (msg.id > lastMessageId) lastMessageId = msg.id;
         messagesEl.scrollTop = messagesEl.scrollHeight;
 
-        if (fromEcho && msg.sender_type === 'student' && sounds()) {
-            sounds().playMessage();
-        }
+        notifyIncomingStudentMessage(msg, activeUuid, fromEcho);
     }
 
     function setTyping(text) {
@@ -267,6 +288,7 @@
             isTyping = false;
             sendTypingSignal(false);
         }, 1400);
+        if (sounds()) sounds().playTypingLocal();
     }
 
     function pingPresence() {
@@ -348,6 +370,7 @@
         activeUuid = uuid;
         lastMessageId = 0;
         activeSession = null;
+        if (sounds()) sounds().stopMessageAlert();
         updateReferControls(null);
         if (messagePollTimer) clearInterval(messagePollTimer);
         messagePollTimer = setInterval(pollActiveMessages, 2500);
@@ -425,9 +448,25 @@
         ch.bind('SupportSessionUpdated', function () { refreshQueue(); });
         ch.bind('SupportMessageSent', function (payload) {
             refreshQueue();
-            if (payload && payload.session_uuid === activeUuid && payload.message) {
+            if (!payload || !payload.message) return;
+            if (payload.session_uuid === activeUuid) {
                 renderMessage(payload.message, true);
+                return;
             }
+            if (payload.message.sender_type === 'student') {
+                notifyIncomingStudentMessage(payload.message, payload.session_uuid, true);
+            }
+        });
+        ch.bind('SupportTyping', function (payload) {
+            if (!payload || payload.sender_type !== 'student') return;
+            if (payload.session_uuid === activeUuid) {
+                if (payload.is_typing) {
+                    setTyping((payload.sender_label || 'Student') + ' is typing');
+                } else {
+                    setTyping('');
+                }
+            }
+            if (payload.is_typing && sounds()) sounds().playTyping();
         });
     }
 
@@ -532,6 +571,17 @@
         });
         if (cfg.resolvedSupportDisplayName) updateDisplayNameHint(cfg.resolvedSupportDisplayName);
     }
+    if (prefix === 'staff-fab-') {
+        var fabWrap = document.getElementById('staff-support-fab-wrap');
+        var fabToggle = document.getElementById('staff-support-fab-toggle');
+        if (fabToggle && fabWrap) {
+            fabToggle.addEventListener('click', function () {
+                if (fabWrap.classList.contains('is-open') && activeUuid && sounds()) {
+                    sounds().stopMessageAlert();
+                }
+            });
+        }
+    }
     if (deleteBtn) deleteBtn.addEventListener('click', function () {
         if (!activeUuid || !confirm('Permanently delete this chat and all messages?')) return;
         deleteBtn.disabled = true;
@@ -567,6 +617,7 @@
     refreshQueue();
     bindInbox();
     pingPresence();
+    if (sounds()) sounds().unlock();
     pollTimer = setInterval(refreshQueue, 8000);
     presenceTimer = setInterval(pingPresence, 30000);
 

@@ -13,7 +13,9 @@
     var inputEl = document.getElementById('qs-live-support-input');
     var statusEl = document.getElementById('qs-live-support-status');
     var shareWrap = document.getElementById('qs-live-support-share');
+    var sharePromptEl = document.getElementById('qs-live-support-share-prompt');
     var shareBtn = document.getElementById('qs-live-support-share-btn');
+    var shareDismissBtn = document.getElementById('qs-live-support-share-dismiss');
     var sendBtn = document.getElementById('qs-live-support-send');
     var closeBtn = document.getElementById('qs-live-support-close');
     var imageInput = document.getElementById('qs-live-support-image-input');
@@ -53,6 +55,8 @@
         recordingWaveform: null,
         pendingRemoteIce: [],
         pendingAudio: null,
+        screenSharing: false,
+        sharePromptDismissed: false,
     };
 
     function csrf() {
@@ -168,10 +172,11 @@
         if (emojiBarEl) emojiBarEl.hidden = show;
         if (statusEl) statusEl.hidden = show;
         if (agentBar && show) agentBar.hidden = true;
-        if (shareWrap) {
-            if (show) shareWrap.classList.remove('is-visible');
-            shareWrap.hidden = show;
+        if (sharePromptEl) {
+            sharePromptEl.hidden = show;
+            sharePromptEl.classList.remove('is-visible');
         }
+        if (shareWrap && show) shareWrap.hidden = true;
         if (recordingWaveEl) recordingWaveEl.classList.remove('is-active');
         if (show) {
             setTyping('');
@@ -225,9 +230,31 @@
         }
     }
 
+    function showScreenSharePrompt() {
+        state.sharePromptDismissed = false;
+        if (!sharePromptEl || state.screenSharing || state.inIntake || !isChatOpen()) return;
+        sharePromptEl.hidden = false;
+        sharePromptEl.classList.add('is-visible');
+    }
+
+    function hideScreenSharePrompt(dismiss) {
+        if (sharePromptEl) {
+            sharePromptEl.hidden = true;
+            sharePromptEl.classList.remove('is-visible');
+        }
+        if (dismiss) state.sharePromptDismissed = true;
+    }
+
+    function onScreenShareRequested() {
+        if (!state.sharePromptDismissed && !state.screenSharing) {
+            showScreenSharePrompt();
+        }
+    }
+
     function renderMessage(msg, fromEcho) {
         if (!messagesEl || !msg || !msg.id) return;
         if (msg.sender_type === 'system') return;
+        if (msg.message_type === 'webrtc') return;
         if (document.querySelector('[data-live-msg-id="' + msg.id + '"]')) return;
         var div = document.createElement('div');
         var type = msg.sender_type === 'student' ? 'student' : (msg.sender_type === 'system' ? 'system' : 'admin');
@@ -290,21 +317,22 @@
             setStatus('Chat closed');
             setAgent('');
         }
-        if (session.screen_share_active && shareWrap) shareWrap.classList.add('is-visible');
+        if (session.screen_share_active) onScreenShareRequested();
     }
 
     function ingestMessages(list, fromEcho) {
         if (!Array.isArray(list)) return;
         list.forEach(function (m) {
-            renderMessage(m, fromEcho);
-            if (m.message_type === 'webrtc' && m.meta) {
-                if (m.meta.signal === 'request_screen') {
-                    if (shareWrap) shareWrap.classList.add('is-visible');
-                } else {
-                    handleRemoteSignal(m.meta);
-                }
+            if (m.message_type === 'webrtc' && m.meta && m.meta.signal === 'request_screen') {
+                onScreenShareRequested();
             }
         });
+        list.forEach(function (m) {
+            renderMessage(m, fromEcho);
+        });
+        if (media() && media().processWebRtcBatch) {
+            media().processWebRtcBatch(list, handleRemoteSignalMeta);
+        }
     }
 
     function pollMessages() {
@@ -376,15 +404,18 @@
                 renderMessage(payload.message, true);
                 if (payload.message.message_type === 'webrtc' && payload.message.meta) {
                     if (payload.message.meta.signal === 'request_screen') {
-                        if (shareWrap) shareWrap.classList.add('is-visible');
+                        onScreenShareRequested();
                     } else {
-                        handleRemoteSignal(payload.message.meta);
+                        handleRemoteSignalMeta(payload.message.meta);
                     }
                 }
             }
         });
         state.echoChannel.bind('SupportSessionUpdated', function (payload) {
-            if (payload && payload.session) applySession(payload.session);
+            if (payload && payload.session) {
+                applySession(payload.session);
+                if (payload.session.screen_share_active) onScreenShareRequested();
+            }
         });
         state.echoChannel.bind('SupportTyping', function (payload) {
             if (!payload || payload.sender_type === 'student' || state.inIntake) return;
@@ -766,6 +797,7 @@
 
     function stopScreenShare() {
         state.pendingRemoteIce = [];
+        state.screenSharing = false;
         if (state.localStream) {
             state.localStream.getTracks().forEach(function (t) { t.stop(); });
             state.localStream = null;
@@ -783,18 +815,21 @@
             return;
         }
         stopScreenShare();
+        hideScreenSharePrompt(false);
         navigator.mediaDevices.getDisplayMedia({ video: true, audio: false })
             .then(function (stream) {
                 state.localStream = stream;
+                state.screenSharing = true;
                 var videoTrack = stream.getVideoTracks()[0];
                 if (videoTrack) {
                     videoTrack.onended = function () {
                         stopScreenShare();
                         setStatus('Screen share ended.');
-                        if (shareWrap) shareWrap.classList.add('is-visible');
+                        onScreenShareRequested();
                     };
                 }
-                state.pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+                var rtc = media() && media().rtcConfig ? media().rtcConfig() : { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+                state.pc = new RTCPeerConnection(rtc);
                 stream.getTracks().forEach(function (track) {
                     state.pc.addTrack(track, stream);
                 });
@@ -809,18 +844,21 @@
             .then(function (offer) {
                 sendSignal({ signal: 'offer', sdp: offer });
                 setStatus('Sharing your screen…');
-                if (shareWrap) shareWrap.classList.remove('is-visible');
+                hideScreenSharePrompt(false);
             })
             .catch(function () {
                 stopScreenShare();
                 setStatus('Screen share cancelled.');
+                onScreenShareRequested();
             });
     }
 
-    function handleRemoteSignal(meta) {
+    function handleRemoteSignalMeta(meta) {
         if (!meta || !meta.signal) return;
         if (meta.signal === 'answer' && state.pc && meta.sdp) {
-            state.pc.setRemoteDescription(new RTCSessionDescription(meta.sdp))
+            var normalized = media() && media().normalizeSdp ? media().normalizeSdp(meta.sdp) : meta.sdp;
+            if (!normalized) return;
+            state.pc.setRemoteDescription(new RTCSessionDescription(normalized))
                 .then(flushRemoteIce)
                 .catch(function () {});
         }
@@ -895,6 +933,9 @@
     if (audioBtn) audioBtn.addEventListener('click', toggleAudioRecording);
 
     if (shareBtn) shareBtn.addEventListener('click', startScreenShare);
+    if (shareDismissBtn) shareDismissBtn.addEventListener('click', function () {
+        hideScreenSharePrompt(true);
+    });
     if (closeBtn) closeBtn.addEventListener('click', function () { endSession(false); });
 
     window.QuizSnapLiveSupport = {

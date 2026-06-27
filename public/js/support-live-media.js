@@ -266,6 +266,48 @@
         return out;
     }
 
+    function rtcConfig() {
+        return {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' },
+            ],
+        };
+    }
+
+    function normalizeSdp(sdp) {
+        if (!sdp) return null;
+        if (typeof sdp === 'string') return { type: 'offer', sdp: sdp };
+        if (sdp.type && sdp.sdp) return { type: sdp.type, sdp: sdp.sdp };
+        return null;
+    }
+
+    function attachRemoteTrack(videoEl, wrapEl, ev) {
+        if (!videoEl || !ev || !ev.track) return;
+        var stream = (ev.streams && ev.streams[0]) ? ev.streams[0] : new MediaStream([ev.track]);
+        videoEl.srcObject = stream;
+        videoEl.classList.remove('hidden');
+        if (wrapEl) wrapEl.classList.remove('hidden');
+        videoEl.play().catch(function () {});
+    }
+
+    function processWebRtcBatch(messages, handler) {
+        if (!Array.isArray(messages) || !handler) return;
+        var signals = messages.filter(function (m) {
+            return m && m.message_type === 'webrtc' && m.meta && m.meta.signal;
+        });
+        signals.filter(function (m) { return m.meta.signal === 'offer'; }).forEach(function (m) {
+            handler(m.meta, m.id);
+        });
+        signals.filter(function (m) { return m.meta.signal === 'answer'; }).forEach(function (m) {
+            handler(m.meta, m.id);
+        });
+        signals.filter(function (m) { return m.meta.signal === 'ice'; }).forEach(function (m) {
+            handler(m.meta, m.id);
+        });
+    }
+
     window.QuizSnapSupportMedia = {
         renderAvatarHtml: renderAvatarHtml,
         appendMessageMedia: appendMessageMedia,
@@ -276,5 +318,9 @@
         createRecorder: createRecorder,
         createWaveform: createWaveform,
         packRtcMeta: packRtcMeta,
+        rtcConfig: rtcConfig,
+        normalizeSdp: normalizeSdp,
+        attachRemoteTrack: attachRemoteTrack,
+        processWebRtcBatch: processWebRtcBatch,
     };
 })();

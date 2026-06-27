@@ -155,6 +155,7 @@
     .qs-live-support-panel.is-intake .qs-live-support-status,
     .qs-live-support-panel.is-intake .qs-live-support-typing,
     .qs-live-support-panel.is-intake .qs-live-support-share,
+    .qs-live-support-panel.is-intake .qs-live-support-share-prompt,
     .qs-live-support-panel.is-intake .qs-live-recording-wave,
     .qs-live-support-panel.is-intake .qs-live-support-agent {
         display: none !important;
@@ -339,12 +340,82 @@
     .qs-live-support-status__dot.is-waiting { background: #f59e0b; }
     .qs-live-support-share {
         display: none;
-        padding: 0.5rem 0.75rem;
-        background: #fffbeb;
-        border-top: 1px solid #fde68a;
+    }
+    .qs-live-support-share-prompt {
+        display: none;
+        flex-direction: column;
+        gap: 0.75rem;
+        padding: 0.875rem 1rem;
+        background: linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%);
+        border-top: 2px solid #3b82f6;
+        border-bottom: 2px solid #3b82f6;
+        flex-shrink: 0;
+        box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.15);
+    }
+    .qs-live-support-share-prompt.is-visible {
+        display: flex;
+        animation: qs-share-prompt-in 0.2s ease;
+    }
+    @keyframes qs-share-prompt-in {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    .qs-live-support-share-prompt__head {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.625rem;
+    }
+    .qs-live-support-share-prompt__icon {
+        width: 2.25rem;
+        height: 2.25rem;
+        border-radius: 0.625rem;
+        background: #2563eb;
+        color: #fff;
+        display: grid;
+        place-items: center;
+        font-size: 1.125rem;
         flex-shrink: 0;
     }
-    .qs-live-support-share.is-visible { display: block; }
+    .qs-live-support-share-prompt__title {
+        margin: 0;
+        font-size: 0.875rem;
+        font-weight: 700;
+        color: #1e3a8a;
+        line-height: 1.35;
+    }
+    .qs-live-support-share-prompt__text {
+        margin: 0.25rem 0 0;
+        font-size: 0.75rem;
+        color: #1d4ed8;
+        line-height: 1.45;
+    }
+    .qs-live-support-share-prompt__actions {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    .qs-live-support-share-prompt__allow {
+        width: 100%;
+        border: none;
+        border-radius: 0.625rem;
+        padding: 0.6875rem 1rem;
+        font-size: 0.875rem;
+        font-weight: 700;
+        cursor: pointer;
+        color: #fff;
+        background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+        box-shadow: 0 4px 14px -4px rgba(37, 99, 235, 0.65);
+    }
+    .qs-live-support-share-prompt__dismiss {
+        width: 100%;
+        border: none;
+        background: transparent;
+        color: #64748b;
+        font-size: 0.75rem;
+        font-weight: 600;
+        cursor: pointer;
+        padding: 0.25rem;
+    }
     .qs-live-recording-wave {
         display: none;
         align-items: center;
@@ -377,17 +448,6 @@
         border-radius: 9999px;
         background: linear-gradient(180deg, #f87171 0%, #dc2626 100%);
         transition: height 0.06s linear;
-    }
-    .qs-live-support-share button {
-        width: 100%;
-        border: none;
-        background: #f59e0b;
-        color: #fff;
-        border-radius: 0.5rem;
-        padding: 0.5rem;
-        font-size: 0.8125rem;
-        font-weight: 600;
-        cursor: pointer;
     }
     .qs-support-live-toggle {
         position: fixed;
@@ -465,9 +525,20 @@
         <button type="button" id="qs-live-intake-start">Start chat</button>
     </div>
     <div id="qs-live-support-messages" class="qs-live-support-messages" aria-live="polite"></div>
-    <div id="qs-live-support-share" class="qs-live-support-share">
-        <button type="button" id="qs-live-support-share-btn">Share my screen with support</button>
+    <div id="qs-live-support-share-prompt" class="qs-live-support-share-prompt" role="region" aria-label="Screen share request" hidden>
+        <div class="qs-live-support-share-prompt__head">
+            <span class="qs-live-support-share-prompt__icon" aria-hidden="true">🖥️</span>
+            <div>
+                <p class="qs-live-support-share-prompt__title">Your support agent requested to view your screen</p>
+                <p class="qs-live-support-share-prompt__text">Click <strong>Allow screen sharing</strong> below. Your browser will ask you to pick a window or screen — choose what you want to share, then confirm.</p>
+            </div>
+        </div>
+        <div class="qs-live-support-share-prompt__actions">
+            <button type="button" class="qs-live-support-share-prompt__allow" id="qs-live-support-share-btn">Allow screen sharing</button>
+            <button type="button" class="qs-live-support-share-prompt__dismiss" id="qs-live-support-share-dismiss">Not now</button>
+        </div>
     </div>
+    <div id="qs-live-support-share" class="qs-live-support-share" hidden aria-hidden="true"></div>
     <div id="qs-live-support-recording-wave" class="qs-live-recording-wave" aria-live="polite">
         <span class="qs-live-recording-wave__label">Recording…</span>
         <div class="qs-live-recording-wave__bars" id="qs-live-support-recording-bars"></div>

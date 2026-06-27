@@ -22,6 +22,7 @@
     var avatarGrid = document.getElementById(prefix + 'live-support-avatar-grid');
     var audioBtn = document.getElementById(prefix + 'live-support-audio-btn');
     var remoteVideo = document.getElementById(prefix + 'live-support-remote-video');
+    var remoteVideoWrap = document.getElementById(prefix + 'live-support-remote-video-wrap');
     var headerEl = document.getElementById(prefix + 'live-support-chat-header');
     var imageInput = document.getElementById(prefix + 'live-support-image-input');
     var imageBtn = document.getElementById(prefix + 'live-support-image-btn');
@@ -43,6 +44,7 @@
     var audioRecorder = null;
     var recordingWaveform = null;
     var pendingRemoteIce = [];
+    var lastHandledOfferId = null;
     var pendingAudio = null;
     var selectedAvatar = cfg.supportAvatar || null;
 
@@ -331,10 +333,10 @@
         fetch(url('/presence'), { method: 'POST', headers: jsonHeaders() }).catch(function () {});
     }
 
-    function processWebRtcMeta(meta) {
+    function processWebRtcMeta(meta, messageId) {
         if (!meta || !meta.signal) return;
         if (meta.signal === 'offer' && meta.sdp) {
-            handleOffer(meta.sdp);
+            handleOffer(meta.sdp, messageId);
         } else if (meta.signal === 'ice') {
             queueRemoteIce(meta.candidate);
         }
@@ -344,10 +346,22 @@
         if (!Array.isArray(list)) return;
         list.forEach(function (m) {
             renderMessage(m, fromEcho);
-            if (m.message_type === 'webrtc' && m.meta) {
-                processWebRtcMeta(m.meta);
-            }
         });
+        if (media() && media().processWebRtcBatch) {
+            media().processWebRtcBatch(list, processWebRtcMeta);
+        }
+    }
+
+    function hideRemoteVideo() {
+        if (remoteVideo) {
+            remoteVideo.srcObject = null;
+            remoteVideo.classList.add('hidden');
+        }
+        if (remoteVideoWrap) remoteVideoWrap.classList.add('hidden');
+    }
+
+    function showRemoteVideo() {
+        if (remoteVideoWrap) remoteVideoWrap.classList.remove('hidden');
     }
 
     function updateTakenNotice(session) {
@@ -421,9 +435,10 @@
         messagePollTimer = setInterval(pollActiveMessages, 2500);
         if (messagesEl) messagesEl.innerHTML = '';
         setTyping('');
-        if (remoteVideo) { remoteVideo.srcObject = null; remoteVideo.classList.add('hidden'); }
+        hideRemoteVideo();
         if (pc) { pc.close(); pc = null; }
         pendingRemoteIce = [];
+        lastHandledOfferId = null;
         fetch(url('/sessions/' + encodeURIComponent(uuid)), { headers: jsonHeaders() })
             .then(function (r) { return r.json(); })
             .then(function (data) {
@@ -466,7 +481,7 @@
             if (payload && payload.session_uuid === uuid && payload.message) {
                 renderMessage(payload.message, true);
                 if (payload.message.message_type === 'webrtc' && payload.message.meta) {
-                    processWebRtcMeta(payload.message.meta);
+                    processWebRtcMeta(payload.message.meta, payload.message.id);
                 }
             }
         });
@@ -499,7 +514,7 @@
             if (payload.session_uuid === activeUuid) {
                 renderMessage(payload.message, true);
                 if (payload.message.message_type === 'webrtc' && payload.message.meta) {
-                    processWebRtcMeta(payload.message.meta);
+                    processWebRtcMeta(payload.message.meta, payload.message.id);
                 }
                 return;
             }
@@ -737,9 +752,9 @@
     }
 
     function queueRemoteIce(candidate) {
-        if (!candidate || !pc) return;
+        if (!candidate) return;
         var ice = candidate instanceof RTCIceCandidate ? candidate : new RTCIceCandidate(candidate);
-        if (pc.remoteDescription && pc.remoteDescription.type) {
+        if (pc && pc.remoteDescription && pc.remoteDescription.type) {
             pc.addIceCandidate(ice).catch(function () {});
         } else {
             pendingRemoteIce.push(ice);
@@ -754,30 +769,44 @@
         pendingRemoteIce = [];
     }
 
-    function handleOffer(sdp) {
+    function handleOffer(sdp, messageId) {
         if (!remoteVideo || !sdp) return;
+        var normalized = media() && media().normalizeSdp ? media().normalizeSdp(sdp) : sdp;
+        if (!normalized) return;
+        if (messageId && messageId === lastHandledOfferId) return;
+        if (messageId) lastHandledOfferId = messageId;
         if (pc) { pc.close(); pc = null; }
         pendingRemoteIce = [];
-        pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+        var rtc = media() && media().rtcConfig ? media().rtcConfig() : { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+        pc = new RTCPeerConnection(rtc);
         pc.ontrack = function (ev) {
-            remoteVideo.srcObject = ev.streams[0];
-            remoteVideo.classList.remove('hidden');
+            if (media() && media().attachRemoteTrack) {
+                media().attachRemoteTrack(remoteVideo, remoteVideoWrap, ev);
+            } else if (remoteVideo && ev.streams && ev.streams[0]) {
+                remoteVideo.srcObject = ev.streams[0];
+                remoteVideo.classList.remove('hidden');
+                if (remoteVideoWrap) remoteVideoWrap.classList.remove('hidden');
+                remoteVideo.play().catch(function () {});
+            }
+            showRemoteVideo();
         };
         pc.onicecandidate = function (ev) {
             if (ev.candidate) sendSignal({ signal: 'ice', candidate: ev.candidate });
         };
-        pc.setRemoteDescription(new RTCSessionDescription(sdp))
-            .then(function () { return pc.createAnswer(); })
+        pc.onconnectionstatechange = function () {
+            if (pc && pc.connectionState === 'failed') hideRemoteVideo();
+        };
+        pc.setRemoteDescription(new RTCSessionDescription(normalized))
+            .then(function () {
+                flushRemoteIce();
+                return pc.createAnswer();
+            })
             .then(function (answer) { return pc.setLocalDescription(answer).then(function () { return answer; }); })
             .then(function (answer) {
                 sendSignal({ signal: 'answer', sdp: answer });
-                flushRemoteIce();
             })
             .catch(function () {
-                if (remoteVideo) {
-                    remoteVideo.srcObject = null;
-                    remoteVideo.classList.add('hidden');
-                }
+                hideRemoteVideo();
             });
     }
 

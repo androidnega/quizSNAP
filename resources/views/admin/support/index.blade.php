@@ -352,11 +352,26 @@
         cursor: pointer;
         flex-shrink: 0;
     }
+    #live-support-remote-video-wrap {
+        background: #0f172a;
+        border-bottom: 1px solid #1e293b;
+    }
+    #live-support-remote-video-wrap.hidden { display: none; }
+    .live-support-remote-video__label {
+        margin: 0;
+        padding: 0.5rem 1rem 0.25rem;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
     #live-support-remote-video {
         width: 100%;
-        max-height: 12rem;
+        max-height: 14rem;
         background: #0f172a;
         object-fit: contain;
+        display: block;
     }
     #live-support-remote-video.hidden { display: none; }
     .live-support-msg__audio,
@@ -459,7 +474,10 @@
                     <button type="button" id="live-support-refer-btn">Refer</button>
                 </div>
             </div>
-            <video id="live-support-remote-video" class="hidden" autoplay playsinline muted></video>
+            <div id="live-support-remote-video-wrap" class="hidden">
+                <p class="live-support-remote-video__label">Student screen (live)</p>
+                <video id="live-support-remote-video" autoplay playsinline></video>
+            </div>
             <div id="live-support-recording-wave" class="qs-live-recording-wave" aria-live="polite">
                 <span class="qs-live-recording-wave__label">Recording…</span>
                 <div class="qs-live-recording-wave__bars" id="live-support-recording-bars"></div>

@@ -30,10 +30,8 @@ class StudentLiveSupportController extends Controller
         $guestRules = [];
         if (! session('student_id')) {
             $guestRules = [
-                'student_name' => 'required|string|max:255',
+                'student_index' => 'required|string|max:64',
                 'student_phone' => 'required|string|max:32',
-                'student_email' => 'nullable|email|max:255',
-                'student_index' => 'nullable|string|max:64',
             ];
         }
 
@@ -46,7 +44,7 @@ class StudentLiveSupportController extends Controller
             'issue_category' => 'nullable|string|max:64',
             'initial_message' => 'nullable|string|max:2000',
         ], $guestRules), [
-            'student_name.required' => 'Please enter your name so an agent can help you.',
+            'student_index.required' => 'Please enter your index number.',
             'student_phone.required' => 'Please enter your phone number so we can reach you.',
         ]);
 

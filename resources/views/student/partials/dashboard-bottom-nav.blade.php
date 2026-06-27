@@ -158,8 +158,13 @@
         filter: none;
     }
     .sd-nav-fab-item-icon--live {
-        background: linear-gradient(145deg, #6366f1 0%, #4f46e5 100%) !important;
+        background: var(--theme-brand, var(--theme-primary-600, #2563eb)) !important;
         color: #fff !important;
+        animation: sd-nav-live-icon-pulse 2.2s ease-in-out infinite;
+    }
+    @keyframes sd-nav-live-icon-pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.08); }
     }
     .sd-nav-fab-toggle {
         position: relative;

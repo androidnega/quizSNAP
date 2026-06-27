@@ -28,7 +28,7 @@ class LiveSupportService
         $email = isset($data['student_email']) ? trim((string) $data['student_email']) : null;
         $name = isset($data['student_name']) ? trim((string) $data['student_name']) : null;
 
-        if ((! $index || ! $phone || ! $email) && session('student_id')) {
+        if ((! $index || ! $phone) && session('student_id')) {
             $student = Student::find(session('student_id'));
             if ($student) {
                 $index = $index ?: ($student->index_number ?: null);
@@ -36,6 +36,11 @@ class LiveSupportService
                 $email = $email ?: ($student->email ?: null);
                 $name = $name ?: ($student->student_name ?: null);
             }
+        }
+
+        if (! $name && $index) {
+            $cgStudent = ClassGroupStudent::findByIndexNumber(trim($index));
+            $name = $cgStudent?->student_name ?: $index;
         }
 
         $session = SupportSession::createGuestSession([

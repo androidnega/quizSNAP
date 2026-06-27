@@ -44,6 +44,11 @@
             tone(880, 0.12, 0.05, 'sine');
             setTimeout(function () { tone(1175, 0.14, 0.045, 'sine'); }, 90);
         },
+        playAgentAvailable: function () {
+            tone(523, 0.35, 0.06, 'sine');
+            setTimeout(function () { tone(659, 0.45, 0.055, 'sine'); }, 180);
+            setTimeout(function () { tone(784, 0.55, 0.05, 'sine'); }, 380);
+        },
         playTyping: function () {
             var now = Date.now();
             if (now - typingLastAt < TYPING_COOLDOWN_MS) return;

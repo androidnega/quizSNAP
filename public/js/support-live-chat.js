@@ -36,6 +36,8 @@
         isTyping: false,
         pendingOpts: null,
         agentsOnline: null,
+        sessionStatus: null,
+        agentDongPlayed: false,
     };
 
     function csrf() {
@@ -139,6 +141,7 @@
 
     function renderMessage(msg, fromEcho) {
         if (!messagesEl || !msg || !msg.id) return;
+        if (msg.sender_type === 'system') return;
         if (document.querySelector('[data-live-msg-id="' + msg.id + '"]')) return;
         var div = document.createElement('div');
         var type = msg.sender_type === 'student' ? 'student' : (msg.sender_type === 'system' ? 'system' : 'admin');
@@ -172,16 +175,25 @@
         if (msg.id > state.lastId) state.lastId = msg.id;
         scrollBottom();
 
-        if (fromEcho && msg.sender_type !== 'student' && msg.sender_type !== 'system' && sounds()) {
+        if (fromEcho && msg.sender_type === 'admin' && sounds()) {
             sounds().playMessage();
         }
     }
 
+    function playAgentDongOnce() {
+        if (state.agentDongPlayed || !sounds()) return;
+        state.agentDongPlayed = true;
+        sounds().playAgentAvailable();
+    }
+
     function applySession(session) {
         if (!session) return;
+        var prevStatus = state.sessionStatus;
+        state.sessionStatus = session.status;
         if (session.status === 'active' && session.assigned_admin) {
             setStatus('Connected');
             setAgent('Agent: ' + (session.assigned_admin.name || 'Support'));
+            if (prevStatus === 'waiting') playAgentDongOnce();
         } else if (session.status === 'waiting') {
             setStatus('Waiting for an agent to join…');
             setAgent('');
@@ -342,13 +354,9 @@
 
     function prefillIntake(opts) {
         var ctx = defaultContext();
-        var nameEl = document.getElementById('qs-live-intake-name');
         var phoneEl = document.getElementById('qs-live-intake-phone');
-        var emailEl = document.getElementById('qs-live-intake-email');
         var indexEl = document.getElementById('qs-live-intake-index');
-        if (nameEl) nameEl.value = opts.student_name || ctx.name || '';
         if (phoneEl) phoneEl.value = opts.student_phone || ctx.phone || '';
-        if (emailEl) emailEl.value = opts.student_email || ctx.email || '';
         if (indexEl) indexEl.value = opts.student_index || ctx.index_number || '';
     }
 
@@ -360,12 +368,13 @@
             showIntake(true);
             prefillIntake(opts);
             showIntakeError('');
-            setStatus('Tell us how to reach you');
+            setStatus('Enter your details to start');
             return fetchAvailability().then(function (online) {
+                if (online === true) playAgentDongOnce();
                 if (intakeLeadEl) {
                     intakeLeadEl.textContent = online === false
-                        ? 'Our agents are currently away. Share your details and leave a message — we will respond when someone is available.'
-                        : 'Before we connect you, please share your contact details.';
+                        ? 'Agents are away. Enter your index and phone, then leave your message.'
+                        : 'An agent is available. Enter your index and phone to start.';
                 }
             });
         }
@@ -466,20 +475,16 @@
 
     if (intakeStartBtn) {
         intakeStartBtn.addEventListener('click', function () {
-            var name = (document.getElementById('qs-live-intake-name') || {}).value || '';
             var phone = (document.getElementById('qs-live-intake-phone') || {}).value || '';
-            var email = (document.getElementById('qs-live-intake-email') || {}).value || '';
             var index = (document.getElementById('qs-live-intake-index') || {}).value || '';
-            name = name.trim();
             phone = phone.trim();
-            if (!name) { showIntakeError('Please enter your name.'); return; }
+            index = index.trim();
+            if (!index) { showIntakeError('Please enter your index number.'); return; }
             if (!phone) { showIntakeError('Please enter your phone number.'); return; }
             showIntakeError('');
             var opts = Object.assign({}, state.pendingOpts || {}, {
-                student_name: name,
+                student_index: index,
                 student_phone: phone,
-                student_email: email.trim() || null,
-                student_index: index.trim() || null,
                 _intakeComplete: true,
             });
             createSession(opts).catch(function (err) {
@@ -525,6 +530,7 @@
     window.QuizSnapLiveSupport = {
         open: function (opts) {
             setOpen(true);
+            state.agentDongPlayed = false;
             if (sounds()) sounds().unlock();
             var p = beginChat(opts || {});
             if (p && p.catch) {

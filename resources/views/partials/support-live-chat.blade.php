@@ -31,7 +31,7 @@
         justify-content: space-between;
         gap: 0.5rem;
         padding: 0.875rem 1rem;
-        background: linear-gradient(135deg, var(--theme-brand-deep, var(--theme-primary-800, #1e40af)) 0%, var(--theme-brand, var(--theme-primary-600, #2563eb)) 55%, var(--theme-primary-400, #60a5fa) 100%);
+        background: var(--theme-brand, var(--theme-primary-600, #2563eb));
         color: #fff;
     }
     .qs-live-support-header h3 {
@@ -116,7 +116,7 @@
         flex: 1;
         overflow-y: auto;
         padding: 0.875rem;
-        background: linear-gradient(180deg, var(--theme-bg, #f8fafc) 0%, var(--theme-surface, #f1f5f9) 100%);
+        background: var(--theme-bg, #f8fafc);
         min-height: 14rem;
     }
     .qs-live-msg {
@@ -139,7 +139,7 @@
         box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
     }
     .qs-live-msg--student .qs-live-msg__bubble {
-        background: linear-gradient(135deg, var(--theme-brand, var(--theme-primary-600, #2563eb)), var(--theme-primary-500, #3b82f6));
+        background: var(--theme-brand, var(--theme-primary-600, #2563eb));
         color: #fff;
         border-bottom-right-radius: 0.3125rem;
     }
@@ -244,18 +244,50 @@
         z-index: 80;
         display: inline-flex;
         align-items: center;
-        gap: 0.5rem;
+        gap: 0.625rem;
         border: none;
         border-radius: 9999px;
-        padding: 0.75rem 1.125rem 0.75rem 0.875rem;
-        background: linear-gradient(145deg, var(--theme-primary-500, #3b82f6) 0%, var(--theme-brand, var(--theme-primary-600, #2563eb)) 100%);
+        padding: 0.6875rem 1rem 0.6875rem 0.6875rem;
+        background: var(--theme-brand, var(--theme-primary-600, #2563eb));
         color: #fff;
         font-size: 0.8125rem;
-        font-weight: 700;
+        font-weight: 600;
+        letter-spacing: 0.01em;
         cursor: pointer;
-        box-shadow: 0 14px 32px -12px color-mix(in srgb, var(--theme-brand, #2563eb) 65%, transparent);
+        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.14);
+        transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
     }
-    .qs-support-live-toggle svg { width: 1.25rem; height: 1.25rem; }
+    .qs-support-live-toggle:hover {
+        background: var(--theme-brand-dark, var(--theme-primary-700, #1d4ed8));
+        box-shadow: 0 6px 20px rgba(15, 23, 42, 0.18);
+        transform: translateY(-1px);
+    }
+    .qs-support-live-toggle:active {
+        transform: translateY(0);
+    }
+    .qs-support-live-toggle__icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 9999px;
+        background: rgba(255, 255, 255, 0.16);
+        flex-shrink: 0;
+        animation: qs-chat-icon-pulse 2.2s ease-in-out infinite;
+    }
+    .qs-support-live-toggle__icon svg {
+        width: 1.125rem;
+        height: 1.125rem;
+    }
+    @keyframes qs-chat-icon-pulse {
+        0%, 100% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.08); opacity: 0.92; }
+    }
+    .qs-support-live-toggle__label {
+        padding-right: 0.125rem;
+        white-space: nowrap;
+    }
     .qs-support-fab-wrap--above-nav .qs-support-live-toggle {
         bottom: max(5.75rem, calc(4.75rem + env(safe-area-inset-bottom)));
     }
@@ -271,16 +303,12 @@
     <div id="qs-live-support-agent" class="qs-live-support-agent" hidden></div>
     <div id="qs-live-support-typing" class="qs-live-support-typing" hidden></div>
     <div id="qs-live-support-intake" class="qs-live-support-intake" hidden>
-        <p id="qs-live-support-intake-lead">Before we connect you, please share your contact details.</p>
+        <p id="qs-live-support-intake-lead">Enter your index number and phone to start.</p>
         <div id="qs-live-intake-error" class="qs-live-intake-error" hidden></div>
-        <label for="qs-live-intake-name">Full name</label>
-        <input type="text" id="qs-live-intake-name" maxlength="255" autocomplete="name" placeholder="Your name">
+        <label for="qs-live-intake-index">Index number</label>
+        <input type="text" id="qs-live-intake-index" maxlength="64" autocomplete="off" placeholder="BC/ITN/25/123" required>
         <label for="qs-live-intake-phone">Phone number</label>
-        <input type="tel" id="qs-live-intake-phone" maxlength="32" autocomplete="tel" placeholder="e.g. 0241234567">
-        <label for="qs-live-intake-email">Email (optional)</label>
-        <input type="email" id="qs-live-intake-email" maxlength="255" autocomplete="email" placeholder="you@example.com">
-        <label for="qs-live-intake-index">Index number (optional)</label>
-        <input type="text" id="qs-live-intake-index" maxlength="64" autocomplete="off" placeholder="BC/ITN/25/123">
+        <input type="tel" id="qs-live-intake-phone" maxlength="32" autocomplete="tel" placeholder="e.g. 0241234567" required>
         <button type="button" id="qs-live-intake-start">Start chat</button>
     </div>
     <div id="qs-live-support-messages" class="qs-live-support-messages" aria-live="polite"></div>

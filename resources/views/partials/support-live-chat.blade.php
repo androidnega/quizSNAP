@@ -425,7 +425,7 @@
         <label for="qs-live-intake-index">Index number</label>
         <input type="text" id="qs-live-intake-index" maxlength="64" autocomplete="off" placeholder="BC/ITN/25/123" required>
         <label for="qs-live-intake-phone">Phone number</label>
-        <input type="tel" id="qs-live-intake-phone" maxlength="32" autocomplete="tel" placeholder="e.g. 0241234567" required>
+        <input type="tel" id="qs-live-intake-phone" maxlength="32" autocomplete="tel" inputmode="tel" placeholder="e.g. 0241234567" pattern="[\d\s+\-().]{9,32}" required>
         <button type="button" id="qs-live-intake-start">Start chat</button>
     </div>
     <div id="qs-live-support-messages" class="qs-live-support-messages" aria-live="polite"></div>

@@ -93,9 +93,30 @@ class Student extends Model implements Authenticatable
             return null;
         }
         if (strlen($digits) >= 10 && $digits[0] === '0') {
-            return '233' . substr($digits, 1);
+            return '233'.substr($digits, 1);
         }
+
         return $digits;
+    }
+
+    /**
+     * Whether user input is a plausible phone number (digits and phone formatting only; no letters).
+     */
+    public static function isValidPhoneInput(?string $raw): bool
+    {
+        if ($raw === null || trim($raw) === '') {
+            return false;
+        }
+        $trimmed = trim($raw);
+        if (preg_match('/[a-zA-Z]/', $trimmed)) {
+            return false;
+        }
+        if (! preg_match('/^[\d\s+\-().]+$/', $trimmed)) {
+            return false;
+        }
+        $digits = preg_replace('/\D/', '', $trimmed);
+
+        return strlen($digits) >= 9 && strlen($digits) <= 15;
     }
 
     /**

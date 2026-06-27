@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\SupportMessage;
 use App\Models\SupportSession;
+use App\Models\Student;
 use App\Services\LiveSupportService;
 use App\Services\SupportAgentPresenceService;
 use App\Services\SupportChatMediaService;
@@ -32,14 +33,35 @@ class StudentLiveSupportController extends Controller
         if (! session('student_id')) {
             $guestRules = [
                 'student_index' => 'required|string|max:64',
-                'student_phone' => 'required|string|max:32',
+                'student_phone' => [
+                    'required',
+                    'string',
+                    'max:32',
+                    function (string $attribute, mixed $value, \Closure $fail): void {
+                        if (! Student::isValidPhoneInput(is_string($value) ? $value : null)) {
+                            $fail('Please enter a valid phone number using digits only (e.g. 0241234567).');
+                        }
+                    },
+                ],
             ];
         }
 
         $data = $request->validate(array_merge([
             'student_index' => 'nullable|string|max:64',
             'student_name' => 'nullable|string|max:255',
-            'student_phone' => 'nullable|string|max:32',
+            'student_phone' => [
+                'nullable',
+                'string',
+                'max:32',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if ($value === null || $value === '') {
+                        return;
+                    }
+                    if (! Student::isValidPhoneInput(is_string($value) ? $value : null)) {
+                        $fail('Please enter a valid phone number using digits only (e.g. 0241234567).');
+                    }
+                },
+            ],
             'student_email' => 'nullable|string|max:255',
             'page_url' => 'nullable|string|max:500',
             'issue_category' => 'nullable|string|max:64',

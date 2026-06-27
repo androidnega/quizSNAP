@@ -197,6 +197,15 @@
         intakeErrorEl.hidden = !msg;
     }
 
+    function isValidPhone(raw) {
+        if (!raw || !String(raw).trim()) return false;
+        var trimmed = String(raw).trim();
+        if (/[a-zA-Z]/.test(trimmed)) return false;
+        if (!/^[\d\s+\-().]+$/.test(trimmed)) return false;
+        var digits = trimmed.replace(/\D/g, '');
+        return digits.length >= 9 && digits.length <= 15;
+    }
+
     function scrollBottom() {
         if (messagesEl) messagesEl.scrollTop = messagesEl.scrollHeight;
     }
@@ -437,7 +446,16 @@
         })
             .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
             .then(function (res) {
-                if (!res.data.success) throw new Error(res.data.message || 'Could not start chat');
+                if (!res.ok || !res.data.success) {
+                    var msg = res.data.message || 'Could not start chat';
+                    if (res.data.errors) {
+                        var keys = Object.keys(res.data.errors);
+                        if (keys.length && res.data.errors[keys[0]][0]) {
+                            msg = res.data.errors[keys[0]][0];
+                        }
+                    }
+                    throw new Error(msg);
+                }
                 state.uuid = res.data.session.uuid;
                 state.token = res.data.client_token;
                 saveStored();
@@ -642,6 +660,14 @@
 
     loadStored();
 
+    var intakePhoneEl = document.getElementById('qs-live-intake-phone');
+    if (intakePhoneEl) {
+        intakePhoneEl.addEventListener('input', function () {
+            var cleaned = intakePhoneEl.value.replace(/[a-zA-Z]/g, '');
+            if (cleaned !== intakePhoneEl.value) intakePhoneEl.value = cleaned;
+        });
+    }
+
     if (intakeStartBtn) {
         intakeStartBtn.addEventListener('click', function () {
             var phone = (document.getElementById('qs-live-intake-phone') || {}).value || '';
@@ -650,6 +676,10 @@
             index = index.trim();
             if (!index) { showIntakeError('Please enter your index number.'); return; }
             if (!phone) { showIntakeError('Please enter your phone number.'); return; }
+            if (!isValidPhone(phone)) {
+                showIntakeError('Please enter a valid phone number using digits only (e.g. 0241234567).');
+                return;
+            }
             showIntakeError('');
             var opts = Object.assign({}, state.pendingOpts || {}, {
                 student_index: index,

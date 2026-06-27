@@ -26,6 +26,9 @@ class LiveSupportService
     {
         $index = isset($data['student_index']) ? trim((string) $data['student_index']) : null;
         $phone = isset($data['student_phone']) ? trim((string) $data['student_phone']) : null;
+        if ($phone) {
+            $phone = Student::normalizePhoneForStorage($phone) ?? $phone;
+        }
         $email = isset($data['student_email']) ? trim((string) $data['student_email']) : null;
         $name = isset($data['student_name']) ? trim((string) $data['student_name']) : null;
 

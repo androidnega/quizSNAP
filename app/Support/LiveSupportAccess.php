@@ -19,7 +19,9 @@ final class LiveSupportAccess
 
     public static function canDeleteSession(User $user): bool
     {
-        return $user->isSuperAdmin();
+        return $user->isSuperAdmin()
+            || $user->role === User::ROLE_SUPPORT_AGENT
+            || $user->role === User::ROLE_COORDINATOR;
     }
 
     public static function canClearStudentPhone(User $user): bool

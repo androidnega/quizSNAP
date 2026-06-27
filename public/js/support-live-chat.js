@@ -5,6 +5,7 @@
     'use strict';
 
     var STORAGE_KEY = 'quizsnap_live_support';
+    var HIDDEN_CLOSE_MS = 15 * 60 * 1000;
     var panel = document.getElementById('qs-live-support-panel');
     var messagesEl = document.getElementById('qs-live-support-messages');
     var intakeEl = document.getElementById('qs-live-support-intake');
@@ -19,6 +20,8 @@
     var imageBtn = document.getElementById('qs-live-support-image-btn');
     var agentBar = document.getElementById('qs-live-support-agent');
     var typingEl = document.getElementById('qs-live-support-typing');
+    var statusTextEl = document.getElementById('qs-live-support-status-text');
+    var statusDotEl = document.getElementById('qs-live-support-status-dot');
     var intakeStartBtn = document.getElementById('qs-live-intake-start');
     var intakeErrorEl = document.getElementById('qs-live-intake-error');
     var intakeLeadEl = document.getElementById('qs-live-support-intake-lead');
@@ -38,6 +41,8 @@
         agentsOnline: null,
         sessionStatus: null,
         agentDongPlayed: false,
+        hiddenSince: null,
+        hiddenCloseTimer: null,
     };
 
     function csrf() {
@@ -90,8 +95,14 @@
         sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ uuid: state.uuid, token: state.token }));
     }
 
-    function setStatus(text) {
-        if (statusEl) statusEl.textContent = text || '';
+    function setStatus(text, tone) {
+        if (statusTextEl) statusTextEl.textContent = text || '';
+        else if (statusEl) statusEl.textContent = text || '';
+        if (statusDotEl) {
+            statusDotEl.classList.remove('is-online', 'is-waiting');
+            if (tone === 'online') statusDotEl.classList.add('is-online');
+            if (tone === 'waiting') statusDotEl.classList.add('is-waiting');
+        }
     }
 
     function setAgent(text) {
@@ -102,9 +113,14 @@
     }
 
     function setTyping(text) {
-        if (typingEl) {
-            typingEl.textContent = text || '';
-            typingEl.hidden = !text;
+        if (!typingEl) return;
+        var labelEl = typingEl.querySelector('.qs-typing-label');
+        if (text) {
+            if (labelEl) labelEl.textContent = text;
+            typingEl.hidden = false;
+        } else {
+            if (labelEl) labelEl.textContent = '';
+            typingEl.hidden = true;
         }
     }
 
@@ -192,11 +208,11 @@
         var prevStatus = state.sessionStatus;
         state.sessionStatus = session.status;
         if (session.status === 'active' && session.assigned_admin) {
-            setStatus('Connected');
+            setStatus('Connected with support', 'online');
             setAgent('Agent: ' + (session.assigned_admin.name || 'Support'));
             if (prevStatus === 'waiting') playAgentDongOnce();
         } else if (session.status === 'waiting') {
-            setStatus('Waiting for an agent to join…');
+            setStatus('Waiting for an agent…', 'waiting');
             setAgent('');
         } else if (session.status === 'closed') {
             setStatus('Chat closed');
@@ -279,7 +295,7 @@
         state.echoChannel.bind('SupportTyping', function (payload) {
             if (!payload || payload.sender_type === 'student') return;
             if (payload.is_typing) {
-                setTyping((payload.sender_label || 'Agent') + ' is typing…');
+                setTyping((payload.sender_label || 'Agent') + ' is typing');
                 if (sounds()) sounds().playTyping();
             } else {
                 setTyping('');
@@ -297,10 +313,54 @@
             .catch(function () { return null; });
     }
 
+    function clearHiddenCloseTimer() {
+        if (state.hiddenCloseTimer) {
+            clearTimeout(state.hiddenCloseTimer);
+            state.hiddenCloseTimer = null;
+        }
+        state.hiddenSince = null;
+    }
+
+    function scheduleHiddenClose() {
+        clearHiddenCloseTimer();
+        if (!state.uuid || !document.hidden) return;
+        state.hiddenSince = Date.now();
+        state.hiddenCloseTimer = setTimeout(function () {
+            if (document.hidden && state.uuid) endSession(true);
+        }, HIDDEN_CLOSE_MS);
+    }
+
+    function endSession(fromIdle) {
+        var uuid = state.uuid;
+        stopPolling();
+        stopScreenShare();
+        setOpen(false);
+        setTyping('');
+        if (uuid) {
+            fetch('/support/sessions/' + encodeURIComponent(uuid) + '/close', { method: 'POST', headers: headers() }).catch(function () {});
+        }
+        if (fromIdle || requiresGuestDetails()) {
+            state.uuid = null;
+            state.token = null;
+            state.lastId = 0;
+            state.sessionStatus = null;
+            sessionStorage.removeItem(STORAGE_KEY);
+            if (messagesEl) messagesEl.innerHTML = '';
+        }
+        clearHiddenCloseTimer();
+    }
+
+    function onVisibilityChange() {
+        if (document.hidden) scheduleHiddenClose();
+        else clearHiddenCloseTimer();
+    }
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
     function createSession(opts) {
         opts = opts || {};
         var ctx = defaultContext();
-        setStatus('Starting chat…');
+        setStatus('Starting chat…', 'waiting');
         setAgent('');
         setTyping('');
         showIntake(false);
@@ -373,7 +433,7 @@
             showIntake(true);
             prefillIntake(opts);
             showIntakeError('');
-            setStatus('Enter your details to start');
+            setStatus('Enter your details to start', 'waiting');
             return fetchAvailability().then(function (online) {
                 if (online === true && sounds()) sounds().playAgentAvailable();
                 if (intakeLeadEl) {
@@ -538,18 +598,13 @@
     }
 
     if (shareBtn) shareBtn.addEventListener('click', startScreenShare);
-    if (closeBtn) closeBtn.addEventListener('click', function () {
-        setOpen(false);
-        if (state.uuid) {
-            fetch('/support/sessions/' + encodeURIComponent(state.uuid) + '/close', { method: 'POST', headers: headers() });
-        }
-        stopScreenShare();
-    });
+    if (closeBtn) closeBtn.addEventListener('click', function () { endSession(false); });
 
     window.QuizSnapLiveSupport = {
         open: function (opts) {
             opts = opts || {};
             setOpen(true);
+            clearHiddenCloseTimer();
             state.agentDongPlayed = false;
             if (requiresGuestDetails() && !opts._intakeComplete) {
                 state.uuid = null;
@@ -562,6 +617,6 @@
                 p.catch(function (err) { setStatus(err.message || 'Could not connect. Try again.'); });
             }
         },
-        close: function () { setOpen(false); },
+        close: function () { endSession(false); },
     };
 })();

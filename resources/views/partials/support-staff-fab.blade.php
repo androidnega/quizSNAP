@@ -2,6 +2,26 @@
     $staffSupportFabId = 'staff-fab-';
 @endphp
 <style>
+    .qs-typing-dots {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        height: 0.75rem;
+    }
+    .qs-typing-dots span {
+        width: 5px;
+        height: 5px;
+        border-radius: 9999px;
+        background: currentColor;
+        opacity: 0.35;
+        animation: qs-typing-dot 1.2s ease-in-out infinite;
+    }
+    .qs-typing-dots span:nth-child(2) { animation-delay: 0.15s; }
+    .qs-typing-dots span:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes qs-typing-dot {
+        0%, 80%, 100% { opacity: 0.3; }
+        40% { opacity: 1; }
+    }
     .staff-support-fab-wrap {
         position: fixed;
         right: max(1rem, env(safe-area-inset-right));
@@ -52,14 +72,15 @@
         display: flex;
         flex-direction: column;
         overflow: hidden;
-        transform: translateY(8px) scale(0.98);
+        transform: none;
         opacity: 0;
+        visibility: hidden;
         pointer-events: none;
-        transition: transform 0.24s ease, opacity 0.24s ease;
+        transition: opacity 0.18s ease, visibility 0.18s ease;
     }
     .staff-support-fab-wrap.is-open .staff-support-fab-panel {
-        transform: translateY(0) scale(1);
         opacity: 1;
+        visibility: visible;
         pointer-events: auto;
     }
     .staff-support-fab-panel__head {
@@ -168,7 +189,10 @@
         </div>
         <div id="staff-fab-live-support-queue" class="live-support-queue"></div>
         <div id="staff-fab-live-support-chat-header">Select a chat</div>
-        <div id="staff-fab-live-support-typing" class="live-support-typing" hidden style="padding:0.25rem 0.5rem;font-size:0.6875rem;font-style:italic;color:#64748b;"></div>
+        <div id="staff-fab-live-support-typing" class="live-support-typing" hidden style="display:flex;align-items:center;gap:0.5rem;padding:0.375rem 0.875rem;font-size:0.6875rem;color:#64748b;background:#f8fafc;border-bottom:1px solid #e2e8f0;">
+            <span class="qs-typing-dots" aria-hidden="true"><span></span><span></span><span></span></span>
+            <span class="qs-typing-label"></span>
+        </div>
         <div id="staff-fab-live-support-taken-notice" class="live-support-taken-notice" hidden></div>
         <div id="staff-fab-live-support-messages" aria-live="polite"></div>
         <div class="staff-support-fab-compose">

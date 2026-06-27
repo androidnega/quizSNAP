@@ -120,8 +120,14 @@
 
     function setTyping(text) {
         if (!typingEl) return;
-        typingEl.textContent = text || '';
-        typingEl.hidden = !text;
+        var labelEl = typingEl.querySelector('.qs-typing-label');
+        if (text) {
+            if (labelEl) labelEl.textContent = text;
+            typingEl.hidden = false;
+        } else {
+            if (labelEl) labelEl.textContent = '';
+            typingEl.hidden = true;
+        }
     }
 
     function sendTypingSignal(typing) {
@@ -275,7 +281,7 @@
         ch.bind('SupportTyping', function (payload) {
             if (!payload || payload.sender_type === 'admin') return;
             if (payload.is_typing) {
-                setTyping((payload.sender_label || 'Student') + ' is typing…');
+                setTyping((payload.sender_label || 'Student') + ' is typing');
                 if (sounds()) sounds().playTyping();
             } else {
                 setTyping('');
@@ -398,15 +404,33 @@
     });
     if (deleteBtn) deleteBtn.addEventListener('click', function () {
         if (!activeUuid || !confirm('Permanently delete this chat and all messages?')) return;
+        deleteBtn.disabled = true;
         fetch(url('/sessions/' + encodeURIComponent(activeUuid)), { method: 'DELETE', headers: jsonHeaders() })
-            .then(function (r) { return r.json(); })
-            .then(function (data) {
-                if (data.success) {
+            .then(function (r) {
+                return r.json().then(function (data) {
+                    return { ok: r.ok, status: r.status, data: data };
+                }).catch(function () {
+                    return { ok: false, status: r.status, data: { message: 'Could not delete chat.' } };
+                });
+            })
+            .then(function (res) {
+                if (res.ok && res.data.success) {
                     activeUuid = null;
+                    activeSession = null;
+                    lastMessageId = 0;
                     if (messagesEl) messagesEl.innerHTML = '';
                     if (headerEl) headerEl.textContent = 'Select a chat';
+                    setTyping('');
                     refreshQueue();
+                } else {
+                    alert(res.data.message || ('Delete failed (' + res.status + ').'));
                 }
+            })
+            .catch(function () {
+                alert('Could not delete chat. Check your connection and try again.');
+            })
+            .finally(function () {
+                deleteBtn.disabled = false;
             });
     });
 

@@ -272,10 +272,14 @@ class LiveSupportController extends Controller
 
     public function destroy(string $uuid): JsonResponse
     {
-        $staff = $this->ensureSuperAdmin();
-        $session = $this->support->findByUuid($uuid);
+        $staff = $this->ensureStaff();
+        if (! LiveSupportAccess::canDeleteSession($staff)) {
+            return response()->json(['success' => false, 'message' => 'You do not have permission to delete chats.'], 403);
+        }
+
+        $session = $this->findScopedSession($uuid, $staff);
         if (! $session) {
-            return response()->json(['success' => false, 'message' => 'Not found.'], 404);
+            return response()->json(['success' => false, 'message' => 'Chat not found.'], 404);
         }
 
         $this->support->deleteSession($session);

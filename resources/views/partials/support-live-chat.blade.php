@@ -146,6 +146,18 @@
         border-bottom: 1px solid var(--theme-border, #e2e8f0);
         flex-shrink: 0;
     }
+    .qs-live-support-typing[hidden] {
+        display: none !important;
+    }
+    .qs-live-support-panel.is-intake .qs-live-support-messages,
+    .qs-live-support-panel.is-intake .qs-live-support-compose,
+    .qs-live-support-panel.is-intake .qs-live-emoji-bar,
+    .qs-live-support-panel.is-intake .qs-live-support-status,
+    .qs-live-support-panel.is-intake .qs-live-support-typing,
+    .qs-live-support-panel.is-intake .qs-live-support-share,
+    .qs-live-support-panel.is-intake .qs-live-support-agent {
+        display: none !important;
+    }
     .qs-live-support-intake {
         flex: 1;
         overflow-y: auto;

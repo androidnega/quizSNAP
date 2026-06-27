@@ -126,4 +126,8 @@
         color: #94a3b8;
     }
     .live-support-msg--admin .live-support-msg__time { text-align: right; }
+    .live-support-typing[hidden],
+    .qs-live-support-typing[hidden] {
+        display: none !important;
+    }
 </style>

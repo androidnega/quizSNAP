@@ -94,6 +94,9 @@
         background: var(--theme-bg, #f8fafc);
         border-bottom: 1px solid var(--theme-border, #e2e8f0);
     }
+    .live-support-typing[hidden] {
+        display: none !important;
+    }
     .live-support-chat-toolbar {
         display: flex;
         flex-wrap: wrap;

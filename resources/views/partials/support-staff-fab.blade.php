@@ -175,6 +175,16 @@
         border-top: 1px solid #f1f5f9;
         background: #fff;
     }
+    #staff-fab-live-support-typing.live-support-typing {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.375rem 0.875rem;
+        font-size: 0.6875rem;
+        color: #64748b;
+        background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+    }
     #staff-fab-live-support-queue .live-support-queue-item {
         display: block;
         width: 100%;
@@ -231,7 +241,7 @@
         </div>
         <div id="staff-fab-live-support-queue" class="live-support-queue"></div>
         <div id="staff-fab-live-support-chat-header">Select a chat</div>
-        <div id="staff-fab-live-support-typing" class="live-support-typing" hidden style="display:flex;align-items:center;gap:0.5rem;padding:0.375rem 0.875rem;font-size:0.6875rem;color:#64748b;background:#f8fafc;border-bottom:1px solid #e2e8f0;">
+        <div id="staff-fab-live-support-typing" class="live-support-typing" hidden>
             <span class="qs-typing-dots" aria-hidden="true"><span></span><span></span><span></span></span>
             <span class="qs-typing-label"></span>
         </div>

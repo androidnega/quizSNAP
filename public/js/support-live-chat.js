@@ -27,6 +27,7 @@
     var intakeStartBtn = document.getElementById('qs-live-intake-start');
     var intakeErrorEl = document.getElementById('qs-live-intake-error');
     var intakeLeadEl = document.getElementById('qs-live-support-intake-lead');
+    var emojiBarEl = document.getElementById('qs-live-support-emoji-bar');
 
     var state = {
         uuid: null,
@@ -39,6 +40,7 @@
         typingTimer: null,
         typingStopTimer: null,
         isTyping: false,
+        inIntake: false,
         pendingOpts: null,
         agentsOnline: null,
         sessionStatus: null,
@@ -145,13 +147,33 @@
 
     function setTyping(text) {
         if (!typingEl) return;
+        var show = !!(text && String(text).trim());
         var labelEl = typingEl.querySelector('.qs-typing-label');
-        if (text) {
-            if (labelEl) labelEl.textContent = text;
-            typingEl.hidden = false;
-        } else {
-            if (labelEl) labelEl.textContent = '';
-            typingEl.hidden = true;
+        if (labelEl) labelEl.textContent = show ? text : '';
+        typingEl.hidden = !show;
+        typingEl.setAttribute('aria-hidden', show ? 'false' : 'true');
+    }
+
+    function showIntake(show) {
+        state.inIntake = !!show;
+        if (panel) panel.classList.toggle('is-intake', !!show);
+        if (intakeEl) intakeEl.hidden = !show;
+        if (messagesEl) messagesEl.hidden = show;
+        if (composeEl) composeEl.hidden = show;
+        if (emojiBarEl) emojiBarEl.hidden = show;
+        if (statusEl) statusEl.hidden = show;
+        if (agentBar && show) agentBar.hidden = true;
+        if (shareWrap) {
+            if (show) shareWrap.classList.remove('is-visible');
+            shareWrap.hidden = show;
+        }
+        if (show) {
+            setTyping('');
+            state.isTyping = false;
+            if (state.typingStopTimer) {
+                clearTimeout(state.typingStopTimer);
+                state.typingStopTimer = null;
+            }
         }
     }
 
@@ -167,13 +189,6 @@
             document.body.style.overflow = document.body.dataset.qsChatScroll || '';
             delete document.body.dataset.qsChatScroll;
         }
-    }
-
-    function showIntake(show) {
-        if (intakeEl) intakeEl.hidden = !show;
-        if (messagesEl) messagesEl.hidden = show;
-        if (composeEl) composeEl.hidden = show;
-        if (shareWrap && show) shareWrap.classList.remove('is-visible');
     }
 
     function showIntakeError(msg) {
@@ -294,7 +309,7 @@
     }
 
     function sendTypingSignal(typing) {
-        if (!state.uuid) return;
+        if (!state.uuid || state.inIntake) return;
         fetch('/support/sessions/' + encodeURIComponent(state.uuid) + '/typing', {
             method: 'POST',
             headers: headers(),
@@ -303,7 +318,7 @@
     }
 
     function onInputTyping() {
-        if (!state.uuid) return;
+        if (!state.uuid || state.inIntake) return;
         if (!state.isTyping) {
             state.isTyping = true;
             sendTypingSignal(true);
@@ -335,8 +350,8 @@
             if (payload && payload.session) applySession(payload.session);
         });
         state.echoChannel.bind('SupportTyping', function (payload) {
-            if (!payload || payload.sender_type === 'student') return;
-            if (payload.is_typing) {
+            if (!payload || payload.sender_type === 'student' || state.inIntake) return;
+            if (payload.is_typing === true) {
                 setTyping((payload.sender_label || 'Agent') + ' is typing');
                 if (sounds()) sounds().playTyping();
             } else {

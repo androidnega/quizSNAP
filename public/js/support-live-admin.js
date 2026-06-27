@@ -276,14 +276,11 @@
 
     function setTyping(text) {
         if (!typingEl) return;
+        var show = !!(text && String(text).trim());
         var labelEl = typingEl.querySelector('.qs-typing-label');
-        if (text) {
-            if (labelEl) labelEl.textContent = text;
-            typingEl.hidden = false;
-        } else {
-            if (labelEl) labelEl.textContent = '';
-            typingEl.hidden = true;
-        }
+        if (labelEl) labelEl.textContent = show ? text : '';
+        typingEl.hidden = !show;
+        typingEl.setAttribute('aria-hidden', show ? 'false' : 'true');
     }
 
     function sendTypingSignal(typing) {
@@ -441,8 +438,8 @@
             }
         });
         ch.bind('SupportTyping', function (payload) {
-            if (!payload || payload.sender_type === 'admin') return;
-            if (payload.is_typing) {
+            if (!payload || payload.sender_type === 'admin' || uuid !== activeUuid) return;
+            if (payload.is_typing === true) {
                 setTyping((payload.sender_label || 'Student') + ' is typing');
                 if (sounds()) sounds().playTyping();
             } else {
@@ -478,13 +475,13 @@
         ch.bind('SupportTyping', function (payload) {
             if (!payload || payload.sender_type !== 'student') return;
             if (payload.session_uuid === activeUuid) {
-                if (payload.is_typing) {
+                if (payload.is_typing === true) {
                     setTyping((payload.sender_label || 'Student') + ' is typing');
                 } else {
                     setTyping('');
                 }
             }
-            if (payload.is_typing && sounds()) sounds().playTyping();
+            if (payload.is_typing === true && payload.session_uuid === activeUuid && sounds()) sounds().playTyping();
         });
     }
 

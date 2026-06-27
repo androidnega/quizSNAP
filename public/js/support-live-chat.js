@@ -5,6 +5,7 @@
     'use strict';
 
     var STORAGE_KEY = 'quizsnap_live_support';
+    var GUEST_PROFILE_KEY = 'quizsnap_live_support_guest';
     var HIDDEN_CLOSE_MS = 15 * 60 * 1000;
     var panel = document.getElementById('qs-live-support-panel');
     var messagesEl = document.getElementById('qs-live-support-messages');
@@ -96,9 +97,15 @@
     }
 
     function loadStored() {
-        if (requiresGuestDetails()) return;
         try {
-            var raw = sessionStorage.getItem(STORAGE_KEY);
+            var raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) {
+                raw = sessionStorage.getItem(STORAGE_KEY);
+                if (raw) {
+                    localStorage.setItem(STORAGE_KEY, raw);
+                    sessionStorage.removeItem(STORAGE_KEY);
+                }
+            }
             if (!raw) return;
             var data = JSON.parse(raw);
             if (data && data.uuid && data.token) {
@@ -110,7 +117,60 @@
 
     function saveStored() {
         if (!state.uuid || !state.token) return;
-        sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ uuid: state.uuid, token: state.token }));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ uuid: state.uuid, token: state.token }));
+    }
+
+    function clearStoredSession() {
+        localStorage.removeItem(STORAGE_KEY);
+        sessionStorage.removeItem(STORAGE_KEY);
+    }
+
+    function loadGuestProfile() {
+        if (!requiresGuestDetails()) return null;
+        try {
+            var raw = localStorage.getItem(GUEST_PROFILE_KEY);
+            if (!raw) return null;
+            var data = JSON.parse(raw);
+            if (!data || !data.student_name || !data.student_index || !data.student_phone) return null;
+            return {
+                student_name: String(data.student_name).trim(),
+                student_index: String(data.student_index).trim(),
+                student_phone: String(data.student_phone).trim(),
+            };
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function saveGuestProfile(opts) {
+        if (!requiresGuestDetails() || !opts) return;
+        var name = (opts.student_name || '').trim();
+        var index = (opts.student_index || '').trim();
+        var phone = (opts.student_phone || '').trim();
+        if (!name || !index || !phone) return;
+        try {
+            localStorage.setItem(GUEST_PROFILE_KEY, JSON.stringify({
+                student_name: name,
+                student_index: index,
+                student_phone: phone,
+            }));
+        } catch (e) {}
+    }
+
+    function hasCompleteGuestProfile(opts) {
+        if (!opts) return false;
+        var name = (opts.student_name || '').trim();
+        var index = (opts.student_index || '').trim();
+        var phone = (opts.student_phone || '').trim();
+        return name.length >= 2 && !!index && isValidPhone(phone);
+    }
+
+    function mergeGuestProfile(opts) {
+        opts = opts || {};
+        if (!requiresGuestDetails() || opts._intakeComplete) return opts;
+        var stored = loadGuestProfile();
+        if (!stored || !hasCompleteGuestProfile(stored)) return opts;
+        return Object.assign({}, stored, opts, { _intakeComplete: true });
     }
 
     function setStatus(text, tone) {
@@ -468,7 +528,7 @@
             state.token = null;
             state.lastId = 0;
             state.sessionStatus = null;
-            sessionStorage.removeItem(STORAGE_KEY);
+            clearStoredSession();
             if (messagesEl) messagesEl.innerHTML = '';
         }
         clearHiddenCloseTimer();
@@ -517,6 +577,7 @@
                 state.uuid = res.data.session.uuid;
                 state.token = res.data.client_token;
                 saveStored();
+                saveGuestProfile(opts);
                 applySession(res.data.session);
                 startPolling();
                 bindEcho();
@@ -533,7 +594,7 @@
                 if (!data.success) {
                     state.uuid = null;
                     state.token = null;
-                    sessionStorage.removeItem(STORAGE_KEY);
+                    clearStoredSession();
                     return beginChat(state.pendingOpts || {});
                 }
                 applySession(data.session);
@@ -546,24 +607,22 @@
     }
 
     function prefillIntake(opts) {
+        opts = opts || {};
+        var stored = loadGuestProfile() || {};
         var ctx = defaultContext();
         var nameEl = document.getElementById('qs-live-intake-name');
         var phoneEl = document.getElementById('qs-live-intake-phone');
         var indexEl = document.getElementById('qs-live-intake-index');
-        if (nameEl) nameEl.value = opts.student_name || ctx.name || '';
-        if (phoneEl) phoneEl.value = opts.student_phone || ctx.phone || '';
-        if (indexEl) indexEl.value = opts.student_index || ctx.index_number || '';
+        if (nameEl) nameEl.value = opts.student_name || stored.student_name || ctx.name || '';
+        if (phoneEl) phoneEl.value = opts.student_phone || stored.student_phone || ctx.phone || '';
+        if (indexEl) indexEl.value = opts.student_index || stored.student_index || ctx.index_number || '';
     }
 
     function beginChat(opts) {
         opts = opts || {};
         if (state.uuid) return resumeSession();
+        opts = mergeGuestProfile(opts);
         if (requiresGuestDetails() && !opts._intakeComplete) {
-            state.uuid = null;
-            state.token = null;
-            state.lastId = 0;
-            state.sessionStatus = null;
-            sessionStorage.removeItem(STORAGE_KEY);
             state.pendingOpts = opts;
             showIntake(true);
             prefillIntake(opts);
@@ -945,11 +1004,6 @@
             if (sounds()) sounds().stopMessageAlert();
             clearHiddenCloseTimer();
             state.agentDongPlayed = false;
-            if (requiresGuestDetails() && !opts._intakeComplete) {
-                state.uuid = null;
-                state.token = null;
-                sessionStorage.removeItem(STORAGE_KEY);
-            }
             if (sounds()) sounds().unlock();
             var p = beginChat(opts);
             if (p && p.catch) {

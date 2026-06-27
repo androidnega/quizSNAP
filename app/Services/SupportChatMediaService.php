@@ -6,6 +6,7 @@ use App\Models\SupportMessage;
 use App\Models\SupportSession;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SupportChatMediaService
 {
@@ -21,31 +22,60 @@ class SupportChatMediaService
     /** @return array{path: string, url: string} */
     public function storeImage(SupportSession $session, UploadedFile $file): array
     {
+        $this->ensureSessionDir($session);
         $path = $file->store($this->sessionDir($session), self::DISK);
 
-        return $this->payloadForPath($path);
+        return $this->payloadForPath($session, $path);
     }
 
     /** @return array{path: string, url: string, mime?: string} */
     public function storeAudio(SupportSession $session, UploadedFile $file): array
     {
+        $this->ensureSessionDir($session);
         $path = $file->store($this->sessionDir($session), self::DISK);
-        $payload = $this->payloadForPath($path);
+        $payload = $this->payloadForPath($session, $path);
         $payload['mime'] = $file->getMimeType() ?: 'audio/webm';
 
         return $payload;
     }
 
-    /** @return array{path: string, url: string} */
-    private function payloadForPath(string $path): array
+    public function streamFile(SupportSession $session, string $filename): StreamedResponse
     {
-        $relative = Storage::disk(self::DISK)->url($path);
+        $filename = basename($filename);
+        if ($filename === '' || str_contains($filename, '..')) {
+            abort(404);
+        }
 
+        $path = $this->sessionDir($session).'/'.$filename;
+        if (! Storage::disk(self::DISK)->exists($path)) {
+            abort(404);
+        }
+
+        $mime = Storage::disk(self::DISK)->mimeType($path) ?: 'application/octet-stream';
+
+        return Storage::disk(self::DISK)->response($path, $filename, [
+            'Content-Type' => $mime,
+            'Cache-Control' => 'private, max-age=3600',
+        ]);
+    }
+
+    public function ensureSessionDir(SupportSession $session): void
+    {
+        $dir = $this->sessionDir($session);
+        if (! Storage::disk(self::DISK)->exists($dir)) {
+            Storage::disk(self::DISK)->makeDirectory($dir);
+        }
+    }
+
+    /** @return array{path: string, url: string} */
+    private function payloadForPath(SupportSession $session, string $path): array
+    {
         return [
             'path' => $path,
-            'url' => str_starts_with($relative, 'http')
-                ? $relative
-                : url($relative),
+            'url' => route('support.sessions.media', [
+                'uuid' => $session->uuid,
+                'filename' => basename($path),
+            ]),
         ];
     }
 

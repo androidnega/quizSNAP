@@ -116,6 +116,16 @@
         return (cfg.baseUrl || '/dashboard/live-support') + path;
     }
 
+    function fetchJson(input, init) {
+        return fetch(input, init)
+            .then(function (r) {
+                if (!r.ok) return null;
+                var ct = (r.headers.get('content-type') || '').toLowerCase();
+                if (ct.indexOf('json') === -1) return null;
+                return r.json().catch(function () { return null; });
+            });
+    }
+
     function escapeHtml(str) {
         var d = document.createElement('div');
         d.textContent = str;
@@ -393,10 +403,9 @@
                 return Promise.resolve();
             }
         }
-        return fetch(url('/sessions'), { headers: jsonHeaders() })
-            .then(function (r) { return r.json(); })
+        return fetchJson(url('/sessions'), { headers: jsonHeaders() })
             .then(function (data) {
-                if (data.success) {
+                if (data && data.success) {
                     renderQueue(data.sessions);
                     if (cfg.onWaitingCount && typeof data.waiting_count === 'number') {
                         cfg.onWaitingCount(data.waiting_count);
@@ -410,16 +419,16 @@
     function pollActiveMessages() {
         if (!activeUuid) return;
         var sinceQuery = lastMessageId > 0 ? ('?since=' + encodeURIComponent(String(lastMessageId))) : '';
-        fetch(url('/sessions/' + encodeURIComponent(activeUuid) + sinceQuery), { headers: jsonHeaders() })
-            .then(function (r) { return r.json(); })
+        fetchJson(url('/sessions/' + encodeURIComponent(activeUuid) + sinceQuery), { headers: jsonHeaders() })
             .then(function (data) {
-                if (!data.success) return;
+                if (!data || !data.success) return;
                 activeSession = data.session;
                 updateTakenNotice(data.session);
                 if (Array.isArray(data.messages) && data.messages.length) {
                     ingestMessages(data.messages, true);
                 }
-            });
+            })
+            .catch(function () {});
     }
 
     function claimSession(uuid) {
@@ -443,10 +452,9 @@
         if (pc) { pc.close(); pc = null; }
         pendingRemoteIce = [];
         lastHandledOfferId = null;
-        fetch(url('/sessions/' + encodeURIComponent(uuid)), { headers: jsonHeaders() })
-            .then(function (r) { return r.json(); })
+        fetchJson(url('/sessions/' + encodeURIComponent(uuid)), { headers: jsonHeaders() })
             .then(function (data) {
-                if (!data.success) return;
+                if (!data || !data.success) return;
                 activeSession = data.session;
                 if (headerEl) {
                     var parts = [data.session.student_name || data.session.student_index || 'Student'];

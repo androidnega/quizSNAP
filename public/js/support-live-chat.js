@@ -324,9 +324,9 @@
         bubble.className = 'qs-live-msg__bubble';
 
         if (msg.message_type === 'image' && msg.meta && msg.meta.url && media()) {
-            media().appendMessageMedia(bubble, msg);
+            media().appendMessageMedia(bubble, msg, state.token);
         } else if (msg.message_type === 'audio' && msg.meta && msg.meta.url && media()) {
-            media().appendMessageMedia(bubble, msg);
+            media().appendMessageMedia(bubble, msg, state.token);
         } else {
             bubble.textContent = msg.body || '';
         }
@@ -395,12 +395,21 @@
         }
     }
 
+    function fetchJson(input, init) {
+        return fetch(input, init)
+            .then(function (r) {
+                if (!r.ok) return null;
+                var ct = (r.headers.get('content-type') || '').toLowerCase();
+                if (ct.indexOf('json') === -1) return null;
+                return r.json().catch(function () { return null; });
+            });
+    }
+
     function pollMessages() {
         if (!state.uuid) return;
-        fetch('/support/sessions/' + encodeURIComponent(state.uuid) + '/messages?since=' + state.lastId, { headers: headers() })
-            .then(function (r) { return r.json(); })
+        fetchJson('/support/sessions/' + encodeURIComponent(state.uuid) + '/messages?since=' + state.lastId, { headers: headers() })
             .then(function (data) {
-                if (data.success) ingestMessages(data.messages, true);
+                if (data && data.success) ingestMessages(data.messages, true);
             })
             .catch(function () {});
     }

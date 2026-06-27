@@ -73,6 +73,7 @@ Route::prefix('support')->name('support.')->group(function () {
     Route::post('/sessions/{uuid}/typing', [\App\Http\Controllers\StudentLiveSupportController::class, 'typing'])->name('sessions.typing');
     Route::post('/sessions/{uuid}/upload-image', [\App\Http\Controllers\StudentLiveSupportController::class, 'uploadImage'])->name('sessions.upload-image');
     Route::post('/sessions/{uuid}/upload-audio', [\App\Http\Controllers\StudentLiveSupportController::class, 'uploadAudio'])->name('sessions.upload-audio');
+    Route::get('/sessions/{uuid}/media/{filename}', [\App\Http\Controllers\StudentLiveSupportController::class, 'media'])->name('sessions.media');
     Route::post('/sessions/{uuid}/close', [\App\Http\Controllers\StudentLiveSupportController::class, 'close'])->name('sessions.close');
 });
 

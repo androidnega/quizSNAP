@@ -16,7 +16,7 @@ class EnsureProctoringStorageCommand extends Command
         $disk = Storage::disk('public');
         $root = $disk->path('');
 
-        foreach (['verification', 'violations'] as $dir) {
+        foreach (['verification', 'violations', 'support-chat'] as $dir) {
             if (!$disk->exists($dir)) {
                 $disk->makeDirectory($dir);
                 $this->info("Created: {$dir}/");

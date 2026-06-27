@@ -1,10 +1,12 @@
 /**
  * QuizSnap live support — message alerts, continuous ring, and typing sounds.
+ * Audio only starts after a user gesture (browser autoplay policy).
  */
 (function () {
     'use strict';
 
     var ctx = null;
+    var unlocked = false;
     var typingLastAt = 0;
     var TYPING_COOLDOWN_MS = 72;
     var alertTimer = null;
@@ -12,6 +14,7 @@
     var ALERT_INTERVAL_MS = 2600;
 
     function audioContext() {
+        if (!unlocked) return null;
         if (!ctx) {
             try {
                 ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -80,6 +83,11 @@
         setTimeout(function () { tone(base + 40, 0.022, 0.014, 'triangle'); }, 38);
     }
 
+    function unlock() {
+        unlocked = true;
+        audioContext();
+    }
+
     window.QuizSnapSupportSounds = {
         playMessage: function () {
             playMessageOnce();
@@ -93,13 +101,19 @@
             setTimeout(function () { tone(784, 0.55, 0.05, 'sine'); }, 380);
         },
         playTyping: playTypingRemote,
-        unlock: function () {
-            audioContext();
-        },
+        unlock: unlock,
+        isUnlocked: function () { return unlocked; },
     };
 
-    document.addEventListener('click', function unlockOnce() {
-        window.QuizSnapSupportSounds.unlock();
-        document.removeEventListener('click', unlockOnce);
-    }, { once: true, capture: true });
+    function bindUnlock(el, eventName) {
+        if (!el) return;
+        el.addEventListener(eventName, function unlockOnce() {
+            unlock();
+            el.removeEventListener(eventName, unlockOnce);
+        }, { once: true, capture: true });
+    }
+
+    bindUnlock(document, 'click');
+    bindUnlock(document, 'keydown');
+    bindUnlock(document, 'touchstart');
 })();

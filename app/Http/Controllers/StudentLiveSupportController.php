@@ -8,8 +8,10 @@ use App\Models\Student;
 use App\Services\LiveSupportService;
 use App\Services\SupportAgentPresenceService;
 use App\Services\SupportChatMediaService;
+use App\Support\LiveSupportAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class StudentLiveSupportController extends Controller
 {
@@ -264,6 +266,32 @@ class StudentLiveSupportController extends Controller
         $this->support->broadcastTyping($session, 'student', $label, (bool) $data['typing']);
 
         return response()->json(['success' => true]);
+    }
+
+    public function media(Request $request, string $uuid, string $filename): StreamedResponse
+    {
+        $session = $this->support->findByUuid($uuid);
+        if (! $session) {
+            abort(404);
+        }
+
+        if (! $this->canAccessMedia($request, $session)) {
+            abort(403);
+        }
+
+        return $this->media->streamFile($session, $filename);
+    }
+
+    private function canAccessMedia(Request $request, SupportSession $session): bool
+    {
+        $user = $request->user();
+        if ($user && LiveSupportAccess::canRespond($user) && LiveSupportAccess::sessionInScope($user, $session)) {
+            return true;
+        }
+
+        $token = $this->clientToken($request) ?: $request->query('token');
+
+        return $this->support->authorizeClient($session, is_string($token) ? $token : null);
     }
 
     private function clientToken(Request $request): ?string

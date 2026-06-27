@@ -23,11 +23,21 @@
             '<path d="' + escapeHtml(path) + '"></path></svg></span>';
     }
 
-    function resolveMediaUrl(url) {
+    function resolveMediaUrl(url, authToken) {
         if (!url) return '';
-        if (/^(https?:|blob:)/i.test(url)) return url;
-        if (url.charAt(0) === '/') return window.location.origin + url;
-        return url;
+        var resolved = url;
+        var legacy = String(url).match(/\/storage\/support-chat\/([^/?#]+)\/([^/?#]+)/);
+        if (legacy) {
+            resolved = window.location.origin + '/support/sessions/' + encodeURIComponent(legacy[1]) + '/media/' + encodeURIComponent(legacy[2]);
+        } else if (/^(https?:|blob:)/i.test(url)) {
+            resolved = url;
+        } else if (url.charAt(0) === '/') {
+            resolved = window.location.origin + url;
+        }
+        if (authToken && resolved.indexOf('/support/sessions/') !== -1 && resolved.indexOf('token=') === -1) {
+            resolved += (resolved.indexOf('?') >= 0 ? '&' : '?') + 'token=' + encodeURIComponent(authToken);
+        }
+        return resolved;
     }
 
     function blobMime(blob) {
@@ -42,7 +52,7 @@
         return 'voice-message.webm';
     }
 
-    function buildAudioElement(src, mime) {
+    function buildAudioElement(src, mime, authToken) {
         var audio = document.createElement('audio');
         audio.controls = true;
         audio.preload = 'auto';
@@ -50,25 +60,25 @@
         audio.className = 'qs-live-msg__audio';
         if (mime) {
             var source = document.createElement('source');
-            source.src = resolveMediaUrl(src);
+            source.src = resolveMediaUrl(src, authToken);
             source.type = mime;
             audio.appendChild(source);
         } else {
-            audio.src = resolveMediaUrl(src);
+            audio.src = resolveMediaUrl(src, authToken);
         }
         return audio;
     }
 
-    function appendMessageMedia(bubble, msg) {
+    function appendMessageMedia(bubble, msg, authToken) {
         if (!bubble || !msg || !msg.meta) return false;
         if (msg.message_type === 'image' && msg.meta.url) {
             var img = document.createElement('img');
-            img.src = resolveMediaUrl(msg.meta.url);
+            img.src = resolveMediaUrl(msg.meta.url, authToken);
             img.alt = 'Shared image';
             img.className = 'qs-live-msg__image';
             img.loading = 'lazy';
             var link = document.createElement('a');
-            link.href = resolveMediaUrl(msg.meta.url);
+            link.href = resolveMediaUrl(msg.meta.url, authToken);
             link.target = '_blank';
             link.rel = 'noopener noreferrer';
             link.appendChild(img);
@@ -76,7 +86,7 @@
             return true;
         }
         if (msg.message_type === 'audio' && msg.meta.url) {
-            bubble.appendChild(buildAudioElement(msg.meta.url, msg.meta.mime || 'audio/webm'));
+            bubble.appendChild(buildAudioElement(msg.meta.url, msg.meta.mime || 'audio/webm', authToken));
             return true;
         }
         return false;

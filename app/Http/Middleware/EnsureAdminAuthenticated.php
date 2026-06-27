@@ -29,6 +29,7 @@ class EnsureAdminAuthenticated
                     User::ROLE_SYSTEM_ADMIN,
                     User::ROLE_EXAMINER,
                     User::ROLE_COORDINATOR,
+                    User::ROLE_SUPPORT_AGENT,
                 ])
                 ->first();
             if ($user) {
@@ -58,6 +59,24 @@ class EnsureAdminAuthenticated
             if (! EnterpriseCenterAccess::systemMonitorRouteAllowed($request)) {
                 return redirect()->route('dashboard')
                     ->with('error', 'System Monitors can only access their dashboard and enterprise centers.');
+            }
+
+            session(['admin_role' => $user->role]);
+            auth()->setUser($user);
+
+            return $next($request);
+        }
+
+        // Support agents: live support console, profile, and logout only.
+        if ($user->role === User::ROLE_SUPPORT_AGENT) {
+            $agentAllowed = $request->routeIs('dashboard.support.*')
+                || $request->routeIs('dashboard.profile.*')
+                || $request->routeIs('logout')
+                || ($request->routeIs('dashboard') && ! $request->is('dashboard/*'));
+
+            if (! $agentAllowed) {
+                return redirect()->route('dashboard.support.index')
+                    ->with('error', 'Support agents can only access the Live Support console.');
             }
 
             session(['admin_role' => $user->role]);

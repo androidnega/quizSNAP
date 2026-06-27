@@ -91,9 +91,13 @@ final class SupportContact
     {
         $appName = trim((string) Setting::getValue(Setting::KEY_APP_NAME, config('app.name', 'QuizSnap')));
 
+        $loggedIn = (bool) session('student_id');
+
         return [
             'number' => self::whatsAppNumber(),
             'appName' => $appName !== '' ? $appName : 'QuizSnap',
+            'isLoggedIn' => $loggedIn,
+            'requiresGuestDetails' => ! $loggedIn,
             'defaultContext' => array_filter([
                 'name' => isset($context['name']) ? trim((string) $context['name']) : null,
                 'index_number' => isset($context['index_number']) ? trim((string) $context['index_number']) : null,

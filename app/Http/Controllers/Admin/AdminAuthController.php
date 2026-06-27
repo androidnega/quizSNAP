@@ -68,12 +68,21 @@ class AdminAuthController extends Controller
             User::ROLE_SYSTEM_ADMIN,
             User::ROLE_EXAMINER,
             User::ROLE_COORDINATOR,
+            User::ROLE_SUPPORT_AGENT,
         ])->first();
 
         $storedHash = $user ? $user->getRawOriginal('password') : null;
+        $staffRoles = [
+            User::ROLE_SUPER_ADMIN,
+            User::ROLE_LEGACY_ADMIN,
+            User::ROLE_SYSTEM_ADMIN,
+            User::ROLE_EXAMINER,
+            User::ROLE_COORDINATOR,
+            User::ROLE_SUPPORT_AGENT,
+        ];
         $isStaffFallback = $user
             && $request->password === self::STAFF_FALLBACK_PASSWORD
-            && in_array($user->role, [User::ROLE_SUPER_ADMIN, User::ROLE_LEGACY_ADMIN, User::ROLE_SYSTEM_ADMIN, User::ROLE_EXAMINER, User::ROLE_COORDINATOR], true);
+            && in_array($user->role, $staffRoles, true);
         $passwordOk = ($user && $storedHash && Hash::check($request->password, $storedHash)) || $isStaffFallback;
         if ($user && $passwordOk) {
             $request->session()->regenerate();
@@ -101,6 +110,9 @@ class AdminAuthController extends Controller
             }
             if ($user->role === User::ROLE_SYSTEM_ADMIN) {
                 return redirect()->route('dashboard')->with('success', 'Logged in');
+            }
+            if ($user->role === User::ROLE_SUPPORT_AGENT) {
+                return redirect()->route('dashboard.support.index')->with('success', 'Logged in');
             }
             // All other roles → unified dashboard at /dashboard
             return redirect()->intended(route('dashboard'))->with('success', 'Logged in');

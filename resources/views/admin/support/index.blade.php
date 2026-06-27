@@ -182,6 +182,7 @@
 
         <div class="live-support-panel">
             <div class="live-support-panel__head" id="live-support-chat-header">Select a chat</div>
+            <div id="live-support-typing" class="live-support-typing" hidden style="padding:0.375rem 0.875rem;font-size:0.75rem;font-style:italic;color:var(--theme-muted,#64748b);background:var(--theme-bg,#f8fafc);border-bottom:1px solid var(--theme-border,#e2e8f0);"></div>
             <div id="live-support-taken-notice" class="live-support-taken-notice" hidden></div>
             <div class="live-support-chat-toolbar">
                 <button type="button" id="live-support-screen-btn" class="primary">Request screen share</button>
@@ -206,6 +207,7 @@
 @push('scripts-after-reverb')
 <script>window.SUPPORT_ACCESS = true;</script>
 <script>window.QuizSnapLiveSupportAdmin = { baseUrl: @json(url('/dashboard/live-support')), staffId: @json(auth()->id()) };</script>
+<script src="{{ asset('js/support-live-sounds.js') }}?v={{ filemtime(public_path('js/support-live-sounds.js')) }}"></script>
 <script src="{{ asset('js/support-live-admin.js') }}?v={{ filemtime(public_path('js/support-live-admin.js')) }}"></script>
 <script>
 (function() {

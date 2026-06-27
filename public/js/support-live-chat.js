@@ -1,5 +1,5 @@
 /**
- * QuizSnap live support — student/public chat widget with images and optional screen share.
+ * QuizSnap live support — student/public chat widget with images, typing, and sounds.
  */
 (function () {
     'use strict';
@@ -7,6 +7,8 @@
     var STORAGE_KEY = 'quizsnap_live_support';
     var panel = document.getElementById('qs-live-support-panel');
     var messagesEl = document.getElementById('qs-live-support-messages');
+    var intakeEl = document.getElementById('qs-live-support-intake');
+    var composeEl = document.getElementById('qs-live-support-compose');
     var inputEl = document.getElementById('qs-live-support-input');
     var statusEl = document.getElementById('qs-live-support-status');
     var shareWrap = document.getElementById('qs-live-support-share');
@@ -16,6 +18,10 @@
     var imageInput = document.getElementById('qs-live-support-image-input');
     var imageBtn = document.getElementById('qs-live-support-image-btn');
     var agentBar = document.getElementById('qs-live-support-agent');
+    var typingEl = document.getElementById('qs-live-support-typing');
+    var intakeStartBtn = document.getElementById('qs-live-intake-start');
+    var intakeErrorEl = document.getElementById('qs-live-intake-error');
+    var intakeLeadEl = document.getElementById('qs-live-support-intake-lead');
 
     var state = {
         uuid: null,
@@ -25,6 +31,11 @@
         echoChannel: null,
         pc: null,
         localStream: null,
+        typingTimer: null,
+        typingStopTimer: null,
+        isTyping: false,
+        pendingOpts: null,
+        agentsOnline: null,
     };
 
     function csrf() {
@@ -43,9 +54,20 @@
         return h;
     }
 
+    function config() {
+        return window.QuizSnapSupportConfig || {};
+    }
+
     function defaultContext() {
-        var cfg = window.QuizSnapSupportConfig || {};
-        return cfg.defaultContext || {};
+        return config().defaultContext || {};
+    }
+
+    function requiresGuestDetails() {
+        return !!config().requiresGuestDetails;
+    }
+
+    function sounds() {
+        return window.QuizSnapSupportSounds || null;
     }
 
     function loadStored() {
@@ -76,10 +98,30 @@
         }
     }
 
+    function setTyping(text) {
+        if (typingEl) {
+            typingEl.textContent = text || '';
+            typingEl.hidden = !text;
+        }
+    }
+
     function setOpen(open) {
         if (!panel) return;
         panel.classList.toggle('is-open', open);
         panel.setAttribute('aria-hidden', open ? 'false' : 'true');
+    }
+
+    function showIntake(show) {
+        if (intakeEl) intakeEl.hidden = !show;
+        if (messagesEl) messagesEl.hidden = show;
+        if (composeEl) composeEl.hidden = show;
+        if (shareWrap && show) shareWrap.classList.remove('is-visible');
+    }
+
+    function showIntakeError(msg) {
+        if (!intakeErrorEl) return;
+        intakeErrorEl.textContent = msg || '';
+        intakeErrorEl.hidden = !msg;
     }
 
     function scrollBottom() {
@@ -95,7 +137,7 @@
         }
     }
 
-    function renderMessage(msg) {
+    function renderMessage(msg, fromEcho) {
         if (!messagesEl || !msg || !msg.id) return;
         if (document.querySelector('[data-live-msg-id="' + msg.id + '"]')) return;
         var div = document.createElement('div');
@@ -129,6 +171,10 @@
         messagesEl.appendChild(div);
         if (msg.id > state.lastId) state.lastId = msg.id;
         scrollBottom();
+
+        if (fromEcho && msg.sender_type !== 'student' && msg.sender_type !== 'system' && sounds()) {
+            sounds().playMessage();
+        }
     }
 
     function applySession(session) {
@@ -137,7 +183,7 @@
             setStatus('Connected');
             setAgent('Agent: ' + (session.assigned_admin.name || 'Support'));
         } else if (session.status === 'waiting') {
-            setStatus('Waiting for an agent…');
+            setStatus('Waiting for an agent to join…');
             setAgent('');
         } else if (session.status === 'closed') {
             setStatus('Chat closed');
@@ -146,10 +192,10 @@
         if (session.screen_share_active && shareWrap) shareWrap.classList.add('is-visible');
     }
 
-    function ingestMessages(list) {
+    function ingestMessages(list, fromEcho) {
         if (!Array.isArray(list)) return;
         list.forEach(function (m) {
-            renderMessage(m);
+            renderMessage(m, fromEcho);
             if (m.message_type === 'webrtc' && m.meta && m.meta.signal === 'request_screen') {
                 if (shareWrap) shareWrap.classList.add('is-visible');
             }
@@ -161,7 +207,7 @@
         fetch('/support/sessions/' + encodeURIComponent(state.uuid) + '/messages?since=' + state.lastId, { headers: headers() })
             .then(function (r) { return r.json(); })
             .then(function (data) {
-                if (data.success) ingestMessages(data.messages);
+                if (data.success) ingestMessages(data.messages, true);
             })
             .catch(function () {});
     }
@@ -177,6 +223,28 @@
         state.pollTimer = null;
     }
 
+    function sendTypingSignal(typing) {
+        if (!state.uuid) return;
+        fetch('/support/sessions/' + encodeURIComponent(state.uuid) + '/typing', {
+            method: 'POST',
+            headers: headers(),
+            body: JSON.stringify({ typing: !!typing }),
+        }).catch(function () {});
+    }
+
+    function onInputTyping() {
+        if (!state.uuid) return;
+        if (!state.isTyping) {
+            state.isTyping = true;
+            sendTypingSignal(true);
+        }
+        if (state.typingStopTimer) clearTimeout(state.typingStopTimer);
+        state.typingStopTimer = setTimeout(function () {
+            state.isTyping = false;
+            sendTypingSignal(false);
+        }, 1400);
+    }
+
     function bindEcho() {
         if (!window.QuizSnapReverb || !state.uuid || !state.token) return;
         var channelName = 'private-support-session.' + state.uuid;
@@ -186,7 +254,7 @@
         if (!state.echoChannel) return;
         state.echoChannel.bind('SupportMessageSent', function (payload) {
             if (payload && payload.message) {
-                renderMessage(payload.message);
+                renderMessage(payload.message, true);
                 if (payload.message.message_type === 'webrtc' && payload.message.meta) {
                     handleRemoteSignal(payload.message.meta);
                 }
@@ -195,6 +263,25 @@
         state.echoChannel.bind('SupportSessionUpdated', function (payload) {
             if (payload && payload.session) applySession(payload.session);
         });
+        state.echoChannel.bind('SupportTyping', function (payload) {
+            if (!payload || payload.sender_type === 'student') return;
+            if (payload.is_typing) {
+                setTyping((payload.sender_label || 'Agent') + ' is typing…');
+                if (sounds()) sounds().playTyping();
+            } else {
+                setTyping('');
+            }
+        });
+    }
+
+    function fetchAvailability() {
+        return fetch('/support/availability', { headers: headers() })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data.success) state.agentsOnline = !!data.agents_online;
+                return state.agentsOnline;
+            })
+            .catch(function () { return null; });
     }
 
     function createSession(opts) {
@@ -202,6 +289,8 @@
         var ctx = defaultContext();
         setStatus('Starting chat…');
         setAgent('');
+        setTyping('');
+        showIntake(false);
         if (messagesEl) messagesEl.innerHTML = '';
         state.lastId = 0;
         return fetch('/support/sessions', {
@@ -217,21 +306,22 @@
                 initial_message: opts.initial_message || null,
             }),
         })
-            .then(function (r) { return r.json(); })
-            .then(function (data) {
-                if (!data.success) throw new Error(data.message || 'Could not start chat');
-                state.uuid = data.session.uuid;
-                state.token = data.client_token;
+            .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+            .then(function (res) {
+                if (!res.data.success) throw new Error(res.data.message || 'Could not start chat');
+                state.uuid = res.data.session.uuid;
+                state.token = res.data.client_token;
                 saveStored();
-                applySession(data.session);
+                applySession(res.data.session);
                 startPolling();
                 bindEcho();
-                return data;
+                return res.data;
             });
     }
 
     function resumeSession() {
         if (!state.uuid) return Promise.reject();
+        showIntake(false);
         return fetch('/support/sessions/' + encodeURIComponent(state.uuid), { headers: headers() })
             .then(function (r) { return r.json(); })
             .then(function (data) {
@@ -239,15 +329,47 @@
                     state.uuid = null;
                     state.token = null;
                     sessionStorage.removeItem(STORAGE_KEY);
-                    return createSession({});
+                    return beginChat(state.pendingOpts || {});
                 }
                 applySession(data.session);
                 startPolling();
                 bindEcho();
                 return fetch('/support/sessions/' + encodeURIComponent(state.uuid) + '/messages', { headers: headers() })
                     .then(function (r) { return r.json(); })
-                    .then(function (m) { if (m.success) ingestMessages(m.messages); });
+                    .then(function (m) { if (m.success) ingestMessages(m.messages, false); });
             });
+    }
+
+    function prefillIntake(opts) {
+        var ctx = defaultContext();
+        var nameEl = document.getElementById('qs-live-intake-name');
+        var phoneEl = document.getElementById('qs-live-intake-phone');
+        var emailEl = document.getElementById('qs-live-intake-email');
+        var indexEl = document.getElementById('qs-live-intake-index');
+        if (nameEl) nameEl.value = opts.student_name || ctx.name || '';
+        if (phoneEl) phoneEl.value = opts.student_phone || ctx.phone || '';
+        if (emailEl) emailEl.value = opts.student_email || ctx.email || '';
+        if (indexEl) indexEl.value = opts.student_index || ctx.index_number || '';
+    }
+
+    function beginChat(opts) {
+        opts = opts || {};
+        if (state.uuid) return resumeSession();
+        if (requiresGuestDetails() && !opts._intakeComplete) {
+            state.pendingOpts = opts;
+            showIntake(true);
+            prefillIntake(opts);
+            showIntakeError('');
+            setStatus('Tell us how to reach you');
+            return fetchAvailability().then(function (online) {
+                if (intakeLeadEl) {
+                    intakeLeadEl.textContent = online === false
+                        ? 'Our agents are currently away. Share your details and leave a message — we will respond when someone is available.'
+                        : 'Before we connect you, please share your contact details.';
+                }
+            });
+        }
+        return createSession(opts);
     }
 
     function sendText(text) {
@@ -259,8 +381,10 @@
         })
             .then(function (r) { return r.json(); })
             .then(function (data) {
-                if (data.success && data.message) renderMessage(data.message);
+                if (data.success && data.message) renderMessage(data.message, false);
             });
+        state.isTyping = false;
+        sendTypingSignal(false);
     }
 
     function uploadImage(file) {
@@ -274,7 +398,7 @@
         })
             .then(function (r) { return r.json(); })
             .then(function (data) {
-                if (data.success && data.message) renderMessage(data.message);
+                if (data.success && data.message) renderMessage(data.message, false);
             });
     }
 
@@ -340,6 +464,31 @@
 
     loadStored();
 
+    if (intakeStartBtn) {
+        intakeStartBtn.addEventListener('click', function () {
+            var name = (document.getElementById('qs-live-intake-name') || {}).value || '';
+            var phone = (document.getElementById('qs-live-intake-phone') || {}).value || '';
+            var email = (document.getElementById('qs-live-intake-email') || {}).value || '';
+            var index = (document.getElementById('qs-live-intake-index') || {}).value || '';
+            name = name.trim();
+            phone = phone.trim();
+            if (!name) { showIntakeError('Please enter your name.'); return; }
+            if (!phone) { showIntakeError('Please enter your phone number.'); return; }
+            showIntakeError('');
+            var opts = Object.assign({}, state.pendingOpts || {}, {
+                student_name: name,
+                student_phone: phone,
+                student_email: email.trim() || null,
+                student_index: index.trim() || null,
+                _intakeComplete: true,
+            });
+            createSession(opts).catch(function (err) {
+                showIntake(true);
+                showIntakeError(err.message || 'Could not start chat.');
+            });
+        });
+    }
+
     if (sendBtn && inputEl) {
         sendBtn.addEventListener('click', function () {
             var text = inputEl.value.trim();
@@ -349,7 +498,9 @@
         });
         inputEl.addEventListener('keydown', function (e) {
             if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendBtn.click(); }
+            else onInputTyping();
         });
+        inputEl.addEventListener('input', onInputTyping);
     }
 
     if (imageBtn && imageInput) {
@@ -374,8 +525,11 @@
     window.QuizSnapLiveSupport = {
         open: function (opts) {
             setOpen(true);
-            var p = state.uuid ? resumeSession() : createSession(opts || {});
-            p.catch(function () { setStatus('Could not connect. Try again.'); });
+            if (sounds()) sounds().unlock();
+            var p = beginChat(opts || {});
+            if (p && p.catch) {
+                p.catch(function (err) { setStatus(err.message || 'Could not connect. Try again.'); });
+            }
         },
         close: function () { setOpen(false); },
     };

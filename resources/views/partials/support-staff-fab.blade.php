@@ -168,6 +168,7 @@
         </div>
         <div id="staff-fab-live-support-queue" class="live-support-queue"></div>
         <div id="staff-fab-live-support-chat-header">Select a chat</div>
+        <div id="staff-fab-live-support-typing" class="live-support-typing" hidden style="padding:0.25rem 0.5rem;font-size:0.6875rem;font-style:italic;color:#64748b;"></div>
         <div id="staff-fab-live-support-taken-notice" class="live-support-taken-notice" hidden></div>
         <div id="staff-fab-live-support-messages" aria-live="polite"></div>
         <div class="staff-support-fab-compose">

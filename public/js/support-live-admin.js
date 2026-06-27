@@ -18,14 +18,22 @@
     var imageInput = document.getElementById(prefix + 'live-support-image-input');
     var imageBtn = document.getElementById(prefix + 'live-support-image-btn');
     var takenNotice = document.getElementById(prefix + 'live-support-taken-notice');
+    var typingEl = document.getElementById(prefix + 'live-support-typing');
 
     var activeUuid = null;
     var activeSession = null;
     var lastMessageId = 0;
     var pollTimer = null;
     var messagePollTimer = null;
+    var presenceTimer = null;
     var pc = null;
     var currentStaffId = cfg.staffId || null;
+    var isTyping = false;
+    var typingStopTimer = null;
+
+    function sounds() {
+        return window.QuizSnapSupportSounds || null;
+    }
 
     function csrf() {
         var m = document.querySelector('meta[name="csrf-token"]');
@@ -82,7 +90,7 @@
         });
     }
 
-    function renderMessage(msg) {
+    function renderMessage(msg, fromEcho) {
         if (!messagesEl || !msg || !msg.id) return;
         if (document.querySelector('[data-admin-msg-id="' + msg.id + '"]')) return;
         if (msg.message_type === 'webrtc') return;
@@ -103,12 +111,48 @@
         messagesEl.appendChild(div);
         if (msg.id > lastMessageId) lastMessageId = msg.id;
         messagesEl.scrollTop = messagesEl.scrollHeight;
+
+        if (fromEcho && msg.sender_type === 'student' && sounds()) {
+            sounds().playMessage();
+        }
     }
 
-    function ingestMessages(list) {
+    function setTyping(text) {
+        if (!typingEl) return;
+        typingEl.textContent = text || '';
+        typingEl.hidden = !text;
+    }
+
+    function sendTypingSignal(typing) {
+        if (!activeUuid) return;
+        fetch(url('/sessions/' + encodeURIComponent(activeUuid) + '/typing'), {
+            method: 'POST',
+            headers: jsonHeaders(),
+            body: JSON.stringify({ typing: !!typing }),
+        }).catch(function () {});
+    }
+
+    function onInputTyping() {
+        if (!activeUuid || (inputEl && inputEl.disabled)) return;
+        if (!isTyping) {
+            isTyping = true;
+            sendTypingSignal(true);
+        }
+        if (typingStopTimer) clearTimeout(typingStopTimer);
+        typingStopTimer = setTimeout(function () {
+            isTyping = false;
+            sendTypingSignal(false);
+        }, 1400);
+    }
+
+    function pingPresence() {
+        fetch(url('/presence'), { method: 'POST', headers: jsonHeaders() }).catch(function () {});
+    }
+
+    function ingestMessages(list, fromEcho) {
         if (!Array.isArray(list)) return;
         list.forEach(function (m) {
-            renderMessage(m);
+            renderMessage(m, fromEcho);
             if (m.message_type === 'webrtc' && m.meta && m.meta.signal === 'offer' && m.meta.sdp) {
                 handleOffer(m.meta.sdp);
             }
@@ -154,7 +198,7 @@
                 if (!data.success) return;
                 activeSession = data.session;
                 updateTakenNotice(data.session);
-                ingestMessages(data.messages);
+                ingestMessages(data.messages, true);
             });
     }
 
@@ -172,6 +216,7 @@
         if (messagePollTimer) clearInterval(messagePollTimer);
         messagePollTimer = setInterval(pollActiveMessages, 2500);
         if (messagesEl) messagesEl.innerHTML = '';
+        setTyping('');
         if (remoteVideo) { remoteVideo.srcObject = null; remoteVideo.classList.add('hidden'); }
         fetch(url('/sessions/' + encodeURIComponent(uuid)), { headers: jsonHeaders() })
             .then(function (r) { return r.json(); })
@@ -185,7 +230,7 @@
                     headerEl.textContent = parts.join(' · ');
                 }
                 updateTakenNotice(data.session);
-                ingestMessages(data.messages);
+                ingestMessages(data.messages, false);
                 refreshQueue();
                 if (data.session.status === 'waiting' && !isTakenByOther(data.session)) {
                     claimSession(uuid).then(function (claimData) {
@@ -208,10 +253,19 @@
         if (!ch) return;
         ch.bind('SupportMessageSent', function (payload) {
             if (payload && payload.session_uuid === uuid && payload.message) {
-                renderMessage(payload.message);
+                renderMessage(payload.message, true);
                 if (payload.message.message_type === 'webrtc' && payload.message.meta && payload.message.meta.signal === 'offer') {
                     handleOffer(payload.message.meta.sdp);
                 }
+            }
+        });
+        ch.bind('SupportTyping', function (payload) {
+            if (!payload || payload.sender_type === 'admin') return;
+            if (payload.is_typing) {
+                setTyping((payload.sender_label || 'Student') + ' is typing…');
+                if (sounds()) sounds().playTyping();
+            } else {
+                setTyping('');
             }
         });
         ch.bind('SupportSessionUpdated', function (payload) {
@@ -231,7 +285,7 @@
         ch.bind('SupportMessageSent', function (payload) {
             refreshQueue();
             if (payload && payload.session_uuid === activeUuid && payload.message) {
-                renderMessage(payload.message);
+                renderMessage(payload.message, true);
             }
         });
     }
@@ -241,12 +295,14 @@
         var text = inputEl.value.trim();
         if (!text) return;
         inputEl.value = '';
+        isTyping = false;
+        sendTypingSignal(false);
         fetch(url('/sessions/' + encodeURIComponent(activeUuid) + '/messages'), {
             method: 'POST',
             headers: jsonHeaders(),
             body: JSON.stringify({ body: text }),
         }).then(function (r) { return r.json(); }).then(function (data) {
-            if (data.success && data.message) renderMessage(data.message);
+            if (data.success && data.message) renderMessage(data.message, false);
             else if (data.message) alert(data.message);
         });
     }
@@ -296,9 +352,13 @@
     }
 
     if (sendBtn) sendBtn.addEventListener('click', sendMessage);
-    if (inputEl) inputEl.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') { e.preventDefault(); sendMessage(); }
-    });
+    if (inputEl) {
+        inputEl.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') { e.preventDefault(); sendMessage(); }
+            else onInputTyping();
+        });
+        inputEl.addEventListener('input', onInputTyping);
+    }
     if (imageBtn && imageInput) {
         imageBtn.addEventListener('click', function () { imageInput.click(); });
         imageInput.addEventListener('change', function () {
@@ -339,7 +399,9 @@
 
     refreshQueue();
     bindInbox();
+    pingPresence();
     pollTimer = setInterval(refreshQueue, 8000);
+    presenceTimer = setInterval(pingPresence, 30000);
 
     window.QuizSnapLiveSupportAdminConsole = {
         openSession: openSession,

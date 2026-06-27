@@ -8,6 +8,7 @@ use App\Models\SupportMessage;
 use App\Models\SupportSession;
 use App\Models\User;
 use App\Services\LiveSupportService;
+use App\Services\SupportAgentPresenceService;
 use App\Support\LiveSupportAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,7 +19,10 @@ class LiveSupportController extends Controller
 {
     use InteractsWithAdminSession;
 
-    public function __construct(private LiveSupportService $support) {}
+    public function __construct(
+        private LiveSupportService $support,
+        private SupportAgentPresenceService $presence,
+    ) {}
 
     public function index(): View
     {
@@ -227,6 +231,35 @@ class LiveSupportController extends Controller
             'success' => true,
             'session' => $session->toClientArray(),
         ]);
+    }
+
+    public function presence(): JsonResponse
+    {
+        $staff = $this->ensureStaff();
+        $this->presence->ping($staff);
+
+        return response()->json([
+            'success' => true,
+            'agents_online' => $this->presence->anyAgentOnline(),
+        ]);
+    }
+
+    public function typing(Request $request, string $uuid): JsonResponse
+    {
+        $staff = $this->ensureStaff();
+        $session = $this->findScopedSession($uuid, $staff);
+        if (! $session) {
+            return response()->json(['success' => false, 'message' => 'Not found.'], 404);
+        }
+
+        $data = $request->validate([
+            'typing' => 'required|boolean',
+        ]);
+
+        $label = $staff->name ?: $staff->username;
+        $this->support->broadcastTyping($session, 'admin', $label, (bool) $data['typing']);
+
+        return response()->json(['success' => true]);
     }
 
     public function destroy(string $uuid): JsonResponse

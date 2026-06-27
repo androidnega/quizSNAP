@@ -13,6 +13,7 @@ final class LiveSupportAccess
         return $user->isSuperAdmin()
             || $user->role === User::ROLE_COORDINATOR
             || $user->role === User::ROLE_EXAMINER
+            || $user->role === User::ROLE_SUPPORT_AGENT
             || (bool) ($user->coordinator ?? false);
     }
 
@@ -29,7 +30,7 @@ final class LiveSupportAccess
     /** @return list<string> Uppercase trimmed index numbers in staff scope. Empty = none. Null = all (super admin). */
     public static function scopedStudentIndices(User $user): ?array
     {
-        if ($user->isSuperAdmin()) {
+        if ($user->isSuperAdmin() || $user->role === User::ROLE_SUPPORT_AGENT) {
             return null;
         }
 
@@ -54,7 +55,7 @@ final class LiveSupportAccess
 
     public static function sessionInScope(User $user, SupportSession $session): bool
     {
-        if ($user->isSuperAdmin()) {
+        if ($user->isSuperAdmin() || $user->role === User::ROLE_SUPPORT_AGENT) {
             return true;
         }
 

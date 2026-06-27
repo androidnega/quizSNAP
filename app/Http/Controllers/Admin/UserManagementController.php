@@ -125,8 +125,9 @@ class UserManagementController extends Controller
         $courseIds = $user ? $user->assignedCourseIds() : [];
         $role = $request->role;
         $isStaffRole = in_array($role, [User::ROLE_EXAMINER, User::ROLE_COORDINATOR], true);
+        $isSupportAgent = $role === User::ROLE_SUPPORT_AGENT;
         $sendSmsOnStaffCreation = Setting::getValue(Setting::KEY_SEND_SMS_ON_STAFF_CREATION, '0') === '1';
-        $useSmsFlow = $isStaffRole && $sendSmsOnStaffCreation && ArkeselService::hasApiKey();
+        $useSmsFlow = ($isStaffRole || $isSupportAgent) && $sendSmsOnStaffCreation && ArkeselService::hasApiKey();
 
         $rules = [
             'username' => 'required|string|max:255|unique:users,username',
@@ -136,7 +137,7 @@ class UserManagementController extends Controller
                 ? 'required|in:' . implode(',', $creatableRoles)
                 : 'required|in:examiner,coordinator',
         ];
-        if ($useSmsFlow) {
+        if ($useSmsFlow || $isSupportAgent) {
             $rules['phone'] = 'required|string|max:20';
             $rules['password'] = 'nullable';
             $rules['password_confirmation'] = 'nullable';
@@ -175,7 +176,9 @@ class UserManagementController extends Controller
             'password.min' => 'The password must be at least 8 characters.',
             'password.letters' => 'The password must contain at least one letter.',
             'password.numbers' => 'The password must contain at least one number.',
-            'phone.required' => 'Phone is required when sending login credentials by SMS (Settings → Send SMS on staff creation).',
+            'phone.required' => $isSupportAgent
+                ? 'Phone is required for support agents so they receive SMS alerts for new chats.'
+                : 'Phone is required when sending login credentials by SMS (Settings → Send SMS on staff creation).',
             'phone_normalized.unique' => 'This phone number is already used by another account. Please use a different number.',
             'institution_id.required' => 'Institution is required for examiners and coordinators.',
             'faculty_id.required' => 'Faculty is required for examiners and coordinators.',

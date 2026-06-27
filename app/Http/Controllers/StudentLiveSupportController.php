@@ -5,17 +5,39 @@ namespace App\Http\Controllers;
 use App\Models\SupportMessage;
 use App\Models\SupportSession;
 use App\Services\LiveSupportService;
+use App\Services\SupportAgentPresenceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class StudentLiveSupportController extends Controller
 {
-    public function __construct(private LiveSupportService $support) {}
+    public function __construct(
+        private LiveSupportService $support,
+        private SupportAgentPresenceService $presence,
+    ) {}
+
+    public function availability(): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'agents_online' => $this->presence->anyAgentOnline(),
+        ]);
+    }
 
     public function store(Request $request): JsonResponse
     {
-        $data = $request->validate([
+        $guestRules = [];
+        if (! session('student_id')) {
+            $guestRules = [
+                'student_name' => 'required|string|max:255',
+                'student_phone' => 'required|string|max:32',
+                'student_email' => 'nullable|email|max:255',
+                'student_index' => 'nullable|string|max:64',
+            ];
+        }
+
+        $data = $request->validate(array_merge([
             'student_index' => 'nullable|string|max:64',
             'student_name' => 'nullable|string|max:255',
             'student_phone' => 'nullable|string|max:32',
@@ -23,6 +45,9 @@ class StudentLiveSupportController extends Controller
             'page_url' => 'nullable|string|max:500',
             'issue_category' => 'nullable|string|max:64',
             'initial_message' => 'nullable|string|max:2000',
+        ], $guestRules), [
+            'student_name.required' => 'Please enter your name so an agent can help you.',
+            'student_phone.required' => 'Please enter your phone number so we can reach you.',
         ]);
 
         $session = $this->support->createSession($data);
@@ -160,6 +185,23 @@ class StudentLiveSupportController extends Controller
             'success' => true,
             'session' => $session->toClientArray(),
         ]);
+    }
+
+    public function typing(Request $request, string $uuid): JsonResponse
+    {
+        $session = $this->support->findByUuid($uuid);
+        if (! $session || ! $this->support->authorizeClient($session, $this->clientToken($request))) {
+            return response()->json(['success' => false, 'message' => 'Session not found.'], 404);
+        }
+
+        $data = $request->validate([
+            'typing' => 'required|boolean',
+        ]);
+
+        $label = $session->student_name ?: ($session->student_index ?: 'Guest');
+        $this->support->broadcastTyping($session, 'student', $label, (bool) $data['typing']);
+
+        return response()->json(['success' => true]);
     }
 
     private function clientToken(Request $request): ?string

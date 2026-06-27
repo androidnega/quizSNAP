@@ -17,6 +17,7 @@ class User extends Authenticatable
     public const ROLE_SYSTEM_ADMIN = 'system_admin';
     public const ROLE_EXAMINER = 'examiner';
     public const ROLE_COORDINATOR = 'coordinator';
+    public const ROLE_SUPPORT_AGENT = 'support_agent';
 
     /** @deprecated Legacy role value; treated as super_admin for access checks. */
     public const ROLE_LEGACY_ADMIN = 'admin';
@@ -137,6 +138,11 @@ class User extends Authenticatable
         return $this->role === self::ROLE_EXAMINER;
     }
 
+    public function isSupportAgent(): bool
+    {
+        return $this->role === self::ROLE_SUPPORT_AGENT;
+    }
+
     public function isStaff(): bool
     {
         return in_array($this->role, [
@@ -145,6 +151,7 @@ class User extends Authenticatable
             self::ROLE_SYSTEM_ADMIN,
             self::ROLE_EXAMINER,
             self::ROLE_COORDINATOR,
+            self::ROLE_SUPPORT_AGENT,
         ], true);
     }
 
@@ -155,6 +162,7 @@ class User extends Authenticatable
             self::ROLE_SYSTEM_ADMIN => 'System Administrator',
             self::ROLE_EXAMINER => 'Examiner',
             self::ROLE_COORDINATOR => 'Coordinator',
+            self::ROLE_SUPPORT_AGENT => 'Support Agent',
         ];
     }
 
@@ -166,6 +174,7 @@ class User extends Authenticatable
             self::ROLE_SYSTEM_ADMIN => 'System Monitor',
             self::ROLE_EXAMINER => 'Examiner',
             self::ROLE_COORDINATOR => 'Coordinator',
+            self::ROLE_SUPPORT_AGENT => 'Support Agent',
         ];
     }
 

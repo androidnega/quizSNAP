@@ -65,10 +65,12 @@ Route::get('/about-system', function () {
 })->name('about-system');
 
 Route::prefix('support')->name('support.')->group(function () {
+    Route::get('/availability', [\App\Http\Controllers\StudentLiveSupportController::class, 'availability'])->name('availability');
     Route::post('/sessions', [\App\Http\Controllers\StudentLiveSupportController::class, 'store'])->name('sessions.store');
     Route::get('/sessions/{uuid}', [\App\Http\Controllers\StudentLiveSupportController::class, 'show'])->name('sessions.show');
     Route::get('/sessions/{uuid}/messages', [\App\Http\Controllers\StudentLiveSupportController::class, 'messages'])->name('sessions.messages');
     Route::post('/sessions/{uuid}/messages', [\App\Http\Controllers\StudentLiveSupportController::class, 'sendMessage'])->name('sessions.messages.send');
+    Route::post('/sessions/{uuid}/typing', [\App\Http\Controllers\StudentLiveSupportController::class, 'typing'])->name('sessions.typing');
     Route::post('/sessions/{uuid}/upload-image', [\App\Http\Controllers\StudentLiveSupportController::class, 'uploadImage'])->name('sessions.upload-image');
     Route::post('/sessions/{uuid}/close', [\App\Http\Controllers\StudentLiveSupportController::class, 'close'])->name('sessions.close');
 });
@@ -341,10 +343,12 @@ Route::middleware('admin.auth')->group(function () {
         // Live support — super admin, coordinators, and examiners (institution-scoped)
         Route::prefix('live-support')->name('support.')->group(function () {
             Route::get('/', [\App\Http\Controllers\Admin\LiveSupportController::class, 'index'])->name('index');
+            Route::post('/presence', [\App\Http\Controllers\Admin\LiveSupportController::class, 'presence'])->name('presence');
             Route::get('/sessions', [\App\Http\Controllers\Admin\LiveSupportController::class, 'sessions'])->name('sessions');
             Route::get('/sessions/{uuid}', [\App\Http\Controllers\Admin\LiveSupportController::class, 'show'])->name('sessions.show');
             Route::post('/sessions/{uuid}/claim', [\App\Http\Controllers\Admin\LiveSupportController::class, 'claim'])->name('sessions.claim');
             Route::post('/sessions/{uuid}/messages', [\App\Http\Controllers\Admin\LiveSupportController::class, 'sendMessage'])->name('sessions.messages');
+            Route::post('/sessions/{uuid}/typing', [\App\Http\Controllers\Admin\LiveSupportController::class, 'typing'])->name('sessions.typing');
             Route::post('/sessions/{uuid}/upload-image', [\App\Http\Controllers\Admin\LiveSupportController::class, 'uploadImage'])->name('sessions.upload-image');
             Route::post('/sessions/{uuid}/screen-share', [\App\Http\Controllers\Admin\LiveSupportController::class, 'requestScreenShare'])->name('sessions.screen-share');
             Route::post('/sessions/{uuid}/close', [\App\Http\Controllers\Admin\LiveSupportController::class, 'close'])->name('sessions.close');

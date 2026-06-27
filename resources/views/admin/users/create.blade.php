@@ -182,13 +182,14 @@
                 if (deptStar) deptStar.style.display = showDepartment ? '' : 'none';
             }
             var showStaffFields = (role === 'examiner' || role === 'coordinator');
+            var isSupportAgent = role === 'support_agent';
             var useSmsPassword = sendSmsOnStaffCreation && showStaffFields;
             if (phoneField) {
-                phoneField.style.display = showStaffFields ? '' : 'none';
-                if (phoneRequiredStar) phoneRequiredStar.style.display = useSmsPassword ? '' : 'none';
+                phoneField.style.display = (showStaffFields || isSupportAgent) ? '' : 'none';
+                if (phoneRequiredStar) phoneRequiredStar.style.display = (useSmsPassword || isSupportAgent) ? '' : 'none';
                 var phoneOptional = document.getElementById('phone-optional-label');
-                if (phoneOptional) phoneOptional.style.display = useSmsPassword ? 'none' : '';
-                if (phoneInput) phoneInput.required = useSmsPassword;
+                if (phoneOptional) phoneOptional.style.display = (useSmsPassword || isSupportAgent) ? 'none' : '';
+                if (phoneInput) phoneInput.required = useSmsPassword || isSupportAgent;
             }
             if (passwordSection) {
                 if (passwordFields) passwordFields.style.display = useSmsPassword ? 'none' : '';

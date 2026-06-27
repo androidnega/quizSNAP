@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Events\Support\SupportMessageSent;
 use App\Events\Support\SupportSessionUpdated;
+use App\Events\Support\SupportTyping;
 use App\Models\ClassGroupStudent;
 use App\Models\Student;
 use App\Models\SupportMessage;
@@ -14,6 +15,11 @@ use Illuminate\Support\Facades\DB;
 
 class LiveSupportService
 {
+    public function __construct(
+        private SupportAgentPresenceService $presence,
+        private SupportAgentNotifier $notifier,
+    ) {}
+
     /** @param  array<string, mixed>  $data */
     public function createSession(array $data): SupportSession
     {
@@ -43,11 +49,25 @@ class LiveSupportService
             'last_message_at' => now(),
         ]);
 
-        $this->addSystemMessage($session, 'Support request received. An agent will join shortly.');
+        if ($this->presence->anyAgentOnline()) {
+            $this->addSystemMessage($session, 'Support request received. An agent will join shortly.');
+        } else {
+            $this->addSystemMessage($session, 'Our support agents are currently away. Please leave your message and we will respond as soon as someone is available.');
+        }
 
         SupportSessionUpdated::dispatch($session->fresh(['assignedAdmin']));
+        $this->notifier->notifyNewSession($session);
 
         return $session;
+    }
+
+    public function broadcastTyping(SupportSession $session, string $senderType, string $senderLabel, bool $isTyping): void
+    {
+        if (! $session->isOpen()) {
+            return;
+        }
+
+        SupportTyping::dispatch($session, $senderType, $senderLabel, $isTyping);
     }
 
     public function findByUuid(string $uuid): ?SupportSession

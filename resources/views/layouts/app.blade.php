@@ -349,6 +349,7 @@
     <script>window.QuizSnapSupportConfig = @json(\App\Support\SupportContact::clientConfig($liveSupportContext));</script>
     <script>window.LIVE_SUPPORT_PUBLIC = true;</script>
     <script src="{{ asset('js/support-contact.js') }}?v={{ filemtime(public_path('js/support-contact.js')) }}"></script>
+    <script src="{{ asset('js/support-live-sounds.js') }}?v={{ filemtime(public_path('js/support-live-sounds.js')) }}"></script>
     <script src="{{ asset('js/support-live-chat.js') }}?v={{ filemtime(public_path('js/support-live-chat.js')) }}"></script>
 
     @if(($reverbClientConfig = \App\Services\ReverbClientConfig::clientConfig()) !== null)

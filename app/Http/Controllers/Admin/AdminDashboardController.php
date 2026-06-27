@@ -27,6 +27,9 @@ class AdminDashboardController extends Controller
         if ($user?->isSystemAdministrator()) {
             return $this->systemAdministratorDashboard();
         }
+        if ($user?->isSupportAgent()) {
+            return redirect()->route('dashboard.support.index');
+        }
         if ($user?->isSuperAdmin()) {
             return $this->adminDashboard();
         }

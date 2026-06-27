@@ -1,4 +1,4 @@
-{{-- Live support chat widget (student / public pages) --}}
+{{-- Live support chat widget (student / public pages) — uses system theme CSS vars --}}
 <style>
     .qs-live-support-panel {
         position: fixed;
@@ -10,14 +10,15 @@
         display: flex;
         flex-direction: column;
         border-radius: 1.125rem;
-        background: #fff;
-        border: 1px solid #e2e8f0;
+        background: var(--theme-surface, #fff);
+        border: 1px solid var(--theme-border, #e2e8f0);
         box-shadow: 0 24px 60px -24px rgba(15, 23, 42, 0.4);
         overflow: hidden;
         transform: translateY(110%) scale(0.96);
         opacity: 0;
         pointer-events: none;
         transition: transform 0.28s ease, opacity 0.28s ease;
+        color: var(--theme-text, #0f172a);
     }
     .qs-live-support-panel.is-open {
         transform: translateY(0) scale(1);
@@ -30,7 +31,7 @@
         justify-content: space-between;
         gap: 0.5rem;
         padding: 0.875rem 1rem;
-        background: linear-gradient(135deg, #4338ca 0%, #6366f1 55%, #818cf8 100%);
+        background: linear-gradient(135deg, var(--theme-brand-deep, var(--theme-primary-800, #1e40af)) 0%, var(--theme-brand, var(--theme-primary-600, #2563eb)) 55%, var(--theme-primary-400, #60a5fa) 100%);
         color: #fff;
     }
     .qs-live-support-header h3 {
@@ -54,19 +55,68 @@
         font-size: 1.125rem;
         line-height: 1;
     }
-    .qs-live-support-agent {
+    .qs-live-support-agent,
+    .qs-live-support-typing {
         padding: 0.375rem 0.875rem;
         font-size: 0.6875rem;
         font-weight: 600;
-        color: #4338ca;
-        background: #eef2ff;
-        border-bottom: 1px solid #e0e7ff;
+        color: var(--theme-brand-deep, var(--theme-primary-800, #1e40af));
+        background: var(--theme-brand-soft, var(--theme-primary-50, #eff6ff));
+        border-bottom: 1px solid var(--theme-primary-100, #dbeafe);
+    }
+    .qs-live-support-typing { font-style: italic; font-weight: 500; }
+    .qs-live-support-intake {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1rem;
+        background: var(--theme-bg, #f8fafc);
+        min-height: 14rem;
+    }
+    .qs-live-support-intake p {
+        margin: 0 0 0.75rem;
+        font-size: 0.8125rem;
+        color: var(--theme-muted, #64748b);
+        line-height: 1.45;
+    }
+    .qs-live-support-intake label {
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+        color: var(--theme-text, #0f172a);
+    }
+    .qs-live-support-intake input {
+        width: 100%;
+        border: 1px solid var(--theme-border, #cbd5e1);
+        border-radius: 0.5rem;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8125rem;
+        margin-bottom: 0.625rem;
+        background: var(--theme-surface, #fff);
+        color: var(--theme-text, #0f172a);
+    }
+    .qs-live-support-intake button {
+        width: 100%;
+        border: none;
+        background: var(--theme-brand, var(--theme-primary-600, #2563eb));
+        color: #fff;
+        border-radius: 9999px;
+        padding: 0.625rem 1rem;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        cursor: pointer;
+        margin-top: 0.25rem;
+    }
+    .qs-live-support-intake .qs-live-intake-error {
+        color: #b91c1c;
+        font-size: 0.75rem;
+        margin-bottom: 0.5rem;
     }
     .qs-live-support-messages {
         flex: 1;
         overflow-y: auto;
         padding: 0.875rem;
-        background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+        background: linear-gradient(180deg, var(--theme-bg, #f8fafc) 0%, var(--theme-surface, #f1f5f9) 100%);
         min-height: 14rem;
     }
     .qs-live-msg {
@@ -89,19 +139,19 @@
         box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
     }
     .qs-live-msg--student .qs-live-msg__bubble {
-        background: linear-gradient(135deg, #4f46e5, #6366f1);
+        background: linear-gradient(135deg, var(--theme-brand, var(--theme-primary-600, #2563eb)), var(--theme-primary-500, #3b82f6));
         color: #fff;
         border-bottom-right-radius: 0.3125rem;
     }
     .qs-live-msg--admin .qs-live-msg__bubble {
-        background: #fff;
-        color: #0f172a;
-        border: 1px solid #e2e8f0;
+        background: var(--theme-surface, #fff);
+        color: var(--theme-text, #0f172a);
+        border: 1px solid var(--theme-border, #e2e8f0);
         border-bottom-left-radius: 0.3125rem;
     }
     .qs-live-msg--system .qs-live-msg__bubble {
-        background: #eef2ff;
-        color: #3730a3;
+        background: var(--theme-brand-soft, var(--theme-primary-50, #eff6ff));
+        color: var(--theme-brand-deep, var(--theme-primary-800, #1e40af));
         font-size: 0.75rem;
         text-align: center;
         box-shadow: none;
@@ -110,7 +160,7 @@
         display: block;
         margin-top: 0.25rem;
         font-size: 0.625rem;
-        color: #94a3b8;
+        color: var(--theme-muted, #94a3b8);
     }
     .qs-live-msg--student .qs-live-msg__time { text-align: right; }
     .qs-live-msg__image {
@@ -125,21 +175,23 @@
         align-items: center;
         gap: 0.375rem;
         padding: 0.625rem;
-        border-top: 1px solid #e2e8f0;
-        background: #fff;
+        border-top: 1px solid var(--theme-border, #e2e8f0);
+        background: var(--theme-surface, #fff);
     }
     .qs-live-support-compose input[type="text"] {
         flex: 1;
-        border: 1px solid #cbd5e1;
+        border: 1px solid var(--theme-border, #cbd5e1);
         border-radius: 9999px;
         padding: 0.5625rem 0.875rem;
         font-size: 0.8125rem;
         min-width: 0;
+        background: var(--theme-surface, #fff);
+        color: var(--theme-text, #0f172a);
     }
     .qs-live-support-icon-btn {
         border: none;
-        background: #f1f5f9;
-        color: #475569;
+        background: var(--theme-bg, #f1f5f9);
+        color: var(--theme-muted, #475569);
         border-radius: 9999px;
         width: 2.25rem;
         height: 2.25rem;
@@ -151,7 +203,7 @@
     .qs-live-support-icon-btn svg { width: 1rem; height: 1rem; }
     .qs-live-support-compose button[type="button"]#qs-live-support-send {
         border: none;
-        background: #4f46e5;
+        background: var(--theme-brand, var(--theme-primary-600, #2563eb));
         color: #fff;
         border-radius: 9999px;
         padding: 0.5625rem 0.9375rem;
@@ -163,9 +215,9 @@
     .qs-live-support-status {
         padding: 0.375rem 0.875rem;
         font-size: 0.6875rem;
-        color: #64748b;
-        background: #f8fafc;
-        border-top: 1px solid #e2e8f0;
+        color: var(--theme-muted, #64748b);
+        background: var(--theme-bg, #f8fafc);
+        border-top: 1px solid var(--theme-border, #e2e8f0);
     }
     .qs-live-support-share {
         display: none;
@@ -196,12 +248,12 @@
         border: none;
         border-radius: 9999px;
         padding: 0.75rem 1.125rem 0.75rem 0.875rem;
-        background: linear-gradient(145deg, #6366f1 0%, #4f46e5 100%);
+        background: linear-gradient(145deg, var(--theme-primary-500, #3b82f6) 0%, var(--theme-brand, var(--theme-primary-600, #2563eb)) 100%);
         color: #fff;
         font-size: 0.8125rem;
         font-weight: 700;
         cursor: pointer;
-        box-shadow: 0 14px 32px -12px rgba(79, 70, 229, 0.65);
+        box-shadow: 0 14px 32px -12px color-mix(in srgb, var(--theme-brand, #2563eb) 65%, transparent);
     }
     .qs-support-live-toggle svg { width: 1.25rem; height: 1.25rem; }
     .qs-support-fab-wrap--above-nav .qs-support-live-toggle {
@@ -217,11 +269,25 @@
         <button type="button" class="qs-live-support-close" id="qs-live-support-close" aria-label="Close chat">×</button>
     </div>
     <div id="qs-live-support-agent" class="qs-live-support-agent" hidden></div>
+    <div id="qs-live-support-typing" class="qs-live-support-typing" hidden></div>
+    <div id="qs-live-support-intake" class="qs-live-support-intake" hidden>
+        <p id="qs-live-support-intake-lead">Before we connect you, please share your contact details.</p>
+        <div id="qs-live-intake-error" class="qs-live-intake-error" hidden></div>
+        <label for="qs-live-intake-name">Full name</label>
+        <input type="text" id="qs-live-intake-name" maxlength="255" autocomplete="name" placeholder="Your name">
+        <label for="qs-live-intake-phone">Phone number</label>
+        <input type="tel" id="qs-live-intake-phone" maxlength="32" autocomplete="tel" placeholder="e.g. 0241234567">
+        <label for="qs-live-intake-email">Email (optional)</label>
+        <input type="email" id="qs-live-intake-email" maxlength="255" autocomplete="email" placeholder="you@example.com">
+        <label for="qs-live-intake-index">Index number (optional)</label>
+        <input type="text" id="qs-live-intake-index" maxlength="64" autocomplete="off" placeholder="BC/ITN/25/123">
+        <button type="button" id="qs-live-intake-start">Start chat</button>
+    </div>
     <div id="qs-live-support-messages" class="qs-live-support-messages" aria-live="polite"></div>
     <div id="qs-live-support-share" class="qs-live-support-share">
         <button type="button" id="qs-live-support-share-btn">Share my screen with support</button>
     </div>
-    <div class="qs-live-support-compose">
+    <div class="qs-live-support-compose" id="qs-live-support-compose">
         <input type="file" id="qs-live-support-image-input" accept="image/*" hidden>
         <button type="button" class="qs-live-support-icon-btn" id="qs-live-support-image-btn" aria-label="Send image">
             <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>

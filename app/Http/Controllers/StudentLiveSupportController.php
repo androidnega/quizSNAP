@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\SupportMessage;
 use App\Models\SupportSession;
 use App\Models\Student;
+use App\Models\User;
 use App\Services\LiveSupportService;
 use App\Services\SupportAgentPresenceService;
 use App\Services\SupportChatMediaService;
@@ -284,9 +285,14 @@ class StudentLiveSupportController extends Controller
 
     private function canAccessMedia(Request $request, SupportSession $session): bool
     {
-        $user = $request->user();
-        if ($user && LiveSupportAccess::canRespond($user) && LiveSupportAccess::sessionInScope($user, $session)) {
-            return true;
+        $staff = $this->resolveStaffUser($request);
+        if ($staff) {
+            if ((int) $session->assigned_admin_id === (int) $staff->id) {
+                return true;
+            }
+            if (LiveSupportAccess::canRespond($staff) && LiveSupportAccess::sessionInScope($staff, $session)) {
+                return true;
+            }
         }
 
         $token = $this->clientToken($request) ?: $request->query('token');
@@ -294,9 +300,24 @@ class StudentLiveSupportController extends Controller
         return $this->support->authorizeClient($session, is_string($token) ? $token : null);
     }
 
+    private function resolveStaffUser(Request $request): ?User
+    {
+        $user = $request->user();
+        if ($user instanceof User) {
+            return $user;
+        }
+
+        if (session('admin_authenticated') && session('admin_user_id')) {
+            return User::find(session('admin_user_id'));
+        }
+
+        return null;
+    }
+
     private function clientToken(Request $request): ?string
     {
         return $request->header('X-Support-Session-Token')
-            ?: $request->input('client_token');
+            ?: $request->input('client_token')
+            ?: $request->query('token');
     }
 }

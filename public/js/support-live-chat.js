@@ -1034,5 +1034,6 @@
             }
         },
         close: function () { endSession(false); },
+        getToken: function () { return state.token || null; },
     };
 })();

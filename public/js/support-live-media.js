@@ -34,6 +34,20 @@
         } else if (url.charAt(0) === '/') {
             resolved = window.location.origin + url;
         }
+        if (!authToken) {
+            if (window.QuizSnapLiveSupport && typeof window.QuizSnapLiveSupport.getToken === 'function') {
+                authToken = window.QuizSnapLiveSupport.getToken();
+            }
+            if (!authToken) {
+                try {
+                    var raw = localStorage.getItem('quizsnap_live_support');
+                    if (raw) {
+                        var stored = JSON.parse(raw);
+                        authToken = stored && stored.token ? stored.token : null;
+                    }
+                } catch (e) {}
+            }
+        }
         if (authToken && resolved.indexOf('/support/sessions/') !== -1 && resolved.indexOf('token=') === -1) {
             resolved += (resolved.indexOf('?') >= 0 ? '&' : '?') + 'token=' + encodeURIComponent(authToken);
         }

@@ -15,6 +15,8 @@ class SupportMessage extends Model
 
     public const TYPE_IMAGE = 'image';
 
+    public const TYPE_AUDIO = 'audio';
+
     protected $fillable = [
         'support_session_id',
         'sender_type',

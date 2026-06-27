@@ -6,15 +6,16 @@ use App\Models\SupportMessage;
 use App\Models\SupportSession;
 use App\Services\LiveSupportService;
 use App\Services\SupportAgentPresenceService;
+use App\Services\SupportChatMediaService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
 class StudentLiveSupportController extends Controller
 {
     public function __construct(
         private LiveSupportService $support,
         private SupportAgentPresenceService $presence,
+        private SupportChatMediaService $media,
     ) {}
 
     public function availability(): JsonResponse
@@ -113,7 +114,7 @@ class StudentLiveSupportController extends Controller
 
         $data = $request->validate([
             'body' => 'nullable|string|max:2000',
-            'message_type' => 'nullable|string|in:text,webrtc,image',
+            'message_type' => 'nullable|string|in:text,webrtc,image,audio',
             'meta' => 'nullable|array',
         ]);
 
@@ -152,8 +153,7 @@ class StudentLiveSupportController extends Controller
             'image' => 'required|image|max:5120',
         ]);
 
-        $path = $request->file('image')->store('support-images', 'public');
-        $url = Storage::disk('public')->url($path);
+        $stored = $this->media->storeImage($session, $request->file('image'));
 
         $message = $this->support->sendMessage(
             $session,
@@ -161,7 +161,39 @@ class StudentLiveSupportController extends Controller
             null,
             null,
             SupportMessage::TYPE_IMAGE,
-            ['url' => $url, 'path' => $path],
+            $stored,
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => $message->toPayload(),
+        ]);
+    }
+
+    public function uploadAudio(Request $request, string $uuid): JsonResponse
+    {
+        $session = $this->support->findByUuid($uuid);
+        if (! $session || ! $this->support->authorizeClient($session, $this->clientToken($request))) {
+            return response()->json(['success' => false, 'message' => 'Session not found.'], 404);
+        }
+
+        if (! $session->isOpen()) {
+            return response()->json(['success' => false, 'message' => 'This chat is closed.'], 422);
+        }
+
+        $request->validate([
+            'audio' => 'required|file|mimetypes:audio/webm,audio/ogg,audio/mpeg,audio/mp4,audio/wav,audio/x-wav,video/webm|max:8192',
+        ]);
+
+        $stored = $this->media->storeAudio($session, $request->file('audio'));
+
+        $message = $this->support->sendMessage(
+            $session,
+            'student',
+            null,
+            null,
+            SupportMessage::TYPE_AUDIO,
+            $stored,
         );
 
         return response()->json([

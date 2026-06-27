@@ -75,6 +75,8 @@
         flex-shrink: 0;
     }
     .qs-live-support-header__avatar svg { width: 1.125rem; height: 1.125rem; }
+    .qs-support-avatar--emoji { font-size: 1.125rem; line-height: 1; }
+    .qs-support-avatar--vector { display: grid; place-items: center; width: 100%; height: 100%; }
     .qs-live-support-header h3 {
         margin: 0;
         font-size: 0.875rem;
@@ -100,7 +102,19 @@
         transition: background 0.15s ease;
     }
     .qs-live-support-close:hover { background: rgba(255,255,255,0.25); }
+    .qs-live-support-agent__avatar {
+        width: 1.375rem;
+        height: 1.375rem;
+        border-radius: 9999px;
+        background: rgba(255,255,255,0.85);
+        display: grid;
+        place-items: center;
+        flex-shrink: 0;
+    }
     .qs-live-support-agent {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
         padding: 0.4375rem 1rem;
         font-size: 0.6875rem;
         font-weight: 600;
@@ -108,6 +122,16 @@
         background: var(--theme-brand-soft, var(--theme-primary-50, #eff6ff));
         border-bottom: 1px solid var(--theme-primary-100, #dbeafe);
         flex-shrink: 0;
+    }
+    .qs-live-msg__audio {
+        display: block;
+        width: min(100%, 14rem);
+        height: 2.125rem;
+    }
+    .qs-live-support-icon-btn.is-recording {
+        background: #fee2e2 !important;
+        color: #b91c1c !important;
+        box-shadow: 0 0 0 2px #fecaca;
     }
     .qs-live-support-typing {
         display: flex;
@@ -367,7 +391,7 @@
 <div id="qs-live-support-panel" class="qs-live-support-panel" aria-hidden="true" role="dialog" aria-labelledby="qs-live-support-title">
     <div class="qs-live-support-header">
         <div class="qs-live-support-header__brand">
-            <span class="qs-live-support-header__avatar" aria-hidden="true">
+            <span class="qs-live-support-header__avatar" id="qs-live-support-header-avatar" aria-hidden="true">
                 <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
             </span>
             <div>
@@ -399,6 +423,9 @@
         <input type="file" id="qs-live-support-image-input" accept="image/*" hidden>
         <button type="button" class="qs-live-support-icon-btn" id="qs-live-support-image-btn" aria-label="Send image">
             <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        </button>
+        <button type="button" class="qs-live-support-icon-btn" id="qs-live-support-audio-btn" aria-label="Record voice message">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 14a3 3 0 003-3V7a3 3 0 10-6 0v4a3 3 0 003 3zm6 0a6 6 0 01-11 3M12 19v2"/></svg>
         </button>
         <input type="text" id="qs-live-support-input" placeholder="Write a message…" maxlength="2000" autocomplete="off">
         <button type="button" id="qs-live-support-send">Send</button>

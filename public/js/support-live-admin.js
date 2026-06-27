@@ -19,6 +19,8 @@
     var displayNameInput = document.getElementById(prefix + 'live-support-display-name-input');
     var displayNameSaveBtn = document.getElementById(prefix + 'live-support-display-name-save');
     var displayNameHint = document.getElementById(prefix + 'live-support-display-name-hint');
+    var avatarGrid = document.getElementById(prefix + 'live-support-avatar-grid');
+    var audioBtn = document.getElementById(prefix + 'live-support-audio-btn');
     var remoteVideo = document.getElementById(prefix + 'live-support-remote-video');
     var headerEl = document.getElementById(prefix + 'live-support-chat-header');
     var imageInput = document.getElementById(prefix + 'live-support-image-input');
@@ -36,9 +38,15 @@
     var currentStaffId = cfg.staffId || null;
     var isTyping = false;
     var typingStopTimer = null;
+    var audioRecorder = null;
+    var selectedAvatar = cfg.supportAvatar || null;
 
     function sounds() {
         return window.QuizSnapSupportSounds || null;
+    }
+
+    function media() {
+        return window.QuizSnapSupportMedia || null;
     }
 
     function isStaffPanelOpen() {
@@ -241,14 +249,16 @@
         div.className = 'live-support-msg live-support-msg--' + type;
         div.setAttribute('data-admin-msg-id', String(msg.id));
 
-        var bubble = '<div class="live-support-msg__bubble">';
-        if (msg.message_type === 'image' && msg.meta && msg.meta.url) {
-            bubble += '<a href="' + escapeHtml(msg.meta.url) + '" target="_blank" rel="noopener"><img src="' + escapeHtml(msg.meta.url) + '" alt="Image" class="live-support-msg__image"></a>';
+        var bubbleEl = document.createElement('div');
+        bubbleEl.className = 'live-support-msg__bubble';
+        if (media() && (msg.message_type === 'image' || msg.message_type === 'audio')) {
+            if (!media().appendMessageMedia(bubbleEl, msg) && msg.body) {
+                bubbleEl.textContent = msg.body;
+            }
         } else {
-            bubble += escapeHtml(msg.body || '');
+            bubbleEl.textContent = msg.body || '';
         }
-        bubble += '</div>';
-        div.innerHTML = bubble;
+        div.appendChild(bubbleEl);
         messagesEl.appendChild(div);
         if (msg.id > lastMessageId) lastMessageId = msg.id;
         messagesEl.scrollTop = messagesEl.scrollHeight;
@@ -505,6 +515,97 @@
         });
     }
 
+    function uploadAudio(blob) {
+        if (!activeUuid || !blob || (inputEl && inputEl.disabled)) return;
+        var fd = new FormData();
+        fd.append('audio', blob, 'voice-message.webm');
+        fetch(url('/sessions/' + encodeURIComponent(activeUuid) + '/upload-audio'), {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrf(),
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: fd,
+        }).then(function (r) { return r.json(); }).then(function (data) {
+            if (data.success && data.message) renderMessage(data.message, false);
+            else if (data.message) alert(data.message);
+        });
+    }
+
+    function toggleAudioRecording() {
+        if (!media() || !activeUuid || (inputEl && inputEl.disabled)) return;
+        if (!audioRecorder) audioRecorder = media().createRecorder();
+        if (audioRecorder.isRecording()) {
+            if (audioBtn) audioBtn.classList.remove('is-recording');
+            audioRecorder.stop().then(function (blob) {
+                if (blob && blob.size > 0) uploadAudio(blob);
+            });
+            return;
+        }
+        audioRecorder.start().then(function () {
+            if (audioBtn) audioBtn.classList.add('is-recording');
+        }).catch(function () {
+            alert('Microphone access is required to send a voice message.');
+        });
+    }
+
+    function saveAvatar(value) {
+        return fetch(url('/avatar'), {
+            method: 'PUT',
+            headers: jsonHeaders(),
+            body: JSON.stringify({ support_avatar: value }),
+        }).then(function (r) { return r.json(); });
+    }
+
+    function markSelectedAvatar(value) {
+        if (!avatarGrid) return;
+        avatarGrid.querySelectorAll('.live-support-avatar-option').forEach(function (btn) {
+            btn.classList.toggle('is-selected', btn.dataset.avatarValue === (value || ''));
+        });
+    }
+
+    function buildAvatarPicker() {
+        if (!avatarGrid || !cfg.avatarCatalog) return;
+        avatarGrid.innerHTML = '';
+        (cfg.avatarCatalog.emojis || []).forEach(function (emoji) {
+            var value = 'emoji:' + emoji;
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'live-support-avatar-option';
+            btn.dataset.avatarValue = value;
+            btn.textContent = emoji;
+            btn.title = 'Emoji icon';
+            btn.addEventListener('click', function () {
+                saveAvatar(value).then(function (res) {
+                    if (res.success) {
+                        selectedAvatar = res.support_avatar;
+                        markSelectedAvatar(selectedAvatar);
+                    }
+                });
+            });
+            avatarGrid.appendChild(btn);
+        });
+        (cfg.avatarCatalog.vectors || []).forEach(function (item) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'live-support-avatar-option';
+            btn.dataset.avatarValue = item.id;
+            btn.title = item.label || 'Vector icon';
+            btn.innerHTML = '<svg fill="none" viewBox="' + escapeHtml(item.viewBox || '0 0 24 24') + '" stroke="currentColor" stroke-width="1.75"><path d="' + escapeHtml(item.path || '') + '"></path></svg>';
+            btn.addEventListener('click', function () {
+                saveAvatar(item.id).then(function (res) {
+                    if (res.success) {
+                        selectedAvatar = res.support_avatar;
+                        markSelectedAvatar(selectedAvatar);
+                    }
+                });
+            });
+            avatarGrid.appendChild(btn);
+        });
+        markSelectedAvatar(selectedAvatar);
+    }
+
     function sendSignal(meta) {
         if (!activeUuid) return;
         fetch(url('/sessions/' + encodeURIComponent(activeUuid) + '/messages'), {
@@ -548,6 +649,8 @@
             }
         });
     }
+    if (audioBtn) audioBtn.addEventListener('click', toggleAudioRecording);
+    if (avatarGrid) buildAvatarPicker();
     if (screenBtn) screenBtn.addEventListener('click', function () {
         if (!activeUuid || screenBtn.disabled) return;
         fetch(url('/sessions/' + encodeURIComponent(activeUuid) + '/screen-share'), { method: 'POST', headers: jsonHeaders() });

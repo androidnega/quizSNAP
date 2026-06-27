@@ -23,7 +23,7 @@ class User extends Authenticatable
     public const ROLE_LEGACY_ADMIN = 'admin';
 
     protected $fillable = [
-        'username', 'email', 'phone', 'index_number', 'name', 'support_display_name', 'course_id', 'role', 'password',
+        'username', 'email', 'phone', 'index_number', 'name', 'support_display_name', 'support_avatar', 'course_id', 'role', 'password',
         'avatar', 'institution_id', 'sms_allocation', 'ai_quiz_tokens_allocation', 'ai_quiz_generation_allowed',
         'faculty_id', 'department_id', 'coordinator',
     ];
@@ -157,6 +157,12 @@ class User extends Authenticatable
         }
 
         return (string) ($this->username ?? 'Support');
+    }
+
+    /** @return array{type: string, emoji?: string, vector?: string, label?: string, viewBox?: string, path?: string}> */
+    public function supportAvatarPayload(): array
+    {
+        return \App\Support\SupportAgentAvatars::resolve($this->support_avatar);
     }
 
     public function isStaff(): bool

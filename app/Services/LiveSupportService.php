@@ -18,6 +18,7 @@ class LiveSupportService
     public function __construct(
         private SupportAgentPresenceService $presence,
         private SupportAgentNotifier $notifier,
+        private SupportChatMediaService $media,
     ) {}
 
     /** @param  array<string, mixed>  $data */
@@ -175,7 +176,7 @@ class LiveSupportService
             'screen_share_active' => false,
         ]);
 
-        $this->addSystemMessage($session, $reason);
+        $this->wipeSessionData($session);
 
         $fresh = $session->fresh(['assignedAdmin']);
         SupportSessionUpdated::dispatch($fresh);
@@ -185,8 +186,14 @@ class LiveSupportService
 
     public function deleteSession(SupportSession $session): void
     {
-        $session->messages()->delete();
+        $this->wipeSessionData($session);
         $session->delete();
+    }
+
+    private function wipeSessionData(SupportSession $session): void
+    {
+        $this->media->purgeSession($session);
+        $session->messages()->delete();
     }
 
     public function sendMessage(
@@ -235,7 +242,7 @@ class LiveSupportService
     public function openSessionsForStaff(User $staff)
     {
         $query = SupportSession::query()
-            ->with(['assignedAdmin:id,name,username'])
+            ->with(['assignedAdmin:id,name,username,support_display_name,support_avatar'])
             ->whereIn('status', [SupportSession::STATUS_WAITING, SupportSession::STATUS_ACTIVE]);
 
         $indices = LiveSupportAccess::scopedStudentIndices($staff);

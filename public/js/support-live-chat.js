@@ -19,6 +19,8 @@
     var imageInput = document.getElementById('qs-live-support-image-input');
     var imageBtn = document.getElementById('qs-live-support-image-btn');
     var agentBar = document.getElementById('qs-live-support-agent');
+    var headerAvatarEl = document.getElementById('qs-live-support-header-avatar');
+    var audioBtn = document.getElementById('qs-live-support-audio-btn');
     var typingEl = document.getElementById('qs-live-support-typing');
     var statusTextEl = document.getElementById('qs-live-support-status-text');
     var statusDotEl = document.getElementById('qs-live-support-status-dot');
@@ -43,6 +45,7 @@
         agentDongPlayed: false,
         hiddenSince: null,
         hiddenCloseTimer: null,
+        audioRecorder: null,
     };
 
     function csrf() {
@@ -77,6 +80,10 @@
         return window.QuizSnapSupportSounds || null;
     }
 
+    function media() {
+        return window.QuizSnapSupportMedia || null;
+    }
+
     function loadStored() {
         if (requiresGuestDetails()) return;
         try {
@@ -106,9 +113,33 @@
     }
 
     function setAgent(text) {
+        if (!agentBar) return;
+        if (!text) {
+            agentBar.textContent = '';
+            agentBar.hidden = true;
+            return;
+        }
+        agentBar.textContent = text;
+        agentBar.hidden = false;
+    }
+
+    function updateAgentPresentation(admin) {
+        if (!admin) {
+            setAgent('');
+            return;
+        }
+        var label = 'Agent: ' + agentChatName(admin);
         if (agentBar) {
-            agentBar.textContent = text || '';
-            agentBar.hidden = !text;
+            agentBar.hidden = false;
+            if (media() && admin.avatar) {
+                agentBar.innerHTML = media().renderAvatarHtml(admin.avatar, 'qs-live-support-agent__avatar') +
+                    '<span>' + label + '</span>';
+            } else {
+                agentBar.textContent = label;
+            }
+        }
+        if (headerAvatarEl && media() && admin.avatar) {
+            headerAvatarEl.innerHTML = media().renderAvatarHtml(admin.avatar, '');
         }
     }
 
@@ -167,18 +198,10 @@
         var bubble = document.createElement('div');
         bubble.className = 'qs-live-msg__bubble';
 
-        if (msg.message_type === 'image' && msg.meta && msg.meta.url) {
-            var img = document.createElement('img');
-            img.src = msg.meta.url;
-            img.alt = 'Shared image';
-            img.className = 'qs-live-msg__image';
-            img.loading = 'lazy';
-            var link = document.createElement('a');
-            link.href = msg.meta.url;
-            link.target = '_blank';
-            link.rel = 'noopener noreferrer';
-            link.appendChild(img);
-            bubble.appendChild(link);
+        if (msg.message_type === 'image' && msg.meta && msg.meta.url && media()) {
+            media().appendMessageMedia(bubble, msg);
+        } else if (msg.message_type === 'audio' && msg.meta && msg.meta.url && media()) {
+            media().appendMessageMedia(bubble, msg);
         } else {
             bubble.textContent = msg.body || '';
         }
@@ -219,7 +242,7 @@
         state.sessionStatus = session.status;
         if (session.status === 'active' && session.assigned_admin) {
             setStatus('Connected with support', 'online');
-            setAgent('Agent: ' + agentChatName(session.assigned_admin));
+            updateAgentPresentation(session.assigned_admin);
             if (prevStatus === 'waiting') playAgentDongOnce();
         } else if (session.status === 'waiting') {
             setStatus('Waiting for an agent…', 'waiting');
@@ -486,6 +509,39 @@
         sendTypingSignal(false);
     }
 
+    function uploadAudio(blob) {
+        if (!state.uuid || !blob) return;
+        var fd = new FormData();
+        fd.append('audio', blob, 'voice-message.webm');
+        fetch('/support/sessions/' + encodeURIComponent(state.uuid) + '/upload-audio', {
+            method: 'POST',
+            headers: headers(false),
+            body: fd,
+        })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data.success && data.message) renderMessage(data.message, false);
+            });
+    }
+
+    function toggleAudioRecording() {
+        if (!media() || !state.uuid) return;
+        if (!state.audioRecorder) state.audioRecorder = media().createRecorder();
+        var rec = state.audioRecorder;
+        if (rec.isRecording()) {
+            if (audioBtn) audioBtn.classList.remove('is-recording');
+            rec.stop().then(function (blob) {
+                if (blob && blob.size > 0) uploadAudio(blob);
+            });
+            return;
+        }
+        rec.start().then(function () {
+            if (audioBtn) audioBtn.classList.add('is-recording');
+        }).catch(function () {
+            alert('Microphone access is required to send a voice message.');
+        });
+    }
+
     function uploadImage(file) {
         if (!state.uuid || !file) return;
         var fd = new FormData();
@@ -607,6 +663,7 @@
             }
         });
     }
+    if (audioBtn) audioBtn.addEventListener('click', toggleAudioRecording);
 
     if (shareBtn) shareBtn.addEventListener('click', startScreenShare);
     if (closeBtn) closeBtn.addEventListener('click', function () { endSession(false); });

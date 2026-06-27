@@ -9,10 +9,11 @@ use App\Models\SupportSession;
 use App\Models\User;
 use App\Services\LiveSupportService;
 use App\Services\SupportAgentPresenceService;
+use App\Services\SupportChatMediaService;
 use App\Support\LiveSupportAccess;
+use App\Support\SupportAgentAvatars;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class LiveSupportController extends Controller
@@ -22,6 +23,7 @@ class LiveSupportController extends Controller
     public function __construct(
         private LiveSupportService $support,
         private SupportAgentPresenceService $presence,
+        private SupportChatMediaService $media,
     ) {}
 
     public function index(): View
@@ -33,6 +35,8 @@ class LiveSupportController extends Controller
             'canDeleteSessions' => LiveSupportAccess::canDeleteSession($staff),
             'supportDisplayName' => $staff->support_display_name,
             'resolvedSupportDisplayName' => $staff->supportDisplayName(),
+            'supportAvatar' => $staff->support_avatar,
+            'avatarCatalog' => SupportAgentAvatars::catalog(),
         ]);
     }
 
@@ -117,7 +121,7 @@ class LiveSupportController extends Controller
 
         $data = $request->validate([
             'body' => 'nullable|string|max:2000',
-            'message_type' => 'nullable|string|in:text,webrtc,system,image',
+            'message_type' => 'nullable|string|in:text,webrtc,system,image,audio',
             'meta' => 'nullable|array',
         ]);
 
@@ -165,8 +169,7 @@ class LiveSupportController extends Controller
             'image' => 'required|image|max:5120',
         ]);
 
-        $path = $request->file('image')->store('support-images', 'public');
-        $url = Storage::disk('public')->url($path);
+        $stored = $this->media->storeImage($session, $request->file('image'));
 
         $message = $this->support->sendMessage(
             $session,
@@ -174,7 +177,48 @@ class LiveSupportController extends Controller
             $staff->id,
             null,
             SupportMessage::TYPE_IMAGE,
-            ['url' => $url, 'path' => $path],
+            $stored,
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => $message->toPayload(),
+        ]);
+    }
+
+    public function uploadAudio(Request $request, string $uuid): JsonResponse
+    {
+        $staff = $this->ensureStaff();
+        $session = $this->findScopedSession($uuid, $staff);
+        if (! $session || ! $session->isOpen()) {
+            return response()->json(['success' => false, 'message' => 'Session not available.'], 404);
+        }
+
+        if ($session->assigned_admin_id && (int) $session->assigned_admin_id !== (int) $staff->id) {
+            return response()->json(['success' => false, 'message' => 'This chat is assigned to another agent.'], 403);
+        }
+
+        if (! $session->assigned_admin_id) {
+            $result = $this->support->claimSession($session, $staff);
+            if (! $result['claimed']) {
+                return response()->json(['success' => false, 'message' => $result['error'] ?? 'Could not claim chat.'], 409);
+            }
+            $session = $result['session'];
+        }
+
+        $request->validate([
+            'audio' => 'required|file|mimetypes:audio/webm,audio/ogg,audio/mpeg,audio/mp4,audio/wav,audio/x-wav,video/webm|max:8192',
+        ]);
+
+        $stored = $this->media->storeAudio($session, $request->file('audio'));
+
+        $message = $this->support->sendMessage(
+            $session,
+            'admin',
+            $staff->id,
+            null,
+            SupportMessage::TYPE_AUDIO,
+            $stored,
         );
 
         return response()->json([
@@ -293,6 +337,46 @@ class LiveSupportController extends Controller
             'success' => true,
             'support_display_name' => $staff->support_display_name,
             'resolved_name' => $staff->supportDisplayName(),
+        ]);
+    }
+
+    public function avatarCatalog(): JsonResponse
+    {
+        $this->ensureStaff();
+
+        return response()->json([
+            'success' => true,
+            'catalog' => SupportAgentAvatars::catalog(),
+        ]);
+    }
+
+    public function avatar(): JsonResponse
+    {
+        $staff = $this->ensureStaff();
+
+        return response()->json([
+            'success' => true,
+            'support_avatar' => $staff->support_avatar,
+            'avatar' => $staff->supportAvatarPayload(),
+        ]);
+    }
+
+    public function updateAvatar(Request $request): JsonResponse
+    {
+        $staff = $this->ensureStaff();
+
+        $data = $request->validate([
+            'support_avatar' => 'nullable|string|max:32',
+        ]);
+
+        $value = SupportAgentAvatars::normalize($data['support_avatar'] ?? null);
+        $staff->update(['support_avatar' => $value]);
+        $staff->refresh();
+
+        return response()->json([
+            'success' => true,
+            'support_avatar' => $staff->support_avatar,
+            'avatar' => $staff->supportAvatarPayload(),
         ]);
     }
 

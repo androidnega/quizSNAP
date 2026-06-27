@@ -202,6 +202,50 @@
         color: var(--theme-muted, #64748b);
         white-space: nowrap;
     }
+    .live-support-avatar-picker {
+        width: 100%;
+        margin-top: 0.25rem;
+    }
+    .live-support-avatar-picker__label {
+        display: block;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        color: var(--theme-muted, #64748b);
+        margin-bottom: 0.375rem;
+    }
+    .live-support-avatar-picker__grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.375rem;
+    }
+    .live-support-avatar-option {
+        width: 2.125rem;
+        height: 2.125rem;
+        border: 1px solid var(--theme-border, #cbd5e1);
+        border-radius: 0.625rem;
+        background: var(--theme-bg, #f8fafc);
+        cursor: pointer;
+        display: grid;
+        place-items: center;
+        font-size: 1rem;
+        padding: 0;
+    }
+    .live-support-avatar-option.is-selected {
+        border-color: var(--theme-brand, #4f46e5);
+        box-shadow: 0 0 0 2px color-mix(in srgb, var(--theme-brand, #4f46e5) 20%, transparent);
+        background: #fff;
+    }
+    .live-support-avatar-option svg { width: 1rem; height: 1rem; color: var(--theme-brand, #4f46e5); }
+    .live-support-msg__audio {
+        display: block;
+        width: min(100%, 14rem);
+        height: 2.125rem;
+    }
+    .live-support-icon-btn.is-recording {
+        background: #fee2e2 !important;
+        color: #b91c1c !important;
+        box-shadow: 0 0 0 2px #fecaca;
+    }
     .live-support-messages {
         flex: 1;
         overflow-y: auto;
@@ -331,6 +375,10 @@
             <button type="button" id="live-support-display-name-save">Save</button>
         </div>
         <span class="live-support-identity__hint" id="live-support-display-name-hint">Students see: {{ $resolvedSupportDisplayName ?? 'Support' }}</span>
+        <div class="live-support-avatar-picker" id="live-support-avatar-picker">
+            <span class="live-support-avatar-picker__label">Your chat icon (students see this)</span>
+            <div class="live-support-avatar-picker__grid" id="live-support-avatar-grid"></div>
+        </div>
     </div>
 
     <div class="live-support-layout">
@@ -374,6 +422,7 @@
             <div class="live-support-compose">
                 <input type="file" id="live-support-image-input" accept="image/*" hidden>
                 <button type="button" id="live-support-image-btn" class="live-support-icon-btn" aria-label="Send image">📷</button>
+                <button type="button" id="live-support-audio-btn" class="live-support-icon-btn" aria-label="Record voice message">🎤</button>
                 <input type="text" id="live-support-input" placeholder="Type your reply…" maxlength="2000" autocomplete="off">
                 <button type="button" id="live-support-send">Send</button>
             </div>
@@ -384,8 +433,9 @@
 
 @push('scripts-after-reverb')
 <script>window.SUPPORT_ACCESS = true;</script>
-<script>window.QuizSnapLiveSupportAdmin = { baseUrl: @json(url('/dashboard/live-support')), staffId: @json(auth()->id()), canDeleteSessions: @json($canDeleteSessions ?? false), supportDisplayName: @json($supportDisplayName ?? ''), resolvedSupportDisplayName: @json($resolvedSupportDisplayName ?? '') };</script>
+<script>window.QuizSnapLiveSupportAdmin = { baseUrl: @json(url('/dashboard/live-support')), staffId: @json(auth()->id()), canDeleteSessions: @json($canDeleteSessions ?? false), supportDisplayName: @json($supportDisplayName ?? ''), resolvedSupportDisplayName: @json($resolvedSupportDisplayName ?? ''), supportAvatar: @json($supportAvatar ?? ''), avatarCatalog: @json($avatarCatalog ?? null) };</script>
 <script src="{{ asset('js/support-live-sounds.js') }}?v={{ filemtime(public_path('js/support-live-sounds.js')) }}"></script>
+<script src="{{ asset('js/support-live-media.js') }}?v={{ filemtime(public_path('js/support-live-media.js')) }}"></script>
 <script src="{{ asset('js/support-live-admin.js') }}?v={{ filemtime(public_path('js/support-live-admin.js')) }}"></script>
 <script>
 (function() {

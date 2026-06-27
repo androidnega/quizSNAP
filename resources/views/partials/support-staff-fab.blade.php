@@ -1,6 +1,7 @@
 @php
     $staffSupportFabId = 'staff-fab-';
 @endphp
+@include('partials.support-live-mobile-styles')
 <style>
     .qs-typing-dots {
         display: inline-flex;
@@ -121,17 +122,58 @@
     }
     .staff-support-fab-compose {
         display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
         gap: 0.375rem;
         padding: 0.5rem;
         border-top: 1px solid #e2e8f0;
+        background: #fff;
     }
-    .staff-support-fab-compose input {
+    .staff-support-fab-compose textarea {
         flex: 1;
         border: 1px solid #cbd5e1;
-        border-radius: 9999px;
-        padding: 0.4375rem 0.75rem;
-        font-size: 0.75rem;
+        border-radius: 1.125rem;
+        padding: 0.5625rem 0.875rem;
+        font-size: 0.8125rem;
         min-width: 0;
+        max-height: 6rem;
+        resize: none;
+        line-height: 1.45;
+        background: #f8fafc;
+        font-family: inherit;
+    }
+    .staff-support-fab-compose textarea:focus {
+        outline: none;
+        border-color: #4f46e5;
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.14);
+        background: #fff;
+    }
+    .staff-support-fab-compose .live-support-icon-btn {
+        flex-shrink: 0;
+        width: 2.25rem;
+        height: 2.25rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 9999px;
+        background: #fff;
+        font-size: 1rem;
+        line-height: 1;
+        cursor: pointer;
+        display: grid;
+        place-items: center;
+    }
+    .staff-support-fab-compose .live-support-icon-btn.is-recording {
+        background: #fef2f2;
+        border-color: #fca5a5;
+        animation: qs-fab-rec-pulse 1s ease-in-out infinite;
+    }
+    @keyframes qs-fab-rec-pulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.35); }
+        50% { box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.12); }
+    }
+    #staff-fab-live-support-emoji-bar {
+        padding: 0.375rem 0.5rem 0;
+        border-top: 1px solid #f1f5f9;
+        background: #fff;
     }
     #staff-fab-live-support-queue .live-support-queue-item {
         display: block;
@@ -195,8 +237,12 @@
         </div>
         <div id="staff-fab-live-support-taken-notice" class="live-support-taken-notice" hidden></div>
         <div id="staff-fab-live-support-messages" aria-live="polite"></div>
-        <div class="staff-support-fab-compose">
-            <input type="text" id="staff-fab-live-support-input" placeholder="Reply…" maxlength="2000" autocomplete="off">
+        <div class="live-support-emoji-bar" id="staff-fab-live-support-emoji-bar"></div>
+        <div class="staff-support-fab-compose live-support-compose">
+            <input type="file" id="staff-fab-live-support-image-input" accept="image/*" hidden>
+            <button type="button" id="staff-fab-live-support-image-btn" class="live-support-icon-btn" aria-label="Send image">📷</button>
+            <button type="button" id="staff-fab-live-support-audio-btn" class="live-support-icon-btn" aria-label="Record voice message">🎤</button>
+            <textarea id="staff-fab-live-support-input" rows="1" placeholder="Reply…" maxlength="2000" autocomplete="off"></textarea>
             <button type="button" id="staff-fab-live-support-send">Send</button>
         </div>
     </div>
@@ -216,12 +262,14 @@
         wrap.classList.toggle('is-open', open);
         toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
         if (panel) panel.setAttribute('aria-hidden', open ? 'false' : 'true');
+        document.body.classList.toggle('qs-live-chat-open', open && window.matchMedia('(max-width: 640px)').matches);
     });
     document.addEventListener('click', function(e) {
         if (wrap.classList.contains('is-open') && !wrap.contains(e.target)) {
             wrap.classList.remove('is-open');
             toggle.setAttribute('aria-expanded', 'false');
             if (panel) panel.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('qs-live-chat-open');
         }
     });
 })();

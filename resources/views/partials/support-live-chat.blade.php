@@ -1,4 +1,5 @@
 {{-- Live support chat widget — sleek, stable, theme-aware --}}
+@include('partials.support-live-mobile-styles')
 <style>
     .qs-typing-dots {
         display: inline-flex;
@@ -419,6 +420,7 @@
     <div id="qs-live-support-share" class="qs-live-support-share">
         <button type="button" id="qs-live-support-share-btn">Share my screen with support</button>
     </div>
+    <div class="qs-live-emoji-bar" id="qs-live-support-emoji-bar"></div>
     <div class="qs-live-support-compose" id="qs-live-support-compose">
         <input type="file" id="qs-live-support-image-input" accept="image/*" hidden>
         <button type="button" class="qs-live-support-icon-btn" id="qs-live-support-image-btn" aria-label="Send image">
@@ -427,7 +429,7 @@
         <button type="button" class="qs-live-support-icon-btn" id="qs-live-support-audio-btn" aria-label="Record voice message">
             <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 14a3 3 0 003-3V7a3 3 0 10-6 0v4a3 3 0 003 3zm6 0a6 6 0 01-11 3M12 19v2"/></svg>
         </button>
-        <input type="text" id="qs-live-support-input" placeholder="Write a message…" maxlength="2000" autocomplete="off">
+        <textarea id="qs-live-support-input" rows="1" placeholder="Write a message…" maxlength="2000" autocomplete="off"></textarea>
         <button type="button" id="qs-live-support-send">Send</button>
     </div>
     <div id="qs-live-support-status" class="qs-live-support-status">

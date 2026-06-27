@@ -4,6 +4,7 @@
 @section('dashboard_heading', 'Live Support')
 
 @push('styles')
+@include('partials.support-live-mobile-styles')
 <style>
     .qs-typing-dots {
         display: inline-flex;
@@ -381,7 +382,7 @@
         </div>
     </div>
 
-    <div class="live-support-layout">
+    <div class="live-support-layout live-support-layout--mobile-chat">
         <div class="live-support-panel">
             <div class="live-support-panel__head">Open chats</div>
             <div id="live-support-queue" class="live-support-queue">
@@ -397,7 +398,7 @@
             </div>
         </div>
 
-        <div class="live-support-panel">
+        <div class="live-support-panel live-support-panel--chat">
             <div class="live-support-panel__head" id="live-support-chat-header">Select a chat</div>
             <div id="live-support-typing" class="live-support-typing" hidden>
                 <span class="qs-typing-dots" aria-hidden="true"><span></span><span></span><span></span></span>
@@ -419,11 +420,12 @@
             </div>
             <video id="live-support-remote-video" class="hidden" autoplay playsinline muted></video>
             <div id="live-support-messages" class="live-support-messages" aria-live="polite"></div>
+            <div class="live-support-emoji-bar" id="live-support-emoji-bar"></div>
             <div class="live-support-compose">
                 <input type="file" id="live-support-image-input" accept="image/*" hidden>
                 <button type="button" id="live-support-image-btn" class="live-support-icon-btn" aria-label="Send image">📷</button>
                 <button type="button" id="live-support-audio-btn" class="live-support-icon-btn" aria-label="Record voice message">🎤</button>
-                <input type="text" id="live-support-input" placeholder="Type your reply…" maxlength="2000" autocomplete="off">
+                <textarea id="live-support-input" rows="1" placeholder="Type your reply…" maxlength="2000" autocomplete="off"></textarea>
                 <button type="button" id="live-support-send">Send</button>
             </div>
         </div>
@@ -436,6 +438,7 @@
 <script>window.QuizSnapLiveSupportAdmin = { baseUrl: @json(url('/dashboard/live-support')), staffId: @json(auth()->id()), canDeleteSessions: @json($canDeleteSessions ?? false), supportDisplayName: @json($supportDisplayName ?? ''), resolvedSupportDisplayName: @json($resolvedSupportDisplayName ?? ''), supportAvatar: @json($supportAvatar ?? ''), avatarCatalog: @json($avatarCatalog ?? null) };</script>
 <script src="{{ asset('js/support-live-sounds.js') }}?v={{ filemtime(public_path('js/support-live-sounds.js')) }}"></script>
 <script src="{{ asset('js/support-live-media.js') }}?v={{ filemtime(public_path('js/support-live-media.js')) }}"></script>
+<script src="{{ asset('js/support-live-compose.js') }}?v={{ filemtime(public_path('js/support-live-compose.js')) }}"></script>
 <script src="{{ asset('js/support-live-admin.js') }}?v={{ filemtime(public_path('js/support-live-admin.js')) }}"></script>
 <script>
 (function() {

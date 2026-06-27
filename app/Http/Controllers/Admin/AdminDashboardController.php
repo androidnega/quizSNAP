@@ -8,6 +8,7 @@ use App\Models\ClassGroup;
 use App\Models\Quiz;
 use App\Models\QuizSession;
 use App\Models\Setting;
+use App\Services\AdminDashboardChartsService;
 use App\Services\InfrastructureStatusService;
 use App\Services\LiveQuizSessionService;
 use App\Services\PageCacheService;
@@ -106,6 +107,24 @@ class AdminDashboardController extends Controller
             ])
             ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
             ->header('Pragma', 'no-cache');
+    }
+
+    public function charts(): JsonResponse
+    {
+        $user = $this->adminUser();
+        if (! $user?->isSuperAdmin()) {
+            return response()->json(['success' => false], 403);
+        }
+
+        $period = request()->query('period', '30d');
+        if (! in_array($period, ['7d', '30d', '90d'], true)) {
+            $period = '30d';
+        }
+
+        return response()->json([
+            'success' => true,
+            'charts' => app(AdminDashboardChartsService::class)->dashboardCharts($period),
+        ]);
     }
 
     /** Examiner dashboard: my class groups, my quizzes, recent sessions. */

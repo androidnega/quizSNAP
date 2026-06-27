@@ -159,6 +159,14 @@
         if (!panel) return;
         panel.classList.toggle('is-open', open);
         panel.setAttribute('aria-hidden', open ? 'false' : 'true');
+        document.body.classList.toggle('qs-live-chat-open', open);
+        if (open) {
+            document.body.dataset.qsChatScroll = document.body.style.overflow || '';
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = document.body.dataset.qsChatScroll || '';
+            delete document.body.dataset.qsChatScroll;
+        }
     }
 
     function showIntake(show) {
@@ -645,12 +653,19 @@
             var text = inputEl.value.trim();
             if (!text) return;
             inputEl.value = '';
+            if (window.QuizSnapSupportCompose) QuizSnapSupportCompose.autoGrow(inputEl);
             sendText(text);
         });
-        inputEl.addEventListener('keydown', function (e) {
-            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendBtn.click(); }
-            else onInputTyping();
-        });
+        if (window.QuizSnapSupportCompose) {
+            QuizSnapSupportCompose.bindTextarea(inputEl, sendBtn);
+            QuizSnapSupportCompose.mountEmojiBar(document.getElementById('qs-live-support-emoji-bar'), inputEl);
+        } else {
+            inputEl.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendBtn.click(); }
+                else onInputTyping();
+            });
+            inputEl.addEventListener('input', onInputTyping);
+        }
         inputEl.addEventListener('input', onInputTyping);
     }
 

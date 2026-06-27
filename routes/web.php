@@ -199,6 +199,7 @@ Route::middleware('admin.auth')->group(function () {
     Route::post('/logout', [AdminAuthController::class, 'logout'])->name('logout');
     Route::get('/logout', [AdminAuthController::class, 'logout'])->name('logout.get');
     Route::get('/dashboard/live-stats', [AdminDashboardController::class, 'liveStats'])->name('dashboard.live-stats');
+    Route::get('/dashboard/charts', [AdminDashboardController::class, 'charts'])->name('dashboard.charts');
     // GET /dashboard is handled by DashboardGatewayController (unified)
 
         Route::prefix('dashboard')->name('dashboard.')->middleware('block.superadmin.coordinator')->group(function () {

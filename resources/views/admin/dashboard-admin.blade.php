@@ -93,6 +93,25 @@
 
     <div class="grid grid-cols-2 gap-3 md:grid-cols-4 min-w-0">
         <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm min-w-0">
+            <p class="text-xs font-medium text-gray-500 truncate">Quizzes</p>
+            <p class="mt-0.5 text-xl sm:text-2xl font-bold tabular-nums text-gray-900">{{ $overview['quizzes'] ?? 0 }}</p>
+        </div>
+        <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm min-w-0">
+            <p class="text-xs font-medium text-gray-500 truncate">Completed sessions</p>
+            <p class="mt-0.5 text-xl sm:text-2xl font-bold tabular-nums text-gray-900">{{ $overview['sessions'] ?? 0 }}</p>
+        </div>
+        <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm min-w-0">
+            <p class="text-xs font-medium text-gray-500 truncate">Exam results</p>
+            <p class="mt-0.5 text-xl sm:text-2xl font-bold tabular-nums text-gray-900">{{ $overview['results'] ?? 0 }}</p>
+        </div>
+        <div class="rounded-xl border border-indigo-200 bg-indigo-50 p-4 shadow-sm min-w-0">
+            <p class="text-xs font-medium text-indigo-700 truncate">Live support</p>
+            <p class="mt-0.5 text-xl sm:text-2xl font-bold tabular-nums text-indigo-900">{{ $overview['support_sessions'] ?? 0 }}</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-3 md:grid-cols-4 min-w-0">
+        <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm min-w-0">
             <div class="flex items-start gap-3">
                 <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sky-50 text-sky-700" aria-hidden="true">
                     <svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
@@ -137,6 +156,58 @@
             </div>
         </div>
     </div>
+
+    <section class="rounded-xl border border-gray-200 bg-white p-4 sm:p-5 min-w-0" id="dashboard-trends-section">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div>
+                <h2 class="text-sm font-semibold text-gray-900">Platform trends</h2>
+                <p class="text-xs text-gray-500 mt-0.5">Activity, outcomes, and areas that may need attention</p>
+            </div>
+            <label class="inline-flex items-center gap-2 text-xs text-gray-600">
+                <span>Period</span>
+                <select id="dashboard-chart-period" class="rounded-lg border border-gray-200 bg-gray-50 px-2 py-1.5 text-xs font-medium text-gray-800">
+                    <option value="7d">Last 7 days</option>
+                    <option value="30d" selected>Last 30 days</option>
+                    <option value="90d">Last 90 days</option>
+                </select>
+            </label>
+        </div>
+        <ul id="dashboard-insights-list" class="mb-4 space-y-1.5 text-xs text-gray-700 list-disc pl-4"></ul>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 min-w-0">
+            <div class="rounded-xl border border-gray-100 bg-gray-50/80 p-3 min-w-0">
+                <h3 class="text-xs font-semibold text-gray-700 mb-2">Quiz sessions started</h3>
+                <div class="h-44"><canvas id="chart-quiz-activity" aria-label="Quiz activity chart"></canvas></div>
+            </div>
+            <div class="rounded-xl border border-gray-100 bg-gray-50/80 p-3 min-w-0">
+                <h3 class="text-xs font-semibold text-gray-700 mb-2">Exam submissions</h3>
+                <div class="h-44"><canvas id="chart-exam-submissions" aria-label="Exam submissions chart"></canvas></div>
+            </div>
+            <div class="rounded-xl border border-gray-100 bg-gray-50/80 p-3 min-w-0">
+                <h3 class="text-xs font-semibold text-gray-700 mb-2">New students</h3>
+                <div class="h-44"><canvas id="chart-student-growth" aria-label="Student growth chart"></canvas></div>
+            </div>
+            <div class="rounded-xl border border-gray-100 bg-gray-50/80 p-3 min-w-0">
+                <h3 class="text-xs font-semibold text-gray-700 mb-2">Live support volume</h3>
+                <div class="h-44"><canvas id="chart-live-support" aria-label="Live support chart"></canvas></div>
+            </div>
+            <div class="rounded-xl border border-gray-100 bg-gray-50/80 p-3 min-w-0">
+                <h3 class="text-xs font-semibold text-gray-700 mb-2">Average exam scores</h3>
+                <div class="h-44"><canvas id="chart-avg-scores" aria-label="Average scores chart"></canvas></div>
+            </div>
+            <div class="rounded-xl border border-gray-100 bg-gray-50/80 p-3 min-w-0">
+                <h3 class="text-xs font-semibold text-gray-700 mb-2">Staff roles</h3>
+                <div class="h-44"><canvas id="chart-staff-roles" aria-label="Staff roles chart"></canvas></div>
+            </div>
+            <div class="rounded-xl border border-gray-100 bg-gray-50/80 p-3 min-w-0">
+                <h3 class="text-xs font-semibold text-gray-700 mb-2">Exam pass vs below 50%</h3>
+                <div class="h-44"><canvas id="chart-quiz-outcomes" aria-label="Quiz outcomes chart"></canvas></div>
+            </div>
+            <div class="rounded-xl border border-gray-100 bg-gray-50/80 p-3 min-w-0">
+                <h3 class="text-xs font-semibold text-gray-700 mb-2">Support chat status</h3>
+                <div class="h-44"><canvas id="chart-support-status" aria-label="Support status chart"></canvas></div>
+            </div>
+        </div>
+    </section>
 
     <section class="rounded-lg border border-gray-200 bg-white p-3 sm:p-4 min-w-0">
         <h2 class="text-xs font-semibold text-gray-700 mb-3">Quick links</h2>
@@ -297,6 +368,9 @@
     });
 })();
 </script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>window.AdminDashboardChartsConfig = { url: @json(route('dashboard.charts')) };</script>
+<script src="{{ asset('js/admin-dashboard-charts.js') }}?v={{ filemtime(public_path('js/admin-dashboard-charts.js')) }}"></script>
 @endpush
 
 @if(($update_mode ?? false) && ($update_estimated_end ?? null))

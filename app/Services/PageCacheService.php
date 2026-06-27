@@ -10,8 +10,10 @@ use App\Models\Quiz;
 use App\Models\QuizSession;
 use App\Models\Setting;
 use App\Models\Student;
+use App\Models\SupportSession;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Schema;
 
 class PageCacheService
 {
@@ -94,6 +96,7 @@ class PageCacheService
                 'quizzes' => Quiz::count(),
                 'sessions' => $sessionsWithResult,
                 'results' => $sessionsWithResult,
+                'support_sessions' => Schema::hasTable('support_sessions') ? SupportSession::count() : 0,
             ];
         });
     }

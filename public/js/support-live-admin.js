@@ -259,6 +259,14 @@
             bubbleEl.textContent = msg.body || '';
         }
         div.appendChild(bubbleEl);
+        if (msg.created_at) {
+            var time = document.createElement('span');
+            time.className = 'live-support-msg__time';
+            try {
+                time.textContent = new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            } catch (e) {}
+            div.appendChild(time);
+        }
         messagesEl.appendChild(div);
         if (msg.id > lastMessageId) lastMessageId = msg.id;
         messagesEl.scrollTop = messagesEl.scrollHeight;
@@ -485,6 +493,7 @@
         var text = inputEl.value.trim();
         if (!text) return;
         inputEl.value = '';
+        if (window.QuizSnapSupportCompose) QuizSnapSupportCompose.autoGrow(inputEl);
         isTyping = false;
         sendTypingSignal(false);
         fetch(url('/sessions/' + encodeURIComponent(activeUuid) + '/messages'), {
@@ -634,10 +643,15 @@
 
     if (sendBtn) sendBtn.addEventListener('click', sendMessage);
     if (inputEl) {
-        inputEl.addEventListener('keydown', function (e) {
-            if (e.key === 'Enter') { e.preventDefault(); sendMessage(); }
-            else onInputTyping();
-        });
+        if (window.QuizSnapSupportCompose) {
+            QuizSnapSupportCompose.bindTextarea(inputEl, sendBtn);
+            QuizSnapSupportCompose.mountEmojiBar(document.getElementById(prefix + 'live-support-emoji-bar'), inputEl);
+        } else {
+            inputEl.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') { e.preventDefault(); sendMessage(); }
+                else onInputTyping();
+            });
+        }
         inputEl.addEventListener('input', onInputTyping);
     }
     if (imageBtn && imageInput) {

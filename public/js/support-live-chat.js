@@ -489,8 +489,10 @@
 
     function prefillIntake(opts) {
         var ctx = defaultContext();
+        var nameEl = document.getElementById('qs-live-intake-name');
         var phoneEl = document.getElementById('qs-live-intake-phone');
         var indexEl = document.getElementById('qs-live-intake-index');
+        if (nameEl) nameEl.value = opts.student_name || ctx.name || '';
         if (phoneEl) phoneEl.value = opts.student_phone || ctx.phone || '';
         if (indexEl) indexEl.value = opts.student_index || ctx.index_number || '';
     }
@@ -513,8 +515,8 @@
                 if (online === true && sounds()) sounds().playAgentAvailable();
                 if (intakeLeadEl) {
                     intakeLeadEl.textContent = online === false
-                        ? 'Agents are away. Enter your index and phone, then leave your message.'
-                        : 'An agent is available. Enter your index and phone to start.';
+                        ? 'Agents are away. Enter your name, index, and phone, then leave your message.'
+                        : 'An agent is available. Enter your name, index, and phone to start.';
                 }
             });
         }
@@ -670,10 +672,13 @@
 
     if (intakeStartBtn) {
         intakeStartBtn.addEventListener('click', function () {
+            var name = (document.getElementById('qs-live-intake-name') || {}).value || '';
             var phone = (document.getElementById('qs-live-intake-phone') || {}).value || '';
             var index = (document.getElementById('qs-live-intake-index') || {}).value || '';
+            name = name.trim();
             phone = phone.trim();
             index = index.trim();
+            if (!name || name.length < 2) { showIntakeError('Please enter your full name.'); return; }
             if (!index) { showIntakeError('Please enter your index number.'); return; }
             if (!phone) { showIntakeError('Please enter your phone number.'); return; }
             if (!isValidPhone(phone)) {
@@ -682,6 +687,7 @@
             }
             showIntakeError('');
             var opts = Object.assign({}, state.pendingOpts || {}, {
+                student_name: name,
                 student_index: index,
                 student_phone: phone,
                 _intakeComplete: true,

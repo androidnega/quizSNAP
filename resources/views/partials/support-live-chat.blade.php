@@ -420,8 +420,10 @@
         <span class="qs-typing-label"></span>
     </div>
     <div id="qs-live-support-intake" class="qs-live-support-intake" hidden>
-        <p id="qs-live-support-intake-lead">Enter your index number and phone to start.</p>
+        <p id="qs-live-support-intake-lead">Enter your name, index number, and phone to start.</p>
         <div id="qs-live-intake-error" class="qs-live-intake-error" hidden></div>
+        <label for="qs-live-intake-name">Full name</label>
+        <input type="text" id="qs-live-intake-name" maxlength="255" autocomplete="name" placeholder="Your full name" required>
         <label for="qs-live-intake-index">Index number</label>
         <input type="text" id="qs-live-intake-index" maxlength="64" autocomplete="off" placeholder="BC/ITN/25/123" required>
         <label for="qs-live-intake-phone">Phone number</label>

@@ -227,11 +227,10 @@
             btn.dataset.uuid = s.uuid;
             var status = s.status === 'waiting' ? 'Waiting' : 'Active';
             var agent = s.assigned_admin ? (' · ' + s.assigned_admin.name) : '';
-            var phone = s.student_phone ? (' · ' + s.student_phone) : '';
             btn.innerHTML =
                 '<span class="live-support-queue-item__status live-support-queue-item__status--' + s.status + '">' + status + '</span>' +
-                '<strong class="block text-sm text-gray-900 truncate">' + escapeHtml(s.student_index || 'Unknown index') + '</strong>' +
-                '<span class="block text-xs text-gray-500 truncate">' + escapeHtml((s.issue_category || 'general') + agent + phone) + '</span>' +
+                '<strong class="block text-sm text-gray-900 truncate">' + escapeHtml(s.student_name || s.student_index || 'Guest') + '</strong>' +
+                '<span class="block text-xs text-gray-500 truncate">' + escapeHtml([s.student_index, s.issue_category || 'general', s.student_phone].filter(Boolean).join(' · ') + agent) + '</span>' +
                 (isTakenByOther(s) ? '<span class="block text-xs text-amber-700 mt-0.5">Handled by ' + escapeHtml(s.assigned_admin.name) + '</span>' : '');
             btn.addEventListener('click', function () { openSession(s.uuid); });
             queueEl.appendChild(btn);
@@ -398,7 +397,8 @@
                 if (!data.success) return;
                 activeSession = data.session;
                 if (headerEl) {
-                    var parts = [data.session.student_index || 'Student'];
+                    var parts = [data.session.student_name || data.session.student_index || 'Student'];
+                    if (data.session.student_name && data.session.student_index) parts.push(data.session.student_index);
                     if (data.session.student_phone) parts.push(data.session.student_phone);
                     if (data.session.page_url) parts.push(data.session.page_url);
                     headerEl.textContent = parts.join(' · ');

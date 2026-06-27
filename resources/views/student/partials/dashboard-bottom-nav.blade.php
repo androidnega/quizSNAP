@@ -173,11 +173,9 @@
         border: none;
         border-radius: 9999px;
         cursor: pointer;
-        color: var(--theme-header-text);
-        background: linear-gradient(145deg, var(--theme-brand) 0%, var(--theme-brand-dark) 100%);
-        box-shadow:
-            0 1px 2px rgba(15, 23, 42, 0.08),
-            0 14px 32px -12px color-mix(in srgb, var(--theme-brand) 78%, transparent);
+        color: #fff;
+        background: var(--theme-brand, var(--theme-primary-600, #2563eb));
+        box-shadow: 0 6px 18px -6px color-mix(in srgb, var(--theme-brand, #2563eb) 50%, transparent);
         display: grid;
         place-items: center;
         touch-action: manipulation;

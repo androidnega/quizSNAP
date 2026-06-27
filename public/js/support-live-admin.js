@@ -92,6 +92,7 @@
 
     function renderMessage(msg, fromEcho) {
         if (!messagesEl || !msg || !msg.id) return;
+        if (msg.sender_type === 'system') return;
         if (document.querySelector('[data-admin-msg-id="' + msg.id + '"]')) return;
         if (msg.message_type === 'webrtc') return;
 

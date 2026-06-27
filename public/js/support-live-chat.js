@@ -73,6 +73,7 @@
     }
 
     function loadStored() {
+        if (requiresGuestDetails()) return;
         try {
             var raw = sessionStorage.getItem(STORAGE_KEY);
             if (!raw) return;
@@ -172,7 +173,7 @@
         div.appendChild(bubble);
         div.appendChild(time);
         messagesEl.appendChild(div);
-        if (msg.id > state.lastId) state.lastId = msg.id;
+        if (typeof msg.id === 'number' && msg.id > state.lastId) state.lastId = msg.id;
         scrollBottom();
 
         if (fromEcho && msg.sender_type === 'admin' && sounds()) {
@@ -312,7 +313,6 @@
                 student_index: opts.student_index || ctx.index_number || null,
                 student_name: opts.student_name || ctx.name || null,
                 student_phone: opts.student_phone || ctx.phone || null,
-                student_email: opts.student_email || ctx.email || null,
                 page_url: opts.page_url || ctx.page || window.location.pathname,
                 issue_category: opts.issue_category || 'general',
                 initial_message: opts.initial_message || null,
@@ -364,13 +364,18 @@
         opts = opts || {};
         if (state.uuid) return resumeSession();
         if (requiresGuestDetails() && !opts._intakeComplete) {
+            state.uuid = null;
+            state.token = null;
+            state.lastId = 0;
+            state.sessionStatus = null;
+            sessionStorage.removeItem(STORAGE_KEY);
             state.pendingOpts = opts;
             showIntake(true);
             prefillIntake(opts);
             showIntakeError('');
             setStatus('Enter your details to start');
             return fetchAvailability().then(function (online) {
-                if (online === true) playAgentDongOnce();
+                if (online === true && sounds()) sounds().playAgentAvailable();
                 if (intakeLeadEl) {
                     intakeLeadEl.textContent = online === false
                         ? 'Agents are away. Enter your index and phone, then leave your message.'
@@ -383,6 +388,14 @@
 
     function sendText(text) {
         if (!state.uuid || !text) return;
+        var tempId = 'pending-' + Date.now();
+        renderMessage({
+            id: tempId,
+            sender_type: 'student',
+            body: text,
+            created_at: new Date().toISOString(),
+            message_type: 'text',
+        }, false);
         fetch('/support/sessions/' + encodeURIComponent(state.uuid) + '/messages', {
             method: 'POST',
             headers: headers(),
@@ -390,7 +403,13 @@
         })
             .then(function (r) { return r.json(); })
             .then(function (data) {
+                var pending = document.querySelector('[data-live-msg-id="' + tempId + '"]');
+                if (pending) pending.remove();
                 if (data.success && data.message) renderMessage(data.message, false);
+            })
+            .catch(function () {
+                var pending = document.querySelector('[data-live-msg-id="' + tempId + '"]');
+                if (pending) pending.remove();
             });
         state.isTyping = false;
         sendTypingSignal(false);
@@ -529,10 +548,16 @@
 
     window.QuizSnapLiveSupport = {
         open: function (opts) {
+            opts = opts || {};
             setOpen(true);
             state.agentDongPlayed = false;
+            if (requiresGuestDetails() && !opts._intakeComplete) {
+                state.uuid = null;
+                state.token = null;
+                sessionStorage.removeItem(STORAGE_KEY);
+            }
             if (sounds()) sounds().unlock();
-            var p = beginChat(opts || {});
+            var p = beginChat(opts);
             if (p && p.catch) {
                 p.catch(function (err) { setStatus(err.message || 'Could not connect. Try again.'); });
             }

@@ -24,6 +24,7 @@
         window.QuizSnapLiveSupport.open({
             student_index: ctx.index_number || null,
             student_phone: ctx.phone || null,
+            student_name: ctx.name || null,
             page_url: ctx.page || window.location.pathname,
             issue_category: 'general',
         });

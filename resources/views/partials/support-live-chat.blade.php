@@ -244,52 +244,57 @@
         z-index: 80;
         display: inline-flex;
         align-items: center;
-        gap: 0.625rem;
+        justify-content: center;
         border: none;
         border-radius: 9999px;
-        padding: 0.6875rem 1rem 0.6875rem 0.6875rem;
+        width: 3.5rem;
+        height: 3.5rem;
+        padding: 0;
         background: var(--theme-brand, var(--theme-primary-600, #2563eb));
         color: #fff;
-        font-size: 0.8125rem;
-        font-weight: 600;
-        letter-spacing: 0.01em;
         cursor: pointer;
-        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.14);
-        transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+        box-shadow: 0 6px 18px -6px color-mix(in srgb, var(--theme-brand, #2563eb) 50%, transparent);
+        transition: transform 0.18s ease, box-shadow 0.18s ease;
     }
     .qs-support-live-toggle:hover {
-        background: var(--theme-brand-dark, var(--theme-primary-700, #1d4ed8));
-        box-shadow: 0 6px 20px rgba(15, 23, 42, 0.18);
-        transform: translateY(-1px);
+        transform: translateY(-2px);
+        box-shadow: 0 10px 24px -6px color-mix(in srgb, var(--theme-brand, #2563eb) 55%, transparent);
     }
     .qs-support-live-toggle:active {
-        transform: translateY(0);
+        transform: scale(0.95);
     }
     .qs-support-live-toggle__icon {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 2rem;
-        height: 2rem;
-        border-radius: 9999px;
-        background: rgba(255, 255, 255, 0.16);
-        flex-shrink: 0;
         animation: qs-chat-icon-pulse 2.2s ease-in-out infinite;
     }
     .qs-support-live-toggle__icon svg {
-        width: 1.125rem;
-        height: 1.125rem;
+        width: 1.375rem;
+        height: 1.375rem;
     }
     @keyframes qs-chat-icon-pulse {
-        0%, 100% { transform: scale(1); opacity: 1; }
-        50% { transform: scale(1.08); opacity: 0.92; }
+        0%, 100% { transform: scale(1) translateY(0); }
+        50% { transform: scale(1.1) translateY(-1px); }
     }
     .qs-support-live-toggle__label {
-        padding-right: 0.125rem;
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
         white-space: nowrap;
+        border: 0;
     }
     .qs-support-fab-wrap--above-nav .qs-support-live-toggle {
         bottom: max(5.75rem, calc(4.75rem + env(safe-area-inset-bottom)));
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .qs-support-live-toggle__icon {
+            animation: none;
+        }
     }
 </style>
 <div id="qs-live-support-panel" class="qs-live-support-panel" aria-hidden="true" role="dialog" aria-labelledby="qs-live-support-title">

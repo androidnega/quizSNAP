@@ -1,0 +1,247 @@
+================================================================================
+QZNA / QuizSnap — PROJECT STATUS OVERVIEW
+Generated: June 25, 2026
+Repository: https://github.com/androidnega/quizSNAP.git
+Branch: main (synced with origin/main)
+================================================================================
+
+This document summarizes work completed in recent sessions, current behaviour,
+key files, deployment notes, and what may still need attention on the server.
+
+
+--------------------------------------------------------------------------------
+1. GIT / DEPLOYMENT STATUS
+--------------------------------------------------------------------------------
+
+Latest commits on main (newest first):
+
+  bde64d0  Fix Students sidebar visibility for super admin and coordinator.
+  b5888e2  Give super admin and coordinator scoped student management access.
+  c9cd7ad  Fix quiz create AI generation interrupted by live page reload.
+  ee1fd24  Expand About page with student-friendly quiz rules and auto-submit policy.
+  842be69  Correct quiz session 2000 result to 14/20 on deploy.
+  e313192  Add artisan command to adjust a stored quiz session result.
+  771ab23  Restore dashboard home pill nav removed by mistake.
+  ef968fb  Remove desktop navigation links from the student dashboard header.
+  49584a5  Add optimized CSD-TTU student dashboard banner on mobile and desktop.
+  df52fb1  Remove student dashboard banner and restore admin banner settings visibility.
+
+Local branch is in sync with origin/main.
+
+Production deploy (run on server after pull):
+
+  ssh root@vmi3379516 'cd /srv/apps/quizsnap && bash deploy.sh'
+
+Note: SSH to vmi3379516 failed from the dev machine at one point (host not
+resolvable). Deploy must be run from a machine that can reach the server.
+
+
+--------------------------------------------------------------------------------
+2. STUDENT DASHBOARD BANNER
+--------------------------------------------------------------------------------
+
+DONE:
+  - Banner can be toggled via admin Settings → Student dashboard tab.
+  - Admin settings tab visibility fixed (uses $is_super_admin correctly).
+  - CSD-TTU banner assets added and optimized:
+      public/images/student-dashboard-csd-banner.{webp,jpg}
+      public/images/student-dashboard-csd-banner-640.{webp,jpg}
+  - Migration 2026_06_24_100000_enable_student_dashboard_csd_banner.php enables
+    banner in DB on deploy.
+  - Banner restored on student dashboard (desktop grid + mobile modern layout).
+  - Setting constants in app/Models/Setting.php for default banner paths.
+
+Key files:
+  - resources/views/student/partials/dashboard-hero-banner.blade.php
+  - resources/views/student/dashboard/index.blade.php (and mobile layout partials)
+  - resources/views/admin/settings/index.blade.php
+
+
+--------------------------------------------------------------------------------
+3. STUDENT DASHBOARD NAVIGATION (HEADER vs PILL NAV)
+--------------------------------------------------------------------------------
+
+DONE:
+  - Removed sticky HEADER nav links (Home, Quizzes, Calendar, Materials, Profile)
+    from desktop student dashboard header only.
+  - Restored pill navigation on dashboard HOME page after user correction.
+    (Only header links stay removed; main page pill nav remains.)
+
+Key file:
+  - resources/views/layouts/student-dashboard.blade.php
+  - resources/views/student/dashboard/index.blade.php
+
+
+--------------------------------------------------------------------------------
+4. QUIZ SESSION RESULT CORRECTION (#2000)
+--------------------------------------------------------------------------------
+
+DONE:
+  - Session #2000 (quiz #56, index BC/ITN/24/302) corrected from 2/20 to 14/20.
+  - Artisan command for future adjustments:
+      php artisan quiz:adjust-session-result {sessionId} --quiz=56 --correct=14 --force
+  - Migration 2026_06_25_120000_correct_quiz_session_2000_result.php applies
+    fix on deploy.
+
+Key files:
+  - app/Console/Commands/AdjustQuizSessionResultCommand.php
+  - database/migrations/2026_06_25_120000_correct_quiz_session_2000_result.php
+
+
+--------------------------------------------------------------------------------
+5. ABOUT US PAGE (STUDENT RULES)
+--------------------------------------------------------------------------------
+
+DONE:
+  - Expanded resources/views/student/about-system.blade.php with student-friendly
+    coverage of:
+      • Critical auto-submit rules (phone, screenshot, copy/paste, multiple IP,
+        fullscreen exit, face out of frame, multiple faces)
+      • Repeated-warning rules (tab switches, 20s away, many face warnings)
+      • Warning-only rules (head turn, static face, right-click, etc.)
+      • Thresholds from Setting::getProctoringThresholds() defaults
+
+Commit: ee1fd24
+
+
+--------------------------------------------------------------------------------
+6. QUIZ CREATE — AI GENERATION (DEEPSEEK) FIX
+--------------------------------------------------------------------------------
+
+PROBLEM:
+  While creating a quiz, DeepSeek was generating questions but the page
+  auto-refreshed and cut off generation (WebSocket live reload on dashboard).
+
+DONE:
+  - public/js/quizsnap-live.js: skip auto-reload on /dashboard/quizzes/create
+    and /edit; respect data-quizsnap-skip-live-reload on page wrapper.
+  - QuizManagementController: JSON single-quiz create uses client-driven batch
+    instead of background job; returns batch_url, topics, generation_mode: batch.
+  - Batch endpoint returns new_questions for live feed.
+  - create.blade.php: batch loop, live typewriter question feed, no auto-redirect
+    on complete — user gets "Open quiz to review" or "Stay on this page".
+  - beforeunload warning while generating.
+
+Key files:
+  - public/js/quizsnap-live.js
+  - app/Http/Controllers/Admin/QuizManagementController.php
+  - resources/views/admin/quizzes/create.blade.php
+
+Commit: c9cd7ad
+
+
+--------------------------------------------------------------------------------
+7. SUPER ADMIN & COORDINATOR — STUDENT MANAGEMENT
+--------------------------------------------------------------------------------
+
+REQUIREMENT:
+  - Super admin: see ALL students across all institutions; view/edit in scope.
+  - Coordinator: see students under their faculty/department/institution only;
+    full view and edit for in-scope students.
+
+DONE:
+
+  A) Access / middleware
+     - BlockSuperAdminFromCoordinatorLecturer: super admin UNBLOCKED from class
+       groups and students; still blocked from courses, quizzes, coordinator
+       academic setup, exam calendar, student notifications.
+     - EnsureAdminAuthenticated: coordinators allowed dashboard.students.* routes.
+
+  B) Scoping
+     - User::classGroupIds(): coordinators scoped by faculty_id, else
+       department_id, else institution_id.
+     - ClassGroupPolicy: coordinators only view/update/delete class groups in
+       their classGroupIds(); super admin has full access.
+
+  C) Global student directory
+     - New route: GET /dashboard/students → dashboard.students.index
+     - StaffStudentsController: search by index/name/phone; filter by class
+       group; super admin can filter by institution.
+     - View: resources/views/admin/students/staff-index.blade.php
+     - Links to existing per-group show/edit (ClassGroupController).
+
+  D) Navigation
+     - Sidebar "Students" for super admin (QuizSnap section) and coordinator.
+     - Role detection hardened (session + user model).
+     - Admin dashboard quick links: Students, Class Groups.
+     - Coordinator dashboard: Students stat card + quick action.
+
+Key files:
+  - app/Http/Controllers/Admin/StaffStudentsController.php
+  - app/Policies/ClassGroupPolicy.php
+  - app/Models/User.php
+  - app/Http/Middleware/BlockSuperAdminFromCoordinatorLecturer.php
+  - resources/views/layouts/dashboard.blade.php
+  - routes/web.php
+
+Commits: b5888e2, bde64d0
+
+NOT changed:
+  - Examiners still use class-group student lists only (view + fallback code;
+    no edit unless policy allows coordinator/super admin paths).
+  - Legacy StudentManagementController (ValidIndex) remains unused — no routes.
+
+
+--------------------------------------------------------------------------------
+8. ARCHITECTURE NOTES (STUDENT DATA)
+--------------------------------------------------------------------------------
+
+Student roster is class-group centric:
+  - class_group_students  → roster per class group
+  - students              → login accounts (phone, password, level sync)
+  - Staff manage via Class Groups → Students list → Show/Edit
+  - New global directory at /dashboard/students aggregates across groups
+
+Role access summary:
+
+  Role            Class groups    Global students    Edit students
+  ------------    -------------   ----------------   -------------
+  Super admin     All             All                Yes (in scope = all)
+  Coordinator     Scoped          Scoped             Yes (in scope)
+  Examiner        Assigned only   No (redirect)      View only + fallback code
+  System monitor  Enterprise      Intelligence only  N/A
+
+
+--------------------------------------------------------------------------------
+9. KNOWN ISSUES / FOLLOW-UPS
+--------------------------------------------------------------------------------
+
+  [ ] Production deploy: ensure deploy.sh has been run after bde64d0 so Students
+      sidebar and student directory appear on live site.
+
+  [ ] Session 2000 fix: if migration already ran before manual correction, verify
+      production DB shows 14/20 for session 2000 / index BC/ITN/24/302.
+
+  [ ] Git push: earlier pushes failed with "Connection reset by peer"; later push
+      succeeded. If future pushes hang, retry or check network/GitHub status.
+
+  [ ] Coordinator with no faculty_id, department_id, or institution_id may see
+      all class groups (existing behaviour when no scope fields set).
+
+
+--------------------------------------------------------------------------------
+10. QUICK REFERENCE — IMPORTANT URLS (STAFF)
+--------------------------------------------------------------------------------
+
+  /dashboard                          Staff home (role-based view)
+  /dashboard/students                 Global student search (admin + coordinator)
+  /dashboard/class-groups             Class group list
+  /dashboard/class-groups/{id}/students   Per-group student list
+  /dashboard/institutions             Super admin only
+  /dashboard/settings                 Super admin settings (banner, proctoring, AI)
+  /dashboard/quizzes/create           AI quiz create (live generation, no auto-reload)
+
+
+--------------------------------------------------------------------------------
+11. QUICK REFERENCE — STUDENT-FACING
+--------------------------------------------------------------------------------
+
+  Student dashboard banner: controlled in admin Settings; CSD-TTU assets when enabled.
+  About rules page: student about-system route (expanded proctoring/quiz rules).
+  Header: no Home/Quizzes/Calendar/Materials/Profile in sticky header on desktop.
+  Dashboard home: pill nav retained.
+
+
+================================================================================
+END OF OVERVIEW
+================================================================================

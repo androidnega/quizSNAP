@@ -27,6 +27,28 @@ final class UserFriendlyMessages
 
     public const ADMIN_ONLY = 'This action is only available to administrators.';
 
+    public const INDEX_NOT_IN_CLASS = 'Your index number is not on the class list yet. Please contact your class rep or lecturer to have your index added — do not message platform support on WhatsApp for this.';
+
+    public const INDEX_NOT_IN_CLASS_SHORT = 'Index not found on the class list.';
+
+    public static function isIndexNotFoundMessage(?string $message): bool
+    {
+        if ($message === null || $message === '') {
+            return false;
+        }
+
+        $lower = strtolower($message);
+
+        return str_contains($lower, 'index number not found')
+            || str_contains($lower, 'not on the class list')
+            || str_contains($lower, 'must belong to a class');
+    }
+
+    public static function isIndexNotFoundCode(?string $code): bool
+    {
+        return $code === 'index_not_found';
+    }
+
     public const PROFILE_ONLY = 'You can only update your own profile.';
 
     public const PASSWORD_INCORRECT = 'That password is not correct. Please try again.';

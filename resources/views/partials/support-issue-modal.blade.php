@@ -201,7 +201,7 @@
         <div class="qs-support-modal__header">
             <div>
                 <h2 id="qs-support-modal-title" class="qs-support-modal__title">Describe your issue</h2>
-                <p class="qs-support-modal__subtitle">Tell us what happened so support can help you faster. We will open WhatsApp with your message ready to send.</p>
+                <p class="qs-support-modal__subtitle">For technical issues use live chat or WhatsApp. If your <strong>index is not found</strong>, contact your class rep or lecturer — not WhatsApp.</p>
             </div>
             <button type="button" class="qs-support-modal__close" data-qs-support-modal-close aria-label="Close">
                 <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -212,6 +212,7 @@
             <label for="qs-support-modal-description" class="qs-support-modal__label">What do you need help with?</label>
             <textarea id="qs-support-modal-description" class="qs-support-modal__textarea" rows="4" required minlength="10" maxlength="1200" placeholder="Example: I cannot start my quiz — the camera stays on “waiting” and never turns green."></textarea>
             <div class="qs-support-modal__quick" aria-label="Common issues">
+                <button type="button" class="qs-support-modal__quick-btn" data-qs-support-index-help="1">My index is not recognized</button>
                 <button type="button" class="qs-support-modal__quick-btn" data-qs-support-quick="I cannot log in to my account.">Login problem</button>
                 <button type="button" class="qs-support-modal__quick-btn" data-qs-support-quick="My quiz will not start or the camera is not working.">Quiz / camera</button>
                 <button type="button" class="qs-support-modal__quick-btn" data-qs-support-quick="I submitted my quiz but cannot see my score or result.">Results / score</button>

@@ -64,6 +64,14 @@ Route::get('/about-system', function () {
     return view('student.about-system', compact('student'));
 })->name('about-system');
 
+Route::prefix('support')->name('support.')->group(function () {
+    Route::post('/sessions', [\App\Http\Controllers\StudentLiveSupportController::class, 'store'])->name('sessions.store');
+    Route::get('/sessions/{uuid}', [\App\Http\Controllers\StudentLiveSupportController::class, 'show'])->name('sessions.show');
+    Route::get('/sessions/{uuid}/messages', [\App\Http\Controllers\StudentLiveSupportController::class, 'messages'])->name('sessions.messages');
+    Route::post('/sessions/{uuid}/messages', [\App\Http\Controllers\StudentLiveSupportController::class, 'sendMessage'])->name('sessions.messages.send');
+    Route::post('/sessions/{uuid}/close', [\App\Http\Controllers\StudentLiveSupportController::class, 'close'])->name('sessions.close');
+});
+
 Route::post('/student/validate-token', [TokenValidationController::class, 'validateToken'])->name('student.validate-token');
 Route::post('/student/start-quiz', function (\Illuminate\Http\Request $request) {
     $request->validate(['link' => 'required|string|max:2048']);
@@ -360,6 +368,13 @@ Route::middleware('admin.auth')->group(function () {
             Route::get('/system/reset', [\App\Http\Controllers\Admin\SystemResetController::class, 'index'])->name('system.reset.index');
             Route::post('/system/reset', [\App\Http\Controllers\Admin\SystemResetController::class, 'reset'])->name('system.reset');
             Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
+            Route::get('/live-support', [\App\Http\Controllers\Admin\LiveSupportController::class, 'index'])->name('support.index');
+            Route::get('/live-support/sessions', [\App\Http\Controllers\Admin\LiveSupportController::class, 'sessions'])->name('support.sessions');
+            Route::get('/live-support/sessions/{uuid}', [\App\Http\Controllers\Admin\LiveSupportController::class, 'show'])->name('support.sessions.show');
+            Route::post('/live-support/sessions/{uuid}/claim', [\App\Http\Controllers\Admin\LiveSupportController::class, 'claim'])->name('support.sessions.claim');
+            Route::post('/live-support/sessions/{uuid}/messages', [\App\Http\Controllers\Admin\LiveSupportController::class, 'sendMessage'])->name('support.sessions.messages');
+            Route::post('/live-support/sessions/{uuid}/screen-share', [\App\Http\Controllers\Admin\LiveSupportController::class, 'requestScreenShare'])->name('support.sessions.screen-share');
+            Route::post('/live-support/sessions/{uuid}/close', [\App\Http\Controllers\Admin\LiveSupportController::class, 'close'])->name('support.sessions.close');
             Route::post('/settings', [SettingsController::class, 'update'])->name('settings.update');
             Route::post('/settings/study-guide/unlock', [SettingsController::class, 'studyGuideUnlock'])->name('settings.study-guide.unlock');
             if (! app()->environment('production')) {

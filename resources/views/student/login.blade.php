@@ -28,8 +28,15 @@
                     </div>
                     <div id="login-error" class="hidden">
                         <div class="bg-danger-50 border border-danger-200 rounded-lg p-3 text-sm text-danger-800" id="login-error-text"></div>
+                        <div id="login-error-index-guidance" class="hidden mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+                            <p class="font-semibold mb-1">Contact your class rep or lecturer</p>
+                            <p>Your index is not on the class list yet. Ask your <strong>class rep</strong> or <strong>lecturer</strong> to add you — please do not message platform support on WhatsApp for index problems.</p>
+                        </div>
                         <p id="login-error-support-wrap" class="hidden mt-2 text-sm text-gray-600">
-                            <a id="login-error-support" href="#" data-qs-support-whatsapp data-support-page="Login" class="text-blue-600 hover:underline font-medium">Get in touch</a>
+                            Need technical help?
+                            <button type="button" id="login-error-live-support" class="text-indigo-600 hover:underline font-medium">Live chat</button>
+                            <span class="text-gray-400">·</span>
+                            <a id="login-error-support" href="#" data-qs-support-whatsapp data-support-page="Login" class="text-blue-600 hover:underline font-medium">WhatsApp</a>
                         </p>
                     </div>
                     <button type="submit" class="w-full py-2.5 px-4 text-sm font-semibold rounded-lg text-white bg-primary-600 hover:bg-primary-700 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
@@ -296,7 +303,16 @@
         }
     }
 
-    function showError(elId, text) {
+    function isIndexNotFoundError(data, text) {
+        if (data && data.error_code === 'index_not_found') return true;
+        if (!text) return false;
+        var lower = String(text).toLowerCase();
+        return lower.indexOf('index number not found') !== -1
+            || lower.indexOf('not on the class list') !== -1
+            || lower.indexOf('class rep') !== -1;
+    }
+
+    function showError(elId, text, data) {
         var wrap = document.getElementById(elId);
         var textEl = document.getElementById(elId + '-text');
         if (!wrap || !textEl) return;
@@ -304,15 +320,33 @@
         wrap.classList.toggle('hidden', !text);
         var supportWrap = document.getElementById('login-error-support-wrap');
         var supportLink = document.getElementById('login-error-support');
-        if (supportWrap && supportLink && elId === 'login-error') {
-            if (text) {
-                supportLink.dataset.supportHint = text;
-                supportLink.dataset.supportIndex = (indexInput && indexInput.value) ? indexInput.value.trim() : '';
-                supportWrap.classList.remove('hidden');
-            } else {
-                delete supportLink.dataset.supportHint;
-                delete supportLink.dataset.supportIndex;
-                supportWrap.classList.add('hidden');
+        var indexGuidance = document.getElementById('login-error-index-guidance');
+        var liveBtn = document.getElementById('login-error-live-support');
+        if (elId === 'login-error') {
+            var indexIssue = isIndexNotFoundError(data, text);
+            if (indexGuidance) indexGuidance.classList.toggle('hidden', !indexIssue);
+            if (supportWrap && supportLink) {
+                if (text && !indexIssue) {
+                    supportLink.dataset.supportHint = text;
+                    supportLink.dataset.supportIndex = (indexInput && indexInput.value) ? indexInput.value.trim() : '';
+                    supportWrap.classList.remove('hidden');
+                } else {
+                    delete supportLink.dataset.supportHint;
+                    delete supportLink.dataset.supportIndex;
+                    supportWrap.classList.add('hidden');
+                }
+            }
+            if (liveBtn && text && !indexIssue) {
+                liveBtn.onclick = function() {
+                    if (window.QuizSnapLiveSupport) {
+                        window.QuizSnapLiveSupport.open({
+                            student_index: (indexInput && indexInput.value) ? indexInput.value.trim() : '',
+                            page_url: window.location.pathname,
+                            issue_category: 'login',
+                            initial_message: 'Login issue: ' + text
+                        });
+                    }
+                };
             }
         }
     }
@@ -404,7 +438,7 @@
             setLoading(btn, false);
             btnText.textContent = 'Continue';
             if (!data.success) {
-                showError('login-error', data.message || 'Verification failed.');
+                showError('login-error', data.message || 'Verification failed.', data);
                 return;
             }
             if (data.redirect) {

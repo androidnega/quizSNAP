@@ -34,7 +34,7 @@
             cluster: 'mt1',
         };
 
-        if (window.MONITORING_ACCESS || window.OPERATIONS_ACCESS || window.INTELLIGENCE_ACCESS) {
+        if (window.MONITORING_ACCESS || window.OPERATIONS_ACCESS || window.INTELLIGENCE_ACCESS || window.LIVE_SUPPORT_PUBLIC || window.SUPPORT_ACCESS) {
             options.authEndpoint = '/broadcasting/auth';
             options.auth = {
                 headers: {
@@ -107,6 +107,20 @@
         return channelCache[channelName];
     }
 
+    function subscribePrivate(channelName, extraHeaders) {
+        var client = getPusher();
+        if (!client || !channelName) {
+            return null;
+        }
+        if (extraHeaders && client.config && client.config.auth) {
+            Object.assign(client.config.auth.headers, extraHeaders);
+        }
+        if (!channelCache[channelName]) {
+            channelCache[channelName] = client.subscribe(channelName);
+        }
+        return channelCache[channelName];
+    }
+
     function bind(channelName, eventName, handler) {
         var channel = subscribe(channelName);
         if (channel && typeof handler === 'function') {
@@ -131,6 +145,7 @@
         isEnabled: isEnabled,
         getPusher: getPusher,
         subscribe: subscribe,
+        subscribePrivate: subscribePrivate,
         bind: bind,
         monitoringChannel: monitoringChannelName,
         operationsChannel: operationsChannelName,

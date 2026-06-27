@@ -99,6 +99,8 @@
             }
             textarea.value = seed;
         }
+        var submitBtn = document.getElementById('qs-support-modal-submit');
+        if (submitBtn) submitBtn.disabled = false;
         var fabWrap = document.getElementById('qs-support-fab-wrap');
         if (fabWrap) fabWrap.classList.remove('is-open');
         var navFabWrap = document.getElementById('sd-nav-fab-wrap');
@@ -131,6 +133,18 @@
         if (trigger) {
             e.preventDefault();
             openModal(parseTrigger(trigger));
+            return;
+        }
+        var indexHelp = e.target.closest('[data-qs-support-index-help]');
+        if (indexHelp) {
+            e.preventDefault();
+            if (errorEl) {
+                errorEl.textContent = 'If your index is not recognized, contact your class rep or lecturer to add you to the class list. Do not message platform support on WhatsApp for index problems.';
+                errorEl.classList.add('is-visible');
+            }
+            var submitBtn = document.getElementById('qs-support-modal-submit');
+            if (submitBtn) submitBtn.disabled = true;
+            if (textarea) textarea.value = '';
             return;
         }
         var quick = e.target.closest('[data-qs-support-quick]');

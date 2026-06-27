@@ -331,8 +331,11 @@
     <script>window.QuizSnapLive=window.QuizSnapLive||{refreshers:[],registerRefresher:function(fn){if(typeof fn==='function')this.refreshers.push(fn);}};</script>
     @stack('scripts')
     @include('partials.support-issue-modal')
+    @include('partials.support-live-chat')
     <script>window.QuizSnapSupportConfig = @json(\App\Support\SupportContact::clientConfig());</script>
+    <script>window.LIVE_SUPPORT_PUBLIC = true;</script>
     <script src="{{ asset('js/support-contact.js') }}?v={{ filemtime(public_path('js/support-contact.js')) }}"></script>
+    <script src="{{ asset('js/support-live-chat.js') }}?v={{ filemtime(public_path('js/support-live-chat.js')) }}"></script>
 
     @if(($reverbClientConfig = \App\Services\ReverbClientConfig::clientConfig()) !== null)
     <!-- Real-time: Reverb WebSocket + page refresh hooks -->
@@ -350,6 +353,7 @@
     @else
     <script src="{{ asset('js/quizsnap-live.js') }}" defer></script>
     @endif
+    @stack('scripts-after-reverb')
 
     <!-- Auto-dismiss toast notifications after 4s -->
     <script>

@@ -133,7 +133,8 @@ class StudentLoginController extends Controller
         if (!$exists) {
             return response()->json([
                 'success' => false,
-                'message' => 'Index number not found. You must belong to a class first.',
+                'error_code' => 'index_not_found',
+                'message' => \App\Support\UserFriendlyMessages::INDEX_NOT_IN_CLASS,
             ], 422);
         }
 

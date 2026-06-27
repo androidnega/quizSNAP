@@ -26,5 +26,19 @@
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') setOpen(false);
     });
+
+    var liveBtn = document.getElementById('qs-support-live-chat');
+    if (liveBtn) {
+        liveBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            setOpen(false);
+            if (window.QuizSnapLiveSupport) {
+                window.QuizSnapLiveSupport.open({
+                    page_url: window.location.pathname,
+                    issue_category: 'general',
+                });
+            }
+        });
+    }
 })();
 </script>

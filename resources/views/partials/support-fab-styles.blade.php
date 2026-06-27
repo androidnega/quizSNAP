@@ -95,6 +95,10 @@
         background: linear-gradient(145deg, #2ee06a 0%, #128c7e 100%);
     }
 
+    .qs-support-action--live .qs-support-action-icon {
+        background: linear-gradient(145deg, #6366f1 0%, #4f46e5 100%);
+    }
+
     .qs-support-action--call .qs-support-action-icon {
         background: linear-gradient(145deg, #3b82f6 0%, #1d4ed8 100%);
     }

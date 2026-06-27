@@ -20,6 +20,7 @@ class StudentOnboardingService
     public static function begin(string $indexHash): void
     {
         Cache::put(self::cacheKey($indexHash), ['started_at' => now()->toIso8601String()], now()->addMinutes(self::CACHE_MINUTES));
+        StudentOnboardingEmailOtpService::touchPendingPhone($indexHash);
     }
 
     public static function isInProgress(string $indexHash): bool
@@ -36,6 +37,7 @@ class StudentOnboardingService
     {
         if (self::isInProgress($indexHash)) {
             Cache::put(self::cacheKey($indexHash), ['started_at' => now()->toIso8601String()], now()->addMinutes(self::CACHE_MINUTES));
+            StudentOnboardingEmailOtpService::touchPendingPhone($indexHash);
         }
     }
 

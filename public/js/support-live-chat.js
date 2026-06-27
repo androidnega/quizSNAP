@@ -1,5 +1,5 @@
 /**
- * QuizSnap live support — student/public chat widget with optional screen share.
+ * QuizSnap live support — student/public chat widget with images and optional screen share.
  */
 (function () {
     'use strict';
@@ -13,6 +13,9 @@
     var shareBtn = document.getElementById('qs-live-support-share-btn');
     var sendBtn = document.getElementById('qs-live-support-send');
     var closeBtn = document.getElementById('qs-live-support-close');
+    var imageInput = document.getElementById('qs-live-support-image-input');
+    var imageBtn = document.getElementById('qs-live-support-image-btn');
+    var agentBar = document.getElementById('qs-live-support-agent');
 
     var state = {
         uuid: null,
@@ -29,15 +32,20 @@
         return m ? m.getAttribute('content') : '';
     }
 
-    function headers() {
+    function headers(json) {
         var h = {
             'Accept': 'application/json',
-            'Content-Type': 'application/json',
             'X-Requested-With': 'XMLHttpRequest',
             'X-CSRF-TOKEN': csrf(),
         };
+        if (json !== false) h['Content-Type'] = 'application/json';
         if (state.token) h['X-Support-Session-Token'] = state.token;
         return h;
+    }
+
+    function defaultContext() {
+        var cfg = window.QuizSnapSupportConfig || {};
+        return cfg.defaultContext || {};
     }
 
     function loadStored() {
@@ -61,6 +69,13 @@
         if (statusEl) statusEl.textContent = text || '';
     }
 
+    function setAgent(text) {
+        if (agentBar) {
+            agentBar.textContent = text || '';
+            agentBar.hidden = !text;
+        }
+    }
+
     function setOpen(open) {
         if (!panel) return;
         panel.classList.toggle('is-open', open);
@@ -69,6 +84,15 @@
 
     function scrollBottom() {
         if (messagesEl) messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function formatTime(iso) {
+        if (!iso) return '';
+        try {
+            return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        } catch (e) {
+            return '';
+        }
     }
 
     function renderMessage(msg) {
@@ -80,11 +104,46 @@
         div.setAttribute('data-live-msg-id', String(msg.id));
         var bubble = document.createElement('div');
         bubble.className = 'qs-live-msg__bubble';
-        bubble.textContent = msg.body || '';
+
+        if (msg.message_type === 'image' && msg.meta && msg.meta.url) {
+            var img = document.createElement('img');
+            img.src = msg.meta.url;
+            img.alt = 'Shared image';
+            img.className = 'qs-live-msg__image';
+            img.loading = 'lazy';
+            var link = document.createElement('a');
+            link.href = msg.meta.url;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.appendChild(img);
+            bubble.appendChild(link);
+        } else {
+            bubble.textContent = msg.body || '';
+        }
+
+        var time = document.createElement('span');
+        time.className = 'qs-live-msg__time';
+        time.textContent = formatTime(msg.created_at);
         div.appendChild(bubble);
+        div.appendChild(time);
         messagesEl.appendChild(div);
         if (msg.id > state.lastId) state.lastId = msg.id;
         scrollBottom();
+    }
+
+    function applySession(session) {
+        if (!session) return;
+        if (session.status === 'active' && session.assigned_admin) {
+            setStatus('Connected');
+            setAgent('Agent: ' + (session.assigned_admin.name || 'Support'));
+        } else if (session.status === 'waiting') {
+            setStatus('Waiting for an agent…');
+            setAgent('');
+        } else if (session.status === 'closed') {
+            setStatus('Chat closed');
+            setAgent('');
+        }
+        if (session.screen_share_active && shareWrap) shareWrap.classList.add('is-visible');
     }
 
     function ingestMessages(list) {
@@ -134,29 +193,26 @@
             }
         });
         state.echoChannel.bind('SupportSessionUpdated', function (payload) {
-            if (payload && payload.session) {
-                var st = payload.session.status;
-                if (st === 'active') {
-                    setStatus('Connected with ' + ((payload.session.assigned_admin && payload.session.assigned_admin.name) || 'support'));
-                }
-                if (st === 'closed') setStatus('Chat closed.');
-                if (payload.session.screen_share_active && shareWrap) shareWrap.classList.add('is-visible');
-            }
+            if (payload && payload.session) applySession(payload.session);
         });
     }
 
     function createSession(opts) {
         opts = opts || {};
+        var ctx = defaultContext();
         setStatus('Starting chat…');
+        setAgent('');
         if (messagesEl) messagesEl.innerHTML = '';
         state.lastId = 0;
         return fetch('/support/sessions', {
             method: 'POST',
             headers: headers(),
             body: JSON.stringify({
-                student_index: opts.student_index || null,
-                student_name: opts.student_name || null,
-                page_url: opts.page_url || window.location.pathname,
+                student_index: opts.student_index || ctx.index_number || null,
+                student_name: opts.student_name || ctx.name || null,
+                student_phone: opts.student_phone || ctx.phone || null,
+                student_email: opts.student_email || ctx.email || null,
+                page_url: opts.page_url || ctx.page || window.location.pathname,
                 issue_category: opts.issue_category || 'general',
                 initial_message: opts.initial_message || null,
             }),
@@ -167,7 +223,7 @@
                 state.uuid = data.session.uuid;
                 state.token = data.client_token;
                 saveStored();
-                if (data.session) setStatus('Waiting for an agent…');
+                applySession(data.session);
                 startPolling();
                 bindEcho();
                 return data;
@@ -185,7 +241,7 @@
                     sessionStorage.removeItem(STORAGE_KEY);
                     return createSession({});
                 }
-                setStatus(data.session.status === 'active' ? 'Connected' : 'Waiting for an agent…');
+                applySession(data.session);
                 startPolling();
                 bindEcho();
                 return fetch('/support/sessions/' + encodeURIComponent(state.uuid) + '/messages', { headers: headers() })
@@ -200,6 +256,21 @@
             method: 'POST',
             headers: headers(),
             body: JSON.stringify({ body: text, message_type: 'text' }),
+        })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data.success && data.message) renderMessage(data.message);
+            });
+    }
+
+    function uploadImage(file) {
+        if (!state.uuid || !file) return;
+        var fd = new FormData();
+        fd.append('image', file);
+        fetch('/support/sessions/' + encodeURIComponent(state.uuid) + '/upload-image', {
+            method: 'POST',
+            headers: headers(false),
+            body: fd,
         })
             .then(function (r) { return r.json(); })
             .then(function (data) {
@@ -277,7 +348,17 @@
             sendText(text);
         });
         inputEl.addEventListener('keydown', function (e) {
-            if (e.key === 'Enter') { e.preventDefault(); sendBtn.click(); }
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendBtn.click(); }
+        });
+    }
+
+    if (imageBtn && imageInput) {
+        imageBtn.addEventListener('click', function () { imageInput.click(); });
+        imageInput.addEventListener('change', function () {
+            if (imageInput.files && imageInput.files[0]) {
+                uploadImage(imageInput.files[0]);
+                imageInput.value = '';
+            }
         });
     }
 

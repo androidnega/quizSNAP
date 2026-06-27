@@ -13,6 +13,8 @@ class SupportMessage extends Model
 
     public const TYPE_SYSTEM = 'system';
 
+    public const TYPE_IMAGE = 'image';
+
     protected $fillable = [
         'support_session_id',
         'sender_type',

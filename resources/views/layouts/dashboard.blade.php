@@ -21,6 +21,7 @@
     );
     $canManageStudents = $isSuperAdmin || $isCoordinatorOnly;
     $isQuizSnapStaff = $isSuperAdmin || $isExaminer;
+    $canRespondToSupport = $layoutAdminUser && \App\Support\LiveSupportAccess::canRespond($layoutAdminUser);
 @endphp
 @section('content')
 <div class="examiner-wrap flex h-screen bg-offwhite overflow-hidden">
@@ -80,6 +81,9 @@
                     <li><a href="{{ route('dashboard.coordinators.semesters.index') }}" class="examiner-nav-link {{ request()->routeIs('dashboard.coordinators.semesters.*') ? 'examiner-nav-link--active' : '' }} group flex items-center gap-3 rounded-lg py-3 px-3 text-sm font-medium min-w-0 transition-all"><i class="fas fa-calendar-week w-5 flex-shrink-0 text-center text-sm"></i><span class="examiner-nav-text truncate">Semesters</span></a></li>
                     <li><a href="{{ route('dashboard.coordinators.academic-classes.index') }}" class="examiner-nav-link {{ request()->routeIs('dashboard.coordinators.academic-classes.*') ? 'examiner-nav-link--active' : '' }} group flex items-center gap-3 rounded-lg py-3 px-3 text-sm font-medium min-w-0 transition-all"><i class="fas fa-chalkboard w-5 flex-shrink-0 text-center text-sm"></i><span class="examiner-nav-text truncate">Academic Classes</span></a></li>
                     <li><a href="{{ route('dashboard.coordinators.student-levels.index') }}" class="examiner-nav-link {{ request()->routeIs('dashboard.coordinators.student-levels.*') ? 'examiner-nav-link--active' : '' }} group flex items-center gap-3 rounded-lg py-3 px-3 text-sm font-medium min-w-0 transition-all"><i class="fas fa-layer-group w-5 flex-shrink-0 text-center text-sm"></i><span class="examiner-nav-text truncate">Student Levels</span></a></li>
+                    @if($canRespondToSupport)
+                    <li><a href="{{ route('dashboard.support.index') }}" class="examiner-nav-link {{ request()->routeIs('dashboard.support.*') ? 'examiner-nav-link--active' : '' }} group flex items-center gap-3 rounded-lg py-3 px-3 text-sm font-medium min-w-0 transition-all" title="Live student support chat"><svg class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg><span class="examiner-nav-text truncate">Live Support</span></a></li>
+                    @endif
                     @else
                     @if($isSystemAdmin)
                     <li>
@@ -123,6 +127,14 @@
                             <span class="examiner-nav-text truncate">Courses</span>
                         </a>
                     </li>
+                    @if($canRespondToSupport)
+                    <li>
+                        <a href="{{ route('dashboard.support.index') }}" class="examiner-nav-link {{ request()->routeIs('dashboard.support.*') ? 'examiner-nav-link--active' : '' }} group flex items-center gap-3 rounded-lg py-3 px-3 text-sm font-medium min-w-0 transition-all" title="Live student support chat">
+                            <svg class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+                            <span class="examiner-nav-text truncate">Live Support</span>
+                        </a>
+                    </li>
+                    @endif
                     @endif
                     @if($isSuperAdmin)
                     <li class="pt-3"><div class="px-3 mb-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider examiner-nav-text">QuizSnap</div></li>
@@ -140,12 +152,14 @@
                         </a>
                     </li>
                     @endif
+                    @if($canRespondToSupport)
                     <li>
                         <a href="{{ route('dashboard.support.index') }}" class="examiner-nav-link {{ request()->routeIs('dashboard.support.*') ? 'examiner-nav-link--active' : '' }} group flex items-center gap-3 rounded-lg py-3 px-3 text-sm font-medium min-w-0 transition-all" title="Live student support chat">
                             <svg class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
                             <span class="examiner-nav-text truncate">Live Support</span>
                         </a>
                     </li>
+                    @endif
                     <li class="pt-3"><div class="px-3 mb-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider examiner-nav-text">Administration</div></li>
                     <li>
                         <a href="{{ route('dashboard.institutions.index') }}" class="examiner-nav-link {{ request()->routeIs('dashboard.institutions.*') ? 'examiner-nav-link--active' : '' }} group flex items-center gap-3 rounded-lg py-3 px-3 text-sm font-medium min-w-0 transition-all" title="Manage institutions and assign examiners">
@@ -279,6 +293,9 @@
             </div>
         </main>
     </div>
+    @if($canRespondToSupport && !request()->routeIs('dashboard.support.*'))
+        @include('partials.support-staff-fab')
+    @endif
 </div>
 <script>
 (function() {
@@ -391,6 +408,30 @@ document.addEventListener('DOMContentLoaded', function () {
 @push('scripts')
 <script>window.OPERATIONS_ACCESS = true;</script>
 <script src="{{ asset('js/quizsnap-operations.js') }}" defer></script>
+@endpush
+@endif
+
+@if($canRespondToSupport ?? false)
+@push('scripts-after-reverb')
+<script>window.SUPPORT_ACCESS = true;</script>
+<script>
+window.QuizSnapLiveSupportAdmin = {
+    baseUrl: @json(url('/dashboard/live-support')),
+    staffId: @json(auth()->id()),
+    prefix: 'staff-fab-',
+    onWaitingCount: function(count) {
+        var badge = document.getElementById('staff-support-fab-badge');
+        if (!badge) return;
+        if (count > 0) {
+            badge.textContent = count > 9 ? '9+' : String(count);
+            badge.hidden = false;
+        } else {
+            badge.hidden = true;
+        }
+    }
+};
+</script>
+<script src="{{ asset('js/support-live-admin.js') }}?v={{ filemtime(public_path('js/support-live-admin.js')) }}"></script>
 @endpush
 @endif
 

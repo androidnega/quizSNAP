@@ -32,6 +32,8 @@
         $supportContext = array_filter([
             'name' => $student->display_name ?? null,
             'index_number' => $student->index_number ?? null,
+            'phone' => $student->phone_contact ?? null,
+            'email' => $student->email ?? null,
         ]);
     }
 @endphp

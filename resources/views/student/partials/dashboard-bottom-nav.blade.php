@@ -1,6 +1,4 @@
 @php
-    use App\Support\SupportContact;
-
     $studentNavHome = request()->routeIs('dashboard') && !request()->routeIs('dashboard.my-*') && !request()->routeIs('dashboard.course-materials') && !request()->routeIs('dashboard.calendar');
     $fabItems = [
         ['route' => 'dashboard', 'label' => 'Home', 'icon' => 'fa-home', 'active' => $studentNavHome],
@@ -17,13 +15,15 @@
         $supportContext = array_filter([
             'name' => $student->display_name ?? null,
             'index_number' => $student->index_number ?? null,
+            'phone' => $student->phone_contact ?? null,
+            'email' => $student->email ?? null,
             'page' => 'Dashboard',
         ]);
     }
-    $supportCallE164 = SupportContact::callNumber();
     $supportTriggerContext = array_filter([
         'name' => $supportContext['name'] ?? null,
         'index_number' => $supportContext['index_number'] ?? null,
+        'phone' => $supportContext['phone'] ?? null,
         'page' => $supportContext['page'] ?? null,
     ], fn ($v) => $v !== null && $v !== '');
 @endphp
@@ -157,12 +157,8 @@
         border: none;
         filter: none;
     }
-    .sd-nav-fab-item-icon--whatsapp {
-        background: linear-gradient(145deg, #2ee06a 0%, #128c7e 100%) !important;
-        color: #fff !important;
-    }
-    .sd-nav-fab-item-icon--call {
-        background: linear-gradient(145deg, #3b82f6 0%, #1d4ed8 100%) !important;
+    .sd-nav-fab-item-icon--live {
+        background: linear-gradient(145deg, #6366f1 0%, #4f46e5 100%) !important;
         color: #fff !important;
     }
     .sd-nav-fab-toggle {
@@ -247,7 +243,7 @@
 <div class="sd-nav-fab-wrap lg:hidden" id="sd-nav-fab-wrap" aria-hidden="true">
     <div class="sd-nav-fab-backdrop" id="sd-nav-fab-backdrop" aria-hidden="true"></div>
     <div class="sd-nav-fab" id="sd-nav-fab">
-        <div class="sd-nav-fab-menu" id="sd-nav-fab-menu" role="menu" aria-label="Dashboard navigation" style="--fab-max: {{ count($fabItems) + 2 }}">
+        <div class="sd-nav-fab-menu" id="sd-nav-fab-menu" role="menu" aria-label="Dashboard navigation" style="--fab-max: {{ count($fabItems) + 1 }}">
             @foreach($fabItems as $fabIndex => $item)
             <a href="{{ route($item['route']) }}"
                class="sd-nav-fab-item {{ $item['active'] ? 'is-active' : '' }}"
@@ -258,27 +254,18 @@
             </a>
             @endforeach
             <div class="sd-nav-fab-divider" style="--fab-i: {{ count($fabItems) }}" role="separator" aria-hidden="true"></div>
-            <a href="#"
+            <button type="button"
                role="menuitem"
-               data-qs-support-whatsapp
+               data-qs-support-live
                data-support-context='@json($supportTriggerContext)'
                class="sd-nav-fab-item sd-nav-fab-item--support"
                style="--fab-i: {{ count($fabItems) + 1 }}"
-               aria-label="Contact support on WhatsApp">
-                <span class="sd-nav-fab-item-icon sd-nav-fab-item-icon--whatsapp" aria-hidden="true">
-                    <i class="fas fa-headset"></i>
+               aria-label="Open live chat with support">
+                <span class="sd-nav-fab-item-icon sd-nav-fab-item-icon--live" aria-hidden="true">
+                    <i class="fas fa-comments"></i>
                 </span>
-                Support
-            </a>
-            <a href="tel:{{ $supportCallE164 }}"
-               class="sd-nav-fab-item sd-nav-fab-item--support"
-               style="--fab-i: {{ count($fabItems) + 2 }}"
-               role="menuitem">
-                <span class="sd-nav-fab-item-icon sd-nav-fab-item-icon--call" aria-hidden="true">
-                    <i class="fas fa-phone-alt"></i>
-                </span>
-                Call
-            </a>
+                Live chat
+            </button>
         </div>
         <button type="button"
                 class="sd-nav-fab-toggle"

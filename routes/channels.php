@@ -3,6 +3,7 @@
 use App\Models\User;
 use App\Models\SupportSession;
 use App\Support\EnterpriseBroadcasting;
+use App\Support\LiveSupportAccess;
 use Illuminate\Support\Facades\Broadcast;
 
 Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
@@ -26,14 +27,17 @@ Broadcast::channel('quizsnap-intelligence', function () {
 Broadcast::channel('support-inbox', function ($user) {
     $resolved = $user instanceof User ? $user : null;
 
-    return $resolved instanceof User && $resolved->isSuperAdmin()
-        ? ['id' => $resolved->id, 'role' => 'admin']
+    return $resolved instanceof User && LiveSupportAccess::canRespond($resolved)
+        ? ['id' => $resolved->id, 'role' => 'staff']
         : false;
 });
 
 Broadcast::channel('support-session.{uuid}', function ($user, string $uuid) {
-    if ($user instanceof User && $user->isSuperAdmin()) {
-        return ['id' => 'admin:'.$user->id, 'role' => 'admin'];
+    if ($user instanceof User && LiveSupportAccess::canRespond($user)) {
+        $session = SupportSession::where('uuid', $uuid)->first();
+        if ($session && LiveSupportAccess::sessionInScope($user, $session)) {
+            return ['id' => 'staff:'.$user->id, 'role' => 'staff'];
+        }
     }
 
     $token = request()->header('X-Support-Session-Token') ?: request()->input('session_token');

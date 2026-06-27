@@ -1,10 +1,10 @@
 /**
- * Support contact: modal to capture issue description before opening WhatsApp.
+ * Support contact: modal to capture issue description before opening live chat.
  */
 (function () {
     'use strict';
 
-    var config = window.QuizSnapSupportConfig || { number: '', appName: 'QuizSnap', defaultContext: {} };
+    var config = window.QuizSnapSupportConfig || { appName: 'QuizSnap', defaultContext: {} };
     var modal = document.getElementById('qs-support-modal');
     var form = document.getElementById('qs-support-modal-form');
     var textarea = document.getElementById('qs-support-modal-description');
@@ -14,33 +14,12 @@
 
     function mergeContext(base, extra) {
         var out = {};
-        var keys = ['name', 'index_number', 'page', 'system_error', 'description', 'suggested_description'];
+        var keys = ['name', 'index_number', 'phone', 'email', 'page', 'system_error', 'description', 'suggested_description'];
         keys.forEach(function (key) {
             var val = (extra && extra[key]) || (base && base[key]) || '';
             if (val) out[key] = String(val).trim();
         });
         return out;
-    }
-
-    function buildMessage(ctx) {
-        var lines = ['Hello ' + (config.appName || 'QuizSnap') + ' Support,', ''];
-        if (ctx.name) lines.push('Name: ' + ctx.name);
-        if (ctx.index_number) lines.push('Index: ' + ctx.index_number);
-        if (ctx.page) lines.push('Page: ' + ctx.page);
-        if (ctx.name || ctx.index_number || ctx.page) lines.push('');
-        if (ctx.system_error) {
-            lines.push('System message: ' + ctx.system_error);
-            lines.push('');
-        }
-        lines.push('What I need help with:');
-        lines.push(ctx.description || '(No description provided)');
-        lines.push('');
-        lines.push('Thank you.');
-        return lines.join('\n');
-    }
-
-    function whatsAppUrl(ctx) {
-        return 'https://wa.me/' + config.number + '?text=' + encodeURIComponent(buildMessage(ctx));
     }
 
     function renderContextChips(ctx) {
@@ -49,6 +28,7 @@
         var chips = [];
         if (ctx.name) chips.push({ label: 'Name', value: ctx.name });
         if (ctx.index_number) chips.push({ label: 'Index', value: ctx.index_number });
+        if (ctx.phone) chips.push({ label: 'Phone', value: ctx.phone });
         if (ctx.page) chips.push({ label: 'Page', value: ctx.page });
         if (ctx.system_error) chips.push({ label: 'Error seen', value: ctx.system_error, warn: true });
         if (chips.length === 0) {
@@ -87,6 +67,22 @@
         errorEl.classList.remove('is-visible');
     }
 
+    function openLiveChat(ctx) {
+        if (!window.QuizSnapLiveSupport) {
+            alert('Live chat is not available right now. Please refresh and try again.');
+            return;
+        }
+        window.QuizSnapLiveSupport.open({
+            student_index: ctx.index_number || null,
+            student_name: ctx.name || null,
+            student_phone: ctx.phone || null,
+            student_email: ctx.email || null,
+            page_url: ctx.page || window.location.pathname,
+            issue_category: ctx.system_error ? 'error' : 'general',
+            initial_message: ctx.description || null,
+        });
+    }
+
     function openModal(opts) {
         opts = opts || {};
         activeContext = mergeContext(config.defaultContext || {}, opts);
@@ -101,16 +97,7 @@
         }
         var submitBtn = document.getElementById('qs-support-modal-submit');
         if (submitBtn) submitBtn.disabled = false;
-        var fabWrap = document.getElementById('qs-support-fab-wrap');
-        if (fabWrap) fabWrap.classList.remove('is-open');
-        var navFabWrap = document.getElementById('sd-nav-fab-wrap');
-        if (navFabWrap) navFabWrap.classList.remove('is-open');
         setModalOpen(true);
-    }
-
-    function openWhatsApp(ctx) {
-        if (!config.number) return;
-        window.open(whatsAppUrl(ctx), '_blank', 'noopener,noreferrer');
     }
 
     function parseTrigger(el) {
@@ -122,6 +109,7 @@
         } catch (e) {}
         if (el.dataset.supportName) ctx.name = el.dataset.supportName;
         if (el.dataset.supportIndex) ctx.index_number = el.dataset.supportIndex;
+        if (el.dataset.supportPhone) ctx.phone = el.dataset.supportPhone;
         if (el.dataset.supportPage) ctx.page = el.dataset.supportPage;
         if (el.dataset.supportHint) ctx.system_error = el.dataset.supportHint;
         if (el.dataset.supportSuggested) ctx.suggested_description = el.dataset.supportSuggested;
@@ -129,7 +117,7 @@
     }
 
     document.addEventListener('click', function (e) {
-        var trigger = e.target.closest('[data-qs-support-whatsapp]');
+        var trigger = e.target.closest('[data-qs-support-live]');
         if (trigger) {
             e.preventDefault();
             openModal(parseTrigger(trigger));
@@ -139,7 +127,7 @@
         if (indexHelp) {
             e.preventDefault();
             if (errorEl) {
-                errorEl.textContent = 'If your index is not recognized, contact your class rep or lecturer to add you to the class list. Do not message platform support on WhatsApp for index problems.';
+                errorEl.textContent = 'If your index is not recognized, contact your class rep or lecturer to add you to the class list.';
                 errorEl.classList.add('is-visible');
             }
             var submitBtn = document.getElementById('qs-support-modal-submit');
@@ -176,7 +164,7 @@
             clearFieldError();
             var ctx = mergeContext(activeContext, { description: description });
             setModalOpen(false);
-            openWhatsApp(ctx);
+            openLiveChat(ctx);
         });
     }
 
@@ -194,8 +182,6 @@
 
     window.QuizSnapSupport = {
         openModal: openModal,
-        openWhatsApp: openWhatsApp,
-        buildMessage: buildMessage,
-        whatsAppUrl: whatsAppUrl,
+        openLiveChat: openLiveChat,
     };
 })();

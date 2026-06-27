@@ -33,7 +33,7 @@
                 <a href="{{ route('dashboard.class-groups.students.edit', [$classGroup, $student]) }}" class="btn btn-sm btn-primary">
                     <i class="fas fa-pen mr-1"></i> Edit
                 </a>
-                @if($phone)
+                @if($phone && ($isSuperAdmin ?? false))
                 <form action="{{ route('dashboard.class-groups.students.remove-phone', [$classGroup, $student]) }}" method="post" class="inline" onsubmit="return confirm('Remove phone number? Student will be asked for a new phone on next login.');">
                     @csrf
                     @method('DELETE')

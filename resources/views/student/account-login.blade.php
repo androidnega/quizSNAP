@@ -24,13 +24,11 @@
                     <div class="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800" id="index-error-text"></div>
                     <div id="index-error-index-guidance" class="hidden mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
                         <p class="font-semibold mb-1">Contact your class rep or lecturer</p>
-                        <p>Your index is not on the class list yet. Ask your <strong>class rep</strong> or <strong>lecturer</strong> to add you — please do not message platform support on WhatsApp for index problems.</p>
+                        <p>Your index is not on the class list yet. Ask your <strong>class rep</strong> or <strong>lecturer</strong> to add you — please use live chat only for technical issues, not index problems.</p>
                     </div>
                     <p id="index-error-support-wrap" class="hidden mt-2 text-sm text-gray-600">
                         Need technical help?
-                        <button type="button" id="index-error-live-support" class="text-indigo-600 hover:underline font-medium">Live chat</button>
-                        <span class="text-gray-400">·</span>
-                        <a id="index-error-support" href="#" data-qs-support-whatsapp data-support-page="Account login" class="text-blue-600 hover:underline font-medium">WhatsApp</a>
+                        <button type="button" id="index-error-live-support" class="text-indigo-600 hover:underline font-medium">Open live chat</button>
                     </p>
                 </div>
                 <button type="button" id="btn-index" class="w-full py-2.5 px-4 text-sm font-semibold rounded-lg text-white bg-primary-600 hover:bg-primary-700 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">Continue</button>

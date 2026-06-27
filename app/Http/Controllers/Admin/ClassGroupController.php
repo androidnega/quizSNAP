@@ -25,6 +25,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use App\Services\ArkeselService;
 use App\Services\StudentUniversalOtp;
+use App\Support\LiveSupportAccess;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
@@ -631,6 +632,8 @@ class ClassGroupController extends Controller
         $averageScore = null;
         $lastQuizDate = null;
         
+        $isSuperAdmin = $this->adminUser()?->isSuperAdmin() ?? false;
+        
         if ($studentAccount) {
             $sessions = $studentAccount->quizSessions()->with('result')->get();
             $quizzesCount = $sessions->count();
@@ -654,7 +657,8 @@ class ClassGroupController extends Controller
             'displayName',
             'quizzesCount',
             'averageScore',
-            'lastQuizDate'
+            'lastQuizDate',
+            'isSuperAdmin',
         ));
     }
 
@@ -670,7 +674,10 @@ class ClassGroupController extends Controller
         $student->load('studentAccount');
         $studentAccount = $student->studentAccount;
         $phone = $studentAccount?->phone_contact ?? null;
-        return view('admin.class-groups.student-edit', compact('classGroup', 'student', 'studentAccount', 'phone'));
+        $email = $studentAccount?->email ?? null;
+        $isSuperAdmin = $this->adminUser()?->isSuperAdmin() ?? false;
+
+        return view('admin.class-groups.student-edit', compact('classGroup', 'student', 'studentAccount', 'phone', 'email', 'isSuperAdmin'));
     }
 
     /** Update a student index/name/phone in the class group. */
@@ -681,16 +688,24 @@ class ClassGroupController extends Controller
             return $resolved;
         }
         $classGroup = $resolved;
+        $isSuperAdmin = $this->adminUser()?->isSuperAdmin() ?? false;
         $request->validate([
             'index_number' => 'required|string|max:64',
             'student_name' => 'nullable|string|max:255',
-            'phone_contact' => 'nullable|string|max:20',
+            'email' => 'nullable|email|max:255',
+            'phone_contact' => $isSuperAdmin ? 'nullable|string|max:20' : 'required|string|max:20',
         ]);
         $indexNumber = trim($request->index_number);
         $name = $request->filled('student_name') ? trim($request->student_name) : null;
+        $email = $request->filled('email') ? trim($request->email) : null;
         $phoneRaw = $request->filled('phone_contact') ? trim($request->phone_contact) : null;
         $phone = $phoneRaw ? Student::normalizePhoneForStorage($phoneRaw) : null;
-        
+
+        if (! $isSuperAdmin && ! $phone) {
+            return redirect()->route($this->staffRoutePrefix() . '.class-groups.students.edit', [$classGroup, $student])
+                ->withInput()
+                ->with('error', 'Phone number is required. Only a super admin can remove a student phone number.');
+        }
         // If index changed, ensure no duplicate (unique is class_group_id + index_number)
         if (strcasecmp($student->index_number, $indexNumber) !== 0) {
             if (ClassGroupStudent::where('class_group_id', $classGroup->id)->where('id', '!=', $student->id)->whereRaw('UPPER(TRIM(index_number)) = ?', [strtoupper($indexNumber)])->exists()) {
@@ -711,6 +726,9 @@ class ClassGroupController extends Controller
         );
         $studentAccount->student_name = $name ?? $studentAccount->student_name;
         $this->syncStudentFromClassGroup($studentAccount, $classGroup);
+        if ($email !== null) {
+            $studentAccount->email = $email !== '' ? $email : null;
+        }
         if ($phone !== null) {
             $otherStudent = \App\Models\Student::where('phone_contact', $phone)->where('id', '!=', $studentAccount->id)->first();
             if ($otherStudent) {
@@ -719,7 +737,7 @@ class ClassGroupController extends Controller
                     ->with('error', 'This phone number is already in use by another student.');
             }
             $studentAccount->phone_contact = $phone;
-        } else {
+        } elseif ($isSuperAdmin) {
             $studentAccount->phone_contact = null;
         }
 
@@ -903,9 +921,12 @@ class ClassGroupController extends Controller
             ->with('success', 'Deleted');
     }
 
-    /** Remove phone number from a student. */
+    /** Remove phone number from a student (super admin only). */
     public function removeStudentPhone(string $classGroupId, ClassGroupStudent $student): RedirectResponse
     {
+        $admin = $this->adminUser();
+        abort_unless($admin && LiveSupportAccess::canClearStudentPhone($admin), 403);
+
         $resolved = $this->resolveStudentClassGroup($classGroupId, $student, 'update');
         if ($resolved instanceof RedirectResponse) {
             return $resolved;

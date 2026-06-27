@@ -84,7 +84,7 @@ final class SupportContact
     /**
      * JSON-safe config for client-side WhatsApp links and the support modal.
      *
-     * @param  array{index_number?: string, name?: string, page?: string}  $context
+     * @param  array{index_number?: string, name?: string, page?: string, phone?: string, email?: string}  $context
      * @return array{number: string, appName: string, defaultContext: array<string, string>}
      */
     public static function clientConfig(array $context = []): array
@@ -97,6 +97,8 @@ final class SupportContact
             'defaultContext' => array_filter([
                 'name' => isset($context['name']) ? trim((string) $context['name']) : null,
                 'index_number' => isset($context['index_number']) ? trim((string) $context['index_number']) : null,
+                'phone' => isset($context['phone']) ? trim((string) $context['phone']) : null,
+                'email' => isset($context['email']) ? trim((string) $context['email']) : null,
                 'page' => isset($context['page']) ? trim((string) $context['page']) : null,
             ], fn ($v) => $v !== null && $v !== ''),
         ];

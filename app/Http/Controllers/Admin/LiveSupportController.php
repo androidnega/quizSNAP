@@ -6,9 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Admin\Concerns\InteractsWithAdminSession;
 use App\Models\SupportMessage;
 use App\Models\SupportSession;
+use App\Models\User;
 use App\Services\LiveSupportService;
+use App\Support\LiveSupportAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class LiveSupportController extends Controller
@@ -19,28 +22,29 @@ class LiveSupportController extends Controller
 
     public function index(): View
     {
-        $admin = $this->adminUser();
-        abort_unless($admin && $admin->isSuperAdmin(), 403);
+        $staff = $this->ensureStaff();
 
         return view('admin.support.index', [
-            'openSessions' => $this->support->openSessionsForAdmin(),
+            'openSessions' => $this->support->openSessionsForStaff($staff),
+            'canDeleteSessions' => LiveSupportAccess::canDeleteSession($staff),
         ]);
     }
 
     public function sessions(): JsonResponse
     {
-        $this->ensureSuperAdmin();
+        $staff = $this->ensureStaff();
 
         return response()->json([
             'success' => true,
-            'sessions' => $this->support->openSessionsForAdmin()->map->toClientArray()->values(),
+            'waiting_count' => $this->support->waitingCountForStaff($staff),
+            'sessions' => $this->support->openSessionsForStaff($staff)->map->toClientArray()->values(),
         ]);
     }
 
     public function show(string $uuid): JsonResponse
     {
-        $this->ensureSuperAdmin();
-        $session = $this->support->findByUuid($uuid);
+        $staff = $this->ensureStaff();
+        $session = $this->findScopedSession($uuid, $staff);
         if (! $session) {
             return response()->json(['success' => false, 'message' => 'Not found.'], 404);
         }
@@ -54,39 +58,52 @@ class LiveSupportController extends Controller
 
     public function claim(string $uuid): JsonResponse
     {
-        $admin = $this->ensureSuperAdmin();
-        $session = $this->support->findByUuid($uuid);
+        $staff = $this->ensureStaff();
+        $session = $this->findScopedSession($uuid, $staff);
         if (! $session) {
             return response()->json(['success' => false, 'message' => 'Not found.'], 404);
         }
 
-        $session = $this->support->claimSession($session, $admin);
+        $result = $this->support->claimSession($session, $staff);
+        if (! $result['claimed']) {
+            return response()->json([
+                'success' => false,
+                'message' => $result['error'] ?? 'Could not claim chat.',
+                'session' => $result['session']->toClientArray(),
+            ], 409);
+        }
 
         return response()->json([
             'success' => true,
-            'session' => $session->toClientArray(),
+            'session' => $result['session']->toClientArray(),
         ]);
     }
 
     public function sendMessage(Request $request, string $uuid): JsonResponse
     {
-        $admin = $this->ensureSuperAdmin();
-        $session = $this->support->findByUuid($uuid);
+        $staff = $this->ensureStaff();
+        $session = $this->findScopedSession($uuid, $staff);
         if (! $session || ! $session->isOpen()) {
             return response()->json(['success' => false, 'message' => 'Session not available.'], 404);
         }
 
-        if ($session->assigned_admin_id && (int) $session->assigned_admin_id !== (int) $admin->id) {
-            return response()->json(['success' => false, 'message' => 'This chat is assigned to another agent.'], 403);
+        if ($session->assigned_admin_id && (int) $session->assigned_admin_id !== (int) $staff->id) {
+            $name = $session->assignedAdmin?->name ?: 'Another agent';
+
+            return response()->json(['success' => false, 'message' => $name.' is already handling this chat.'], 403);
         }
 
         if (! $session->assigned_admin_id) {
-            $session = $this->support->claimSession($session, $admin);
+            $result = $this->support->claimSession($session, $staff);
+            if (! $result['claimed']) {
+                return response()->json(['success' => false, 'message' => $result['error'] ?? 'Could not claim chat.'], 409);
+            }
+            $session = $result['session'];
         }
 
         $data = $request->validate([
             'body' => 'nullable|string|max:2000',
-            'message_type' => 'nullable|string|in:text,webrtc,system',
+            'message_type' => 'nullable|string|in:text,webrtc,system,image',
             'meta' => 'nullable|array',
         ]);
 
@@ -98,7 +115,7 @@ class LiveSupportController extends Controller
         $message = $this->support->sendMessage(
             $session,
             'admin',
-            $admin->id,
+            $staff->id,
             $data['body'] ?? null,
             $type,
             $data['meta'] ?? null,
@@ -110,16 +127,66 @@ class LiveSupportController extends Controller
         ]);
     }
 
-    public function requestScreenShare(string $uuid): JsonResponse
+    public function uploadImage(Request $request, string $uuid): JsonResponse
     {
-        $admin = $this->ensureSuperAdmin();
-        $session = $this->support->findByUuid($uuid);
+        $staff = $this->ensureStaff();
+        $session = $this->findScopedSession($uuid, $staff);
         if (! $session || ! $session->isOpen()) {
             return response()->json(['success' => false, 'message' => 'Session not available.'], 404);
         }
 
+        if ($session->assigned_admin_id && (int) $session->assigned_admin_id !== (int) $staff->id) {
+            return response()->json(['success' => false, 'message' => 'This chat is assigned to another agent.'], 403);
+        }
+
         if (! $session->assigned_admin_id) {
-            $session = $this->support->claimSession($session, $admin);
+            $result = $this->support->claimSession($session, $staff);
+            if (! $result['claimed']) {
+                return response()->json(['success' => false, 'message' => $result['error'] ?? 'Could not claim chat.'], 409);
+            }
+            $session = $result['session'];
+        }
+
+        $request->validate([
+            'image' => 'required|image|max:5120',
+        ]);
+
+        $path = $request->file('image')->store('support-images', 'public');
+        $url = Storage::disk('public')->url($path);
+
+        $message = $this->support->sendMessage(
+            $session,
+            'admin',
+            $staff->id,
+            null,
+            SupportMessage::TYPE_IMAGE,
+            ['url' => $url, 'path' => $path],
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => $message->toPayload(),
+        ]);
+    }
+
+    public function requestScreenShare(string $uuid): JsonResponse
+    {
+        $staff = $this->ensureStaff();
+        $session = $this->findScopedSession($uuid, $staff);
+        if (! $session || ! $session->isOpen()) {
+            return response()->json(['success' => false, 'message' => 'Session not available.'], 404);
+        }
+
+        if ($session->assigned_admin_id && (int) $session->assigned_admin_id !== (int) $staff->id) {
+            return response()->json(['success' => false, 'message' => 'This chat is assigned to another agent.'], 403);
+        }
+
+        if (! $session->assigned_admin_id) {
+            $result = $this->support->claimSession($session, $staff);
+            if (! $result['claimed']) {
+                return response()->json(['success' => false, 'message' => $result['error'] ?? 'Could not claim chat.'], 409);
+            }
+            $session = $result['session'];
         }
 
         $this->support->setScreenShare($session, true);
@@ -133,7 +200,7 @@ class LiveSupportController extends Controller
         $this->support->sendMessage(
             $session,
             'admin',
-            $admin->id,
+            $staff->id,
             null,
             SupportMessage::TYPE_WEBRTC,
             ['signal' => 'request_screen'],
@@ -144,10 +211,14 @@ class LiveSupportController extends Controller
 
     public function close(string $uuid): JsonResponse
     {
-        $this->ensureSuperAdmin();
-        $session = $this->support->findByUuid($uuid);
+        $staff = $this->ensureStaff();
+        $session = $this->findScopedSession($uuid, $staff);
         if (! $session) {
             return response()->json(['success' => false, 'message' => 'Not found.'], 404);
+        }
+
+        if ($session->assigned_admin_id && (int) $session->assigned_admin_id !== (int) $staff->id) {
+            return response()->json(['success' => false, 'message' => 'Only the assigned agent can close this chat.'], 403);
         }
 
         $session = $this->support->closeSession($session, 'Support agent closed this chat.');
@@ -158,11 +229,42 @@ class LiveSupportController extends Controller
         ]);
     }
 
-    private function ensureSuperAdmin()
+    public function destroy(string $uuid): JsonResponse
     {
-        $admin = $this->adminUser();
-        abort_unless($admin && $admin->isSuperAdmin(), 403);
+        $staff = $this->ensureSuperAdmin();
+        $session = $this->support->findByUuid($uuid);
+        if (! $session) {
+            return response()->json(['success' => false, 'message' => 'Not found.'], 404);
+        }
 
-        return $admin;
+        $this->support->deleteSession($session);
+
+        return response()->json(['success' => true]);
+    }
+
+    private function ensureStaff(): User
+    {
+        $staff = $this->adminUser();
+        abort_unless($staff && LiveSupportAccess::canRespond($staff), 403);
+
+        return $staff;
+    }
+
+    private function ensureSuperAdmin(): User
+    {
+        $staff = $this->adminUser();
+        abort_unless($staff && LiveSupportAccess::canDeleteSession($staff), 403);
+
+        return $staff;
+    }
+
+    private function findScopedSession(string $uuid, User $staff): ?SupportSession
+    {
+        $session = $this->support->findByUuid($uuid);
+        if (! $session || ! LiveSupportAccess::sessionInScope($staff, $session)) {
+            return null;
+        }
+
+        return $session;
     }
 }

@@ -332,7 +332,21 @@
     @stack('scripts')
     @include('partials.support-issue-modal')
     @include('partials.support-live-chat')
-    <script>window.QuizSnapSupportConfig = @json(\App\Support\SupportContact::clientConfig());</script>
+    @php
+        $liveSupportContext = [];
+        if (session('student_id')) {
+            $loggedInStudent = \App\Models\Student::find(session('student_id'));
+            if ($loggedInStudent) {
+                $liveSupportContext = array_filter([
+                    'name' => $loggedInStudent->student_name,
+                    'index_number' => $loggedInStudent->index_number,
+                    'phone' => $loggedInStudent->phone_contact,
+                    'email' => $loggedInStudent->email,
+                ]);
+            }
+        }
+    @endphp
+    <script>window.QuizSnapSupportConfig = @json(\App\Support\SupportContact::clientConfig($liveSupportContext));</script>
     <script>window.LIVE_SUPPORT_PUBLIC = true;</script>
     <script src="{{ asset('js/support-contact.js') }}?v={{ filemtime(public_path('js/support-contact.js')) }}"></script>
     <script src="{{ asset('js/support-live-chat.js') }}?v={{ filemtime(public_path('js/support-live-chat.js')) }}"></script>

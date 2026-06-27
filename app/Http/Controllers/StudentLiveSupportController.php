@@ -7,6 +7,7 @@ use App\Models\SupportSession;
 use App\Services\LiveSupportService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class StudentLiveSupportController extends Controller
 {
@@ -17,6 +18,8 @@ class StudentLiveSupportController extends Controller
         $data = $request->validate([
             'student_index' => 'nullable|string|max:64',
             'student_name' => 'nullable|string|max:255',
+            'student_phone' => 'nullable|string|max:32',
+            'student_email' => 'nullable|string|max:255',
             'page_url' => 'nullable|string|max:500',
             'issue_category' => 'nullable|string|max:64',
             'initial_message' => 'nullable|string|max:2000',
@@ -35,7 +38,7 @@ class StudentLiveSupportController extends Controller
 
         return response()->json([
             'success' => true,
-            'session' => $session->toClientArray(),
+            'session' => $session->fresh(['assignedAdmin'])->toClientArray(),
             'client_token' => $session->client_token,
         ]);
     }
@@ -87,7 +90,7 @@ class StudentLiveSupportController extends Controller
 
         $data = $request->validate([
             'body' => 'nullable|string|max:2000',
-            'message_type' => 'nullable|string|in:text,webrtc',
+            'message_type' => 'nullable|string|in:text,webrtc,image',
             'meta' => 'nullable|array',
         ]);
 
@@ -103,6 +106,39 @@ class StudentLiveSupportController extends Controller
             $data['body'] ?? null,
             $type,
             $data['meta'] ?? null,
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => $message->toPayload(),
+        ]);
+    }
+
+    public function uploadImage(Request $request, string $uuid): JsonResponse
+    {
+        $session = $this->support->findByUuid($uuid);
+        if (! $session || ! $this->support->authorizeClient($session, $this->clientToken($request))) {
+            return response()->json(['success' => false, 'message' => 'Session not found.'], 404);
+        }
+
+        if (! $session->isOpen()) {
+            return response()->json(['success' => false, 'message' => 'This chat is closed.'], 422);
+        }
+
+        $request->validate([
+            'image' => 'required|image|max:5120',
+        ]);
+
+        $path = $request->file('image')->store('support-images', 'public');
+        $url = Storage::disk('public')->url($path);
+
+        $message = $this->support->sendMessage(
+            $session,
+            'student',
+            null,
+            null,
+            SupportMessage::TYPE_IMAGE,
+            ['url' => $url, 'path' => $path],
         );
 
         return response()->json([

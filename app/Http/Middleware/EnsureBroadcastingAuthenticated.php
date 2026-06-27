@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\SupportSession;
 use App\Models\User;
+use App\Support\LiveSupportAccess;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -49,7 +50,7 @@ class EnsureBroadcastingAuthenticated
     {
         if (session('admin_authenticated', false)) {
             $user = User::find(session('admin_user_id'));
-            if ($user instanceof User && $user->isSuperAdmin()) {
+            if ($user instanceof User && LiveSupportAccess::canRespond($user)) {
                 Auth::setUser($user);
                 $request->setUserResolver(static fn () => $user);
 

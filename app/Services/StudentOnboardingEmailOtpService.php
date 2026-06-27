@@ -39,6 +39,11 @@ class StudentOnboardingEmailOtpService
         return 'student_onboarding_pending_phone:'.$indexHash;
     }
 
+    public static function pendingEmailCacheKey(string $indexHash): string
+    {
+        return 'student_onboarding_pending_email:'.$indexHash;
+    }
+
     public static function smsAttemptsCacheKey(string $indexHash): string
     {
         return 'student_onboarding_sms_attempts:'.$indexHash;
@@ -52,6 +57,42 @@ class StudentOnboardingEmailOtpService
     public static function stashPendingPhone(string $indexHash, string $phone): void
     {
         Cache::put(self::pendingPhoneCacheKey($indexHash), $phone, now()->addMinutes(30));
+    }
+
+    public static function touchPendingPhone(string $indexHash): void
+    {
+        $phone = Cache::get(self::pendingPhoneCacheKey($indexHash));
+        if ($phone) {
+            self::stashPendingPhone($indexHash, (string) $phone);
+        }
+        self::touchPendingEmail($indexHash);
+    }
+
+    public static function stashPendingEmail(string $indexHash, string $email): void
+    {
+        Cache::put(self::pendingEmailCacheKey($indexHash), strtolower(trim($email)), now()->addMinutes(30));
+    }
+
+    public static function touchPendingEmail(string $indexHash): void
+    {
+        $email = Cache::get(self::pendingEmailCacheKey($indexHash));
+        if ($email) {
+            self::stashPendingEmail($indexHash, (string) $email);
+        }
+    }
+
+    public static function pullPendingEmail(string $indexHash): ?string
+    {
+        $email = Cache::pull(self::pendingEmailCacheKey($indexHash));
+
+        return $email ? strtolower(trim((string) $email)) : null;
+    }
+
+    public static function peekPendingEmail(string $indexHash): ?string
+    {
+        $email = Cache::get(self::pendingEmailCacheKey($indexHash));
+
+        return $email ? strtolower(trim((string) $email)) : null;
     }
 
     public static function pullPendingPhone(string $indexHash): ?string
@@ -91,11 +132,17 @@ class StudentOnboardingEmailOtpService
         return $count;
     }
 
-    public static function clearOnboardingTracking(string $indexHash): void
+    public static function clearAttemptTracking(string $indexHash): void
     {
         Cache::forget(self::smsAttemptsCacheKey($indexHash));
         Cache::forget(self::otpVerifyFailuresCacheKey($indexHash));
+    }
+
+    public static function clearOnboardingTracking(string $indexHash): void
+    {
+        self::clearAttemptTracking($indexHash);
         Cache::forget(self::pendingPhoneCacheKey($indexHash));
+        Cache::forget(self::pendingEmailCacheKey($indexHash));
     }
 
     /**
@@ -117,7 +164,7 @@ class StudentOnboardingEmailOtpService
         return [
             'email_fallback_available' => true,
             'show_email_fallback' => $promote,
-            'prefill_email' => $student->email ?: null,
+            'prefill_email' => self::peekPendingEmail($indexHash) ?: ($student->email ?: null),
         ];
     }
 
@@ -165,8 +212,7 @@ class StudentOnboardingEmailOtpService
             ], 422);
         }
 
-        $student->email = $email;
-        $student->save();
+        self::stashPendingEmail($indexHash, $email);
 
         $code = (string) random_int(100000, 999999);
         Otp::deleteOnboardingEmailOtpsForIndex($indexHash);

@@ -69,6 +69,7 @@ Route::prefix('support')->name('support.')->group(function () {
     Route::get('/sessions/{uuid}', [\App\Http\Controllers\StudentLiveSupportController::class, 'show'])->name('sessions.show');
     Route::get('/sessions/{uuid}/messages', [\App\Http\Controllers\StudentLiveSupportController::class, 'messages'])->name('sessions.messages');
     Route::post('/sessions/{uuid}/messages', [\App\Http\Controllers\StudentLiveSupportController::class, 'sendMessage'])->name('sessions.messages.send');
+    Route::post('/sessions/{uuid}/upload-image', [\App\Http\Controllers\StudentLiveSupportController::class, 'uploadImage'])->name('sessions.upload-image');
     Route::post('/sessions/{uuid}/close', [\App\Http\Controllers\StudentLiveSupportController::class, 'close'])->name('sessions.close');
 });
 
@@ -337,6 +338,19 @@ Route::middleware('admin.auth')->group(function () {
         Route::get('/faculties/{faculty}/departments', [\App\Http\Controllers\Admin\DepartmentController::class, 'byFaculty'])->name('departments.by-faculty');
         Route::get('/institutions/{institution}/faculties', [\App\Http\Controllers\Admin\FacultyController::class, 'byInstitution'])->name('faculties.by-institution');
 
+        // Live support — super admin, coordinators, and examiners (institution-scoped)
+        Route::prefix('live-support')->name('support.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\LiveSupportController::class, 'index'])->name('index');
+            Route::get('/sessions', [\App\Http\Controllers\Admin\LiveSupportController::class, 'sessions'])->name('sessions');
+            Route::get('/sessions/{uuid}', [\App\Http\Controllers\Admin\LiveSupportController::class, 'show'])->name('sessions.show');
+            Route::post('/sessions/{uuid}/claim', [\App\Http\Controllers\Admin\LiveSupportController::class, 'claim'])->name('sessions.claim');
+            Route::post('/sessions/{uuid}/messages', [\App\Http\Controllers\Admin\LiveSupportController::class, 'sendMessage'])->name('sessions.messages');
+            Route::post('/sessions/{uuid}/upload-image', [\App\Http\Controllers\Admin\LiveSupportController::class, 'uploadImage'])->name('sessions.upload-image');
+            Route::post('/sessions/{uuid}/screen-share', [\App\Http\Controllers\Admin\LiveSupportController::class, 'requestScreenShare'])->name('sessions.screen-share');
+            Route::post('/sessions/{uuid}/close', [\App\Http\Controllers\Admin\LiveSupportController::class, 'close'])->name('sessions.close');
+            Route::delete('/sessions/{uuid}', [\App\Http\Controllers\Admin\LiveSupportController::class, 'destroy'])->name('sessions.destroy');
+        });
+
         // Coordinator only: academic structure for QuizSnap
         Route::middleware('coordinator.only')->prefix('coordinators')->name('coordinators.')->group(function () {
             Route::resource('academic-years', \App\Http\Controllers\Admin\AcademicYearController::class)->parameters(['academic-years' => 'academicYear']);
@@ -368,13 +382,6 @@ Route::middleware('admin.auth')->group(function () {
             Route::get('/system/reset', [\App\Http\Controllers\Admin\SystemResetController::class, 'index'])->name('system.reset.index');
             Route::post('/system/reset', [\App\Http\Controllers\Admin\SystemResetController::class, 'reset'])->name('system.reset');
             Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
-            Route::get('/live-support', [\App\Http\Controllers\Admin\LiveSupportController::class, 'index'])->name('support.index');
-            Route::get('/live-support/sessions', [\App\Http\Controllers\Admin\LiveSupportController::class, 'sessions'])->name('support.sessions');
-            Route::get('/live-support/sessions/{uuid}', [\App\Http\Controllers\Admin\LiveSupportController::class, 'show'])->name('support.sessions.show');
-            Route::post('/live-support/sessions/{uuid}/claim', [\App\Http\Controllers\Admin\LiveSupportController::class, 'claim'])->name('support.sessions.claim');
-            Route::post('/live-support/sessions/{uuid}/messages', [\App\Http\Controllers\Admin\LiveSupportController::class, 'sendMessage'])->name('support.sessions.messages');
-            Route::post('/live-support/sessions/{uuid}/screen-share', [\App\Http\Controllers\Admin\LiveSupportController::class, 'requestScreenShare'])->name('support.sessions.screen-share');
-            Route::post('/live-support/sessions/{uuid}/close', [\App\Http\Controllers\Admin\LiveSupportController::class, 'close'])->name('support.sessions.close');
             Route::post('/settings', [SettingsController::class, 'update'])->name('settings.update');
             Route::post('/settings/study-guide/unlock', [SettingsController::class, 'studyGuideUnlock'])->name('settings.study-guide.unlock');
             if (! app()->environment('production')) {

@@ -30,13 +30,11 @@
                         <div class="bg-danger-50 border border-danger-200 rounded-lg p-3 text-sm text-danger-800" id="login-error-text"></div>
                         <div id="login-error-index-guidance" class="hidden mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
                             <p class="font-semibold mb-1">Contact your class rep or lecturer</p>
-                            <p>Your index is not on the class list yet. Ask your <strong>class rep</strong> or <strong>lecturer</strong> to add you — please do not message platform support on WhatsApp for index problems.</p>
+                            <p>Your index is not on the class list yet. Ask your <strong>class rep</strong> or <strong>lecturer</strong> to add you — please use live chat only for technical issues, not index problems.</p>
                         </div>
                         <p id="login-error-support-wrap" class="hidden mt-2 text-sm text-gray-600">
                             Need technical help?
-                            <button type="button" id="login-error-live-support" class="text-indigo-600 hover:underline font-medium">Live chat</button>
-                            <span class="text-gray-400">·</span>
-                            <a id="login-error-support" href="#" data-qs-support-whatsapp data-support-page="Login" class="text-blue-600 hover:underline font-medium">WhatsApp</a>
+                            <button type="button" id="login-error-live-support" class="text-indigo-600 hover:underline font-medium">Open live chat</button>
                         </p>
                     </div>
                     <button type="submit" class="w-full py-2.5 px-4 text-sm font-semibold rounded-lg text-white bg-primary-600 hover:bg-primary-700 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">

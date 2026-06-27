@@ -180,11 +180,11 @@
         background: #f1f5f9;
         color: #475569;
     }
-    .qs-support-modal__btn--whatsapp {
-        background: linear-gradient(145deg, #2ee06a 0%, #128c7e 100%);
+    .qs-support-modal__btn--live {
+        background: linear-gradient(145deg, #6366f1 0%, #4f46e5 100%);
         color: #fff;
     }
-    .qs-support-modal__btn--whatsapp:disabled {
+    .qs-support-modal__btn--live:disabled {
         opacity: 0.55;
         cursor: not-allowed;
     }
@@ -201,7 +201,7 @@
         <div class="qs-support-modal__header">
             <div>
                 <h2 id="qs-support-modal-title" class="qs-support-modal__title">Describe your issue</h2>
-                <p class="qs-support-modal__subtitle">For technical issues use live chat or WhatsApp. If your <strong>index is not found</strong>, contact your class rep or lecturer — not WhatsApp.</p>
+                <p class="qs-support-modal__subtitle">Describe your issue and we will connect you to live chat. If your <strong>index is not found</strong>, contact your class rep or lecturer.</p>
             </div>
             <button type="button" class="qs-support-modal__close" data-qs-support-modal-close aria-label="Close">
                 <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -221,7 +221,7 @@
             <p id="qs-support-modal-error" class="qs-support-modal__error" role="alert">Please describe your issue in at least 10 characters.</p>
             <div class="qs-support-modal__actions">
                 <button type="button" class="qs-support-modal__btn qs-support-modal__btn--ghost" data-qs-support-modal-close>Cancel</button>
-                <button type="submit" class="qs-support-modal__btn qs-support-modal__btn--whatsapp" id="qs-support-modal-submit">Continue to WhatsApp</button>
+                <button type="submit" class="qs-support-modal__btn qs-support-modal__btn--live" id="qs-support-modal-submit">Start live chat</button>
             </div>
         </form>
     </div>

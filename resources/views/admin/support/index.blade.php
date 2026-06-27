@@ -113,6 +113,20 @@
         font-size: 0.75rem;
         text-align: center;
     }
+    .live-support-msg__image {
+        display: block;
+        max-width: 100%;
+        max-height: 10rem;
+        border-radius: 0.5rem;
+    }
+    .live-support-taken-notice {
+        padding: 0.5rem 1rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #92400e;
+        background: #fffbeb;
+        border-bottom: 1px solid #fde68a;
+    }
     .live-support-compose {
         display: flex;
         gap: 0.5rem;
@@ -168,13 +182,19 @@
 
         <div class="live-support-panel">
             <div class="live-support-panel__head" id="live-support-chat-header">Select a chat</div>
+            <div id="live-support-taken-notice" class="live-support-taken-notice" hidden></div>
             <div class="live-support-chat-toolbar">
                 <button type="button" id="live-support-screen-btn" class="primary">Request screen share</button>
                 <button type="button" id="live-support-close-btn">Close chat</button>
+                @if($canDeleteSessions ?? false)
+                <button type="button" id="live-support-delete-btn" style="color:#b91c1c;border-color:#fecaca;">Delete chat</button>
+                @endif
             </div>
             <video id="live-support-remote-video" class="hidden" autoplay playsinline muted></video>
             <div id="live-support-messages" class="live-support-messages" aria-live="polite"></div>
             <div class="live-support-compose">
+                <input type="file" id="live-support-image-input" accept="image/*" hidden>
+                <button type="button" id="live-support-image-btn" aria-label="Send image" style="border:1px solid #cbd5e1;background:#fff;border-radius:9999px;width:2.25rem;height:2.25rem;cursor:pointer;">📷</button>
                 <input type="text" id="live-support-input" placeholder="Type your reply…" maxlength="2000" autocomplete="off">
                 <button type="button" id="live-support-send">Send</button>
             </div>
@@ -185,7 +205,7 @@
 
 @push('scripts-after-reverb')
 <script>window.SUPPORT_ACCESS = true;</script>
-<script>window.QuizSnapLiveSupportAdmin = { baseUrl: @json(url('/dashboard/live-support')) };</script>
+<script>window.QuizSnapLiveSupportAdmin = { baseUrl: @json(url('/dashboard/live-support')), staffId: @json(auth()->id()) };</script>
 <script src="{{ asset('js/support-live-admin.js') }}?v={{ filemtime(public_path('js/support-live-admin.js')) }}"></script>
 <script>
 (function() {

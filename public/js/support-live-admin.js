@@ -179,6 +179,12 @@
     }
 
     function refreshQueue() {
+        if (window.QuizSnapLive && typeof window.QuizSnapLive.isUserInteracting === 'function') {
+            var busy = window.QuizSnapLive.isUserInteracting();
+            if (busy && inputEl && document.activeElement === inputEl) {
+                return Promise.resolve();
+            }
+        }
         return fetch(url('/sessions'), { headers: jsonHeaders() })
             .then(function (r) { return r.json(); })
             .then(function (data) {
@@ -191,15 +197,20 @@
             });
     }
 
+    var sessionChannelBindings = {};
+
     function pollActiveMessages() {
         if (!activeUuid) return;
-        fetch(url('/sessions/' + encodeURIComponent(activeUuid)), { headers: jsonHeaders() })
+        var sinceQuery = lastMessageId > 0 ? ('?since=' + encodeURIComponent(String(lastMessageId))) : '';
+        fetch(url('/sessions/' + encodeURIComponent(activeUuid) + sinceQuery), { headers: jsonHeaders() })
             .then(function (r) { return r.json(); })
             .then(function (data) {
                 if (!data.success) return;
                 activeSession = data.session;
                 updateTakenNotice(data.session);
-                ingestMessages(data.messages, true);
+                if (Array.isArray(data.messages) && data.messages.length) {
+                    ingestMessages(data.messages, true);
+                }
             });
     }
 
@@ -249,7 +260,8 @@
     }
 
     function bindSessionChannel(uuid) {
-        if (!window.QuizSnapReverb) return;
+        if (!window.QuizSnapReverb || sessionChannelBindings[uuid]) return;
+        sessionChannelBindings[uuid] = true;
         var ch = window.QuizSnapReverb.subscribePrivate('private-support-session.' + uuid);
         if (!ch) return;
         ch.bind('SupportMessageSent', function (payload) {

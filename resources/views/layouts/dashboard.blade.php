@@ -212,7 +212,7 @@
         </div>
     </aside>
 
-    <div class="examiner-main flex flex-col flex-1 min-w-0 min-h-0">
+    <div class="examiner-main flex flex-col flex-1 min-w-0 min-h-0" data-quizsnap-skip-live-reload>
         <header class="flex min-h-14 flex-shrink-0 items-stretch border-b border-gray-200 bg-white z-10 min-w-0 safe-area-header">
             <div class="examiner-page flex flex-1 flex-wrap items-center gap-2 sm:gap-3 w-full min-w-0 px-3 py-2 sm:px-4 md:px-6">
                 <button type="button" id="examiner-sidebar-menu-btn" class="flex h-11 w-11 min-h-[44px] min-w-[44px] flex-shrink-0 items-center justify-center rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-300 touch-manipulation" aria-label="Open menu" title="Open menu" style="display: none;">

@@ -219,6 +219,12 @@
     }
 
     function softRefreshContent() {
+        if (window.QuizSnapLive && typeof window.QuizSnapLive.isUserInteracting === 'function') {
+            if (window.QuizSnapLive.isUserInteracting()) {
+                return;
+            }
+        }
+
         var root = document.getElementById(liveRootId);
         if (!root) {
             return;
@@ -256,12 +262,21 @@
         }
         refreshTimer = setTimeout(function () {
             refreshTimer = null;
+            if (window.QuizSnapLive && typeof window.QuizSnapLive.isUserInteracting === 'function') {
+                if (window.QuizSnapLive.isUserInteracting()) {
+                    scheduleSoftRefresh();
+                    return;
+                }
+            }
             softRefreshContent();
         }, 500);
     }
 
     if (window.QuizSnapLive && typeof window.QuizSnapLive.registerRefresher === 'function') {
         window.QuizSnapLive.registerRefresher(function (type) {
+            if (window.QuizSnapLive.isUserInteracting && window.QuizSnapLive.isUserInteracting()) {
+                return;
+            }
             var path = String(window.location.pathname || '');
             if (!shouldSoftRefresh(path)) {
                 return;

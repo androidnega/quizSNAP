@@ -45,7 +45,7 @@ class LiveSupportController extends Controller
         ]);
     }
 
-    public function show(string $uuid): JsonResponse
+    public function show(Request $request, string $uuid): JsonResponse
     {
         $staff = $this->ensureStaff();
         $session = $this->findScopedSession($uuid, $staff);
@@ -53,10 +53,18 @@ class LiveSupportController extends Controller
             return response()->json(['success' => false, 'message' => 'Not found.'], 404);
         }
 
+        $sinceId = (int) $request->query('since', 0);
+        $messagesQuery = $session->messages()->orderBy('id');
+        if ($sinceId > 0) {
+            $messagesQuery->where('id', '>', $sinceId);
+        } else {
+            $messagesQuery->limit(500);
+        }
+
         return response()->json([
             'success' => true,
             'session' => $session->load('assignedAdmin')->toClientArray(),
-            'messages' => $session->messages()->orderBy('id')->limit(500)->get()->map->toPayload()->values(),
+            'messages' => $messagesQuery->get()->map->toPayload()->values(),
         ]);
     }
 

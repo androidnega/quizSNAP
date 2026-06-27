@@ -283,6 +283,9 @@
 
     if (window.QuizSnapLive && typeof window.QuizSnapLive.registerRefresher === 'function') {
         window.QuizSnapLive.registerRefresher(function (type) {
+            if (window.QuizSnapLive.isUserInteracting && window.QuizSnapLive.isUserInteracting()) {
+                return;
+            }
             if (type === 'sessions' || type === 'dashboard') {
                 fetchLiveStats();
             }

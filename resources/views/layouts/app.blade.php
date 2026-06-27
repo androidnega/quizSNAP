@@ -353,7 +353,7 @@
     <script src="{{ asset('js/support-live-chat.js') }}?v={{ filemtime(public_path('js/support-live-chat.js')) }}"></script>
 
     @if(($reverbClientConfig = \App\Services\ReverbClientConfig::clientConfig()) !== null)
-    <!-- Real-time: Reverb WebSocket + page refresh hooks -->
+    <!-- Real-time: Reverb WebSocket + partial live refresh (no full-page reload) -->
     <script>
     window.REVERB_CONFIG = {
         key: @json($reverbClientConfig['key']),

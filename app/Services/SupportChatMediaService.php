@@ -39,9 +39,13 @@ class SupportChatMediaService
     /** @return array{path: string, url: string} */
     private function payloadForPath(string $path): array
     {
+        $relative = Storage::disk(self::DISK)->url($path);
+
         return [
             'path' => $path,
-            'url' => Storage::disk(self::DISK)->url($path),
+            'url' => str_starts_with($relative, 'http')
+                ? $relative
+                : url($relative),
         ];
     }
 

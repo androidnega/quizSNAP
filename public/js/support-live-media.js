@@ -23,16 +23,52 @@
             '<path d="' + escapeHtml(path) + '"></path></svg></span>';
     }
 
+    function resolveMediaUrl(url) {
+        if (!url) return '';
+        if (/^(https?:|blob:)/i.test(url)) return url;
+        if (url.charAt(0) === '/') return window.location.origin + url;
+        return url;
+    }
+
+    function blobMime(blob) {
+        return (blob && blob.type) ? blob.type : 'audio/webm';
+    }
+
+    function audioFilenameForBlob(blob) {
+        var mime = blobMime(blob);
+        if (mime.indexOf('mp4') !== -1 || mime.indexOf('m4a') !== -1) return 'voice-message.m4a';
+        if (mime.indexOf('ogg') !== -1) return 'voice-message.ogg';
+        if (mime.indexOf('mpeg') !== -1 || mime.indexOf('mp3') !== -1) return 'voice-message.mp3';
+        return 'voice-message.webm';
+    }
+
+    function buildAudioElement(src, mime) {
+        var audio = document.createElement('audio');
+        audio.controls = true;
+        audio.preload = 'auto';
+        audio.playsInline = true;
+        audio.className = 'qs-live-msg__audio';
+        if (mime) {
+            var source = document.createElement('source');
+            source.src = resolveMediaUrl(src);
+            source.type = mime;
+            audio.appendChild(source);
+        } else {
+            audio.src = resolveMediaUrl(src);
+        }
+        return audio;
+    }
+
     function appendMessageMedia(bubble, msg) {
         if (!bubble || !msg || !msg.meta) return false;
         if (msg.message_type === 'image' && msg.meta.url) {
             var img = document.createElement('img');
-            img.src = msg.meta.url;
+            img.src = resolveMediaUrl(msg.meta.url);
             img.alt = 'Shared image';
             img.className = 'qs-live-msg__image';
             img.loading = 'lazy';
             var link = document.createElement('a');
-            link.href = msg.meta.url;
+            link.href = resolveMediaUrl(msg.meta.url);
             link.target = '_blank';
             link.rel = 'noopener noreferrer';
             link.appendChild(img);
@@ -40,15 +76,25 @@
             return true;
         }
         if (msg.message_type === 'audio' && msg.meta.url) {
-            var audio = document.createElement('audio');
-            audio.controls = true;
-            audio.preload = 'metadata';
-            audio.className = 'qs-live-msg__audio';
-            audio.src = msg.meta.url;
-            bubble.appendChild(audio);
+            bubble.appendChild(buildAudioElement(msg.meta.url, msg.meta.mime || 'audio/webm'));
             return true;
         }
         return false;
+    }
+
+    function pickRecorderMime() {
+        if (!window.MediaRecorder) return '';
+        var types = [
+            'audio/webm;codecs=opus',
+            'audio/webm',
+            'audio/mp4',
+            'audio/ogg;codecs=opus',
+            'audio/ogg',
+        ];
+        for (var i = 0; i < types.length; i++) {
+            if (MediaRecorder.isTypeSupported(types[i])) return types[i];
+        }
+        return '';
     }
 
     function createWaveform(mountEl, barCount) {
@@ -109,6 +155,7 @@
         var rafId = null;
         var levelCallback = null;
         var freqData = null;
+        var selectedMime = '';
 
         function stopTracks() {
             if (stream) {
@@ -153,6 +200,7 @@
 
         return {
             isRecording: function () { return recording; },
+            getMimeType: function () { return selectedMime || blobMime(null); },
             onLevels: function (fn) { levelCallback = fn; },
             start: function () {
                 if (recording || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -162,10 +210,10 @@
                     .then(function (s) {
                         stream = s;
                         chunks = [];
-                        var mime = window.MediaRecorder && MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-                            ? 'audio/webm;codecs=opus'
-                            : (window.MediaRecorder && MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : '');
-                        recorder = mime ? new MediaRecorder(s, { mimeType: mime }) : new MediaRecorder(s);
+                        selectedMime = pickRecorderMime();
+                        recorder = selectedMime
+                            ? new MediaRecorder(s, { mimeType: selectedMime })
+                            : new MediaRecorder(s);
                         recorder.ondataavailable = function (e) {
                             if (e.data && e.data.size > 0) chunks.push(e.data);
                         };
@@ -180,7 +228,7 @@
                     recorder.onstop = function () {
                         recording = false;
                         stopMonitor();
-                        var type = (recorder && recorder.mimeType) ? recorder.mimeType : 'audio/webm';
+                        var type = (recorder && recorder.mimeType) ? recorder.mimeType : (selectedMime || 'audio/webm');
                         var blob = chunks.length ? new Blob(chunks, { type: type }) : null;
                         stopTracks();
                         recorder = null;
@@ -221,6 +269,10 @@
     window.QuizSnapSupportMedia = {
         renderAvatarHtml: renderAvatarHtml,
         appendMessageMedia: appendMessageMedia,
+        buildAudioElement: buildAudioElement,
+        resolveMediaUrl: resolveMediaUrl,
+        audioFilenameForBlob: audioFilenameForBlob,
+        blobMime: blobMime,
         createRecorder: createRecorder,
         createWaveform: createWaveform,
         packRtcMeta: packRtcMeta,

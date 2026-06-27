@@ -43,6 +43,7 @@
     var audioRecorder = null;
     var recordingWaveform = null;
     var pendingRemoteIce = [];
+    var pendingAudio = null;
     var selectedAvatar = cfg.supportAvatar || null;
 
     function sounds() {
@@ -286,7 +287,7 @@
             div.appendChild(time);
         }
         messagesEl.appendChild(div);
-        if (msg.id > lastMessageId) lastMessageId = msg.id;
+        if (typeof msg.id === 'number' && msg.id > lastMessageId) lastMessageId = msg.id;
         messagesEl.scrollTop = messagesEl.scrollHeight;
 
         notifyIncomingStudentMessage(msg, activeUuid, fromEcho);
@@ -517,7 +518,48 @@
         });
     }
 
+    function clearPendingAudio(removeEl) {
+        if (pendingAudio && pendingAudio.objectUrl) {
+            URL.revokeObjectURL(pendingAudio.objectUrl);
+        }
+        if (removeEl !== false && pendingAudio && pendingAudio.id) {
+            var el = document.querySelector('[data-admin-msg-id="' + pendingAudio.id + '"]');
+            if (el) el.remove();
+        }
+        pendingAudio = null;
+    }
+
+    function renderPendingAudioMessage(blob) {
+        clearPendingAudio(true);
+        var pendingId = 'pending-audio-' + Date.now();
+        var objectUrl = URL.createObjectURL(blob);
+        var mime = media().blobMime(blob);
+        pendingAudio = { id: pendingId, objectUrl: objectUrl, mime: mime };
+        renderMessage({
+            id: pendingId,
+            sender_type: 'admin',
+            message_type: 'audio',
+            meta: { url: objectUrl, mime: mime },
+            created_at: new Date().toISOString(),
+        }, false);
+        return pendingId;
+    }
+
+    function replacePendingAudioMessage(pendingId, serverMsg) {
+        if (pendingAudio && pendingAudio.id === pendingId) {
+            URL.revokeObjectURL(pendingAudio.objectUrl);
+            pendingAudio = null;
+        }
+        var el = document.querySelector('[data-admin-msg-id="' + pendingId + '"]');
+        if (el) el.remove();
+        if (serverMsg) renderMessage(serverMsg, false);
+    }
+
     function sendMessage() {
+        if (audioRecorder && audioRecorder.isRecording()) {
+            sendRecordedAudio();
+            return;
+        }
         if (!activeUuid || !inputEl || inputEl.disabled) return;
         var text = inputEl.value.trim();
         if (!text) return;
@@ -553,10 +595,10 @@
         });
     }
 
-    function uploadAudio(blob) {
+    function uploadAudio(blob, pendingId) {
         if (!activeUuid || !blob || (inputEl && inputEl.disabled)) return;
         var fd = new FormData();
-        fd.append('audio', blob, 'voice-message.webm');
+        fd.append('audio', blob, media().audioFilenameForBlob(blob));
         fetch(url('/sessions/' + encodeURIComponent(activeUuid) + '/upload-audio'), {
             method: 'POST',
             headers: {
@@ -565,23 +607,31 @@
                 'X-Requested-With': 'XMLHttpRequest',
             },
             body: fd,
-        }).then(function (r) { return r.json(); }).then(function (data) {
-            if (data.success && data.message) renderMessage(data.message, false);
-            else if (data.message) alert(data.message);
-        });
+        })
+            .then(function (r) {
+                return r.json().then(function (d) { return { ok: r.ok, data: d }; });
+            })
+            .then(function (res) {
+                if (res.ok && res.data.success && res.data.message) {
+                    if (pendingId) {
+                        replacePendingAudioMessage(pendingId, res.data.message);
+                    } else {
+                        renderMessage(res.data.message, false);
+                    }
+                } else {
+                    alert((res.data && res.data.message) || 'Could not send voice message.');
+                }
+            })
+            .catch(function () {
+                alert('Could not send voice message. Check your connection and try again.');
+            });
     }
 
-    function toggleAudioRecording() {
+    function startAudioRecording() {
         if (!media() || !activeUuid || (inputEl && inputEl.disabled)) return;
         if (!audioRecorder) audioRecorder = media().createRecorder();
-        if (audioRecorder.isRecording()) {
-            if (audioBtn) audioBtn.classList.remove('is-recording');
-            hideRecordingWave();
-            audioRecorder.stop().then(function (blob) {
-                if (blob && blob.size > 0) uploadAudio(blob);
-            });
-            return;
-        }
+        if (audioRecorder.isRecording()) return;
+        clearPendingAudio(true);
         audioRecorder.start().then(function () {
             if (audioBtn) audioBtn.classList.add('is-recording');
             showRecordingWave(audioRecorder);
@@ -589,6 +639,35 @@
             hideRecordingWave();
             alert('Microphone access is required to send a voice message.');
         });
+    }
+
+    function cancelAudioRecording() {
+        if (!audioRecorder || !audioRecorder.isRecording()) return;
+        audioRecorder.cancel();
+        if (audioBtn) audioBtn.classList.remove('is-recording');
+        hideRecordingWave();
+    }
+
+    function sendRecordedAudio() {
+        if (!audioRecorder || !audioRecorder.isRecording()) return;
+        if (audioBtn) audioBtn.classList.remove('is-recording');
+        hideRecordingWave();
+        audioRecorder.stop().then(function (blob) {
+            if (!blob || blob.size === 0) return;
+            var pendingId = renderPendingAudioMessage(blob);
+            uploadAudio(blob, pendingId);
+            isTyping = false;
+            sendTypingSignal(false);
+        });
+    }
+
+    function toggleAudioRecording() {
+        if (!media() || !activeUuid || (inputEl && inputEl.disabled)) return;
+        if (audioRecorder && audioRecorder.isRecording()) {
+            cancelAudioRecording();
+            return;
+        }
+        startAudioRecording();
     }
 
     function saveAvatar(value) {

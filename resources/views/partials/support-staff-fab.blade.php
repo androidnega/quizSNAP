@@ -214,6 +214,12 @@
     .live-support-msg--admin .live-support-msg__bubble { background: #4f46e5; color: #fff; padding: 0.375rem 0.625rem; border-radius: 0.625rem; }
     .live-support-msg--system .live-support-msg__bubble { background: #eef2ff; color: #3730a3; padding: 0.375rem 0.625rem; border-radius: 0.625rem; text-align: center; font-size: 0.6875rem; }
     .live-support-msg__image { max-width: 100%; max-height: 6rem; border-radius: 0.375rem; display: block; }
+    .live-support-msg__audio,
+    .qs-live-msg__audio {
+        display: block;
+        width: min(100%, 14rem);
+        min-height: 2.125rem;
+    }
     .staff-support-fab-compose button {
         border: none;
         background: #4f46e5;

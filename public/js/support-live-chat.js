@@ -52,6 +52,7 @@
         audioRecorder: null,
         recordingWaveform: null,
         pendingRemoteIce: [],
+        pendingAudio: null,
     };
 
     function csrf() {
@@ -578,18 +579,69 @@
         sendTypingSignal(false);
     }
 
-    function uploadAudio(blob) {
+    function clearPendingAudio(removeEl) {
+        if (state.pendingAudio && state.pendingAudio.objectUrl) {
+            URL.revokeObjectURL(state.pendingAudio.objectUrl);
+        }
+        if (removeEl !== false && state.pendingAudio && state.pendingAudio.id) {
+            var el = document.querySelector('[data-live-msg-id="' + state.pendingAudio.id + '"]');
+            if (el) el.remove();
+        }
+        state.pendingAudio = null;
+    }
+
+    function renderPendingAudioMessage(blob) {
+        clearPendingAudio(true);
+        var pendingId = 'pending-audio-' + Date.now();
+        var objectUrl = URL.createObjectURL(blob);
+        var mime = media().blobMime(blob);
+        state.pendingAudio = { id: pendingId, objectUrl: objectUrl, mime: mime };
+        renderMessage({
+            id: pendingId,
+            sender_type: 'student',
+            message_type: 'audio',
+            meta: { url: objectUrl, mime: mime },
+            created_at: new Date().toISOString(),
+        }, false);
+        return pendingId;
+    }
+
+    function replacePendingAudioMessage(pendingId, serverMsg) {
+        if (state.pendingAudio && state.pendingAudio.id === pendingId) {
+            URL.revokeObjectURL(state.pendingAudio.objectUrl);
+            state.pendingAudio = null;
+        }
+        var el = document.querySelector('[data-live-msg-id="' + pendingId + '"]');
+        if (el) el.remove();
+        if (serverMsg) renderMessage(serverMsg, false);
+    }
+
+    function uploadAudio(blob, pendingId) {
         if (!state.uuid || !blob) return;
         var fd = new FormData();
-        fd.append('audio', blob, 'voice-message.webm');
+        fd.append('audio', blob, media().audioFilenameForBlob(blob));
         fetch('/support/sessions/' + encodeURIComponent(state.uuid) + '/upload-audio', {
             method: 'POST',
             headers: headers(false),
             body: fd,
         })
-            .then(function (r) { return r.json(); })
-            .then(function (data) {
-                if (data.success && data.message) renderMessage(data.message, false);
+            .then(function (r) {
+                return r.json().then(function (d) { return { ok: r.ok, data: d }; });
+            })
+            .then(function (res) {
+                if (res.ok && res.data.success && res.data.message) {
+                    if (pendingId) {
+                        replacePendingAudioMessage(pendingId, res.data.message);
+                    } else {
+                        renderMessage(res.data.message, false);
+                    }
+                } else {
+                    var msg = (res.data && res.data.message) || 'Could not send voice message.';
+                    alert(msg);
+                }
+            })
+            .catch(function () {
+                alert('Could not send voice message. Check your connection and try again.');
             });
     }
 
@@ -612,25 +664,61 @@
         });
     }
 
-    function toggleAudioRecording() {
+    function startAudioRecording() {
         if (!media() || !state.uuid) return;
         if (!state.audioRecorder) state.audioRecorder = media().createRecorder();
-        var rec = state.audioRecorder;
-        if (rec.isRecording()) {
-            if (audioBtn) audioBtn.classList.remove('is-recording');
-            hideRecordingWave();
-            rec.stop().then(function (blob) {
-                if (blob && blob.size > 0) uploadAudio(blob);
-            });
-            return;
-        }
-        rec.start().then(function () {
+        if (state.audioRecorder.isRecording()) return;
+        clearPendingAudio(true);
+        state.audioRecorder.start().then(function () {
             if (audioBtn) audioBtn.classList.add('is-recording');
-            showRecordingWave(rec);
+            showRecordingWave(state.audioRecorder);
         }).catch(function () {
             hideRecordingWave();
             alert('Microphone access is required to send a voice message.');
         });
+    }
+
+    function cancelAudioRecording() {
+        if (!state.audioRecorder || !state.audioRecorder.isRecording()) return;
+        state.audioRecorder.cancel();
+        if (audioBtn) audioBtn.classList.remove('is-recording');
+        hideRecordingWave();
+    }
+
+    function sendRecordedAudio() {
+        if (!state.audioRecorder || !state.audioRecorder.isRecording()) return Promise.resolve(false);
+        if (audioBtn) audioBtn.classList.remove('is-recording');
+        hideRecordingWave();
+        return state.audioRecorder.stop().then(function (blob) {
+            if (!blob || blob.size === 0) return false;
+            var pendingId = renderPendingAudioMessage(blob);
+            uploadAudio(blob, pendingId);
+            state.isTyping = false;
+            sendTypingSignal(false);
+            return true;
+        });
+    }
+
+    function handleSendAction() {
+        if (state.audioRecorder && state.audioRecorder.isRecording()) {
+            sendRecordedAudio();
+            return;
+        }
+        if (!inputEl) return;
+        var text = inputEl.value.trim();
+        if (!text) return;
+        inputEl.value = '';
+        if (window.QuizSnapSupportCompose) QuizSnapSupportCompose.autoGrow(inputEl);
+        sendText(text);
+    }
+
+    function toggleAudioRecording() {
+        if (!media() || !state.uuid) return;
+        if (state.audioRecorder && state.audioRecorder.isRecording()) {
+            cancelAudioRecording();
+            return;
+        }
+        startAudioRecording();
     }
 
     function uploadImage(file) {
@@ -781,19 +869,13 @@
     }
 
     if (sendBtn && inputEl) {
-        sendBtn.addEventListener('click', function () {
-            var text = inputEl.value.trim();
-            if (!text) return;
-            inputEl.value = '';
-            if (window.QuizSnapSupportCompose) QuizSnapSupportCompose.autoGrow(inputEl);
-            sendText(text);
-        });
+        sendBtn.addEventListener('click', handleSendAction);
         if (window.QuizSnapSupportCompose) {
             QuizSnapSupportCompose.bindTextarea(inputEl, sendBtn);
             QuizSnapSupportCompose.mountEmojiBar(document.getElementById('qs-live-support-emoji-bar'), inputEl);
         } else {
             inputEl.addEventListener('keydown', function (e) {
-                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendBtn.click(); }
+                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendAction(); }
                 else onInputTyping();
             });
             inputEl.addEventListener('input', onInputTyping);

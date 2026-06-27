@@ -207,10 +207,17 @@ class LiveSupportController extends Controller
         }
 
         $request->validate([
-            'audio' => 'required|file|mimetypes:audio/webm,audio/ogg,audio/mpeg,audio/mp4,audio/wav,audio/x-wav,video/webm|max:8192',
+            'audio' => 'required|file|max:8192',
         ]);
 
-        $stored = $this->media->storeAudio($session, $request->file('audio'));
+        $file = $request->file('audio');
+        $allowed = ['webm', 'ogg', 'mp3', 'mpeg', 'mp4', 'm4a', 'wav', 'x-wav'];
+        $ext = strtolower($file->getClientOriginalExtension() ?: 'webm');
+        if (! in_array($ext, $allowed, true)) {
+            return response()->json(['success' => false, 'message' => 'Unsupported audio format.'], 422);
+        }
+
+        $stored = $this->media->storeAudio($session, $file);
 
         $message = $this->support->sendMessage(
             $session,

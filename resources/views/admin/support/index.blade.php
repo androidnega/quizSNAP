@@ -359,6 +359,12 @@
         object-fit: contain;
     }
     #live-support-remote-video.hidden { display: none; }
+    .live-support-msg__audio,
+    .qs-live-msg__audio {
+        display: block;
+        width: min(100%, 14rem);
+        min-height: 2.125rem;
+    }
     .qs-live-recording-wave {
         display: none;
         align-items: center;

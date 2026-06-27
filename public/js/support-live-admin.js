@@ -13,6 +13,9 @@
     var screenBtn = document.getElementById(prefix + 'live-support-screen-btn');
     var closeBtn = document.getElementById(prefix + 'live-support-close-btn');
     var deleteBtn = document.getElementById(prefix + 'live-support-delete-btn');
+    var referWrap = document.getElementById(prefix + 'live-support-refer-wrap');
+    var referSelect = document.getElementById(prefix + 'live-support-refer-select');
+    var referBtn = document.getElementById(prefix + 'live-support-refer-btn');
     var remoteVideo = document.getElementById(prefix + 'live-support-remote-video');
     var headerEl = document.getElementById(prefix + 'live-support-chat-header');
     var imageInput = document.getElementById(prefix + 'live-support-image-input');
@@ -57,6 +60,82 @@
         var d = document.createElement('div');
         d.textContent = str;
         return d.innerHTML;
+    }
+
+    function isAssignedToMe(session) {
+        if (!session || !session.assigned_admin || !currentStaffId) return false;
+        return String(session.assigned_admin.id) === String(currentStaffId);
+    }
+
+    function updateReferControls(session) {
+        if (!referWrap || !referSelect) return;
+        if (!session || !isAssignedToMe(session) || session.status !== 'active') {
+            referWrap.hidden = true;
+            referSelect.value = '';
+            return;
+        }
+        fetch(url('/agents/available'), { headers: jsonHeaders() })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (!data.success || !Array.isArray(data.agents)) {
+                    referWrap.hidden = true;
+                    return;
+                }
+                referSelect.innerHTML = '<option value="">Refer to agent…</option>';
+                data.agents.forEach(function (agent) {
+                    var opt = document.createElement('option');
+                    opt.value = String(agent.id);
+                    opt.textContent = agent.name || agent.username || ('Agent #' + agent.id);
+                    referSelect.appendChild(opt);
+                });
+                referWrap.hidden = data.agents.length === 0;
+            })
+            .catch(function () {
+                referWrap.hidden = true;
+            });
+    }
+
+    function referSession() {
+        if (!activeUuid || !referSelect || !referSelect.value) return;
+        var agentId = referSelect.value;
+        var agentName = referSelect.options[referSelect.selectedIndex].textContent;
+        if (!confirm('Refer this chat to ' + agentName + '?')) return;
+        if (referBtn) referBtn.disabled = true;
+        fetch(url('/sessions/' + encodeURIComponent(activeUuid) + '/refer'), {
+            method: 'POST',
+            headers: jsonHeaders(),
+            body: JSON.stringify({ agent_id: parseInt(agentId, 10) }),
+        })
+            .then(function (r) {
+                return r.json().then(function (data) {
+                    return { ok: r.ok, data: data };
+                });
+            })
+            .then(function (res) {
+                if (res.ok && res.data.success) {
+                    activeSession = res.data.session;
+                    updateTakenNotice(res.data.session);
+                    updateReferControls(res.data.session);
+                    refreshQueue();
+                    if (headerEl && res.data.session.assigned_admin) {
+                        headerEl.textContent = (headerEl.textContent || '') + ' · Referred to ' + res.data.session.assigned_admin.name;
+                    }
+                } else {
+                    alert(res.data.message || 'Could not refer chat.');
+                    if (res.data.session) {
+                        activeSession = res.data.session;
+                        updateTakenNotice(res.data.session);
+                        updateReferControls(res.data.session);
+                    }
+                }
+            })
+            .catch(function () {
+                alert('Could not refer chat. Check your connection and try again.');
+            })
+            .finally(function () {
+                if (referBtn) referBtn.disabled = false;
+                if (referSelect) referSelect.value = '';
+            });
     }
 
     function isTakenByOther(session) {
@@ -231,6 +310,7 @@
         activeUuid = uuid;
         lastMessageId = 0;
         activeSession = null;
+        updateReferControls(null);
         if (messagePollTimer) clearInterval(messagePollTimer);
         messagePollTimer = setInterval(pollActiveMessages, 2500);
         if (messagesEl) messagesEl.innerHTML = '';
@@ -248,6 +328,7 @@
                     headerEl.textContent = parts.join(' · ');
                 }
                 updateTakenNotice(data.session);
+                updateReferControls(data.session);
                 ingestMessages(data.messages, false);
                 refreshQueue();
                 if (data.session.status === 'waiting' && !isTakenByOther(data.session)) {
@@ -255,9 +336,11 @@
                         if (claimData.success) {
                             activeSession = claimData.session;
                             updateTakenNotice(claimData.session);
+                            updateReferControls(claimData.session);
                         } else if (claimData.session) {
                             activeSession = claimData.session;
                             updateTakenNotice(claimData.session);
+                            updateReferControls(claimData.session);
                         }
                     });
                 }
@@ -291,6 +374,7 @@
             if (payload && payload.session && payload.session.uuid === uuid) {
                 activeSession = payload.session;
                 updateTakenNotice(payload.session);
+                updateReferControls(payload.session);
                 refreshQueue();
             }
         });
@@ -402,6 +486,7 @@
                 refreshQueue();
             });
     });
+    if (referBtn) referBtn.addEventListener('click', referSession);
     if (deleteBtn) deleteBtn.addEventListener('click', function () {
         if (!activeUuid || !confirm('Permanently delete this chat and all messages?')) return;
         deleteBtn.disabled = true;

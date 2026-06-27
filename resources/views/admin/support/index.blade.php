@@ -121,6 +121,25 @@
         color: #b91c1c;
         border-color: #fecaca;
     }
+    .live-support-refer-wrap {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        margin-left: auto;
+    }
+    .live-support-refer-wrap[hidden] { display: none; }
+    .live-support-refer-wrap select {
+        border: 1px solid var(--theme-border, #cbd5e1);
+        border-radius: 0.5rem;
+        padding: 0.4375rem 0.625rem;
+        font-size: 0.75rem;
+        max-width: 11rem;
+        background: var(--theme-surface, #fff);
+        color: var(--theme-text, #0f172a);
+    }
+    .live-support-refer-wrap button {
+        white-space: nowrap;
+    }
     .live-support-messages {
         flex: 1;
         overflow-y: auto;
@@ -269,6 +288,12 @@
                 @if($canDeleteSessions ?? false)
                 <button type="button" id="live-support-delete-btn" class="danger">Delete chat</button>
                 @endif
+                <div class="live-support-refer-wrap" id="live-support-refer-wrap" hidden>
+                    <select id="live-support-refer-select" aria-label="Refer to available agent">
+                        <option value="">Refer to agent…</option>
+                    </select>
+                    <button type="button" id="live-support-refer-btn">Refer</button>
+                </div>
             </div>
             <video id="live-support-remote-video" class="hidden" autoplay playsinline muted></video>
             <div id="live-support-messages" class="live-support-messages" aria-live="polite"></div>

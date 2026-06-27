@@ -252,6 +252,48 @@ class LiveSupportController extends Controller
         ]);
     }
 
+    public function availableAgents(): JsonResponse
+    {
+        $staff = $this->ensureStaff();
+
+        return response()->json([
+            'success' => true,
+            'agents' => $this->presence->onlineRespondersExcluding((int) $staff->id),
+        ]);
+    }
+
+    public function refer(Request $request, string $uuid): JsonResponse
+    {
+        $staff = $this->ensureStaff();
+        $session = $this->findScopedSession($uuid, $staff);
+        if (! $session || ! $session->isOpen()) {
+            return response()->json(['success' => false, 'message' => 'Session not available.'], 404);
+        }
+
+        $data = $request->validate([
+            'agent_id' => 'required|integer|exists:users,id',
+        ]);
+
+        $target = User::find((int) $data['agent_id']);
+        if (! $target) {
+            return response()->json(['success' => false, 'message' => 'Agent not found.'], 404);
+        }
+
+        $result = $this->support->referSession($session, $staff, $target);
+        if (! $result['referred']) {
+            return response()->json([
+                'success' => false,
+                'message' => $result['error'] ?? 'Could not refer chat.',
+                'session' => $result['session']->toClientArray(),
+            ], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'session' => $result['session']->toClientArray(),
+        ]);
+    }
+
     public function typing(Request $request, string $uuid): JsonResponse
     {
         $staff = $this->ensureStaff();

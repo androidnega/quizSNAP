@@ -344,6 +344,7 @@ Route::middleware('admin.auth')->group(function () {
         Route::prefix('live-support')->name('support.')->group(function () {
             Route::get('/', [\App\Http\Controllers\Admin\LiveSupportController::class, 'index'])->name('index');
             Route::post('/presence', [\App\Http\Controllers\Admin\LiveSupportController::class, 'presence'])->name('presence');
+            Route::get('/agents/available', [\App\Http\Controllers\Admin\LiveSupportController::class, 'availableAgents'])->name('agents.available');
             Route::get('/sessions', [\App\Http\Controllers\Admin\LiveSupportController::class, 'sessions'])->name('sessions');
             Route::get('/sessions/{uuid}', [\App\Http\Controllers\Admin\LiveSupportController::class, 'show'])->name('sessions.show');
             Route::post('/sessions/{uuid}/claim', [\App\Http\Controllers\Admin\LiveSupportController::class, 'claim'])->name('sessions.claim');
@@ -352,6 +353,7 @@ Route::middleware('admin.auth')->group(function () {
             Route::post('/sessions/{uuid}/upload-image', [\App\Http\Controllers\Admin\LiveSupportController::class, 'uploadImage'])->name('sessions.upload-image');
             Route::post('/sessions/{uuid}/screen-share', [\App\Http\Controllers\Admin\LiveSupportController::class, 'requestScreenShare'])->name('sessions.screen-share');
             Route::post('/sessions/{uuid}/close', [\App\Http\Controllers\Admin\LiveSupportController::class, 'close'])->name('sessions.close');
+            Route::post('/sessions/{uuid}/refer', [\App\Http\Controllers\Admin\LiveSupportController::class, 'refer'])->name('sessions.refer');
             Route::delete('/sessions/{uuid}', [\App\Http\Controllers\Admin\LiveSupportController::class, 'destroy'])->name('sessions.destroy');
         });
 

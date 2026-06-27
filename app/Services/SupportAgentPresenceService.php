@@ -43,6 +43,30 @@ class SupportAgentPresenceService
             ->all();
     }
 
+    /** @return list<array{id: int, name: string, username: string}> */
+    public function onlineRespondersExcluding(?int $excludeUserId = null): array
+    {
+        return User::query()
+            ->get()
+            ->filter(function (User $user) use ($excludeUserId) {
+                if (! LiveSupportAccess::canRespond($user) || ! $this->isOnline($user)) {
+                    return false;
+                }
+                if ($excludeUserId !== null && (int) $user->id === $excludeUserId) {
+                    return false;
+                }
+
+                return true;
+            })
+            ->map(fn (User $user) => [
+                'id' => (int) $user->id,
+                'name' => (string) ($user->name ?: $user->username),
+                'username' => (string) $user->username,
+            ])
+            ->values()
+            ->all();
+    }
+
     private function cacheKey(int $userId): string
     {
         return 'support:agent:presence:'.$userId;

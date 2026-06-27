@@ -119,6 +119,50 @@ class LiveSupportService
         return ['session' => $fresh, 'claimed' => true];
     }
 
+    /**
+     * @return array{session: SupportSession, referred: bool, error?: string}
+     */
+    public function referSession(SupportSession $session, User $fromStaff, User $toAgent): array
+    {
+        if (! $session->isOpen()) {
+            return ['session' => $session, 'referred' => false, 'error' => 'Session is closed.'];
+        }
+
+        if ((int) $session->assigned_admin_id !== (int) $fromStaff->id) {
+            return ['session' => $session->fresh(['assignedAdmin']), 'referred' => false, 'error' => 'Only the assigned agent can refer this chat.'];
+        }
+
+        if ((int) $fromStaff->id === (int) $toAgent->id) {
+            return ['session' => $session, 'referred' => false, 'error' => 'Choose a different agent.'];
+        }
+
+        if (! LiveSupportAccess::canRespond($toAgent)) {
+            return ['session' => $session, 'referred' => false, 'error' => 'Selected user cannot handle support chats.'];
+        }
+
+        if (! $this->presence->isOnline($toAgent)) {
+            return ['session' => $session, 'referred' => false, 'error' => 'That agent is not available right now.'];
+        }
+
+        $fromName = $fromStaff->name ?: $fromStaff->username;
+        $toName = $toAgent->name ?: $toAgent->username;
+
+        $session->update([
+            'status' => SupportSession::STATUS_ACTIVE,
+            'assigned_admin_id' => $toAgent->id,
+            'claimed_at' => now(),
+            'screen_share_active' => false,
+        ]);
+
+        $this->addSystemMessage($session, $fromName.' referred you to '.$toName.'. '.$toName.' will continue helping you.');
+
+        $fresh = $session->fresh(['assignedAdmin']);
+        SupportSessionUpdated::dispatch($fresh);
+        $this->notifier->notifyReferral($fresh, $fromStaff, $toAgent);
+
+        return ['session' => $fresh, 'referred' => true];
+    }
+
     public function closeSession(SupportSession $session, string $reason = 'Session closed.'): SupportSession
     {
         if ($session->status === SupportSession::STATUS_CLOSED) {

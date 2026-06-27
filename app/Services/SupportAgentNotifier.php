@@ -47,6 +47,37 @@ class SupportAgentNotifier
         }
     }
 
+    public function notifyReferral(SupportSession $session, User $fromAgent, User $toAgent): void
+    {
+        if (! ArkeselService::hasApiKey()) {
+            return;
+        }
+
+        $phone = trim((string) ($toAgent->phone ?? ''));
+        if ($phone === '') {
+            return;
+        }
+
+        $appName = trim((string) Setting::getValue(Setting::KEY_APP_NAME, config('app.name', 'QuizSnap')));
+        if ($appName === '') {
+            $appName = 'QuizSnap';
+        }
+
+        $fromName = $fromAgent->name ?: $fromAgent->username;
+        $who = $session->student_name ?: ($session->student_index ?: 'a visitor');
+        $message = "{$appName}: {$fromName} referred a live chat ({$who}) to you. Open Live Support to respond.";
+
+        try {
+            ArkeselService::sendSms($phone, $message);
+        } catch (\Throwable $e) {
+            Log::warning('Support referral SMS failed', [
+                'user_id' => $toAgent->id,
+                'session_uuid' => $session->uuid,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
     /** @return list<User> */
     private function recipientsForSession(SupportSession $session): array
     {

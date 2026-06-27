@@ -57,6 +57,14 @@
                     <input type="text" name="name" id="name" value="{{ old('name', $user->name) }}" class="input text-sm py-1.5 min-h-0 w-full">
                     @error('name')<p class="mt-0.5 text-xs text-danger-600">{{ $message }}</p>@enderror
                 </div>
+                @if(\App\Support\LiveSupportAccess::canRespond($user))
+                <div>
+                    <label for="support_display_name" class="block text-xs font-medium text-gray-700 mb-0.5">Live support chat name</label>
+                    <input type="text" name="support_display_name" id="support_display_name" value="{{ old('support_display_name', $user->support_display_name) }}" maxlength="64" placeholder="e.g. Sarah from Support" class="input text-sm py-1.5 min-h-0 w-full">
+                    <p class="mt-0.5 text-xs text-gray-500">Students see this in live chat. Leave blank to use your display name.</p>
+                    @error('support_display_name')<p class="mt-0.5 text-xs text-danger-600">{{ $message }}</p>@enderror
+                </div>
+                @endif
                 <button type="submit" class="inline-flex items-center justify-center rounded-md border border-transparent bg-yellow-500 px-3 py-1.5 text-sm font-medium text-yellow-900 hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-1">Save profile</button>
             </form>
         </div>

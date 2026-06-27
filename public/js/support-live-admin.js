@@ -16,6 +16,9 @@
     var referWrap = document.getElementById(prefix + 'live-support-refer-wrap');
     var referSelect = document.getElementById(prefix + 'live-support-refer-select');
     var referBtn = document.getElementById(prefix + 'live-support-refer-btn');
+    var displayNameInput = document.getElementById(prefix + 'live-support-display-name-input');
+    var displayNameSaveBtn = document.getElementById(prefix + 'live-support-display-name-save');
+    var displayNameHint = document.getElementById(prefix + 'live-support-display-name-hint');
     var remoteVideo = document.getElementById(prefix + 'live-support-remote-video');
     var headerEl = document.getElementById(prefix + 'live-support-chat-header');
     var imageInput = document.getElementById(prefix + 'live-support-image-input');
@@ -62,6 +65,40 @@
         return d.innerHTML;
     }
 
+    function updateDisplayNameHint(resolved) {
+        if (displayNameHint) displayNameHint.textContent = 'Students see: ' + (resolved || 'Support');
+    }
+
+    function saveDisplayName() {
+        if (!displayNameInput) return;
+        var value = displayNameInput.value.trim();
+        if (displayNameSaveBtn) displayNameSaveBtn.disabled = true;
+        fetch(url('/display-name'), {
+            method: 'PUT',
+            headers: jsonHeaders(),
+            body: JSON.stringify({ support_display_name: value }),
+        })
+            .then(function (r) {
+                return r.json().then(function (data) {
+                    return { ok: r.ok, data: data };
+                });
+            })
+            .then(function (res) {
+                if (res.ok && res.data.success) {
+                    if (displayNameInput) displayNameInput.value = res.data.support_display_name || '';
+                    updateDisplayNameHint(res.data.resolved_name);
+                } else {
+                    alert(res.data.message || 'Could not save chat name.');
+                }
+            })
+            .catch(function () {
+                alert('Could not save chat name. Check your connection and try again.');
+            })
+            .finally(function () {
+                if (displayNameSaveBtn) displayNameSaveBtn.disabled = false;
+            });
+    }
+
     function isAssignedToMe(session) {
         if (!session || !session.assigned_admin || !currentStaffId) return false;
         return String(session.assigned_admin.id) === String(currentStaffId);
@@ -85,7 +122,7 @@
                 data.agents.forEach(function (agent) {
                     var opt = document.createElement('option');
                     opt.value = String(agent.id);
-                    opt.textContent = agent.name || agent.username || ('Agent #' + agent.id);
+                    opt.textContent = (agent.chat_name || agent.name || agent.username || ('Agent #' + agent.id));
                     referSelect.appendChild(opt);
                 });
                 referWrap.hidden = data.agents.length === 0;
@@ -118,7 +155,8 @@
                     updateReferControls(res.data.session);
                     refreshQueue();
                     if (headerEl && res.data.session.assigned_admin) {
-                        headerEl.textContent = (headerEl.textContent || '') + ' · Referred to ' + res.data.session.assigned_admin.name;
+                        var referredName = res.data.session.assigned_admin.chat_name || res.data.session.assigned_admin.name;
+                        headerEl.textContent = (headerEl.textContent || '') + ' · Referred to ' + referredName;
                     }
                 } else {
                     alert(res.data.message || 'Could not refer chat.');
@@ -487,6 +525,13 @@
             });
     });
     if (referBtn) referBtn.addEventListener('click', referSession);
+    if (displayNameSaveBtn) displayNameSaveBtn.addEventListener('click', saveDisplayName);
+    if (displayNameInput) {
+        displayNameInput.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') { e.preventDefault(); saveDisplayName(); }
+        });
+        if (cfg.resolvedSupportDisplayName) updateDisplayNameHint(cfg.resolvedSupportDisplayName);
+    }
     if (deleteBtn) deleteBtn.addEventListener('click', function () {
         if (!activeUuid || !confirm('Permanently delete this chat and all messages?')) return;
         deleteBtn.disabled = true;

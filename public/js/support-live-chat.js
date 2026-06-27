@@ -203,13 +203,18 @@
         sounds().playAgentAvailable();
     }
 
+    function agentChatName(admin) {
+        if (!admin) return 'Support';
+        return admin.chat_name || admin.name || 'Support';
+    }
+
     function applySession(session) {
         if (!session) return;
         var prevStatus = state.sessionStatus;
         state.sessionStatus = session.status;
         if (session.status === 'active' && session.assigned_admin) {
             setStatus('Connected with support', 'online');
-            setAgent('Agent: ' + (session.assigned_admin.name || 'Support'));
+            setAgent('Agent: ' + agentChatName(session.assigned_admin));
             if (prevStatus === 'waiting') playAgentDongOnce();
         } else if (session.status === 'waiting') {
             setStatus('Waiting for an agent…', 'waiting');

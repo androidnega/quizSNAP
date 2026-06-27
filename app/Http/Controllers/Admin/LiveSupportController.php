@@ -31,6 +31,8 @@ class LiveSupportController extends Controller
         return view('admin.support.index', [
             'openSessions' => $this->support->openSessionsForStaff($staff),
             'canDeleteSessions' => LiveSupportAccess::canDeleteSession($staff),
+            'supportDisplayName' => $staff->support_display_name,
+            'resolvedSupportDisplayName' => $staff->supportDisplayName(),
         ]);
     }
 
@@ -262,6 +264,38 @@ class LiveSupportController extends Controller
         ]);
     }
 
+    public function displayName(): JsonResponse
+    {
+        $staff = $this->ensureStaff();
+
+        return response()->json([
+            'success' => true,
+            'support_display_name' => $staff->support_display_name,
+            'resolved_name' => $staff->supportDisplayName(),
+        ]);
+    }
+
+    public function updateDisplayName(Request $request): JsonResponse
+    {
+        $staff = $this->ensureStaff();
+
+        $data = $request->validate([
+            'support_display_name' => 'nullable|string|max:64',
+        ]);
+
+        $value = isset($data['support_display_name']) ? trim((string) $data['support_display_name']) : '';
+        $staff->update([
+            'support_display_name' => $value !== '' ? $value : null,
+        ]);
+        $staff->refresh();
+
+        return response()->json([
+            'success' => true,
+            'support_display_name' => $staff->support_display_name,
+            'resolved_name' => $staff->supportDisplayName(),
+        ]);
+    }
+
     public function refer(Request $request, string $uuid): JsonResponse
     {
         $staff = $this->ensureStaff();
@@ -306,7 +340,7 @@ class LiveSupportController extends Controller
             'typing' => 'required|boolean',
         ]);
 
-        $label = $staff->name ?: $staff->username;
+        $label = $staff->supportDisplayName();
         $this->support->broadcastTyping($session, 'admin', $label, (bool) $data['typing']);
 
         return response()->json(['success' => true]);

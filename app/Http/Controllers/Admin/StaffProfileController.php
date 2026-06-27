@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Admin\Concerns\InteractsWithAdminSession;
+use App\Support\LiveSupportAccess;
 use App\Support\UserFriendlyMessages;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
@@ -36,11 +37,19 @@ class StaffProfileController extends Controller
             'name' => 'nullable|string|max:255',
             'username' => 'required|string|max:255|unique:users,username,' . $user->id,
         ];
+        if (LiveSupportAccess::canRespond($user)) {
+            $rules['support_display_name'] = 'nullable|string|max:64';
+        }
         $request->validate($rules);
-        $user->update([
+        $updates = [
             'name' => $request->input('name'),
             'username' => $request->input('username'),
-        ]);
+        ];
+        if (LiveSupportAccess::canRespond($user)) {
+            $chatName = trim((string) $request->input('support_display_name', ''));
+            $updates['support_display_name'] = $chatName !== '' ? $chatName : null;
+        }
+        $user->update($updates);
         return redirect()->route('dashboard.profile.show')->with('success', 'Saved');
     }
 

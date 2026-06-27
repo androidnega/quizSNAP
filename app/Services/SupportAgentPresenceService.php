@@ -62,6 +62,7 @@ class SupportAgentPresenceService
                 'id' => (int) $user->id,
                 'name' => (string) ($user->name ?: $user->username),
                 'username' => (string) $user->username,
+                'chat_name' => $user->supportDisplayName(),
             ])
             ->values()
             ->all();

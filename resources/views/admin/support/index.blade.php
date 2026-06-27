@@ -140,6 +140,68 @@
     .live-support-refer-wrap button {
         white-space: nowrap;
     }
+    .live-support-identity {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.75rem 1rem;
+        padding: 0.875rem 1rem;
+        border: 1px solid var(--theme-border, #e2e8f0);
+        border-radius: 0.875rem;
+        background: var(--theme-surface, #fff);
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+    .live-support-identity__lead {
+        min-width: 10rem;
+    }
+    .live-support-identity__lead strong {
+        display: block;
+        font-size: 0.8125rem;
+        color: var(--theme-text, #0f172a);
+    }
+    .live-support-identity__lead p {
+        margin: 0.125rem 0 0;
+        font-size: 0.6875rem;
+        color: var(--theme-muted, #64748b);
+    }
+    .live-support-identity__controls {
+        display: flex;
+        align-items: center;
+        gap: 0.4375rem;
+        flex: 1;
+        min-width: min(100%, 18rem);
+    }
+    .live-support-identity__controls input {
+        flex: 1;
+        border: 1px solid var(--theme-border, #cbd5e1);
+        border-radius: 0.625rem;
+        padding: 0.5625rem 0.75rem;
+        font-size: 0.8125rem;
+        min-width: 0;
+        background: var(--theme-bg, #f8fafc);
+    }
+    .live-support-identity__controls input:focus {
+        outline: none;
+        border-color: var(--theme-brand, #4f46e5);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--theme-brand, #4f46e5) 14%, transparent);
+        background: #fff;
+    }
+    .live-support-identity__controls button {
+        border: none;
+        background: var(--theme-brand, #4f46e5);
+        color: #fff;
+        border-radius: 0.625rem;
+        padding: 0.5625rem 0.875rem;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+    .live-support-identity__hint {
+        font-size: 0.6875rem;
+        color: var(--theme-muted, #64748b);
+        white-space: nowrap;
+    }
     .live-support-messages {
         flex: 1;
         overflow-y: auto;
@@ -259,6 +321,18 @@
 <div class="w-full space-y-3">
     <p class="text-sm text-gray-600">Respond to student chats in real time. Request screen share to see their screen and guide them.</p>
 
+    <div class="live-support-identity" id="live-support-identity">
+        <div class="live-support-identity__lead">
+            <strong>Your chat name</strong>
+            <p>Students see this when you join, type, or get referred a chat.</p>
+        </div>
+        <div class="live-support-identity__controls">
+            <input type="text" id="live-support-display-name-input" maxlength="64" placeholder="e.g. Sarah from Support" value="{{ old('support_display_name', $supportDisplayName ?? '') }}" autocomplete="off">
+            <button type="button" id="live-support-display-name-save">Save</button>
+        </div>
+        <span class="live-support-identity__hint" id="live-support-display-name-hint">Students see: {{ $resolvedSupportDisplayName ?? 'Support' }}</span>
+    </div>
+
     <div class="live-support-layout">
         <div class="live-support-panel">
             <div class="live-support-panel__head">Open chats</div>
@@ -310,7 +384,7 @@
 
 @push('scripts-after-reverb')
 <script>window.SUPPORT_ACCESS = true;</script>
-<script>window.QuizSnapLiveSupportAdmin = { baseUrl: @json(url('/dashboard/live-support')), staffId: @json(auth()->id()), canDeleteSessions: @json($canDeleteSessions ?? false) };</script>
+<script>window.QuizSnapLiveSupportAdmin = { baseUrl: @json(url('/dashboard/live-support')), staffId: @json(auth()->id()), canDeleteSessions: @json($canDeleteSessions ?? false), supportDisplayName: @json($supportDisplayName ?? ''), resolvedSupportDisplayName: @json($resolvedSupportDisplayName ?? '') };</script>
 <script src="{{ asset('js/support-live-sounds.js') }}?v={{ filemtime(public_path('js/support-live-sounds.js')) }}"></script>
 <script src="{{ asset('js/support-live-admin.js') }}?v={{ filemtime(public_path('js/support-live-admin.js')) }}"></script>
 <script>

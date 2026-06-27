@@ -110,7 +110,7 @@ class LiveSupportService
             'claimed_at' => now(),
         ]);
 
-        $name = $staff->name ?: $staff->username;
+        $name = $staff->supportDisplayName();
         $this->addSystemMessage($session, $name.' joined the chat and is helping you now.');
 
         $fresh = $session->fresh(['assignedAdmin']);
@@ -144,8 +144,8 @@ class LiveSupportService
             return ['session' => $session, 'referred' => false, 'error' => 'That agent is not available right now.'];
         }
 
-        $fromName = $fromStaff->name ?: $fromStaff->username;
-        $toName = $toAgent->name ?: $toAgent->username;
+        $fromName = $fromStaff->supportDisplayName();
+        $toName = $toAgent->supportDisplayName();
 
         $session->update([
             'status' => SupportSession::STATUS_ACTIVE,

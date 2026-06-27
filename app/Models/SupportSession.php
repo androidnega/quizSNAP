@@ -83,6 +83,7 @@ class SupportSession extends Model
             'assigned_admin' => $this->assignedAdmin ? [
                 'id' => $this->assignedAdmin->id,
                 'name' => $this->assignedAdmin->name ?: $this->assignedAdmin->username,
+                'chat_name' => $this->assignedAdmin->supportDisplayName(),
             ] : null,
             'created_at' => $this->created_at?->toIso8601String(),
             'last_message_at' => $this->last_message_at?->toIso8601String(),

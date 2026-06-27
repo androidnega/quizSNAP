@@ -345,6 +345,8 @@ Route::middleware('admin.auth')->group(function () {
             Route::get('/', [\App\Http\Controllers\Admin\LiveSupportController::class, 'index'])->name('index');
             Route::post('/presence', [\App\Http\Controllers\Admin\LiveSupportController::class, 'presence'])->name('presence');
             Route::get('/agents/available', [\App\Http\Controllers\Admin\LiveSupportController::class, 'availableAgents'])->name('agents.available');
+            Route::get('/display-name', [\App\Http\Controllers\Admin\LiveSupportController::class, 'displayName'])->name('display-name.show');
+            Route::put('/display-name', [\App\Http\Controllers\Admin\LiveSupportController::class, 'updateDisplayName'])->name('display-name.update');
             Route::get('/sessions', [\App\Http\Controllers\Admin\LiveSupportController::class, 'sessions'])->name('sessions');
             Route::get('/sessions/{uuid}', [\App\Http\Controllers\Admin\LiveSupportController::class, 'show'])->name('sessions.show');
             Route::post('/sessions/{uuid}/claim', [\App\Http\Controllers\Admin\LiveSupportController::class, 'claim'])->name('sessions.claim');

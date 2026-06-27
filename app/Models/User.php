@@ -23,7 +23,7 @@ class User extends Authenticatable
     public const ROLE_LEGACY_ADMIN = 'admin';
 
     protected $fillable = [
-        'username', 'email', 'phone', 'index_number', 'name', 'course_id', 'role', 'password',
+        'username', 'email', 'phone', 'index_number', 'name', 'support_display_name', 'course_id', 'role', 'password',
         'avatar', 'institution_id', 'sms_allocation', 'ai_quiz_tokens_allocation', 'ai_quiz_generation_allowed',
         'faculty_id', 'department_id', 'coordinator',
     ];
@@ -141,6 +141,22 @@ class User extends Authenticatable
     public function isSupportAgent(): bool
     {
         return $this->role === self::ROLE_SUPPORT_AGENT;
+    }
+
+    /** Name shown to students in live support chat. */
+    public function supportDisplayName(): string
+    {
+        $custom = trim((string) ($this->support_display_name ?? ''));
+        if ($custom !== '') {
+            return $custom;
+        }
+
+        $name = trim((string) ($this->name ?? ''));
+        if ($name !== '') {
+            return $name;
+        }
+
+        return (string) ($this->username ?? 'Support');
     }
 
     public function isStaff(): bool

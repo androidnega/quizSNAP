@@ -61,6 +61,21 @@
         return true;
     }
 
+    function canHearActiveChatSounds() {
+        return isStaffPanelOpen() && !!activeUuid;
+    }
+
+    function handleRemoteTyping(payload, sessionUuid) {
+        if (!payload || payload.is_typing !== true) {
+            setTyping('');
+            return;
+        }
+        if (sessionUuid && activeUuid !== sessionUuid) return;
+        if (!canHearActiveChatSounds()) return;
+        setTyping((payload.sender_label || 'Student') + ' is typing');
+        if (sounds()) sounds().playTyping();
+    }
+
     function shouldContinuousAlert(sessionUuid) {
         if (!sessionUuid || activeUuid !== sessionUuid) return true;
         return !isStaffPanelOpen();
@@ -275,6 +290,9 @@
         messagesEl.scrollTop = messagesEl.scrollHeight;
 
         notifyIncomingStudentMessage(msg, activeUuid, fromEcho);
+        if (fromEcho && msg.sender_type === 'student') {
+            setTyping('');
+        }
     }
 
     function setTyping(text) {
@@ -306,7 +324,6 @@
             isTyping = false;
             sendTypingSignal(false);
         }, 1400);
-        if (sounds()) sounds().playTypingLocal();
     }
 
     function pingPresence() {
@@ -455,8 +472,7 @@
         ch.bind('SupportTyping', function (payload) {
             if (!payload || payload.sender_type === 'admin' || uuid !== activeUuid) return;
             if (payload.is_typing === true) {
-                setTyping((payload.sender_label || 'Student') + ' is typing');
-                if (sounds()) sounds().playTyping();
+                handleRemoteTyping(payload, uuid);
             } else {
                 setTyping('');
             }
@@ -492,14 +508,12 @@
         });
         ch.bind('SupportTyping', function (payload) {
             if (!payload || payload.sender_type !== 'student') return;
-            if (payload.session_uuid === activeUuid) {
-                if (payload.is_typing === true) {
-                    setTyping((payload.sender_label || 'Student') + ' is typing');
-                } else {
-                    setTyping('');
-                }
+            if (payload.session_uuid !== activeUuid) return;
+            if (payload.is_typing === true) {
+                handleRemoteTyping(payload, payload.session_uuid);
+            } else {
+                setTyping('');
             }
-            if (payload.is_typing === true && payload.session_uuid === activeUuid && sounds()) sounds().playTyping();
         });
     }
 

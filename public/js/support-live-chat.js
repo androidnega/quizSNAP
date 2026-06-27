@@ -253,7 +253,8 @@
         scrollBottom();
 
         if (fromEcho && msg.sender_type === 'admin' && sounds()) {
-            if (!panel || !panel.classList.contains('is-open')) {
+            setTyping('');
+            if (!isChatOpen()) {
                 sounds().startMessageAlert(state.uuid);
             } else {
                 sounds().stopMessageAlert();
@@ -326,6 +327,20 @@
         state.pollTimer = null;
     }
 
+    function isChatOpen() {
+        return !!(panel && panel.classList.contains('is-open') && !state.inIntake);
+    }
+
+    function handleRemoteTyping(payload) {
+        if (!payload || payload.is_typing !== true) {
+            setTyping('');
+            return;
+        }
+        if (!isChatOpen()) return;
+        setTyping((payload.sender_label || 'Agent') + ' is typing');
+        if (sounds()) sounds().playTyping();
+    }
+
     function sendTypingSignal(typing) {
         if (!state.uuid || state.inIntake) return;
         fetch('/support/sessions/' + encodeURIComponent(state.uuid) + '/typing', {
@@ -346,7 +361,6 @@
             state.isTyping = false;
             sendTypingSignal(false);
         }, 1400);
-        if (sounds()) sounds().playTypingLocal();
     }
 
     function bindEcho() {
@@ -374,8 +388,7 @@
         state.echoChannel.bind('SupportTyping', function (payload) {
             if (!payload || payload.sender_type === 'student' || state.inIntake) return;
             if (payload.is_typing === true) {
-                setTyping((payload.sender_label || 'Agent') + ' is typing');
-                if (sounds()) sounds().playTyping();
+                handleRemoteTyping(payload);
             } else {
                 setTyping('');
             }

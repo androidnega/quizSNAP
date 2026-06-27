@@ -6,9 +6,7 @@
 
     var ctx = null;
     var typingLastAt = 0;
-    var localTypingLastAt = 0;
-    var TYPING_COOLDOWN_MS = 80;
-    var LOCAL_TYPING_COOLDOWN_MS = 100;
+    var TYPING_COOLDOWN_MS = 72;
     var alertTimer = null;
     var alertSessionUuid = null;
     var ALERT_INTERVAL_MS = 2600;
@@ -45,8 +43,9 @@
     }
 
     function playMessageOnce() {
-        tone(880, 0.12, 0.055, 'sine');
-        setTimeout(function () { tone(1175, 0.14, 0.05, 'sine'); }, 90);
+        tone(880, 0.09, 0.048, 'sine');
+        setTimeout(function () { tone(1175, 0.12, 0.044, 'sine'); }, 75);
+        setTimeout(function () { tone(1480, 0.16, 0.036, 'sine'); }, 155);
     }
 
     function playRingBurst() {
@@ -71,6 +70,16 @@
         alertSessionUuid = null;
     }
 
+    function playTypingRemote() {
+        var now = Date.now();
+        if (now - typingLastAt < TYPING_COOLDOWN_MS) return;
+        typingLastAt = now;
+        var taps = [620, 660, 640, 680, 650];
+        var base = taps[Math.floor(Math.random() * taps.length)];
+        tone(base, 0.028, 0.02, 'triangle');
+        setTimeout(function () { tone(base + 40, 0.022, 0.014, 'triangle'); }, 38);
+    }
+
     window.QuizSnapSupportSounds = {
         playMessage: function () {
             playMessageOnce();
@@ -83,19 +92,7 @@
             setTimeout(function () { tone(659, 0.45, 0.055, 'sine'); }, 180);
             setTimeout(function () { tone(784, 0.55, 0.05, 'sine'); }, 380);
         },
-        playTyping: function () {
-            var now = Date.now();
-            if (now - typingLastAt < TYPING_COOLDOWN_MS) return;
-            typingLastAt = now;
-            tone(620, 0.045, 0.032, 'triangle');
-            setTimeout(function () { tone(740, 0.04, 0.026, 'triangle'); }, 50);
-        },
-        playTypingLocal: function () {
-            var now = Date.now();
-            if (now - localTypingLastAt < LOCAL_TYPING_COOLDOWN_MS) return;
-            localTypingLastAt = now;
-            tone(520, 0.028, 0.014, 'triangle');
-        },
+        playTyping: playTypingRemote,
         unlock: function () {
             audioContext();
         },

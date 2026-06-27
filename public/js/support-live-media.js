@@ -1,5 +1,5 @@
 /**
- * QuizSnap live support — shared avatar + media rendering and audio recording.
+ * QuizSnap live support — shared avatar, media rendering, audio recording, and waveforms.
  */
 (function () {
     'use strict';
@@ -51,11 +51,64 @@
         return false;
     }
 
+    function createWaveform(mountEl, barCount) {
+        barCount = barCount || 18;
+        var bars = [];
+        if (!mountEl) {
+            return { update: function () {}, reset: function () {}, destroy: function () {} };
+        }
+        mountEl.innerHTML = '';
+        for (var i = 0; i < barCount; i++) {
+            var bar = document.createElement('span');
+            bar.className = 'qs-live-recording-wave__bar';
+            bar.style.height = '18%';
+            mountEl.appendChild(bar);
+            bars.push(bar);
+        }
+        return {
+            update: function (levels) {
+                if (!levels || !levels.length) return;
+                var step = Math.max(1, Math.floor(levels.length / barCount));
+                for (var i = 0; i < barCount; i++) {
+                    var v = levels[i * step] || 0;
+                    var h = Math.max(12, Math.round((v / 255) * 100));
+                    bars[i].style.height = h + '%';
+                }
+            },
+            reset: function () {
+                bars.forEach(function (b) { b.style.height = '18%'; });
+            },
+            destroy: function () {
+                mountEl.innerHTML = '';
+                bars = [];
+            },
+        };
+    }
+
+    function cleanupAudioMonitor(ctx, analyser, source, rafId) {
+        if (rafId) cancelAnimationFrame(rafId);
+        if (source) {
+            try { source.disconnect(); } catch (e) {}
+        }
+        if (analyser) {
+            try { analyser.disconnect(); } catch (e) {}
+        }
+        if (ctx) {
+            ctx.close().catch(function () {});
+        }
+    }
+
     function createRecorder() {
         var recorder = null;
         var stream = null;
         var chunks = [];
         var recording = false;
+        var audioContext = null;
+        var analyser = null;
+        var sourceNode = null;
+        var rafId = null;
+        var levelCallback = null;
+        var freqData = null;
 
         function stopTracks() {
             if (stream) {
@@ -64,8 +117,43 @@
             }
         }
 
+        function stopMonitor() {
+            cleanupAudioMonitor(audioContext, analyser, sourceNode, rafId);
+            audioContext = null;
+            analyser = null;
+            sourceNode = null;
+            rafId = null;
+            freqData = null;
+        }
+
+        function startMonitor(mediaStream) {
+            stopMonitor();
+            var AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (!AudioCtx || !mediaStream) return;
+            audioContext = new AudioCtx();
+            analyser = audioContext.createAnalyser();
+            analyser.fftSize = 128;
+            analyser.smoothingTimeConstant = 0.72;
+            analyser.minDecibels = -90;
+            analyser.maxDecibels = -10;
+            sourceNode = audioContext.createMediaStreamSource(mediaStream);
+            sourceNode.connect(analyser);
+            freqData = new Uint8Array(analyser.frequencyBinCount);
+            function tick() {
+                if (!recording || !analyser) return;
+                analyser.getByteFrequencyData(freqData);
+                if (levelCallback) levelCallback(freqData);
+                rafId = requestAnimationFrame(tick);
+            }
+            if (audioContext.state === 'suspended') {
+                audioContext.resume().catch(function () {});
+            }
+            tick();
+        }
+
         return {
             isRecording: function () { return recording; },
+            onLevels: function (fn) { levelCallback = fn; },
             start: function () {
                 if (recording || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
                     return Promise.reject(new Error('Microphone not available.'));
@@ -83,6 +171,7 @@
                         };
                         recorder.start();
                         recording = true;
+                        startMonitor(s);
                     });
             },
             stop: function () {
@@ -90,6 +179,7 @@
                 return new Promise(function (resolve) {
                     recorder.onstop = function () {
                         recording = false;
+                        stopMonitor();
                         var type = (recorder && recorder.mimeType) ? recorder.mimeType : 'audio/webm';
                         var blob = chunks.length ? new Blob(chunks, { type: type }) : null;
                         stopTracks();
@@ -102,6 +192,7 @@
             },
             cancel: function () {
                 recording = false;
+                stopMonitor();
                 if (recorder && recorder.state !== 'inactive') {
                     try { recorder.stop(); } catch (e) {}
                 }
@@ -112,9 +203,26 @@
         };
     }
 
+    function packRtcMeta(meta) {
+        if (!meta) return {};
+        var out = { signal: meta.signal };
+        if (meta.sdp) {
+            out.sdp = {
+                type: meta.sdp.type,
+                sdp: meta.sdp.sdp,
+            };
+        }
+        if (meta.candidate) {
+            out.candidate = meta.candidate.toJSON ? meta.candidate.toJSON() : meta.candidate;
+        }
+        return out;
+    }
+
     window.QuizSnapSupportMedia = {
         renderAvatarHtml: renderAvatarHtml,
         appendMessageMedia: appendMessageMedia,
         createRecorder: createRecorder,
+        createWaveform: createWaveform,
+        packRtcMeta: packRtcMeta,
     };
 })();

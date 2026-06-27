@@ -247,6 +247,10 @@
         </div>
         <div id="staff-fab-live-support-taken-notice" class="live-support-taken-notice" hidden></div>
         <div id="staff-fab-live-support-messages" aria-live="polite"></div>
+        <div id="staff-fab-live-support-recording-wave" class="qs-live-recording-wave" aria-live="polite">
+            <span class="qs-live-recording-wave__label">Recording…</span>
+            <div class="qs-live-recording-wave__bars" id="staff-fab-live-support-recording-bars"></div>
+        </div>
         <div class="live-support-emoji-bar" id="staff-fab-live-support-emoji-bar"></div>
         <div class="staff-support-fab-compose live-support-compose">
             <input type="file" id="staff-fab-live-support-image-input" accept="image/*" hidden>

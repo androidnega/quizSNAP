@@ -28,6 +28,8 @@
     var intakeErrorEl = document.getElementById('qs-live-intake-error');
     var intakeLeadEl = document.getElementById('qs-live-support-intake-lead');
     var emojiBarEl = document.getElementById('qs-live-support-emoji-bar');
+    var recordingWaveEl = document.getElementById('qs-live-support-recording-wave');
+    var recordingBarsEl = document.getElementById('qs-live-support-recording-bars');
 
     var state = {
         uuid: null,
@@ -48,6 +50,8 @@
         hiddenSince: null,
         hiddenCloseTimer: null,
         audioRecorder: null,
+        recordingWaveform: null,
+        pendingRemoteIce: [],
     };
 
     function csrf() {
@@ -167,6 +171,7 @@
             if (show) shareWrap.classList.remove('is-visible');
             shareWrap.hidden = show;
         }
+        if (recordingWaveEl) recordingWaveEl.classList.remove('is-active');
         if (show) {
             setTyping('');
             state.isTyping = false;
@@ -290,8 +295,12 @@
         if (!Array.isArray(list)) return;
         list.forEach(function (m) {
             renderMessage(m, fromEcho);
-            if (m.message_type === 'webrtc' && m.meta && m.meta.signal === 'request_screen') {
-                if (shareWrap) shareWrap.classList.add('is-visible');
+            if (m.message_type === 'webrtc' && m.meta) {
+                if (m.meta.signal === 'request_screen') {
+                    if (shareWrap) shareWrap.classList.add('is-visible');
+                } else {
+                    handleRemoteSignal(m.meta);
+                }
             }
         });
     }
@@ -351,7 +360,11 @@
             if (payload && payload.message) {
                 renderMessage(payload.message, true);
                 if (payload.message.message_type === 'webrtc' && payload.message.meta) {
-                    handleRemoteSignal(payload.message.meta);
+                    if (payload.message.meta.signal === 'request_screen') {
+                        if (shareWrap) shareWrap.classList.add('is-visible');
+                    } else {
+                        handleRemoteSignal(payload.message.meta);
+                    }
                 }
             }
         });
@@ -567,12 +580,32 @@
             });
     }
 
+    function hideRecordingWave() {
+        if (recordingWaveEl) recordingWaveEl.classList.remove('is-active');
+        if (state.recordingWaveform) {
+            state.recordingWaveform.reset();
+            state.recordingWaveform.destroy();
+            state.recordingWaveform = null;
+        }
+    }
+
+    function showRecordingWave(rec) {
+        if (!media() || !recordingWaveEl || !recordingBarsEl) return;
+        hideRecordingWave();
+        state.recordingWaveform = media().createWaveform(recordingBarsEl, 18);
+        recordingWaveEl.classList.add('is-active');
+        rec.onLevels(function (levels) {
+            if (state.recordingWaveform) state.recordingWaveform.update(levels);
+        });
+    }
+
     function toggleAudioRecording() {
         if (!media() || !state.uuid) return;
         if (!state.audioRecorder) state.audioRecorder = media().createRecorder();
         var rec = state.audioRecorder;
         if (rec.isRecording()) {
             if (audioBtn) audioBtn.classList.remove('is-recording');
+            hideRecordingWave();
             rec.stop().then(function (blob) {
                 if (blob && blob.size > 0) uploadAudio(blob);
             });
@@ -580,7 +613,9 @@
         }
         rec.start().then(function () {
             if (audioBtn) audioBtn.classList.add('is-recording');
+            showRecordingWave(rec);
         }).catch(function () {
+            hideRecordingWave();
             alert('Microphone access is required to send a voice message.');
         });
     }
@@ -602,14 +637,34 @@
 
     function sendSignal(meta) {
         if (!state.uuid) return;
+        var packed = media() && media().packRtcMeta ? media().packRtcMeta(meta) : meta;
         fetch('/support/sessions/' + encodeURIComponent(state.uuid) + '/messages', {
             method: 'POST',
             headers: headers(),
-            body: JSON.stringify({ message_type: 'webrtc', meta: meta }),
+            body: JSON.stringify({ message_type: 'webrtc', meta: packed }),
         });
     }
 
+    function flushRemoteIce() {
+        if (!state.pc || !state.pendingRemoteIce.length) return;
+        state.pendingRemoteIce.forEach(function (candidate) {
+            state.pc.addIceCandidate(candidate).catch(function () {});
+        });
+        state.pendingRemoteIce = [];
+    }
+
+    function queueRemoteIce(candidate) {
+        if (!candidate) return;
+        var ice = candidate instanceof RTCIceCandidate ? candidate : new RTCIceCandidate(candidate);
+        if (state.pc && state.pc.remoteDescription && state.pc.remoteDescription.type) {
+            state.pc.addIceCandidate(ice).catch(function () {});
+        } else {
+            state.pendingRemoteIce.push(ice);
+        }
+    }
+
     function stopScreenShare() {
+        state.pendingRemoteIce = [];
         if (state.localStream) {
             state.localStream.getTracks().forEach(function (t) { t.stop(); });
             state.localStream = null;
@@ -621,13 +676,23 @@
     }
 
     function startScreenShare() {
+        if (!state.uuid) return;
         if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
             alert('Screen sharing is not supported in this browser.');
             return;
         }
+        stopScreenShare();
         navigator.mediaDevices.getDisplayMedia({ video: true, audio: false })
             .then(function (stream) {
                 state.localStream = stream;
+                var videoTrack = stream.getVideoTracks()[0];
+                if (videoTrack) {
+                    videoTrack.onended = function () {
+                        stopScreenShare();
+                        setStatus('Screen share ended.');
+                        if (shareWrap) shareWrap.classList.add('is-visible');
+                    };
+                }
                 state.pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
                 stream.getTracks().forEach(function (track) {
                     state.pc.addTrack(track, stream);
@@ -646,6 +711,7 @@
                 if (shareWrap) shareWrap.classList.remove('is-visible');
             })
             .catch(function () {
+                stopScreenShare();
                 setStatus('Screen share cancelled.');
             });
     }
@@ -653,10 +719,12 @@
     function handleRemoteSignal(meta) {
         if (!meta || !meta.signal) return;
         if (meta.signal === 'answer' && state.pc && meta.sdp) {
-            state.pc.setRemoteDescription(new RTCSessionDescription(meta.sdp));
+            state.pc.setRemoteDescription(new RTCSessionDescription(meta.sdp))
+                .then(flushRemoteIce)
+                .catch(function () {});
         }
-        if (meta.signal === 'ice' && state.pc && meta.candidate) {
-            state.pc.addIceCandidate(new RTCIceCandidate(meta.candidate)).catch(function () {});
+        if (meta.signal === 'ice') {
+            queueRemoteIce(meta.candidate);
         }
     }
 

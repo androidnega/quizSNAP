@@ -130,4 +130,36 @@
     .qs-live-support-typing[hidden] {
         display: none !important;
     }
+    .qs-live-recording-wave {
+        display: none;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.375rem 0.5rem;
+        background: #fef2f2;
+        border-top: 1px solid #fecaca;
+    }
+    .qs-live-recording-wave.is-active { display: flex; }
+    .qs-live-recording-wave__label {
+        font-size: 0.625rem;
+        font-weight: 600;
+        color: #b91c1c;
+        white-space: nowrap;
+    }
+    .qs-live-recording-wave__bars {
+        flex: 1;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        gap: 2px;
+        height: 1.5rem;
+        min-width: 0;
+    }
+    .qs-live-recording-wave__bar {
+        flex: 1;
+        max-width: 0.3125rem;
+        min-height: 0.125rem;
+        border-radius: 9999px;
+        background: linear-gradient(180deg, #f87171 0%, #dc2626 100%);
+        transition: height 0.06s linear;
+    }
 </style>

@@ -27,6 +27,8 @@
     var imageBtn = document.getElementById(prefix + 'live-support-image-btn');
     var takenNotice = document.getElementById(prefix + 'live-support-taken-notice');
     var typingEl = document.getElementById(prefix + 'live-support-typing');
+    var recordingWaveEl = document.getElementById(prefix + 'live-support-recording-wave');
+    var recordingBarsEl = document.getElementById(prefix + 'live-support-recording-bars');
 
     var activeUuid = null;
     var activeSession = null;
@@ -39,6 +41,8 @@
     var isTyping = false;
     var typingStopTimer = null;
     var audioRecorder = null;
+    var recordingWaveform = null;
+    var pendingRemoteIce = [];
     var selectedAvatar = cfg.supportAvatar || null;
 
     function sounds() {
@@ -309,12 +313,21 @@
         fetch(url('/presence'), { method: 'POST', headers: jsonHeaders() }).catch(function () {});
     }
 
+    function processWebRtcMeta(meta) {
+        if (!meta || !meta.signal) return;
+        if (meta.signal === 'offer' && meta.sdp) {
+            handleOffer(meta.sdp);
+        } else if (meta.signal === 'ice') {
+            queueRemoteIce(meta.candidate);
+        }
+    }
+
     function ingestMessages(list, fromEcho) {
         if (!Array.isArray(list)) return;
         list.forEach(function (m) {
             renderMessage(m, fromEcho);
-            if (m.message_type === 'webrtc' && m.meta && m.meta.signal === 'offer' && m.meta.sdp) {
-                handleOffer(m.meta.sdp);
+            if (m.message_type === 'webrtc' && m.meta) {
+                processWebRtcMeta(m.meta);
             }
         });
     }
@@ -391,6 +404,8 @@
         if (messagesEl) messagesEl.innerHTML = '';
         setTyping('');
         if (remoteVideo) { remoteVideo.srcObject = null; remoteVideo.classList.add('hidden'); }
+        if (pc) { pc.close(); pc = null; }
+        pendingRemoteIce = [];
         fetch(url('/sessions/' + encodeURIComponent(uuid)), { headers: jsonHeaders() })
             .then(function (r) { return r.json(); })
             .then(function (data) {
@@ -432,8 +447,8 @@
         ch.bind('SupportMessageSent', function (payload) {
             if (payload && payload.session_uuid === uuid && payload.message) {
                 renderMessage(payload.message, true);
-                if (payload.message.message_type === 'webrtc' && payload.message.meta && payload.message.meta.signal === 'offer') {
-                    handleOffer(payload.message.meta.sdp);
+                if (payload.message.message_type === 'webrtc' && payload.message.meta) {
+                    processWebRtcMeta(payload.message.meta);
                 }
             }
         });
@@ -466,6 +481,9 @@
             if (!payload || !payload.message) return;
             if (payload.session_uuid === activeUuid) {
                 renderMessage(payload.message, true);
+                if (payload.message.message_type === 'webrtc' && payload.message.meta) {
+                    processWebRtcMeta(payload.message.meta);
+                }
                 return;
             }
             if (payload.message.sender_type === 'student') {
@@ -544,6 +562,7 @@
         if (!audioRecorder) audioRecorder = media().createRecorder();
         if (audioRecorder.isRecording()) {
             if (audioBtn) audioBtn.classList.remove('is-recording');
+            hideRecordingWave();
             audioRecorder.stop().then(function (blob) {
                 if (blob && blob.size > 0) uploadAudio(blob);
             });
@@ -551,7 +570,9 @@
         }
         audioRecorder.start().then(function () {
             if (audioBtn) audioBtn.classList.add('is-recording');
+            showRecordingWave(audioRecorder);
         }).catch(function () {
+            hideRecordingWave();
             alert('Microphone access is required to send a voice message.');
         });
     }
@@ -614,16 +635,36 @@
 
     function sendSignal(meta) {
         if (!activeUuid) return;
+        var packed = media() && media().packRtcMeta ? media().packRtcMeta(meta) : meta;
         fetch(url('/sessions/' + encodeURIComponent(activeUuid) + '/messages'), {
             method: 'POST',
             headers: jsonHeaders(),
-            body: JSON.stringify({ message_type: 'webrtc', meta: meta }),
+            body: JSON.stringify({ message_type: 'webrtc', meta: packed }),
         });
     }
 
+    function queueRemoteIce(candidate) {
+        if (!candidate || !pc) return;
+        var ice = candidate instanceof RTCIceCandidate ? candidate : new RTCIceCandidate(candidate);
+        if (pc.remoteDescription && pc.remoteDescription.type) {
+            pc.addIceCandidate(ice).catch(function () {});
+        } else {
+            pendingRemoteIce.push(ice);
+        }
+    }
+
+    function flushRemoteIce() {
+        if (!pc || !pendingRemoteIce.length) return;
+        pendingRemoteIce.forEach(function (candidate) {
+            pc.addIceCandidate(candidate).catch(function () {});
+        });
+        pendingRemoteIce = [];
+    }
+
     function handleOffer(sdp) {
-        if (!remoteVideo) return;
+        if (!remoteVideo || !sdp) return;
         if (pc) { pc.close(); pc = null; }
+        pendingRemoteIce = [];
         pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
         pc.ontrack = function (ev) {
             remoteVideo.srcObject = ev.streams[0];
@@ -635,7 +676,35 @@
         pc.setRemoteDescription(new RTCSessionDescription(sdp))
             .then(function () { return pc.createAnswer(); })
             .then(function (answer) { return pc.setLocalDescription(answer).then(function () { return answer; }); })
-            .then(function (answer) { sendSignal({ signal: 'answer', sdp: answer }); });
+            .then(function (answer) {
+                sendSignal({ signal: 'answer', sdp: answer });
+                flushRemoteIce();
+            })
+            .catch(function () {
+                if (remoteVideo) {
+                    remoteVideo.srcObject = null;
+                    remoteVideo.classList.add('hidden');
+                }
+            });
+    }
+
+    function hideRecordingWave() {
+        if (recordingWaveEl) recordingWaveEl.classList.remove('is-active');
+        if (recordingWaveform) {
+            recordingWaveform.reset();
+            recordingWaveform.destroy();
+            recordingWaveform = null;
+        }
+    }
+
+    function showRecordingWave(rec) {
+        if (!media() || !recordingWaveEl || !recordingBarsEl) return;
+        hideRecordingWave();
+        recordingWaveform = media().createWaveform(recordingBarsEl, 18);
+        recordingWaveEl.classList.add('is-active');
+        rec.onLevels(function (levels) {
+            if (recordingWaveform) recordingWaveform.update(levels);
+        });
     }
 
     if (sendBtn) sendBtn.addEventListener('click', sendMessage);
@@ -664,7 +733,30 @@
     if (avatarGrid) buildAvatarPicker();
     if (screenBtn) screenBtn.addEventListener('click', function () {
         if (!activeUuid || screenBtn.disabled) return;
-        fetch(url('/sessions/' + encodeURIComponent(activeUuid) + '/screen-share'), { method: 'POST', headers: jsonHeaders() });
+        var originalLabel = screenBtn.textContent;
+        screenBtn.disabled = true;
+        fetch(url('/sessions/' + encodeURIComponent(activeUuid) + '/screen-share'), { method: 'POST', headers: jsonHeaders() })
+            .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+            .then(function (res) {
+                if (res.ok && res.data.success) {
+                    screenBtn.textContent = 'Screen share requested';
+                    if (headerEl) {
+                        var note = ' · Waiting for student to share screen';
+                        if (headerEl.textContent.indexOf(note) === -1) headerEl.textContent += note;
+                    }
+                } else {
+                    alert((res.data && res.data.message) || 'Could not request screen share.');
+                }
+            })
+            .catch(function () {
+                alert('Could not request screen share. Check your connection and try again.');
+            })
+            .finally(function () {
+                screenBtn.disabled = false;
+                setTimeout(function () {
+                    screenBtn.textContent = originalLabel;
+                }, 3500);
+            });
     });
     if (closeBtn) closeBtn.addEventListener('click', function () {
         if (!activeUuid) return;

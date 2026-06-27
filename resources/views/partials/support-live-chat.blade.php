@@ -155,6 +155,7 @@
     .qs-live-support-panel.is-intake .qs-live-support-status,
     .qs-live-support-panel.is-intake .qs-live-support-typing,
     .qs-live-support-panel.is-intake .qs-live-support-share,
+    .qs-live-support-panel.is-intake .qs-live-recording-wave,
     .qs-live-support-panel.is-intake .qs-live-support-agent {
         display: none !important;
     }
@@ -344,6 +345,39 @@
         flex-shrink: 0;
     }
     .qs-live-support-share.is-visible { display: block; }
+    .qs-live-recording-wave {
+        display: none;
+        align-items: center;
+        gap: 0.625rem;
+        padding: 0.5rem 0.875rem;
+        background: #fef2f2;
+        border-top: 1px solid #fecaca;
+        flex-shrink: 0;
+    }
+    .qs-live-recording-wave.is-active { display: flex; }
+    .qs-live-recording-wave__label {
+        font-size: 0.6875rem;
+        font-weight: 600;
+        color: #b91c1c;
+        white-space: nowrap;
+    }
+    .qs-live-recording-wave__bars {
+        flex: 1;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        gap: 3px;
+        height: 2rem;
+        min-width: 0;
+    }
+    .qs-live-recording-wave__bar {
+        flex: 1;
+        max-width: 0.375rem;
+        min-height: 0.1875rem;
+        border-radius: 9999px;
+        background: linear-gradient(180deg, #f87171 0%, #dc2626 100%);
+        transition: height 0.06s linear;
+    }
     .qs-live-support-share button {
         width: 100%;
         border: none;
@@ -433,6 +467,10 @@
     <div id="qs-live-support-messages" class="qs-live-support-messages" aria-live="polite"></div>
     <div id="qs-live-support-share" class="qs-live-support-share">
         <button type="button" id="qs-live-support-share-btn">Share my screen with support</button>
+    </div>
+    <div id="qs-live-support-recording-wave" class="qs-live-recording-wave" aria-live="polite">
+        <span class="qs-live-recording-wave__label">Recording…</span>
+        <div class="qs-live-recording-wave__bars" id="qs-live-support-recording-bars"></div>
     </div>
     <div class="qs-live-emoji-bar" id="qs-live-support-emoji-bar"></div>
     <div class="qs-live-support-compose" id="qs-live-support-compose">

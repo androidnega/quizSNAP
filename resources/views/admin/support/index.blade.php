@@ -359,6 +359,38 @@
         object-fit: contain;
     }
     #live-support-remote-video.hidden { display: none; }
+    .qs-live-recording-wave {
+        display: none;
+        align-items: center;
+        gap: 0.625rem;
+        padding: 0.5rem 1rem;
+        background: #fef2f2;
+        border-bottom: 1px solid #fecaca;
+    }
+    .qs-live-recording-wave.is-active { display: flex; }
+    .qs-live-recording-wave__label {
+        font-size: 0.6875rem;
+        font-weight: 600;
+        color: #b91c1c;
+        white-space: nowrap;
+    }
+    .qs-live-recording-wave__bars {
+        flex: 1;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        gap: 3px;
+        height: 2rem;
+        min-width: 0;
+    }
+    .qs-live-recording-wave__bar {
+        flex: 1;
+        max-width: 0.375rem;
+        min-height: 0.1875rem;
+        border-radius: 9999px;
+        background: linear-gradient(180deg, #f87171 0%, #dc2626 100%);
+        transition: height 0.06s linear;
+    }
     @media (prefers-reduced-motion: reduce) {
         .qs-typing-dots span, .live-support-msg { animation: none; }
     }
@@ -422,6 +454,10 @@
                 </div>
             </div>
             <video id="live-support-remote-video" class="hidden" autoplay playsinline muted></video>
+            <div id="live-support-recording-wave" class="qs-live-recording-wave" aria-live="polite">
+                <span class="qs-live-recording-wave__label">Recording…</span>
+                <div class="qs-live-recording-wave__bars" id="live-support-recording-bars"></div>
+            </div>
             <div id="live-support-messages" class="live-support-messages" aria-live="polite"></div>
             <div class="live-support-emoji-bar" id="live-support-emoji-bar"></div>
             <div class="live-support-compose">

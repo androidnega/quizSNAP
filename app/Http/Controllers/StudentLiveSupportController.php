@@ -300,7 +300,7 @@ class StudentLiveSupportController extends Controller
         return $this->support->authorizeClient($session, is_string($token) ? $token : null);
     }
 
-    private function resolveStaffUser(Request $request): ?User
+    private function resolveStaffUser(Request $request): ?\App\Models\User
     {
         $user = $request->user();
         if ($user instanceof User) {

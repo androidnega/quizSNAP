@@ -350,7 +350,7 @@ class QuizManagementController extends Controller
         return $ids;
     }
 
-    private function validateClassGroupForQuiz(User $user, ClassGroup $classGroup, int $courseId): ?string
+    private function validateClassGroupForQuiz(\App\Models\User $user, ClassGroup $classGroup, int $courseId): ?string
     {
         if (! $classGroup->hasStudents()) {
             return 'Class group "' . ($classGroup->display_name ?? $classGroup->name) . '" has no students.';

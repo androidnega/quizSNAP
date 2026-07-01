@@ -454,7 +454,7 @@ class LiveSupportController extends Controller
         return response()->json(['success' => true]);
     }
 
-    private function ensureStaff(): User
+    private function ensureStaff(): \App\Models\User
     {
         $staff = $this->adminUser();
         abort_unless($staff && LiveSupportAccess::canRespond($staff), 403);
@@ -462,7 +462,7 @@ class LiveSupportController extends Controller
         return $staff;
     }
 
-    private function ensureSuperAdmin(): User
+    private function ensureSuperAdmin(): \App\Models\User
     {
         $staff = $this->adminUser();
         abort_unless($staff && LiveSupportAccess::canDeleteSession($staff), 403);
@@ -470,7 +470,7 @@ class LiveSupportController extends Controller
         return $staff;
     }
 
-    private function findScopedSession(string $uuid, User $staff): ?SupportSession
+    private function findScopedSession(string $uuid, \App\Models\User $staff): ?SupportSession
     {
         $session = $this->support->findByUuid($uuid);
         if (! $session || ! LiveSupportAccess::sessionInScope($staff, $session)) {

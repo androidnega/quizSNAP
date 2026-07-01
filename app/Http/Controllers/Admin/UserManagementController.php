@@ -264,7 +264,7 @@ class UserManagementController extends Controller
             ->with('success', "Account created! They can log in with the password you set.");
     }
 
-    public function edit(Request $request, User $user): View|RedirectResponse
+    public function edit(Request $request, \App\Models\User $user): View|RedirectResponse
     {
         $currentUser = $this->adminUser();
         $isSuperAdmin = $currentUser && $currentUser->isSuperAdmin();
@@ -331,7 +331,7 @@ class UserManagementController extends Controller
         ));
     }
 
-    public function update(Request $request, User $user): RedirectResponse
+    public function update(Request $request, \App\Models\User $user): RedirectResponse
     {
         $currentUser = $this->adminUser();
         $isSuperAdmin = $currentUser && $currentUser->isSuperAdmin();
@@ -506,7 +506,7 @@ class UserManagementController extends Controller
     /**
      * Show password prompt to view/reset examiner password.
      */
-    public function showPasswordForm(User $user): View|RedirectResponse
+    public function showPasswordForm(\App\Models\User $user): View|RedirectResponse
     {
         $currentUser = $this->adminUser();
         $isSuperAdmin = $currentUser && $currentUser->isSuperAdmin();
@@ -523,7 +523,7 @@ class UserManagementController extends Controller
      * Verify admin password and generate/reset examiner password.
      * Generates a temporary password that can be viewed once.
      */
-    public function viewPassword(Request $request, User $user): RedirectResponse|View
+    public function viewPassword(Request $request, \App\Models\User $user): RedirectResponse|View
     {
         $currentUser = $this->adminUser();
         $isSuperAdmin = $currentUser && $currentUser->isSuperAdmin();
@@ -581,7 +581,7 @@ class UserManagementController extends Controller
      * Reset examiner password directly (without admin password verification).
      * Generates a temporary password and shows it to the admin.
      */
-    public function resetPassword(User $user): RedirectResponse|View
+    public function resetPassword(\App\Models\User $user): RedirectResponse|View
     {
         $currentUser = $this->adminUser();
         $isSuperAdmin = $currentUser && $currentUser->isSuperAdmin();
@@ -626,7 +626,7 @@ class UserManagementController extends Controller
     /**
      * Revoke user access: clear remember_token and sessions so they must log in again.
      */
-    public function revoke(User $user): RedirectResponse
+    public function revoke(\App\Models\User $user): RedirectResponse
     {
         $currentUser = $this->adminUser();
         $isSuperAdmin = $currentUser && $currentUser->isSuperAdmin();
@@ -657,7 +657,7 @@ class UserManagementController extends Controller
     /**
      * Delete a staff user. Cannot delete super admins or yourself.
      */
-    public function destroy(User $user): RedirectResponse
+    public function destroy(\App\Models\User $user): RedirectResponse
     {
         $currentUser = $this->adminUser();
         $isSuperAdmin = $currentUser && $currentUser->isSuperAdmin();
@@ -785,7 +785,7 @@ class UserManagementController extends Controller
         ]);
     }
 
-    private function isManageableStaffUser(User $user): bool
+    private function isManageableStaffUser(\App\Models\User $user): bool
     {
         return in_array($user->role, [
             User::ROLE_SUPER_ADMIN,
@@ -795,12 +795,12 @@ class UserManagementController extends Controller
         ], true);
     }
 
-    private function canReceiveAiTokens(User $user): bool
+    private function canReceiveAiTokens(\App\Models\User $user): bool
     {
         return $user->isExaminer() || $user->role === User::ROLE_COORDINATOR;
     }
 
-    private function canManageExaminerAiTokens(?User $current, User $target): bool
+    private function canManageExaminerAiTokens(?\App\Models\User $current, \App\Models\User $target): bool
     {
         if (! $current) {
             return false;
@@ -818,7 +818,7 @@ class UserManagementController extends Controller
         return $this->examinerInCoordinatorScope($current, $target);
     }
 
-    private function examinerInCoordinatorScope(User $coordinator, User $examiner): bool
+    private function examinerInCoordinatorScope(\App\Models\User $coordinator, \App\Models\User $examiner): bool
     {
         if ($coordinator->faculty_id && (int) $examiner->faculty_id !== (int) $coordinator->faculty_id) {
             return false;
@@ -830,7 +830,7 @@ class UserManagementController extends Controller
         return true;
     }
 
-    private function applyCoordinatorExaminerScope($query, User $coordinator): void
+    private function applyCoordinatorExaminerScope($query, \App\Models\User $coordinator): void
     {
         $query->where('role', User::ROLE_EXAMINER);
         if ($coordinator->faculty_id) {

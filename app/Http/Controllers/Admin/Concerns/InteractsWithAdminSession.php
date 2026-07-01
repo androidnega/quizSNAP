@@ -6,7 +6,7 @@ use App\Models\User;
 
 trait InteractsWithAdminSession
 {
-    protected function adminUser(): ?User
+    protected function adminUser(): ?\App\Models\User
     {
         $user = auth()->user();
         if ($user) {

@@ -25,6 +25,8 @@ final class StaffSession
 
     public static function establish(Request $request, User $user): void
     {
+        StudentSession::clear();
+        auth()->logout();
         auth()->login($user, false);
         $request->session()->put('admin_authenticated', true);
         $request->session()->put('admin_user_id', $user->id);
@@ -39,6 +41,10 @@ final class StaffSession
 
     public static function restoreFromRememberCookie(Request $request): ?User
     {
+        if (session('student_login_intent') || session('student_id')) {
+            return null;
+        }
+
         if (session('admin_authenticated', false) && session('admin_user_id')) {
             return null;
         }
@@ -55,6 +61,10 @@ final class StaffSession
 
     public static function resolve(Request $request): ?User
     {
+        if (session('student_login_intent') || session('student_id')) {
+            return null;
+        }
+
         $fromRemember = self::restoreFromRememberCookie($request);
         if ($fromRemember) {
             $request->session()->regenerate();
@@ -74,13 +84,6 @@ final class StaffSession
             self::clear();
 
             return null;
-        }
-
-        $authUser = auth()->user();
-        if ($authUser instanceof User && $authUser->isStaff()) {
-            self::establish($request, $authUser);
-
-            return $authUser;
         }
 
         return null;

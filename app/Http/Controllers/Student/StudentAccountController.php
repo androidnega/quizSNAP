@@ -15,6 +15,7 @@ use App\Services\StudentAuthThrottleService;
 use App\Services\StudentOnboardingEmailOtpService;
 use App\Services\QuizLinkService;
 use App\Services\StudentOnboardingService;
+use App\Support\StudentSession;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Http\JsonResponse;
@@ -673,8 +674,15 @@ class StudentAccountController extends Controller
         }
 
         StudentAuthThrottleService::clearFailures(StudentAuthThrottleService::TYPE_PASSWORD, $indexHash);
-        $this->completeStudentLogin($student, null, null, false);
+        $this->completeStudentLogin($student, null, null, false, false);
         StudentAuthAuditLogger::log('login_password', $student, $indexHash, $request);
+
+        if (! session('student_id')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Could not start your session. Please try again or contact support.',
+            ], 500);
+        }
 
         return response()->json([
             'success' => true,
@@ -788,8 +796,13 @@ class StudentAccountController extends Controller
         return null;
     }
 
-    private function completeStudentLogin(Student $student, ?string $phone, ?string $name, bool $applyPendingPassword = true): void
-    {
+    private function completeStudentLogin(
+        Student $student,
+        ?string $phone,
+        ?string $name,
+        bool $applyPendingPassword = true,
+        bool $requireVerifiedPhone = true,
+    ): void {
         if ($applyPendingPassword) {
             $pending = Cache::pull($this->pendingPasswordCacheKey($student->index_number_hash));
             if ($pending) {
@@ -808,14 +821,11 @@ class StudentAccountController extends Controller
         }
         $student->save();
 
-        if (! $student->hasVerifiedPhone()) {
+        if ($requireVerifiedPhone && ! $student->hasVerifiedPhone()) {
             return;
         }
 
-        session([
-            'student_id' => $student->id,
-            'student_index' => $student->index_number,
-        ]);
+        StudentSession::establish($student);
     }
 
     private function respondAfterPhoneVerified(Student $student): JsonResponse
@@ -1050,7 +1060,8 @@ class StudentAccountController extends Controller
      */
     public function logout(Request $request): RedirectResponse
     {
-        session()->forget(['student_id', 'student_index']);
+        StudentSession::clear();
+
         return redirect()->route('student.account.login.form')->with('success', 'Logged out');
     }
 }

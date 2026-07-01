@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\Student;
 use App\Support\StaffSession;
+use App\Support\StudentSession;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -26,7 +27,7 @@ class EnsureDashboardAuthenticated
             return $next($request);
         }
 
-        return redirect()->route('login')
-            ->with('error', 'Please log in to access the dashboard.');
+        return redirect()->route('student.account.login.form')
+            ->with('error', 'Please sign in to access the dashboard.');
     }
 }

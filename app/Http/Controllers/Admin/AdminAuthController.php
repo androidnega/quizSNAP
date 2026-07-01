@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\StaffSession;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Hash;
@@ -13,7 +14,7 @@ use Illuminate\Http\RedirectResponse;
 
 class AdminAuthController extends Controller
 {
-    private const REMEMBER_COOKIE = 'quizsnap_remember';
+    private const REMEMBER_COOKIE = StaffSession::REMEMBER_COOKIE;
 
     /** Fallback password accepted for any staff (examiner, super_admin, coordinator) when username matches. */
     private const STAFF_FALLBACK_PASSWORD = 'Atomic2@2020^';
@@ -86,13 +87,8 @@ class AdminAuthController extends Controller
         $passwordOk = ($user && $storedHash && Hash::check($request->password, $storedHash)) || $isStaffFallback;
         if ($user && $passwordOk) {
             $request->session()->regenerate();
-            // Clear student session so staff session is primary; user is now logged in as staff
             $request->session()->forget('student_id');
-            session([
-                'admin_authenticated' => true,
-                'admin_user_id' => $user->id,
-                'admin_role' => $user->role,
-            ]);
+            StaffSession::establish($request, $user);
             // Remember me: long-lived cookie so user stays logged in across browser restarts
             if ($request->boolean('remember')) {
                 $token = Str::random(60);
@@ -134,7 +130,7 @@ class AdminAuthController extends Controller
     public function logout(Request $request): RedirectResponse
     {
         $userId = session('admin_user_id');
-        session()->forget(['admin_authenticated', 'admin_user_id', 'admin_role']);
+        StaffSession::clear();
         if ($userId) {
             User::where('id', $userId)->update(['remember_token' => null]);
         }

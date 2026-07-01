@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\User;
 use App\Support\EnterpriseCenterAccess;
+use App\Support\StaffSession;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -21,35 +22,22 @@ class EnsureAdminAuthenticated
         }
 
         // Restore session from "remember me" cookie if session expired
-        if (!session('admin_authenticated', false) && $request->cookie('quizsnap_remember')) {
-            $user = User::where('remember_token', $request->cookie('quizsnap_remember'))
-                ->whereIn('role', [
-                    User::ROLE_SUPER_ADMIN,
-                    User::ROLE_LEGACY_ADMIN,
-                    User::ROLE_SYSTEM_ADMIN,
-                    User::ROLE_EXAMINER,
-                    User::ROLE_COORDINATOR,
-                    User::ROLE_SUPPORT_AGENT,
-                ])
-                ->first();
-            if ($user) {
+        if (! session('admin_authenticated', false) && $request->cookie(StaffSession::REMEMBER_COOKIE)) {
+            $remembered = StaffSession::restoreFromRememberCookie($request);
+            if ($remembered) {
                 $request->session()->regenerate();
-                session([
-                    'admin_authenticated' => true,
-                    'admin_user_id' => $user->id,
-                    'admin_role' => $user->role,
-                ]);
+                StaffSession::establish($request, $remembered);
             }
         }
 
-        if (!session('admin_authenticated', false)) {
+        if (! session('admin_authenticated', false)) {
             return redirect()->guest(route('login'))
                 ->with('error', 'Please log in.');
         }
 
         $user = User::with('institution')->find(session('admin_user_id'));
-        if (!$user) {
-            session()->forget(['admin_authenticated', 'admin_user_id', 'admin_role']);
+        if (! $user) {
+            StaffSession::clear();
             return redirect()->guest(route('login'))
                 ->with('error', 'Session invalid. Please log in again.');
         }
@@ -104,8 +92,8 @@ class EnsureAdminAuthenticated
             return $next($request);
         }
 
-        if (!$user->isStaff()) {
-            session()->forget(['admin_authenticated', 'admin_user_id', 'admin_role']);
+        if (! $user->isStaff()) {
+            StaffSession::clear();
             return redirect()->guest(route('login'))
                 ->with('error', 'Please log in with a staff account.');
         }

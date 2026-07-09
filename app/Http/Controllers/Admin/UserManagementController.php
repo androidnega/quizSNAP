@@ -94,8 +94,12 @@ class UserManagementController extends Controller
         $canCreateSuperAdmin = $isSuperAdmin && $user;
         
         $institutions = Institution::orderBy('name')->get();
-        $faculties = collect();
-        $departments = collect();
+        $faculties = old('institution_id')
+            ? Faculty::where('institution_id', old('institution_id'))->orderBy('name')->get()
+            : collect();
+        $departments = old('faculty_id')
+            ? Department::where('faculty_id', old('faculty_id'))->orderBy('name')->get()
+            : collect();
         $sendSmsOnStaffCreation = Setting::getValue(Setting::KEY_SEND_SMS_ON_STAFF_CREATION, '0') === '1';
         $creatableRoles = User::superAdminCreatableRoles();
 

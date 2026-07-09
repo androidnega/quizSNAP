@@ -42,7 +42,7 @@
 
                     <div id="institution-field" class="qs-field qs-field--full staff-scope-field" style="display: none;">
                         <label for="institution_id" class="qs-label"><span>Institution</span><span class="qs-label__required">*</span></label>
-                        <select name="institution_id" id="institution_id" class="qs-control @error('institution_id') qs-control--error @enderror" onchange="loadFaculties()">
+                        <select name="institution_id" id="institution_id" class="qs-control @error('institution_id') qs-control--error @enderror">
                             <option value="">— Select institution —</option>
                             @foreach($institutions ?? [] as $inst)
                                 <option value="{{ $inst->id }}" {{ old('institution_id') == $inst->id ? 'selected' : '' }}>{{ $inst->display_name }}</option>
@@ -53,7 +53,7 @@
 
                     <div id="faculty-field" class="qs-field staff-scope-field" style="display: none;">
                         <label for="faculty_id" class="qs-label"><span>Faculty</span><span class="qs-label__required">*</span></label>
-                        <select name="faculty_id" id="faculty_id" class="qs-control @error('faculty_id') qs-control--error @enderror" onchange="loadDepartments()">
+                        <select name="faculty_id" id="faculty_id" class="qs-control @error('faculty_id') qs-control--error @enderror">
                             <option value="">— Select faculty —</option>
                             @foreach($faculties ?? [] as $faculty)
                                 <option value="{{ $faculty->id }}" {{ old('faculty_id') == $faculty->id ? 'selected' : '' }}>{{ $faculty->name }}</option>
@@ -180,6 +180,12 @@
                 }
                 var deptStar = document.getElementById('department-required-star');
                 if (deptStar) deptStar.style.display = showDepartment ? '' : 'none';
+                if (showDepartment && typeof window.loadDepartments === 'function') {
+                    var facSelect = document.getElementById('faculty_id');
+                    if (facSelect && facSelect.value) {
+                        window.loadDepartments();
+                    }
+                }
             }
             var showStaffFields = (role === 'examiner' || role === 'coordinator');
             var isSupportAgent = role === 'support_agent';
@@ -205,7 +211,8 @@
 
 // AJAX: Institution → Faculty → Department cascading dropdowns
 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
-const baseUrl = "{{ url('/') }}";
+const facultiesByInstitutionUrl = @json(route('dashboard.faculties.by-institution', ['institution' => '__INSTITUTION__']));
+const departmentsByFacultyUrl = @json(route('dashboard.departments.by-faculty', ['faculty' => '__FACULTY__']));
 const oldInstitutionId = {{ json_encode(old('institution_id')) }};
 const oldFacultyId = {{ json_encode(old('faculty_id')) }};
 const oldDepartmentId = {{ json_encode(old('department_id')) }};
@@ -219,63 +226,95 @@ function loadFaculties() {
     facultySelect.innerHTML = '<option value="">— Select faculty —</option>';
     if (departmentSelect) departmentSelect.innerHTML = '<option value="">— Select department —</option>';
     if (!institutionId) return;
-    fetch(baseUrl + '/dashboard/institutions/' + institutionId + '/faculties', {
+    fetch(facultiesByInstitutionUrl.replace('__INSTITUTION__', institutionId), {
         headers: {
             'X-CSRF-TOKEN': csrfToken,
             'Accept': 'application/json',
             'X-Requested-With': 'XMLHttpRequest'
-        }
+        },
+        credentials: 'same-origin'
     })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success && data.faculties) {
-                data.faculties.forEach(f => {
-                    const opt = document.createElement('option');
-                    opt.value = f.id;
-                    opt.textContent = f.name;
-                    if (oldInstitutionId == institutionId && f.id == oldFacultyId) {
-                        opt.selected = true;
-                        setTimeout(loadDepartments, 100);
-                    }
-                    facultySelect.appendChild(opt);
-                });
+        .then(function(r) {
+            if (!r.ok) throw new Error('Failed to load faculties (' + r.status + ')');
+            return r.json();
+        })
+        .then(function(data) {
+            if (!data.success || !data.faculties) return;
+            data.faculties.forEach(function(f) {
+                const opt = document.createElement('option');
+                opt.value = f.id;
+                opt.textContent = f.name;
+                if (String(oldInstitutionId) === String(institutionId) && String(f.id) === String(oldFacultyId)) {
+                    opt.selected = true;
+                }
+                facultySelect.appendChild(opt);
+            });
+            if (facultySelect.value) {
+                loadDepartments();
             }
         })
-        .catch(e => console.error('Error loading faculties:', e));
+        .catch(function(e) { console.error('Error loading faculties:', e); });
 }
 
 function loadDepartments() {
     const facultySelect = document.getElementById('faculty_id');
     const departmentSelect = document.getElementById('department_id');
+    const roleSelect = document.getElementById('role');
     if (!facultySelect || !departmentSelect) return;
+    if (roleSelect && roleSelect.value !== 'examiner') return;
     const facultyId = facultySelect.value;
     departmentSelect.innerHTML = '<option value="">— Select department —</option>';
     if (!facultyId) return;
-    fetch(baseUrl + '/dashboard/faculties/' + facultyId + '/departments', {
+    departmentSelect.disabled = true;
+    fetch(departmentsByFacultyUrl.replace('__FACULTY__', facultyId), {
         headers: {
             'X-CSRF-TOKEN': csrfToken,
             'Accept': 'application/json',
             'X-Requested-With': 'XMLHttpRequest'
-        }
+        },
+        credentials: 'same-origin'
     })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success && data.departments) {
-                data.departments.forEach(d => {
-                    const opt = document.createElement('option');
-                    opt.value = d.id;
-                    opt.textContent = d.name;
-                    if (d.id == oldDepartmentId) opt.selected = true;
-                    departmentSelect.appendChild(opt);
-                });
-            }
+        .then(function(r) {
+            if (!r.ok) throw new Error('Failed to load departments (' + r.status + ')');
+            return r.json();
         })
-        .catch(e => console.error('Error loading departments:', e));
+        .then(function(data) {
+            if (!data.success || !data.departments) return;
+            data.departments.forEach(function(d) {
+                const opt = document.createElement('option');
+                opt.value = d.id;
+                opt.textContent = d.name;
+                if (String(d.id) === String(oldDepartmentId)) opt.selected = true;
+                departmentSelect.appendChild(opt);
+            });
+        })
+        .catch(function(e) { console.error('Error loading departments:', e); })
+        .finally(function() { departmentSelect.disabled = false; });
 }
 
-@if(old('institution_id'))
-document.addEventListener('DOMContentLoaded', function() { loadFaculties(); });
-@endif
+window.loadFaculties = loadFaculties;
+window.loadDepartments = loadDepartments;
+
+document.addEventListener('DOMContentLoaded', function() {
+    const institutionSelect = document.getElementById('institution_id');
+    const facultySelect = document.getElementById('faculty_id');
+    const roleSelect = document.getElementById('role');
+    if (institutionSelect) {
+        institutionSelect.addEventListener('change', loadFaculties);
+    }
+    if (facultySelect) {
+        facultySelect.addEventListener('change', loadDepartments);
+    }
+    @if(old('institution_id'))
+    if (institutionSelect && institutionSelect.value) {
+        loadFaculties();
+    }
+    @elseif(old('faculty_id'))
+    if (facultySelect && facultySelect.value && roleSelect && roleSelect.value === 'examiner') {
+        loadDepartments();
+    }
+    @endif
+});
 </script>
 @endpush
 @endsection

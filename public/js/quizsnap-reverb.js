@@ -6,6 +6,8 @@
 
     var pusher = null;
     var channelCache = {};
+    var connectionFailed = false;
+    var initAttempted = false;
 
     function config() {
         return window.REVERB_CONFIG || null;
@@ -60,22 +62,28 @@
     }
 
     function getPusher() {
-        if (!isEnabled() || typeof Pusher === 'undefined') {
+        if (!isEnabled() || typeof Pusher === 'undefined' || connectionFailed) {
             return null;
         }
         if (pusher) {
             return pusher;
         }
         try {
+            Pusher.logToConsole = false;
             pusher = new Pusher(config().key, buildOptions(config()));
             pusher.connection.bind('connected', function () {
+                connectionFailed = false;
                 window.dispatchEvent(new CustomEvent('quizsnap-reverb-connected'));
             });
             pusher.connection.bind('disconnected', function () {
                 window.dispatchEvent(new CustomEvent('quizsnap-reverb-disconnected'));
             });
             pusher.connection.bind('error', function () {
+                connectionFailed = true;
                 window.dispatchEvent(new CustomEvent('quizsnap-reverb-disconnected'));
+            });
+            pusher.connection.bind('unavailable', function () {
+                connectionFailed = true;
             });
             pusher.subscribe('quizsnap').bind('DataUpdated', function (data) {
                 window.dispatchEvent(new CustomEvent('quizsnap-data-updated', { detail: data || {} }));
@@ -129,9 +137,10 @@
     }
 
     function initWhenReady() {
-        if (!isEnabled()) {
+        if (!isEnabled() || initAttempted) {
             return;
         }
+        initAttempted = true;
         if (typeof Pusher !== 'undefined') {
             getPusher();
         } else {

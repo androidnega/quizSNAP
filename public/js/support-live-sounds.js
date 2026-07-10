@@ -13,7 +13,7 @@
     var alertSessionUuid = null;
     var ALERT_INTERVAL_MS = 2600;
 
-    function audioContext() {
+    function ensureAudioContext() {
         if (!unlocked) return null;
         if (!ctx) {
             try {
@@ -29,7 +29,7 @@
     }
 
     function tone(freq, duration, gain, type) {
-        var ac = audioContext();
+        var ac = ensureAudioContext();
         if (!ac) return;
         var osc = ac.createOscillator();
         var g = ac.createGain();
@@ -85,7 +85,6 @@
 
     function unlock() {
         unlocked = true;
-        audioContext();
     }
 
     window.QuizSnapSupportSounds = {

@@ -978,7 +978,6 @@
     refreshQueue();
     bindInbox();
     pingPresence();
-    if (sounds()) sounds().unlock();
     pollTimer = setInterval(refreshQueue, 8000);
     presenceTimer = setInterval(pingPresence, 30000);
 

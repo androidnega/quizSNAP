@@ -623,6 +623,9 @@
     if (courseSelect) courseSelect.addEventListener('change', syncCourseId);
     var form = document.getElementById('quiz-create-form');
     if (form) form.addEventListener('submit', function(e) {
+        if (window.QuizQuestionTypes && typeof window.QuizQuestionTypes.syncPoolTotalFromTypes === 'function') {
+            window.QuizQuestionTypes.syncPoolTotalFromTypes();
+        }
         syncCourseId();
         var quizsnap = document.getElementById('course_id_quizsnap');
         var usesQuizSnap = quizsnap && quizsnap.value;

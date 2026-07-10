@@ -262,7 +262,9 @@ class QuizManagementController extends Controller
     {
         if ($this->wantsJsonResponse($request)) {
             return response()->json([
+                'success' => false,
                 'error' => $error,
+                'message' => $error,
                 'errors' => $fieldErrors ?? ['form' => [$error]],
             ], $status);
         }
@@ -1156,7 +1158,7 @@ class QuizManagementController extends Controller
     {
         $this->authorize('update', $quiz);
         if ($quiz->hasStarted()) {
-            return $this->redirectQuizOverview($quiz, 'error', 'Error');
+            return $this->redirectQuizOverview($quiz, 'error', 'This quiz has already started; questions cannot be approved.');
         }
         if ($pool->quiz_id !== $quiz->id) {
             abort(404);
@@ -1164,19 +1166,26 @@ class QuizManagementController extends Controller
         if ($pool->is_approved) {
             return $this->redirectQuizOverview($quiz, 'info', 'Already approved.');
         }
-        Question::create([
-            'quiz_id' => $quiz->id,
-            'text' => $pool->question_text,
-            'type' => QuestionTypes::normalize((string) ($pool->type ?? QuestionTypes::MCQ)),
-            'options' => $pool->options ?? [],
-            'correct_answer' => $pool->correct_answer,
-            'topic' => $pool->topic,
-            'source' => 'ai',
-            'points' => 1,
-            'explanation_wrong' => $pool->explanation_wrong ?? null,
-            'explanation_correct' => $pool->explanation_correct ?? null,
-        ]);
-        $pool->update(['is_approved' => true]);
+        try {
+            Question::create([
+                'quiz_id' => $quiz->id,
+                'text' => $pool->question_text,
+                'type' => QuestionTypes::normalize((string) ($pool->type ?? QuestionTypes::MCQ)),
+                'options' => $pool->options ?? [],
+                'correct_answer' => $pool->correct_answer,
+                'topic' => $pool->topic,
+                'source' => 'ai',
+                'points' => 1,
+                'explanation_wrong' => $pool->explanation_wrong ?? null,
+                'explanation_correct' => $pool->explanation_correct ?? null,
+            ]);
+            $pool->update(['is_approved' => true]);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return $this->redirectQuizOverview($quiz, 'error', 'Could not approve this question. Refresh the page and try again.');
+        }
+
         return $this->redirectQuizOverview($quiz, 'success', 'Saved');
     }
 

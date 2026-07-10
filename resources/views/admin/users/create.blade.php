@@ -265,7 +265,8 @@ function loadDepartments() {
     const facultyId = facultySelect.value;
     departmentSelect.innerHTML = '<option value="">— Select department —</option>';
     if (!facultyId) return;
-    departmentSelect.disabled = true;
+    departmentSelect.setAttribute('aria-busy', 'true');
+    departmentSelect.classList.add('opacity-60');
     fetch(departmentsByFacultyUrl.replace('__FACULTY__', facultyId), {
         headers: {
             'X-CSRF-TOKEN': csrfToken,
@@ -289,7 +290,10 @@ function loadDepartments() {
             });
         })
         .catch(function(e) { console.error('Error loading departments:', e); })
-        .finally(function() { departmentSelect.disabled = false; });
+        .finally(function() {
+            departmentSelect.removeAttribute('aria-busy');
+            departmentSelect.classList.remove('opacity-60');
+        });
 }
 
 window.loadFaculties = loadFaculties;
@@ -314,6 +318,25 @@ document.addEventListener('DOMContentLoaded', function() {
         loadDepartments();
     }
     @endif
+});
+
+document.querySelector('form[action*="users"]')?.addEventListener('submit', function(e) {
+    var roleSelect = document.getElementById('role');
+    if (!roleSelect) return;
+    var role = roleSelect.value;
+    if (['examiner', 'coordinator'].indexOf(role) === -1) return;
+    var institutionSelect = document.getElementById('institution_id');
+    var facultySelect = document.getElementById('faculty_id');
+    var departmentSelect = document.getElementById('department_id');
+    if (!institutionSelect || !institutionSelect.value || !facultySelect || !facultySelect.value) {
+        e.preventDefault();
+        alert('Please select an institution and faculty.');
+        return;
+    }
+    if (role === 'examiner' && (!departmentSelect || !departmentSelect.value)) {
+        e.preventDefault();
+        alert('Please select a department for examiners.');
+    }
 });
 </script>
 @endpush

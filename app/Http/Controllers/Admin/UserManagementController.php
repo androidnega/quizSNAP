@@ -163,7 +163,10 @@ class UserManagementController extends Controller
                 $rules['institution_id'] = 'required|exists:institutions,id';
                 $rules['faculty_id'] = 'required|exists:faculties,id';
                 if ($role === User::ROLE_EXAMINER) {
-                    $rules['department_id'] = 'required|exists:departments,id';
+                    $rules['department_id'] = [
+                        'required',
+                        Rule::exists('departments', 'id')->where(fn ($q) => $q->where('faculty_id', $request->input('faculty_id'))),
+                    ];
                 } else {
                     $rules['department_id'] = 'nullable|exists:departments,id';
                 }
@@ -216,7 +219,13 @@ class UserManagementController extends Controller
                 $attrs['phone'] = $phone;
             }
         }
-        if ($isSuperAdmin && $request->filled('institution_id')) {
+        if ($isSuperAdmin && $isStaffRole) {
+            $attrs['institution_id'] = (int) $request->institution_id;
+            $attrs['faculty_id'] = (int) $request->faculty_id;
+            if ($role === User::ROLE_EXAMINER) {
+                $attrs['department_id'] = (int) $request->department_id;
+            }
+        } elseif ($isSuperAdmin && $request->filled('institution_id')) {
             $attrs['institution_id'] = $request->institution_id;
         }
         if ($isSuperAdmin && $request->has('sms_allocation') && $request->input('sms_allocation') !== null && $request->input('sms_allocation') !== '') {
@@ -228,22 +237,6 @@ class UserManagementController extends Controller
             $attrs['ai_quiz_generation_allowed'] = $request->boolean('ai_quiz_generation_allowed', true);
         }
         $newUser = User::create($attrs);
-        if ($isSuperAdmin && $request->filled('faculty_id')) {
-            $faculty = Faculty::find($request->faculty_id);
-            if ($faculty) {
-                $newUser->institution_id = $faculty->institution_id;
-                $newUser->faculty_id = $faculty->id;
-                if ($role === User::ROLE_EXAMINER && $request->filled('department_id')) {
-                    $dept = Department::find($request->department_id);
-                    if ($dept && $dept->faculty_id == $faculty->id) {
-                        $newUser->department_id = $dept->id;
-                    }
-                } else {
-                    $newUser->department_id = null;
-                }
-                $newUser->save();
-            }
-        }
 
         if ($useSmsFlow && $newUser->phone) {
             $loginUrl = 'https://quizsnap.online/login';

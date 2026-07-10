@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin\Concerns;
 
 use App\Models\User;
+use App\Support\StaffSession;
 
 trait InteractsWithAdminSession
 {
@@ -16,7 +17,7 @@ trait InteractsWithAdminSession
         $adminUserId = session('admin_user_id');
 
         return $adminUserId
-            ? User::with('institution')->find($adminUserId)
+            ? StaffSession::applyAuthenticatedUser((int) $adminUserId)
             : null;
     }
 

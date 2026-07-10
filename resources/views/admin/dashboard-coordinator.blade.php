@@ -7,6 +7,9 @@
 <div class="w-full space-y-8 min-w-0 overflow-x-hidden">
     @php
         $coordinator = auth()->user();
+        if (! ($coordinator instanceof \App\Models\User) && session('admin_user_id')) {
+            $coordinator = \App\Models\User::find(session('admin_user_id'));
+        }
         $showSmsForUser = $coordinator && $coordinator->isCoordinator();
         $smsRemaining = $showSmsForUser ? $coordinator->sms_remaining : 0;
         $showLowSmsWarning = $showSmsForUser && $smsRemaining < 100 && $smsRemaining > 0;

@@ -2,7 +2,6 @@
 
 namespace App\Services\Monitoring;
 
-use App\Events\Monitoring\MonitoringActivityLogged;
 use App\Models\SystemAuditLog;
 use App\Models\User;
 use Illuminate\Support\Facades\Schema;
@@ -35,12 +34,6 @@ class AuditTrailService
                 'user_agent' => request()?->userAgent(),
                 'occurred_at' => now(),
             ]);
-
-            try {
-                broadcast(new MonitoringActivityLogged($entry))->toOthers();
-            } catch (\Throwable $broadcastError) {
-                report($broadcastError);
-            }
 
             return $entry;
         } catch (\Throwable $e) {

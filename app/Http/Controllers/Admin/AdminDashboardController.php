@@ -198,15 +198,22 @@ class AdminDashboardController extends Controller
     public function coordinatorDashboard(): View
     {
         $user = $this->adminUser();
-        $stats = $user
-            ? app(PageCacheService::class)->coordinatorStats($user)
-            : [
-                'class_groups' => 0,
-                'courses' => 0,
-                'examiners' => 0,
-                'exam_calendar' => 0,
-                'students' => 0,
-            ];
+        $emptyStats = [
+            'class_groups' => 0,
+            'courses' => 0,
+            'examiners' => 0,
+            'exam_calendar' => 0,
+            'students' => 0,
+        ];
+
+        try {
+            $stats = $user
+                ? app(PageCacheService::class)->coordinatorStats($user)
+                : $emptyStats;
+        } catch (\Throwable $e) {
+            report($e);
+            $stats = $emptyStats;
+        }
 
         return view('admin.dashboard-coordinator', compact('stats'));
     }

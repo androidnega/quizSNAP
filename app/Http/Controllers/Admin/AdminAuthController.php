@@ -95,7 +95,6 @@ class AdminAuthController extends Controller
         }
         if ($user && $passwordOk) {
             $request->session()->regenerate();
-            $request->session()->forget('student_id');
             StaffSession::establish($request, $user);
             // Remember me: long-lived cookie so user stays logged in across browser restarts
             try {

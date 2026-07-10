@@ -25,7 +25,7 @@ final class StaffSession
 
     public static function establish(Request $request, User $user): void
     {
-        StudentSession::clear();
+        self::clearStudentSessionKeys();
         auth()->logout();
         auth()->login($user, false);
         $request->session()->put('admin_authenticated', true);
@@ -39,13 +39,18 @@ final class StaffSession
         session()->forget(['admin_authenticated', 'admin_user_id', 'admin_role']);
     }
 
+    public static function clearStudentSessionKeys(): void
+    {
+        session()->forget(['student_id', 'student_index', 'student_login_intent']);
+    }
+
     public static function restoreFromRememberCookie(Request $request): ?User
     {
-        if (session('student_login_intent') || session('student_id')) {
+        if (session('admin_authenticated', false) && session('admin_user_id')) {
             return null;
         }
 
-        if (session('admin_authenticated', false) && session('admin_user_id')) {
+        if (session('student_login_intent') || session('student_id')) {
             return null;
         }
 
@@ -61,6 +66,10 @@ final class StaffSession
 
     public static function resolve(Request $request): ?User
     {
+        if (session('admin_authenticated', false) && session('admin_user_id')) {
+            return self::applyAuthenticatedUser((int) session('admin_user_id'));
+        }
+
         if (session('student_login_intent') || session('student_id')) {
             return null;
         }
@@ -73,20 +82,23 @@ final class StaffSession
             return $fromRemember;
         }
 
-        if (session('admin_authenticated', false) && session('admin_user_id')) {
-            $user = User::with('institution')->find(session('admin_user_id'));
-            if ($user && $user->isStaff()) {
-                session(['admin_role' => $user->role]);
-                auth()->setUser($user);
+        return null;
+    }
 
-                return $user;
-            }
-
+    /** Bind the staff user to the auth guard for this request. */
+    public static function applyAuthenticatedUser(int $userId): ?User
+    {
+        $user = User::with('institution')->find($userId);
+        if (! $user || ! $user->isStaff()) {
             self::clear();
 
             return null;
         }
 
-        return null;
+        self::clearStudentSessionKeys();
+        session(['admin_role' => $user->role]);
+        auth()->login($user, false);
+
+        return $user;
     }
 }

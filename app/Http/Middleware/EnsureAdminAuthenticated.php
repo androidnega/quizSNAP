@@ -42,8 +42,7 @@ class EnsureAdminAuthenticated
                 ->with('error', 'Session invalid. Please log in again.');
         }
 
-        // Prevent a leftover student session from breaking staff pages and @can policies.
-        session()->forget(['student_id', 'student_index', 'student_login_intent']);
+        StaffSession::applyAuthenticatedUser((int) $user->id);
 
         // System Monitor: dashboard hub, profile, and all enterprise centers only.
         if ($user->role === User::ROLE_SYSTEM_ADMIN) {
@@ -51,9 +50,6 @@ class EnsureAdminAuthenticated
                 return redirect()->route('dashboard')
                     ->with('error', 'System Monitors can only access their dashboard and enterprise centers.');
             }
-
-            session(['admin_role' => $user->role]);
-            auth()->setUser($user);
 
             return $next($request);
         }
@@ -70,9 +66,6 @@ class EnsureAdminAuthenticated
                     ->with('error', 'Support agents can only access the Live Support console.');
             }
 
-            session(['admin_role' => $user->role]);
-            auth()->setUser($user);
-
             return $next($request);
         }
 
@@ -83,6 +76,7 @@ class EnsureAdminAuthenticated
             || $request->routeIs('dashboard.students.*')
             || $request->routeIs('dashboard.courses.*')
             || $request->routeIs('dashboard.exam-calendar.*')
+            || $request->routeIs('dashboard.users.*')
             || $request->routeIs('logout');
         if ($user->role === 'coordinator' && !$coordinatorAllowed) {
             return redirect()->route('dashboard')
@@ -90,8 +84,6 @@ class EnsureAdminAuthenticated
         }
 
         if ($user->role === 'coordinator') {
-            session(['admin_role' => $user->role]);
-            auth()->setUser($user);
             return $next($request);
         }
 
@@ -100,12 +92,6 @@ class EnsureAdminAuthenticated
             return redirect()->guest(route('login'))
                 ->with('error', 'Please log in with a staff account.');
         }
-
-        // Keep session role in sync with database
-        session(['admin_role' => $user->role]);
-
-        // Set user for this request so policies and auth()->user() work
-        auth()->setUser($user);
 
         return $next($request);
     }

@@ -50,27 +50,33 @@ class UserManagementController extends Controller
         $isCoordinatorManager = $user && $user->isCoordinator() && ! $isSuperAdmin;
         $canManageAiTokens = $isSuperAdmin || $isCoordinatorManager;
 
-        $query = User::query()->with('courses');
+        try {
+            $query = User::query()->with('courses');
 
-        if ($isCoordinatorManager) {
-            $this->applyCoordinatorExaminerScope($query, $user);
-        } elseif (! $isSuperAdmin && $user) {
-            $query->where('id', $user->id);
-        } elseif ($isSuperAdmin && $user) {
-            $query->whereIn('role', [
-                User::ROLE_SUPER_ADMIN,
-                User::ROLE_SYSTEM_ADMIN,
-                User::ROLE_EXAMINER,
-                User::ROLE_COORDINATOR,
-            ]);
+            if ($isCoordinatorManager) {
+                $this->applyCoordinatorExaminerScope($query, $user);
+            } elseif (! $isSuperAdmin && $user) {
+                $query->where('id', $user->id);
+            } elseif ($isSuperAdmin && $user) {
+                $query->whereIn('role', [
+                    User::ROLE_SUPER_ADMIN,
+                    User::ROLE_SYSTEM_ADMIN,
+                    User::ROLE_EXAMINER,
+                    User::ROLE_COORDINATOR,
+                ]);
+            }
+
+            $users = $query->with('institution')
+                ->orderBy('role')
+                ->orderBy('username')
+                ->paginate(20);
+
+            $institutions = Institution::orderBy('name')->get();
+        } catch (\Throwable $e) {
+            report($e);
+            $users = User::query()->whereRaw('1 = 0')->paginate(20);
+            $institutions = collect();
         }
-
-        $users = $query->with('institution')
-            ->orderBy('role')
-            ->orderBy('username')
-            ->paginate(20);
-
-        $institutions = Institution::orderBy('name')->get();
 
         return view('admin.users.index', compact(
             'users',

@@ -39,6 +39,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -1236,39 +1237,58 @@ class QuizManagementController extends Controller
      */
     public function publish(Quiz $quiz): RedirectResponse
     {
+        $quizId = (int) $quiz->id;
+        $showUrl = fn () => redirect()->route($this->staffRoutePrefix() . '.quizzes.show', ['quiz' => $quizId]);
+
         try {
-            $this->authorize('update', $quiz);
-            if (! $quiz->hasEnoughApprovedQuestions()) {
-                return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)
-                    ->with('error', UserFriendlyMessages::GENERIC);
+            $user = $this->adminUser();
+            if (! $user || ! Gate::forUser($user)->allows('update', $quiz)) {
+                return $showUrl()->with('error', UserFriendlyMessages::GENERIC);
             }
 
-            $quiz->updateFromAttributes([
-                'is_published' => true,
-                'status' => Quiz::STATUS_PUBLISHED,
-            ]);
+            if (! $quiz->hasEnoughApprovedQuestions()) {
+                return $showUrl()->with('error', UserFriendlyMessages::GENERIC);
+            }
+
+            $attributes = ['is_published' => true];
+            if (Schema::hasColumn('quizzes', 'status')) {
+                $attributes['status'] = Quiz::STATUS_PUBLISHED;
+            }
+
+            if (! $quiz->updateFromAttributes($attributes)) {
+                return $showUrl()->with('error', 'Could not publish this quiz. Please try again.');
+            }
+
+            $quiz->refresh();
             $this->broadcastDataUpdatedSafe('quizzes');
 
             try {
                 $quiz->load('course');
                 app(StudentNotificationService::class)->notifyQuizPublished($quiz);
             } catch (\Throwable $e) {
-                report($e);
+                try {
+                    report($e);
+                } catch (\Throwable) {
+                }
             }
 
             try {
                 QuizBackupService::sendIfConfigured($quiz);
             } catch (\Throwable $e) {
-                report($e);
+                try {
+                    report($e);
+                } catch (\Throwable) {
+                }
             }
 
-            return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)
-                ->with('success', 'Published');
+            return $showUrl()->with('success', 'Published');
         } catch (\Throwable $e) {
-            report($e);
+            try {
+                report($e);
+            } catch (\Throwable) {
+            }
 
-            return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)
-                ->with('error', 'Could not publish this quiz. Please try again.');
+            return $showUrl()->with('error', 'Could not publish this quiz. Please try again.');
         }
     }
 

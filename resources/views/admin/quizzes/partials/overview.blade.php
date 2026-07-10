@@ -280,7 +280,7 @@ function startAiBatchGeneration(quizId, batchUrl, topics, target) {
     @endphp
     <div class="bg-primary-50 border border-primary-200 rounded-lg p-2 min-w-0">
         <div class="flex flex-wrap items-center gap-2">
-            @if(!$quizEnded)
+            @if(!$quizEnded && $quiz->link_token)
             @php $shareUrl = route('student.rules.show.quiz', ['token' => $quiz->link_token]); @endphp
             <span class="text-xs font-medium text-primary-800 shrink-0">Token:</span>
             <input type="text" readonly value="{{ $quiz->link_token }}" id="quiz-token-{{ $quiz->id }}" class="w-36 text-xs font-mono font-semibold text-gray-800 bg-white border border-primary-300 rounded px-2 py-1.5 cursor-pointer focus:ring-2 focus:ring-primary-500" title="Click Copy to copy" />

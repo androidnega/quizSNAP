@@ -14,9 +14,15 @@ final class SafeBroadcast
         }
 
         try {
-            Broadcast::event($event);
+            // queue() runs ShouldBroadcastNow events synchronously (catchable).
+            // event() returns PendingBroadcast and dispatches in __destruct (not catchable).
+            Broadcast::queue($event);
         } catch (\Throwable $e) {
-            report($e);
+            try {
+                report($e);
+            } catch (\Throwable) {
+                // ignore
+            }
         }
     }
 }

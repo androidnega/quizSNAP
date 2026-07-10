@@ -11,6 +11,7 @@ use App\Models\Department;
 use App\Models\Setting;
 use App\Models\User;
 use App\Services\ArkeselService;
+use App\Services\UserStaffLifecycleService;
 use App\Support\UserFriendlyMessages;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -453,7 +454,7 @@ class UserManagementController extends Controller
         // If examiner is updating, role is preserved via hidden input and not changed
 
         if ($request->filled('password')) {
-            $user->password = Hash::make($request->password);
+            $user->password = $request->password;
         }
         if ($isSuperAdmin) {
             $user->institution_id = $request->filled('institution_id') ? $request->institution_id : null;
@@ -561,7 +562,16 @@ class UserManagementController extends Controller
         ]);
         
         // Verify admin's password
-        if (!Hash::check($request->admin_password, $currentUser->password)) {
+        $adminHash = $currentUser->getRawOriginal('password');
+        $adminPasswordOk = false;
+        if ($adminHash) {
+            try {
+                $adminPasswordOk = Hash::check($request->admin_password, $adminHash);
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+        if (! $adminPasswordOk) {
             return redirect()->back()
                 ->withInput()
                 ->with('error', UserFriendlyMessages::PASSWORD_INCORRECT);
@@ -570,7 +580,7 @@ class UserManagementController extends Controller
         // Generate a random password
         if ($request->input('action') === 'generate') {
             $temporaryPassword = $this->generateTemporaryPassword();
-            $user->password = Hash::make($temporaryPassword);
+            $user->password = $temporaryPassword;
             $user->save();
             
             return view('admin.users.view-password', [
@@ -583,7 +593,7 @@ class UserManagementController extends Controller
         
         // Reset with custom password
         if ($request->filled('new_password')) {
-            $user->password = Hash::make($request->new_password);
+            $user->password = $request->new_password;
             $user->save();
             
             return redirect()->route('dashboard.users.index')
@@ -625,7 +635,7 @@ class UserManagementController extends Controller
         
         // Generate a temporary password
         $temporaryPassword = $this->generateTemporaryPassword();
-        $user->password = Hash::make($temporaryPassword);
+        $user->password = $temporaryPassword;
         $user->save();
         
         // Revoke existing sessions
@@ -703,14 +713,7 @@ class UserManagementController extends Controller
         }
 
         try {
-            if (config('session.driver') === 'database' && Schema::hasColumn(config('session.table', 'sessions'), 'user_id')) {
-                \Illuminate\Support\Facades\DB::table(config('session.table', 'sessions'))
-                    ->where('user_id', $user->id)
-                    ->delete();
-            }
-
-            $user->courses()->detach();
-            $user->delete();
+            app(UserStaffLifecycleService::class)->deleteStaffUser($user);
         } catch (\Throwable $e) {
             report($e);
 

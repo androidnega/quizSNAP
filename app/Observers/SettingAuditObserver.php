@@ -13,12 +13,16 @@ class SettingAuditObserver
             return;
         }
 
-        app(AuditTrailService::class)->log(
-            'Settings Modified',
-            Setting::class,
-            null,
-            ['key' => $setting->getKey(), 'value' => $setting->getOriginal('value') ?? null],
-            ['key' => $setting->getKey(), 'value' => $setting->value ?? null]
-        );
+        try {
+            app(AuditTrailService::class)->log(
+                'Settings Modified',
+                Setting::class,
+                null,
+                ['key' => $setting->getKey(), 'value' => $setting->getOriginal('value') ?? null],
+                ['key' => $setting->getKey(), 'value' => $setting->value ?? null]
+            );
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 }

@@ -9,15 +9,19 @@ class AttendanceUploadAuditObserver
 {
     public function created(AttendanceUploadLog $log): void
     {
-        app(AuditTrailService::class)->log(
-            'Attendance Upload',
-            AttendanceUploadLog::class,
-            $log->getKey(),
-            null,
-            [
-                'rows_added' => $log->rows_added,
-                'class_group_id' => $log->class_group_id,
-            ]
-        );
+        try {
+            app(AuditTrailService::class)->log(
+                'Attendance Upload',
+                AttendanceUploadLog::class,
+                $log->getKey(),
+                null,
+                [
+                    'rows_added' => $log->rows_added,
+                    'class_group_id' => $log->class_group_id,
+                ]
+            );
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 }

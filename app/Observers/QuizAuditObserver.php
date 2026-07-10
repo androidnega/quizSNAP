@@ -9,12 +9,20 @@ class QuizAuditObserver
 {
     public function created(Quiz $quiz): void
     {
-        app(AuditTrailService::class)->log('Quiz Created', Quiz::class, $quiz->id, null, $quiz->only(['title', 'status']));
+        try {
+            app(AuditTrailService::class)->log('Quiz Created', Quiz::class, $quiz->id, null, $quiz->only(['title', 'status']));
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 
     public function updated(Quiz $quiz): void
     {
-        if ($quiz->wasChanged()) {
+        if (! $quiz->wasChanged()) {
+            return;
+        }
+
+        try {
             app(AuditTrailService::class)->log(
                 'Quiz Updated',
                 Quiz::class,
@@ -22,11 +30,17 @@ class QuizAuditObserver
                 array_intersect_key($quiz->getOriginal(), $quiz->getChanges()),
                 $quiz->getChanges(),
             );
+        } catch (\Throwable $e) {
+            report($e);
         }
     }
 
     public function deleted(Quiz $quiz): void
     {
-        app(AuditTrailService::class)->log('Quiz Deleted', Quiz::class, $quiz->id, $quiz->only(['title', 'status']));
+        try {
+            app(AuditTrailService::class)->log('Quiz Deleted', Quiz::class, $quiz->id, $quiz->only(['title', 'status']));
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 }

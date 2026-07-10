@@ -8,13 +8,17 @@ abstract class MonitoringAuditObserver
 
     public function created($model): void
     {
-        app(\App\Services\Monitoring\AuditTrailService::class)->log(
-            "{$this->subjectLabel} Created",
-            $model::class,
-            $model->getKey(),
-            null,
-            $this->auditPayload($model)
-        );
+        try {
+            app(\App\Services\Monitoring\AuditTrailService::class)->log(
+                "{$this->subjectLabel} Created",
+                $model::class,
+                $model->getKey(),
+                null,
+                $this->auditPayload($model)
+            );
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 
     public function updated($model): void
@@ -23,23 +27,31 @@ abstract class MonitoringAuditObserver
             return;
         }
 
-        app(\App\Services\Monitoring\AuditTrailService::class)->log(
-            "{$this->subjectLabel} Updated",
-            $model::class,
-            $model->getKey(),
-            array_intersect_key($model->getOriginal(), $model->getChanges()),
-            $model->getChanges()
-        );
+        try {
+            app(\App\Services\Monitoring\AuditTrailService::class)->log(
+                "{$this->subjectLabel} Updated",
+                $model::class,
+                $model->getKey(),
+                array_intersect_key($model->getOriginal(), $model->getChanges()),
+                $model->getChanges()
+            );
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 
     public function deleted($model): void
     {
-        app(\App\Services\Monitoring\AuditTrailService::class)->log(
-            "{$this->subjectLabel} Deleted",
-            $model::class,
-            $model->getKey(),
-            $this->auditPayload($model)
-        );
+        try {
+            app(\App\Services\Monitoring\AuditTrailService::class)->log(
+                "{$this->subjectLabel} Deleted",
+                $model::class,
+                $model->getKey(),
+                $this->auditPayload($model)
+            );
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 
     protected function auditPayload($model): array

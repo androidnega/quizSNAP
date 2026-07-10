@@ -1236,24 +1236,40 @@ class QuizManagementController extends Controller
      */
     public function publish(Quiz $quiz): RedirectResponse
     {
-        $this->authorize('update', $quiz);
-        if (!$quiz->hasEnoughApprovedQuestions()) {
-            return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)->with('error', UserFriendlyMessages::GENERIC);
-        }
-        $quiz->update(['is_published' => true, 'status' => Quiz::STATUS_PUBLISHED]);
-        $this->broadcastDataUpdatedSafe('quizzes');
         try {
-            $quiz->load('course');
-            app(StudentNotificationService::class)->notifyQuizPublished($quiz);
+            $this->authorize('update', $quiz);
+            if (! $quiz->hasEnoughApprovedQuestions()) {
+                return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)
+                    ->with('error', UserFriendlyMessages::GENERIC);
+            }
+
+            $quiz->updateFromAttributes([
+                'is_published' => true,
+                'status' => Quiz::STATUS_PUBLISHED,
+            ]);
+            $this->broadcastDataUpdatedSafe('quizzes');
+
+            try {
+                $quiz->load('course');
+                app(StudentNotificationService::class)->notifyQuizPublished($quiz);
+            } catch (\Throwable $e) {
+                report($e);
+            }
+
+            try {
+                QuizBackupService::sendIfConfigured($quiz);
+            } catch (\Throwable $e) {
+                report($e);
+            }
+
+            return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)
+                ->with('success', 'Published');
         } catch (\Throwable $e) {
             report($e);
+
+            return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)
+                ->with('error', 'Could not publish this quiz. Please try again.');
         }
-        try {
-            QuizBackupService::sendIfConfigured($quiz);
-        } catch (\Throwable $e) {
-            // Do not fail the request if digest send fails
-        }
-        return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)->with('success', 'Published');
     }
 
     /**
@@ -1262,10 +1278,22 @@ class QuizManagementController extends Controller
      */
     public function unpublish(Quiz $quiz): RedirectResponse
     {
-        $this->authorize('update', $quiz);
-        $quiz->update(['is_published' => false, 'status' => Quiz::STATUS_DRAFT]);
-        $this->broadcastDataUpdatedSafe('quizzes');
-        return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)->with('success', 'Unpublished');
+        try {
+            $this->authorize('update', $quiz);
+            $quiz->updateFromAttributes([
+                'is_published' => false,
+                'status' => Quiz::STATUS_DRAFT,
+            ]);
+            $this->broadcastDataUpdatedSafe('quizzes');
+
+            return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)
+                ->with('success', 'Unpublished');
+        } catch (\Throwable $e) {
+            report($e);
+
+            return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)
+                ->with('error', 'Could not unpublish this quiz. Please try again.');
+        }
     }
 
     /**

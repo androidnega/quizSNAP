@@ -4,6 +4,7 @@ namespace App\Services\Monitoring;
 
 use App\Events\Monitoring\MonitoringHealthChanged;
 use App\Models\ServerHealthSnapshot;
+use App\Support\SafeBroadcast;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -34,11 +35,7 @@ class ServerHealthService
             'recorded_at' => now(),
         ]);
 
-        try {
-            broadcast(new MonitoringHealthChanged($snapshot))->toOthers();
-        } catch (\Throwable $e) {
-            report($e);
-        }
+        SafeBroadcast::event(new MonitoringHealthChanged($snapshot));
 
         if (in_array($status, [ServerHealthSnapshot::STATUS_CRITICAL, ServerHealthSnapshot::STATUS_WARNING], true)) {
             app(MonitoringNotificationService::class)->notifyForHealth($snapshot);

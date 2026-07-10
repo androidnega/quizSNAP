@@ -5,6 +5,7 @@ namespace App\Services\Operations;
 use App\Events\DataUpdated;
 use App\Models\Quiz;
 use App\Models\User;
+use App\Support\SafeBroadcast;
 
 class OperationsExamControlService
 {
@@ -84,10 +85,6 @@ class OperationsExamControlService
 
     protected function broadcastQuizUpdate(): void
     {
-        try {
-            broadcast(new DataUpdated('quizzes'))->toOthers();
-        } catch (\Throwable) {
-            // ignore
-        }
+        SafeBroadcast::event(new DataUpdated('quizzes'));
     }
 }

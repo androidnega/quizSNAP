@@ -49,7 +49,8 @@ class QuizBackupService
             $pdfContent = $pdf->output();
         } catch (\Throwable $e) {
             Log::error('QuizBackupService: PDF generation failed.', ['quiz_id' => $quiz->id, 'message' => $e->getMessage()]);
-            throw $e;
+
+            return;
         }
 
         $appName = Setting::getValue(Setting::KEY_APP_NAME, config('app.name'));
@@ -63,7 +64,8 @@ class QuizBackupService
             });
         } catch (\Throwable $e) {
             Log::error('QuizBackupService: sending digest email failed.', ['quiz_id' => $quiz->id, 'to' => $to, 'message' => $e->getMessage()]);
-            throw $e;
+
+            return;
         }
 
         Log::info('QuizBackupService: digest sent.', ['quiz_id' => $quiz->id, 'filename' => $filename]);

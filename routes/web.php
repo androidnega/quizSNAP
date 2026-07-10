@@ -304,6 +304,10 @@ Route::middleware('admin.auth')->group(function () {
             Route::delete('/quizzes/{quiz}/question-pools/{pool}', [QuizManagementController::class, 'rejectPool'])->name('quizzes.pool.reject');
             Route::post('/quizzes/{quiz}/approve-all-pool', [QuizManagementController::class, 'approveAllPool'])->name('quizzes.approve-all-pool');
             Route::post('/quizzes/{quiz}/publish', [QuizManagementController::class, 'publish'])->name('quizzes.publish');
+            Route::get('/quizzes/{quiz}/publish', function (Quiz $quiz) {
+                return redirect()->route('dashboard.quizzes.show', $quiz)
+                    ->with('info', 'Use the Publish button on the quiz overview page.');
+            })->name('quizzes.publish.get');
             Route::post('/quizzes/{quiz}/unpublish', [QuizManagementController::class, 'unpublish'])->name('quizzes.unpublish');
             Route::post('/quizzes/{quiz}/end', [QuizManagementController::class, 'endQuiz'])->name('quizzes.end');
             Route::post('/quizzes/{quiz}/extend-time', [QuizManagementController::class, 'extendTime'])->name('quizzes.extend-time');

@@ -9,6 +9,7 @@ use App\Models\QuizSession;
 use App\Models\QuizViolation;
 use App\Models\Result;
 use App\Services\LiveQuizSessionService;
+use App\Support\SafeBroadcast;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 
@@ -21,7 +22,7 @@ class OperationsLiveExamService
 
     public function broadcastUpdate(): void
     {
-        broadcast(new OperationsLiveExamsUpdated($this->build()))->toOthers();
+        SafeBroadcast::event(new OperationsLiveExamsUpdated($this->build()));
     }
 
     public function build(): array

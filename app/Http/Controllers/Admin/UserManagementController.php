@@ -696,8 +696,21 @@ class UserManagementController extends Controller
                 ->with('error', 'You cannot remove your own account.');
         }
 
-        $user->courses()->detach();
-        $user->delete();
+        try {
+            if (config('session.driver') === 'database' && Schema::hasColumn(config('session.table', 'sessions'), 'user_id')) {
+                \Illuminate\Support\Facades\DB::table(config('session.table', 'sessions'))
+                    ->where('user_id', $user->id)
+                    ->delete();
+            }
+
+            $user->courses()->detach();
+            $user->delete();
+        } catch (\Throwable $e) {
+            report($e);
+
+            return redirect()->route('dashboard.users.index')
+                ->with('error', 'Could not delete this user. They may still be linked to class groups or other records.');
+        }
 
         return redirect()->route('dashboard.users.index')
             ->with('success', 'Deleted');

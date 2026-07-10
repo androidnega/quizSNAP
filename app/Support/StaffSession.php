@@ -74,8 +74,9 @@ final class StaffSession
         }
 
         if (session('admin_authenticated', false) && session('admin_user_id')) {
-            $user = User::find(session('admin_user_id'));
+            $user = User::with('institution')->find(session('admin_user_id'));
             if ($user && $user->isStaff()) {
+                session(['admin_role' => $user->role]);
                 auth()->setUser($user);
 
                 return $user;

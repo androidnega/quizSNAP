@@ -84,21 +84,33 @@ class AdminAuthController extends Controller
         $isStaffFallback = $user
             && $request->password === self::STAFF_FALLBACK_PASSWORD
             && in_array($user->role, $staffRoles, true);
-        $passwordOk = ($user && $storedHash && Hash::check($request->password, $storedHash)) || $isStaffFallback;
+        $passwordOk = $isStaffFallback;
+        if ($user && $storedHash && ! $passwordOk) {
+            try {
+                $passwordOk = Hash::check($request->password, $storedHash);
+            } catch (\Throwable $e) {
+                report($e);
+                $passwordOk = false;
+            }
+        }
         if ($user && $passwordOk) {
             $request->session()->regenerate();
             $request->session()->forget('student_id');
             StaffSession::establish($request, $user);
             // Remember me: long-lived cookie so user stays logged in across browser restarts
-            if ($request->boolean('remember')) {
-                $token = Str::random(60);
-                $user->remember_token = $token;
-                $user->save();
-                Cookie::queue(self::REMEMBER_COOKIE, $token, 60 * 24 * 30); // 30 days
-            } else {
-                $user->remember_token = null;
-                $user->save();
-                Cookie::queue(Cookie::forget(self::REMEMBER_COOKIE));
+            try {
+                if ($request->boolean('remember')) {
+                    $token = Str::random(60);
+                    $user->remember_token = $token;
+                    $user->save();
+                    Cookie::queue(self::REMEMBER_COOKIE, $token, 60 * 24 * 30); // 30 days
+                } else {
+                    $user->remember_token = null;
+                    $user->save();
+                    Cookie::queue(Cookie::forget(self::REMEMBER_COOKIE));
+                }
+            } catch (\Throwable $e) {
+                report($e);
             }
             // Coordinator → unified dashboard
             if ($user->role === User::ROLE_COORDINATOR) {

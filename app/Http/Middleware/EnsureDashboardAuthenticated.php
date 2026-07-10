@@ -13,6 +13,11 @@ class EnsureDashboardAuthenticated
 {
     public function handle(Request $request, Closure $next): Response
     {
+        // Staff session takes priority — stale student_id must not shadow examiner/admin login.
+        if (StaffSession::resolve($request)) {
+            return $next($request);
+        }
+
         if (session('student_id')) {
             $student = Student::find(session('student_id'));
             if ($student) {
@@ -21,10 +26,6 @@ class EnsureDashboardAuthenticated
                 return $next($request);
             }
             session()->forget(['student_id', 'student_index']);
-        }
-
-        if (StaffSession::resolve($request)) {
-            return $next($request);
         }
 
         return redirect()->route('student.account.login.form')

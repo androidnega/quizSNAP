@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Manages AI quiz generation tokens for examiners.
@@ -65,6 +66,27 @@ class AiQuizTokenService
      */
     public function getStatus(User $user): array
     {
+        try {
+            return $this->buildStatus($user);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return [
+                'remaining' => 0,
+                'allocation' => 0,
+                'used' => 0,
+                'reset_at' => null,
+                'can_use' => false,
+                'message' => null,
+            ];
+        }
+    }
+
+    /**
+     * @return array{remaining: int, allocation: int, used: int, reset_at: ?\Carbon\Carbon, can_use: bool, message: ?string}
+     */
+    private function buildStatus(User $user): array
+    {
         if ($user->isSuperAdmin()) {
             $globallyEnabled = AiQuestionService::isGenerationEnabled();
             return [
@@ -118,7 +140,7 @@ class AiQuizTokenService
         $allocation = (int) ($user->ai_quiz_tokens_allocation ?? $defaultAllocation);
         $used = (int) ($user->ai_quiz_tokens_used ?? 0);
         $remaining = max(0, $allocation - $used);
-        $resetAt = $user->ai_quiz_tokens_reset_at ? \Carbon\Carbon::parse($user->ai_quiz_tokens_reset_at) : null;
+        $resetAt = $this->parseResetAt($user->ai_quiz_tokens_reset_at);
 
         $canUse = $remaining > 0;
         $message = null;
@@ -185,16 +207,40 @@ class AiQuizTokenService
 
     private function maybeReset(User $user): void
     {
-        $resetAt = $user->ai_quiz_tokens_reset_at;
-        if (!$resetAt) {
+        if (! Schema::hasColumn('users', 'ai_quiz_tokens_reset_at')
+            || ! Schema::hasColumn('users', 'ai_quiz_tokens_used')) {
             return;
         }
-        $resetAt = \Carbon\Carbon::parse($resetAt);
-        if (now()->gte($resetAt)) {
-            $user->update([
-                'ai_quiz_tokens_used' => 0,
-                'ai_quiz_tokens_reset_at' => null,
-            ]);
+
+        $resetAt = $this->parseResetAt($user->ai_quiz_tokens_reset_at);
+        if (! $resetAt || ! now()->gte($resetAt)) {
+            return;
+        }
+
+        try {
+            DB::table('users')
+                ->where('id', $user->id)
+                ->update([
+                    'ai_quiz_tokens_used' => 0,
+                    'ai_quiz_tokens_reset_at' => null,
+                    'updated_at' => now(),
+                ]);
+            $user->refresh();
+        } catch (\Throwable $e) {
+            report($e);
+        }
+    }
+
+    private function parseResetAt(mixed $value): ?\Carbon\Carbon
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        try {
+            return \Carbon\Carbon::parse($value);
+        } catch (\Throwable) {
+            return null;
         }
     }
 

@@ -42,6 +42,9 @@ class EnsureAdminAuthenticated
                 ->with('error', 'Session invalid. Please log in again.');
         }
 
+        // Prevent a leftover student session from breaking staff pages and @can policies.
+        session()->forget(['student_id', 'student_index', 'student_login_intent']);
+
         // System Monitor: dashboard hub, profile, and all enterprise centers only.
         if ($user->role === User::ROLE_SYSTEM_ADMIN) {
             if (! EnterpriseCenterAccess::systemMonitorRouteAllowed($request)) {

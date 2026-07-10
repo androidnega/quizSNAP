@@ -54,6 +54,7 @@ Route::get('/thekey', [\App\Http\Controllers\FixPullController::class, 'run'])->
 Route::post('/presence/ping', [\App\Http\Controllers\SitePresenceController::class, 'ping'])
     ->middleware('throttle:120,1')
     ->name('presence.ping');
+Route::get('/csrf-token', fn () => response()->json(['token' => csrf_token()]))->name('csrf-token');
 
 // Public landing: single Start Quiz entry; no quiz list. If direct link has token (?t= or ?token=), go straight to rules.
 Route::get('/', LandingPageController::class)->name('student.landing');
@@ -201,6 +202,7 @@ Route::middleware('admin.auth')->group(function () {
     Route::get('/logout', [AdminAuthController::class, 'logout'])->name('logout.get');
     Route::get('/dashboard/live-stats', [AdminDashboardController::class, 'liveStats'])->name('dashboard.live-stats');
     Route::get('/dashboard/charts', [AdminDashboardController::class, 'charts'])->name('dashboard.charts');
+    Route::get('/dashboard/csrf-token', fn () => response()->json(['token' => csrf_token()]))->name('dashboard.csrf-token');
     // GET /dashboard is handled by DashboardGatewayController (unified)
 
         Route::prefix('dashboard')->name('dashboard.')->middleware('block.superadmin.coordinator')->group(function () {

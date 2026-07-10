@@ -103,6 +103,22 @@
         return m ? m.getAttribute('content') : '';
     }
 
+    function refreshCsrf() {
+        return fetch('/dashboard/csrf-token', {
+            credentials: 'same-origin',
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (data) {
+                if (data && data.token) {
+                    var m = document.querySelector('meta[name="csrf-token"]');
+                    if (m) m.setAttribute('content', data.token);
+                }
+                return data && data.token ? data.token : csrf();
+            })
+            .catch(function () { return csrf(); });
+    }
+
     function jsonHeaders() {
         return {
             'Accept': 'application/json',
@@ -343,8 +359,14 @@
         }, 1400);
     }
 
-    function pingPresence() {
-        fetch(url('/presence'), { method: 'POST', headers: jsonHeaders() }).catch(function () {});
+    function pingPresence(retrying) {
+        fetch(url('/presence'), { method: 'POST', headers: jsonHeaders() })
+            .then(function (r) {
+                if (r.status === 419 && !retrying) {
+                    return refreshCsrf().then(function () { pingPresence(true); });
+                }
+            })
+            .catch(function () {});
     }
 
     function processWebRtcMeta(meta, messageId) {

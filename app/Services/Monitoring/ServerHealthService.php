@@ -34,7 +34,11 @@ class ServerHealthService
             'recorded_at' => now(),
         ]);
 
-        broadcast(new MonitoringHealthChanged($snapshot))->toOthers();
+        try {
+            broadcast(new MonitoringHealthChanged($snapshot))->toOthers();
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         if (in_array($status, [ServerHealthSnapshot::STATUS_CRITICAL, ServerHealthSnapshot::STATUS_WARNING], true)) {
             app(MonitoringNotificationService::class)->notifyForHealth($snapshot);

@@ -1254,6 +1254,23 @@
     var liveQuestionIndex = 0;
     var csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
 
+    function refreshCsrfToken() {
+        return fetch(@json(route('dashboard.csrf-token')), {
+            credentials: 'same-origin',
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (data) {
+                if (data && data.token) {
+                    csrfToken = data.token;
+                    var meta = document.querySelector('meta[name="csrf-token"]');
+                    if (meta) meta.setAttribute('content', data.token);
+                }
+                return csrfToken;
+            })
+            .catch(function () { return csrfToken; });
+    }
+
     function parseJsonResponse(r) {
         return r.text().then(function(text) {
             var data = {};
@@ -1412,22 +1429,29 @@
         var isFirst = true;
         var body = null;
 
-        function nextBatch() {
+        function nextBatch(retrying) {
+            var firstCall = isFirst;
             body = new URLSearchParams({
                 target: String(target),
                 topics: topics || '',
-                first_call: isFirst ? '1' : '0',
+                first_call: firstCall ? '1' : '0',
                 _token: csrfToken
             });
-            isFirst = false;
 
             fetch(batchUrl, {
                 method: 'POST',
                 headers: Object.assign({}, jsonFetchHeaders(), { 'Content-Type': 'application/x-www-form-urlencoded' }),
                 body: body.toString()
             })
-                .then(parseJsonResponse)
+                .then(function (r) {
+                    if (r.status === 419 && !retrying) {
+                        return refreshCsrfToken().then(function () { nextBatch(true); });
+                    }
+                    if (firstCall) isFirst = false;
+                    return parseJsonResponse(r);
+                })
                 .then(function(res) {
+                    if (!res) return;
                     var data = res.data || {};
                     if (!res.ok || data.success === false) {
                         var err = data.error || data.message || ('Generation failed (HTTP ' + res.status + ').');
@@ -1519,6 +1543,19 @@
             body: formData,
             headers: jsonFetchHeaders()
         })
+            .then(function (r) {
+                if (r.status === 419) {
+                    return refreshCsrfToken().then(function () {
+                        if (csrfToken) formData.set('_token', csrfToken);
+                        return fetch(form.action, {
+                            method: 'POST',
+                            body: formData,
+                            headers: jsonFetchHeaders()
+                        });
+                    });
+                }
+                return r;
+            })
             .then(parseJsonResponse)
             .then(function(res) {
                 if (!res.ok || !res.data.success) {

@@ -97,7 +97,8 @@ final class StaffSession
 
         self::clearStudentSessionKeys();
         session(['admin_role' => $user->role]);
-        auth()->login($user, false);
+        // setUser only — login() migrates the session and invalidates CSRF on every request.
+        auth()->setUser($user);
 
         return $user;
     }

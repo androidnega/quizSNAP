@@ -24,7 +24,23 @@
         return el ? el.getAttribute('content') : '';
     }
 
-    function ping() {
+    function refreshCsrf() {
+        return fetch('/csrf-token', {
+            credentials: 'same-origin',
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (data) {
+                if (data && data.token) {
+                    var el = document.querySelector('meta[name="csrf-token"]');
+                    if (el) el.setAttribute('content', data.token);
+                }
+                return data && data.token ? data.token : csrf();
+            })
+            .catch(function () { return csrf(); });
+    }
+
+    function ping(retrying) {
         if (document.visibilityState === 'hidden') return;
         fetch('/presence/ping', {
             method: 'POST',
@@ -35,7 +51,13 @@
                 'X-CSRF-TOKEN': csrf(),
             },
             body: JSON.stringify({ visitor_id: visitorId() }),
-        }).catch(function () {});
+        })
+            .then(function (r) {
+                if (r.status === 419 && !retrying) {
+                    return refreshCsrf().then(function () { ping(true); });
+                }
+            })
+            .catch(function () {});
     }
 
     if (document.readyState === 'loading') {

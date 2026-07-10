@@ -126,7 +126,6 @@ class UserManagementController extends Controller
         $creatableRoles = User::superAdminCreatableRoleKeys();
         $canCreateSuperAdmin = $isSuperAdmin && $user;
 
-        $courseIds = $user ? $user->assignedCourseIds() : [];
         $role = $request->role;
         $isStaffRole = in_array($role, [User::ROLE_EXAMINER, User::ROLE_COORDINATOR], true);
         $isSupportAgent = $role === User::ROLE_SUPPORT_AGENT;
@@ -192,18 +191,13 @@ class UserManagementController extends Controller
             'department_id.required' => 'Department is required for examiners.',
         ]);
 
-        $plainPassword = null;
-        if ($useSmsFlow) {
-            $plainPassword = Str::password(10);
-        } else {
-            $plainPassword = $request->password;
-        }
+        $plainPassword = $useSmsFlow ? Str::password(10) : $request->password;
 
         $attrs = [
             'username' => $request->username,
             'name' => $request->name ?: $request->username,
             'role' => $role,
-            'password' => Hash::make($plainPassword),
+            'password' => $plainPassword,
         ];
         if (Schema::hasColumn('users', 'email')) {
             $attrs['email'] = $request->filled('email') ? trim($request->email) : null;
@@ -233,28 +227,52 @@ class UserManagementController extends Controller
         }
         if ($isSuperAdmin && in_array($role, [User::ROLE_EXAMINER, User::ROLE_COORDINATOR], true)) {
             $defaultAllocation = $role === User::ROLE_COORDINATOR ? 3 : 10;
-            $attrs['ai_quiz_tokens_allocation'] = max(0, (int) ($request->ai_quiz_tokens_allocation ?? $defaultAllocation));
-            $attrs['ai_quiz_generation_allowed'] = $request->boolean('ai_quiz_generation_allowed', true);
+            if (Schema::hasColumn('users', 'ai_quiz_tokens_allocation')) {
+                $attrs['ai_quiz_tokens_allocation'] = max(0, (int) ($request->ai_quiz_tokens_allocation ?? $defaultAllocation));
+            }
+            if (Schema::hasColumn('users', 'ai_quiz_generation_allowed')) {
+                $attrs['ai_quiz_generation_allowed'] = $request->boolean('ai_quiz_generation_allowed', true);
+            }
         }
-        $newUser = User::create($attrs);
+
+        try {
+            $newUser = User::create($attrs);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return redirect()->route('dashboard.users.create')
+                ->withInput()
+                ->with('error', 'Could not create the user. Please try again.');
+        }
 
         if ($useSmsFlow && $newUser->phone) {
-            $loginUrl = 'https://quizsnap.online/login';
-            $message = sprintf(
-                "QuizSnap login. URL: %s Username: %s Password: %s",
-                $loginUrl,
-                $newUser->username,
-                $plainPassword
-            );
-            $result = ArkeselService::sendSms($newUser->phone, $message);
-            if ($result['success']) {
+            try {
+                $loginUrl = rtrim((string) config('app.url'), '/') . '/login';
+                $message = sprintf(
+                    'QuizSnap login. URL: %s Username: %s Password: %s',
+                    $loginUrl,
+                    $newUser->username,
+                    $plainPassword
+                );
+                $result = ArkeselService::sendSms($newUser->phone, $message);
+                if ($result['success']) {
+                    return redirect()->route('dashboard.users.index')
+                        ->with('success', "Account created! We've sent the login details by SMS — they're all set.");
+                }
+
                 return redirect()->route('dashboard.users.index')
-                    ->with('success', "Account created! We've sent the login details by SMS — they're all set.");
+                    ->with('sms_failed', $result['message'] ?? 'SMS could not be sent.')
+                    ->with('generated_password', $plainPassword)
+                    ->with('created_username', $newUser->username);
+            } catch (\Throwable $e) {
+                report($e);
+
+                return redirect()->route('dashboard.users.index')
+                    ->with('sms_failed', 'SMS could not be sent due to a provider error.')
+                    ->with('generated_password', $plainPassword)
+                    ->with('created_username', $newUser->username)
+                    ->with('success', 'Account created. Share the password below manually.');
             }
-            return redirect()->route('dashboard.users.index')
-                ->with('sms_failed', $result['message'] ?? 'SMS could not be sent.')
-                ->with('generated_password', $plainPassword)
-                ->with('created_username', $newUser->username);
         }
 
         return redirect()->route('dashboard.users.index')

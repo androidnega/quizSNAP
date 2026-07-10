@@ -63,7 +63,11 @@ class MonitoringServiceProvider extends ServiceProvider
             \App\Events\Monitoring\MonitoringCommandCenterUpdated::class,
         ] as $eventClass) {
             Event::listen($eventClass, function () {
-                app(ReverbAnalyticsService::class)->recordBroadcast(class_basename(func_get_args()[0] ?? 'event'));
+                try {
+                    app(ReverbAnalyticsService::class)->recordBroadcast(class_basename(func_get_args()[0] ?? 'event'));
+                } catch (\Throwable $e) {
+                    report($e);
+                }
             });
         }
     }

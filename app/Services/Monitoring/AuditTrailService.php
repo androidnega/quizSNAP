@@ -36,7 +36,11 @@ class AuditTrailService
                 'occurred_at' => now(),
             ]);
 
-            broadcast(new MonitoringActivityLogged($entry))->toOthers();
+            try {
+                broadcast(new MonitoringActivityLogged($entry))->toOthers();
+            } catch (\Throwable $broadcastError) {
+                report($broadcastError);
+            }
 
             return $entry;
         } catch (\Throwable $e) {

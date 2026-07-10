@@ -128,7 +128,7 @@
                                         <span class="text-gray-600" id="sms-display-{{ $u->id }}">
                                             {{ $u->sms_allocation ?? 0 }} <span class="text-xs text-gray-500">({{ $u->sms_remaining ?? 0 }} left)</span>
                                         </span>
-                                        <button type="button" onclick="openSmsModal({{ $u->id }}, '{{ $u->username }}', {{ $u->sms_allocation ?? 0 }}, {{ $u->sms_used ?? 0 }})" class="inline-flex p-1 rounded text-gray-500 hover:text-primary-600 hover:bg-primary-50 transition-colors" title="Add SMS credits">
+                                        <button type="button" onclick="openSmsModal({{ $u->id }}, @json($u->username), {{ $u->sms_allocation ?? 0 }}, {{ $u->sms_used ?? 0 }})" class="inline-flex p-1 rounded text-gray-500 hover:text-primary-600 hover:bg-primary-50 transition-colors" title="Add SMS credits">
                                             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
                                         </button>
                                     </div>
@@ -140,12 +140,18 @@
                                 @if(!empty($canManageAiTokens))
                                 <td class="px-3 py-2 text-sm">
                                     @if($u->isExaminer() || (!empty($isSuperAdmin) && $u->role === \App\Models\User::ROLE_COORDINATOR))
-                                    @php $aiRemaining = app(\App\Services\AiQuizTokenService::class)->getRemaining($u); @endphp
+                                    @php
+                                        try {
+                                            $aiRemaining = app(\App\Services\AiQuizTokenService::class)->getRemaining($u);
+                                        } catch (\Throwable $e) {
+                                            $aiRemaining = 0;
+                                        }
+                                    @endphp
                                     <div class="flex items-center gap-2">
                                         <span class="text-gray-600" id="ai-display-{{ $u->id }}">
                                             <span class="font-medium">{{ $aiRemaining }}</span> <span class="text-xs text-gray-500">left</span>
                                         </span>
-                                        <button type="button" onclick="openAiModal({{ $u->id }}, '{{ $u->username }}', {{ $aiRemaining }}, {{ $u->ai_quiz_tokens_allocation ?? 0 }}, {{ $u->ai_quiz_tokens_used ?? 0 }})" class="inline-flex p-1 rounded text-gray-500 hover:text-primary-600 hover:bg-primary-50 transition-colors" title="Assign AI tokens">
+                                        <button type="button" onclick="openAiModal({{ $u->id }}, @json($u->username), {{ $aiRemaining }}, {{ $u->ai_quiz_tokens_allocation ?? 0 }}, {{ $u->ai_quiz_tokens_used ?? 0 }})" class="inline-flex p-1 rounded text-gray-500 hover:text-primary-600 hover:bg-primary-50 transition-colors" title="Assign AI tokens">
                                             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
                                         </button>
                                     </div>

@@ -4,6 +4,7 @@ namespace App\Services\Monitoring;
 
 use App\Events\Monitoring\MonitoringCommandCenterUpdated;
 use App\Models\MonitoringCapacitySnapshot;
+use App\Support\SafeBroadcast;
 
 class CommandCenterService
 {
@@ -36,6 +37,6 @@ class CommandCenterService
 
     public function broadcast(): void
     {
-        broadcast(new MonitoringCommandCenterUpdated($this->payload()))->toOthers();
+        SafeBroadcast::event(new MonitoringCommandCenterUpdated($this->payload()));
     }
 }

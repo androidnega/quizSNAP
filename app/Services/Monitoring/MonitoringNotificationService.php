@@ -3,6 +3,7 @@
 namespace App\Services\Monitoring;
 
 use App\Events\Monitoring\MonitoringNotificationCreated;
+use App\Support\SafeBroadcast;
 use App\Models\MonitoringNotification;
 use App\Models\SecurityEvent;
 use App\Models\ServerHealthSnapshot;
@@ -29,7 +30,7 @@ class MonitoringNotificationService
                 'created_at' => now(),
             ]);
 
-            broadcast(new MonitoringNotificationCreated($notification))->toOthers();
+            SafeBroadcast::event(new MonitoringNotificationCreated($notification));
         } catch (\Throwable $e) {
             report($e);
         }

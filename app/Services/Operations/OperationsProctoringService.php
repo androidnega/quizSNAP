@@ -3,6 +3,7 @@
 namespace App\Services\Operations;
 
 use App\Events\Operations\OperationsProctoringUpdated;
+use App\Support\SafeBroadcast;
 use App\Models\QuizSession;
 use App\Models\QuizViolation;
 use Illuminate\Support\Facades\Cache;
@@ -29,7 +30,7 @@ class OperationsProctoringService
 
     public function broadcastUpdate(): void
     {
-        broadcast(new OperationsProctoringUpdated($this->build()))->toOthers();
+        SafeBroadcast::event(new OperationsProctoringUpdated($this->build()));
     }
 
     protected function build(): array

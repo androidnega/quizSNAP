@@ -1479,21 +1479,32 @@ class QuizManagementController extends Controller
      */
     public function destroy(Quiz $quiz): RedirectResponse
     {
-        $this->authorize('delete', $quiz);
-        if ($quiz->hasStarted()) {
-            return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)->with('error', UserFriendlyMessages::GENERIC);
-        }
-        $title = $quiz->title;
-        if ($quiz->script_public_id && ! str_starts_with((string) $quiz->script_public_id, 'http')) {
-            LocalUploadService::deletePublicPath($quiz->script_public_id);
-        }
-        $quiz->delete();
         try {
+            $this->authorize('delete', $quiz);
+            if ($quiz->hasStarted()) {
+                return redirect()->route($this->staffRoutePrefix() . '.quizzes.show', $quiz)
+                    ->with('error', UserFriendlyMessages::GENERIC);
+            }
+
+            if ($quiz->script_public_id && ! str_starts_with((string) $quiz->script_public_id, 'http')) {
+                try {
+                    LocalUploadService::deletePublicPath($quiz->script_public_id);
+                } catch (\Throwable $e) {
+                    report($e);
+                }
+            }
+
+            $quiz->delete();
             $this->broadcastDataUpdatedSafe('quizzes');
-        } catch (\Exception $e) {
-            // Ignore broadcast errors
+
+            return redirect()->route($this->staffRoutePrefix() . '.quizzes.index')
+                ->with('success', 'Deleted');
+        } catch (\Throwable $e) {
+            report($e);
+
+            return redirect()->route($this->staffRoutePrefix() . '.quizzes.index')
+                ->with('error', 'Could not delete this quiz. Please try again.');
         }
-        return redirect()->route($this->staffRoutePrefix() . '.quizzes.index')->with('success', 'Deleted');
     }
 
     /**

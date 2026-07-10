@@ -9,6 +9,7 @@ use App\Services\AiQuestionService;
 use App\Services\AiQuizGenerationProgress;
 use App\Services\AiQuizTokenService;
 use App\Services\QuizBackupService;
+use App\Support\SafeBroadcast;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -119,11 +120,7 @@ class GenerateQuizQuestionsJob implements ShouldQueue
 
         AiQuizGenerationProgress::complete($this->quizId, $generatedCount);
 
-        try {
-            broadcast(new DataUpdated('quizzes'))->toOthers();
-        } catch (\Exception $e) {
-            // Ignore broadcast errors
-        }
+        SafeBroadcast::event(new DataUpdated('quizzes'));
 
         try {
             QuizBackupService::sendIfConfigured($quiz);

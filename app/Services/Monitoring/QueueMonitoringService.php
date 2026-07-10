@@ -3,6 +3,7 @@
 namespace App\Services\Monitoring;
 
 use App\Events\Monitoring\MonitoringQueueChanged;
+use App\Support\SafeBroadcast;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -37,7 +38,7 @@ class QueueMonitoringService
     public function retry(string $uuid): bool
     {
         Artisan::call('queue:retry', ['id' => [$uuid]]);
-        broadcast(new MonitoringQueueChanged('retried', $uuid))->toOthers();
+        SafeBroadcast::event(new MonitoringQueueChanged('retried', $uuid));
 
         return true;
     }
@@ -45,7 +46,7 @@ class QueueMonitoringService
     public function retryAll(): int
     {
         Artisan::call('queue:retry', ['id' => ['all']]);
-        broadcast(new MonitoringQueueChanged('retry_all'))->toOthers();
+        SafeBroadcast::event(new MonitoringQueueChanged('retry_all'));
 
         return (int) DB::table('failed_jobs')->count();
     }
@@ -54,7 +55,7 @@ class QueueMonitoringService
     {
         $deleted = DB::table('failed_jobs')->where('uuid', $uuid)->delete();
         if ($deleted) {
-            broadcast(new MonitoringQueueChanged('deleted', $uuid))->toOthers();
+            SafeBroadcast::event(new MonitoringQueueChanged('deleted', $uuid));
         }
 
         return (bool) $deleted;
@@ -64,7 +65,7 @@ class QueueMonitoringService
     {
         $count = DB::table('failed_jobs')->count();
         Artisan::call('queue:flush');
-        broadcast(new MonitoringQueueChanged('flush_all'))->toOthers();
+        SafeBroadcast::event(new MonitoringQueueChanged('flush_all'));
 
         return $count;
     }

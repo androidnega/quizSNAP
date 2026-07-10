@@ -4,6 +4,7 @@ namespace App\Services\Intelligence;
 
 use App\Events\Intelligence\IntelligenceRecommendationCreated;
 use App\Models\IntelligenceRecommendation;
+use App\Support\SafeBroadcast;
 use Illuminate\Support\Facades\Schema;
 
 class IntelligenceRecommendationEngine
@@ -111,17 +112,13 @@ class IntelligenceRecommendationEngine
             'subject_key' => $subjectKey,
         ]);
 
-        try {
-            broadcast(new IntelligenceRecommendationCreated([
-                'id' => $rec->id,
-                'category' => $rec->category,
-                'severity' => $rec->severity,
-                'title' => $rec->title,
-                'message' => $rec->message,
-            ]))->toOthers();
-        } catch (\Throwable) {
-            // ignore
-        }
+        SafeBroadcast::event(new IntelligenceRecommendationCreated([
+            'id' => $rec->id,
+            'category' => $rec->category,
+            'severity' => $rec->severity,
+            'title' => $rec->title,
+            'message' => $rec->message,
+        ]));
 
         return $rec;
     }

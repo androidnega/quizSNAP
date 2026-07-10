@@ -4,6 +4,7 @@ namespace App\Services\Operations;
 
 use App\Events\Operations\OperationsAttendanceUpdated;
 use App\Services\Monitoring\LiveAttendanceMonitorService;
+use App\Support\SafeBroadcast;
 use Illuminate\Support\Facades\Cache;
 
 class OperationsAttendanceService
@@ -15,7 +16,7 @@ class OperationsAttendanceService
 
     public function broadcastUpdate(): void
     {
-        broadcast(new OperationsAttendanceUpdated($this->build()))->toOthers();
+        SafeBroadcast::event(new OperationsAttendanceUpdated($this->build()));
     }
 
     protected function build(): array

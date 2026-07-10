@@ -3,6 +3,7 @@
 namespace App\Services\Monitoring;
 
 use App\Events\Monitoring\MonitoringSlowQueryDetected;
+use App\Support\SafeBroadcast;
 use App\Models\DatabaseQueryLog;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -42,7 +43,7 @@ class DatabaseMonitoringService
                     'occurred_at' => now(),
                 ]);
 
-                broadcast(new MonitoringSlowQueryDetected($log))->toOthers();
+                SafeBroadcast::event(new MonitoringSlowQueryDetected($log));
             } catch (\Throwable $e) {
                 report($e);
             }

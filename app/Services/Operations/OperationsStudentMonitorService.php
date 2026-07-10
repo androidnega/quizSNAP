@@ -6,6 +6,7 @@ use App\Events\Operations\OperationsStudentsUpdated;
 use App\Models\MonitoringUserSession;
 use App\Models\QuizSession;
 use App\Services\LiveQuizSessionService;
+use App\Support\SafeBroadcast;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 
@@ -18,7 +19,7 @@ class OperationsStudentMonitorService
 
     public function broadcastUpdate(): void
     {
-        broadcast(new OperationsStudentsUpdated($this->build()))->toOthers();
+        SafeBroadcast::event(new OperationsStudentsUpdated($this->build()));
     }
 
     protected function build(): array

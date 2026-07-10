@@ -4,6 +4,7 @@ namespace App\Services\Intelligence;
 
 use App\Events\Intelligence\IntelligenceDashboardUpdated;
 use App\Events\Intelligence\IntelligenceRiskChanged;
+use App\Support\SafeBroadcast;
 use App\Models\IntelligenceSnapshot;
 use App\Services\Operations\OperationsAttendanceAnalyticsService;
 use Illuminate\Support\Facades\Cache;
@@ -19,15 +20,11 @@ class IntelligenceExecutiveDashboardService
     public function broadcast(int $days = 90): void
     {
         $payload = $this->build($days);
-        try {
-            broadcast(new IntelligenceDashboardUpdated($payload))->toOthers();
-            broadcast(new IntelligenceRiskChanged([
-                'risk_score' => $payload['risk_score'],
-                'risk_level' => $payload['risk_level'],
-            ]))->toOthers();
-        } catch (\Throwable) {
-            // Reverb may be offline in dev/CI
-        }
+        SafeBroadcast::event(new IntelligenceDashboardUpdated($payload));
+        SafeBroadcast::event(new IntelligenceRiskChanged([
+            'risk_score' => $payload['risk_score'],
+            'risk_level' => $payload['risk_level'],
+        ]));
     }
 
     protected function build(int $days): array

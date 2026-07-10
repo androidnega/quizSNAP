@@ -3,6 +3,7 @@
 namespace App\Services\Monitoring;
 
 use App\Events\Monitoring\MonitoringSecurityEventOccurred;
+use App\Support\SafeBroadcast;
 use App\Models\SecurityEvent;
 use App\Models\User;
 use Illuminate\Support\Facades\Schema;
@@ -32,7 +33,7 @@ class SecurityMonitoringService
                 'occurred_at' => now(),
             ]);
 
-            broadcast(new MonitoringSecurityEventOccurred($event))->toOthers();
+            SafeBroadcast::event(new MonitoringSecurityEventOccurred($event));
             app(MonitoringNotificationService::class)->notifyForSecurityEvent($event);
 
             return $event;

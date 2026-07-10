@@ -3,6 +3,7 @@
 namespace App\Services\Operations;
 
 use App\Events\Operations\OperationsCommandCenterUpdated;
+use App\Support\SafeBroadcast;
 use App\Models\MonitoringUserSession;
 use App\Models\OperationsExamIncident;
 use App\Models\OperationsAlert;
@@ -20,7 +21,7 @@ class OperationsCommandCenterService
 
     public function broadcast(): void
     {
-        broadcast(new OperationsCommandCenterUpdated($this->build()))->toOthers();
+        SafeBroadcast::event(new OperationsCommandCenterUpdated($this->build()));
     }
 
     protected function build(): array

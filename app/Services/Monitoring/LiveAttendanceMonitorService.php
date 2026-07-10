@@ -3,6 +3,7 @@
 namespace App\Services\Monitoring;
 
 use App\Events\Monitoring\MonitoringLiveAttendanceUpdated;
+use App\Support\SafeBroadcast;
 use App\Models\AttendanceUploadLog;
 use App\Models\AuthAuditLog;
 use App\Models\ClassGroup;
@@ -22,7 +23,7 @@ class LiveAttendanceMonitorService
 
     public function broadcastUpdate(): void
     {
-        broadcast(new MonitoringLiveAttendanceUpdated($this->buildSnapshot()))->toOthers();
+        SafeBroadcast::event(new MonitoringLiveAttendanceUpdated($this->buildSnapshot()));
     }
 
     protected function buildSnapshot(): array

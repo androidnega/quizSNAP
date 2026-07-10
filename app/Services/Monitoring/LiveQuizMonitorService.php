@@ -3,6 +3,7 @@
 namespace App\Services\Monitoring;
 
 use App\Events\Monitoring\MonitoringLiveQuizUpdated;
+use App\Support\SafeBroadcast;
 use App\Models\Quiz;
 use App\Models\QuizSession;
 use App\Models\Result;
@@ -21,7 +22,7 @@ class LiveQuizMonitorService
     public function broadcastUpdate(): void
     {
         $payload = $this->buildSnapshot();
-        broadcast(new MonitoringLiveQuizUpdated($payload))->toOthers();
+        SafeBroadcast::event(new MonitoringLiveQuizUpdated($payload));
     }
 
     protected function buildSnapshot(): array

@@ -5,6 +5,7 @@ namespace App\Services\Operations;
 use App\Events\Operations\OperationsAlertCreated;
 use App\Models\OperationsAlert;
 use App\Services\Monitoring\MonitoringNotificationService;
+use App\Support\SafeBroadcast;
 use Illuminate\Support\Facades\Schema;
 
 class OperationsAlertService
@@ -32,7 +33,7 @@ class OperationsAlertService
             'created_at' => $alert->created_at?->toIso8601String(),
         ];
 
-        broadcast(new OperationsAlertCreated($payload))->toOthers();
+        SafeBroadcast::event(new OperationsAlertCreated($payload));
 
         if (in_array($severity, ['critical', 'fatal', 'warning'], true)) {
             try {

@@ -3,6 +3,7 @@
 namespace App\Services\Monitoring;
 
 use App\Events\Monitoring\MonitoringErrorOccurred;
+use App\Support\SafeBroadcast;
 use App\Models\MonitoringSetting;
 use App\Models\SystemError;
 use App\Models\SystemErrorOccurrence;
@@ -98,7 +99,7 @@ class ErrorMonitoringService
             ]);
 
             if (in_array($severity, [SystemError::SEVERITY_CRITICAL, SystemError::SEVERITY_FATAL, SystemError::SEVERITY_ERROR], true)) {
-                broadcast(new MonitoringErrorOccurred($error->fresh(), $severity))->toOthers();
+                SafeBroadcast::event(new MonitoringErrorOccurred($error->fresh(), $severity));
                 app(MonitoringNotificationService::class)->notifyForError($error, $severity);
             }
 

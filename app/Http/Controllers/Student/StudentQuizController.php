@@ -16,6 +16,7 @@ use App\Models\Result;
 use App\Models\Setting;
 use App\Models\Student;
 use App\Support\UserFriendlyMessages;
+use App\Support\SafeBroadcast;
 use App\Services\AiQuestionService;
 use App\Services\QuizConcurrencyService;
 use App\Services\QuizLinkService;
@@ -81,11 +82,7 @@ class StudentQuizController extends Controller
 
     private function broadcastDataUpdatedSafe(string $type): void
     {
-        try {
-            broadcast(new DataUpdated($type))->toOthers();
-        } catch (\Throwable $e) {
-            report($e);
-        }
+        SafeBroadcast::event(new DataUpdated($type));
     }
 
     private function syncQuizSessionContext(QuizSession $session): void

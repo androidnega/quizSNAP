@@ -9,6 +9,7 @@ use App\Services\Operations\OperationsLiveExamService;
 use App\Services\Operations\OperationsProctoringService;
 use App\Services\Operations\OperationsStudentMonitorService;
 use Illuminate\Console\Command;
+use Throwable;
 
 class CollectOperationsMetrics extends Command
 {
@@ -18,12 +19,25 @@ class CollectOperationsMetrics extends Command
 
     public function handle(): int
     {
-        app(OperationsExamIncidentService::class)->syncFromRecentViolations();
-        app(OperationsLiveExamService::class)->broadcastUpdate();
-        app(OperationsStudentMonitorService::class)->broadcastUpdate();
-        app(OperationsProctoringService::class)->broadcastUpdate();
-        app(OperationsAttendanceService::class)->broadcastUpdate();
-        app(OperationsCommandCenterService::class)->broadcast();
+        try {
+            app(OperationsExamIncidentService::class)->syncFromRecentViolations();
+        } catch (Throwable $e) {
+            report($e);
+        }
+
+        foreach ([
+            [OperationsLiveExamService::class, 'broadcastUpdate'],
+            [OperationsStudentMonitorService::class, 'broadcastUpdate'],
+            [OperationsProctoringService::class, 'broadcastUpdate'],
+            [OperationsAttendanceService::class, 'broadcastUpdate'],
+            [OperationsCommandCenterService::class, 'broadcast'],
+        ] as [$service, $method]) {
+            try {
+                app($service)->{$method}();
+            } catch (Throwable $e) {
+                report($e);
+            }
+        }
 
         $this->info('Operations metrics collected and broadcast.');
 

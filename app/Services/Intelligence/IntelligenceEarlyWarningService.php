@@ -3,6 +3,7 @@
 namespace App\Services\Intelligence;
 
 use App\Events\Intelligence\IntelligenceWarningCreated;
+use App\Support\SafeBroadcast;
 use App\Models\IntelligenceWarning;
 use App\Services\Monitoring\MonitoringNotificationService;
 use Illuminate\Support\Facades\Schema;
@@ -116,11 +117,7 @@ class IntelligenceEarlyWarningService
             'title' => $warning->title,
         ];
 
-        try {
-            broadcast(new IntelligenceWarningCreated($payload))->toOthers();
-        } catch (\Throwable) {
-            // ignore
-        }
+        SafeBroadcast::event(new IntelligenceWarningCreated($payload));
 
         try {
             app(MonitoringNotificationService::class)->notify(

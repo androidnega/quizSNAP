@@ -10,6 +10,7 @@ use App\Services\Monitoring\LiveQuizMonitorService;
 use App\Services\Monitoring\ReverbAnalyticsService;
 use App\Services\Monitoring\StorageCapacityService;
 use Illuminate\Console\Command;
+use Throwable;
 
 class CollectMonitoringPhase3Metrics extends Command
 {
@@ -19,12 +20,20 @@ class CollectMonitoringPhase3Metrics extends Command
 
     public function handle(): int
     {
-        app(ReverbAnalyticsService::class)->collectAndPersist();
-        app(DatabaseCapacityService::class)->collect();
-        app(StorageCapacityService::class)->collect();
-        app(LiveQuizMonitorService::class)->broadcastUpdate();
-        app(LiveAttendanceMonitorService::class)->broadcastUpdate();
-        app(CommandCenterService::class)->broadcast();
+        foreach ([
+            [ReverbAnalyticsService::class, 'collectAndPersist'],
+            [DatabaseCapacityService::class, 'collect'],
+            [StorageCapacityService::class, 'collect'],
+            [LiveQuizMonitorService::class, 'broadcastUpdate'],
+            [LiveAttendanceMonitorService::class, 'broadcastUpdate'],
+            [CommandCenterService::class, 'broadcast'],
+        ] as [$service, $method]) {
+            try {
+                app($service)->{$method}();
+            } catch (Throwable $e) {
+                report($e);
+            }
+        }
 
         $this->info('Phase 3 monitoring metrics collected.');
 

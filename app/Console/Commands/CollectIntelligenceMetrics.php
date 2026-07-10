@@ -6,6 +6,7 @@ use App\Services\Intelligence\IntelligenceAnomalyDetectionService;
 use App\Services\Intelligence\IntelligenceEarlyWarningService;
 use App\Services\Intelligence\IntelligenceExecutiveDashboardService;
 use App\Services\Intelligence\IntelligenceRecommendationEngine;
+use App\Support\SafeBroadcast;
 use Illuminate\Console\Command;
 use Throwable;
 
@@ -26,7 +27,7 @@ class CollectIntelligenceMetrics extends Command
             try {
                 app($service)->{$method}();
             } catch (Throwable $e) {
-                report($e);
+                SafeBroadcast::reportUnlessBroadcastFailure($e);
             }
         }
 

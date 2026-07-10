@@ -9,6 +9,7 @@ use App\Services\Monitoring\LiveAttendanceMonitorService;
 use App\Services\Monitoring\LiveQuizMonitorService;
 use App\Services\Monitoring\ReverbAnalyticsService;
 use App\Services\Monitoring\StorageCapacityService;
+use App\Support\SafeBroadcast;
 use Illuminate\Console\Command;
 use Throwable;
 

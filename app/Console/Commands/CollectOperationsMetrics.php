@@ -8,6 +8,7 @@ use App\Services\Operations\OperationsExamIncidentService;
 use App\Services\Operations\OperationsLiveExamService;
 use App\Services\Operations\OperationsProctoringService;
 use App\Services\Operations\OperationsStudentMonitorService;
+use App\Support\SafeBroadcast;
 use Illuminate\Console\Command;
 use Throwable;
 
@@ -22,7 +23,7 @@ class CollectOperationsMetrics extends Command
         try {
             app(OperationsExamIncidentService::class)->syncFromRecentViolations();
         } catch (Throwable $e) {
-            report($e);
+            SafeBroadcast::reportUnlessBroadcastFailure($e);
         }
 
         foreach ([
@@ -35,7 +36,7 @@ class CollectOperationsMetrics extends Command
             try {
                 app($service)->{$method}();
             } catch (Throwable $e) {
-                report($e);
+                SafeBroadcast::reportUnlessBroadcastFailure($e);
             }
         }
 

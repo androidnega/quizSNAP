@@ -7,7 +7,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Faculty-scoped academic catalog queries (semesters, categories, levels, years, classes).
+ * Faculty-scoped academic catalog queries (semesters, categories, levels, classes).
+ * Academic years and app settings remain global.
  */
 final class AcademicCatalogScope
 {

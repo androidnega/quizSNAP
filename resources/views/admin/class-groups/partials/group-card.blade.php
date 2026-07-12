@@ -1,6 +1,7 @@
 @php
     $isExaminer = session('admin_role') === 'examiner';
-    $accent = $g->accent_classes ?? ['bg' => 'bg-sky-50', 'border' => 'border-sky-200', 'text' => 'text-sky-800'];
+    $variant = $variant ?? 'default';
+    $isCoordinatorCard = $variant === 'coordinator';
     $levelLabel = $g->level ? 'L' . (int) $g->level->value : null;
     $hasLiveSessions = isset($classGroupIdsWithLiveSessions) && in_array($g->id, $classGroupIdsWithLiveSessions);
     $palette = [
@@ -16,7 +17,50 @@
     $accentKey = $g->accent_color && isset($palette[$g->accent_color]) ? $g->accent_color : array_keys($palette)[((int) $g->id) % count($palette)];
     $tone = $palette[$accentKey];
 @endphp
-<article class="qs-reveal group relative flex flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition duration-300 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_12px_28px_rgba(15,23,42,0.08)]">
+@if($isCoordinatorCard)
+<article class="coord-reveal group flex flex-col rounded-xl border border-slate-200/90 bg-white transition duration-300 hover:border-slate-300">
+    <div class="flex flex-1 flex-col p-4 sm:p-5">
+        <div class="flex items-start justify-between gap-3">
+            <a href="{{ route('dashboard.class-groups.show', $g) }}" class="min-w-0 flex-1 no-underline">
+                <h3 class="text-[15px] font-semibold tracking-tight text-slate-900 line-clamp-2" title="{{ $g->name }}">{{ $g->name }}</h3>
+                @if($levelLabel)
+                    <span class="mt-2 inline-flex items-center rounded-md border border-slate-200 px-2 py-0.5 text-[11px] font-medium text-slate-600">{{ $levelLabel }}</span>
+                @endif
+            </a>
+            <div class="flex flex-shrink-0 items-center gap-0.5" onclick="event.stopPropagation();">
+                @if($hasLiveSessions)
+                    <span class="mr-1 inline-flex items-center gap-1 rounded-full border border-slate-200 px-2 py-0.5 text-[10px] font-medium text-slate-700" title="Students are live writing a quiz">
+                        <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>Live
+                    </span>
+                @endif
+                <a href="{{ route('dashboard.class-groups.show', $g) }}" class="rounded-md p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700" title="View"><i class="fas fa-eye text-xs"></i></a>
+                <a href="{{ route('dashboard.class-groups.edit', $g) }}" class="rounded-md p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700" title="Edit"><i class="fas fa-pen text-xs"></i></a>
+                <form action="{{ route('dashboard.class-groups.destroy', $g) }}" method="post" class="inline" onsubmit="return confirm('Delete class group \'{{ addslashes($g->display_name) }}\'?');">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="rounded-md p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700" title="Delete"><i class="fas fa-trash-alt text-xs"></i></button>
+                </form>
+            </div>
+        </div>
+
+        <a href="{{ route('dashboard.class-groups.show', $g) }}" class="mt-5 grid grid-cols-3 gap-px overflow-hidden rounded-lg border border-slate-100 bg-slate-100 no-underline">
+            <div class="bg-white px-2.5 py-2.5 text-center">
+                <p class="text-base font-semibold tabular-nums text-slate-900">{{ $g->students_count ?? 0 }}</p>
+                <p class="mt-0.5 text-[10px] font-medium uppercase tracking-[0.08em] text-slate-400">Students</p>
+            </div>
+            <div class="bg-white px-2.5 py-2.5 text-center">
+                <p class="text-base font-semibold tabular-nums text-slate-900">{{ $g->courses_count ?? 0 }}</p>
+                <p class="mt-0.5 text-[10px] font-medium uppercase tracking-[0.08em] text-slate-400">Courses</p>
+            </div>
+            <div class="bg-white px-2.5 py-2.5 text-center">
+                <p class="text-base font-semibold tabular-nums text-slate-900">{{ $g->quizzes_count ?? 0 }}</p>
+                <p class="mt-0.5 text-[10px] font-medium uppercase tracking-[0.08em] text-slate-400">Quizzes</p>
+            </div>
+        </a>
+    </div>
+</article>
+@else
+<article class="qs-reveal group relative flex flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white transition duration-300 hover:-translate-y-0.5 hover:border-slate-300">
     <div class="h-1.5 w-full {{ $tone['bar'] }}"></div>
     <div class="flex flex-1 flex-col p-4 sm:p-5">
         <div class="flex items-start justify-between gap-3">
@@ -68,3 +112,4 @@
         </a>
     </div>
 </article>
+@endif

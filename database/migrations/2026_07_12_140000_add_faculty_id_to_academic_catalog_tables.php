@@ -12,11 +12,11 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Academic years remain global (institution-wide). Isolate only faculty-owned catalogs.
         $tables = [
             'semesters' => 'value',
             'quiz_categories' => 'name',
             'student_levels' => 'value',
-            'academic_years' => 'year',
             'academic_classes' => null,
         ];
 
@@ -52,12 +52,6 @@ return new class extends Migration
                     } catch (\Throwable) {
                     }
                 }
-                if ($table === 'academic_years') {
-                    try {
-                        $blueprint->dropUnique(['year']);
-                    } catch (\Throwable) {
-                    }
-                }
             });
 
             // Re-add scoped unique indexes
@@ -82,7 +76,6 @@ return new class extends Migration
             $this->cloneGlobalRows('semesters', (int) $facultyId, ['value', 'name', 'sort_order']);
             $this->cloneGlobalRows('quiz_categories', (int) $facultyId, ['name', 'sort_order']);
             $this->cloneGlobalRows('student_levels', (int) $facultyId, ['value', 'label', 'sort_order']);
-            $this->cloneGlobalRows('academic_years', (int) $facultyId, ['year', 'is_active']);
         }
     }
 
@@ -117,7 +110,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        foreach (['semesters', 'quiz_categories', 'student_levels', 'academic_years', 'academic_classes'] as $table) {
+        foreach (['semesters', 'quiz_categories', 'student_levels', 'academic_classes'] as $table) {
             if (Schema::hasTable($table) && Schema::hasColumn($table, 'faculty_id')) {
                 Schema::table($table, function (Blueprint $blueprint) {
                     $blueprint->dropConstrainedForeignId('faculty_id');

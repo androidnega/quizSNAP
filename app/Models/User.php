@@ -205,10 +205,63 @@ class User extends Authenticatable
         return array_keys(self::superAdminCreatableRoles());
     }
 
+    /**
+     * True for coordinator role (or coordinator flag), excluding Super Admin.
+     * Use this when applying institution/faculty isolation.
+     */
+    public function isCoordinatorOnly(): bool
+    {
+        if ($this->isSuperAdmin()) {
+            return false;
+        }
+
+        return $this->role === self::ROLE_COORDINATOR
+            || (bool) ($this->attributes['coordinator'] ?? false);
+    }
+
     public function assignedCourseIds(): array
     {
-        if ($this->isSuperAdmin() || $this->isCoordinator()) {
+        if ($this->isSuperAdmin()) {
             return Course::where('is_archived', false)->pluck('id')->all();
+        }
+
+        // Coordinators: only courses in their institution (fail closed if unset).
+        if ($this->isCoordinatorOnly()) {
+            if (! $this->institution_id) {
+                return [];
+            }
+
+            $q = Course::query()->where('is_archived', false);
+            if (\Illuminate\Support\Facades\Schema::hasColumn('courses', 'institution_id')) {
+                $q->where('institution_id', $this->institution_id);
+            } else {
+                // Legacy fallback: courses linked to examiners/class groups in scope
+                $examinerIds = $this->examinersInScope()->pluck('id')->all();
+                $groupIds = $this->classGroupIds();
+                $ids = [];
+                if ($examinerIds !== []) {
+                    $ids = array_merge(
+                        $ids,
+                        \Illuminate\Support\Facades\DB::table('course_user')
+                            ->whereIn('user_id', $examinerIds)
+                            ->pluck('course_id')
+                            ->all()
+                    );
+                }
+                if ($groupIds !== []) {
+                    $ids = array_merge(
+                        $ids,
+                        \Illuminate\Support\Facades\DB::table('class_group_course')
+                            ->whereIn('class_group_id', $groupIds)
+                            ->pluck('course_id')
+                            ->all()
+                    );
+                }
+
+                return array_values(array_unique(array_map('intval', $ids)));
+            }
+
+            return $q->pluck('id')->all();
         }
 
         $ids = $this->courses()
@@ -259,13 +312,18 @@ class User extends Authenticatable
         if ($this->isSuperAdmin()) {
             return ClassGroup::pluck('id')->all();
         }
-        if ($this->role === self::ROLE_COORDINATOR || (bool) ($this->attributes['coordinator'] ?? false)) {
+        if ($this->isCoordinatorOnly()) {
+            // Fail closed: no scope attributes → no class groups.
+            if (! $this->faculty_id && ! $this->department_id && ! $this->institution_id) {
+                return [];
+            }
+
             $q = ClassGroup::query();
             if ($this->faculty_id) {
                 $q->whereHas('examiner', fn ($e) => $e->where('faculty_id', $this->faculty_id));
             } elseif ($this->department_id) {
                 $q->whereHas('examiner', fn ($e) => $e->where('department_id', $this->department_id));
-            } elseif ($this->institution_id) {
+            } else {
                 $q->whereHas('examiner', fn ($e) => $e->where('institution_id', $this->institution_id));
             }
 
@@ -288,14 +346,40 @@ class User extends Authenticatable
         if ($this->isSuperAdmin()) {
             return $q;
         }
-        if ($this->isCoordinator() && $this->faculty_id) {
-            return $q->where('faculty_id', $this->faculty_id);
+
+        if ($this->isCoordinatorOnly()) {
+            if ($this->faculty_id) {
+                return $q->where('faculty_id', $this->faculty_id);
+            }
+            if ($this->department_id) {
+                return $q->where('department_id', $this->department_id);
+            }
+            if ($this->institution_id) {
+                return $q->where('institution_id', $this->institution_id);
+            }
+
+            // Fail closed: no scope → no examiners.
+            return $q->whereRaw('1 = 0');
         }
+
         if ($this->department_id) {
             return $q->where('department_id', $this->department_id);
         }
+        if ($this->institution_id) {
+            return $q->where('institution_id', $this->institution_id);
+        }
 
-        return $q;
+        return $q->whereRaw('1 = 0');
+    }
+
+    /** Whether a course is visible/manageable for this staff user. */
+    public function canAccessCourse(Course $course): bool
+    {
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+
+        return in_array((int) $course->id, $this->assignedCourseIds(), true);
     }
 
     public function getAvatarUrlAttribute(): ?string

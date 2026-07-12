@@ -71,10 +71,7 @@ final class LiveSupportAccess
             return true;
         }
 
-        if ($session->institution_id && (int) $user->institution_id === (int) $session->institution_id) {
-            return true;
-        }
-
+        // Do not broaden to whole-institution sessions — keep faculty/class-group isolation.
         return false;
     }
 

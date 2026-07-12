@@ -142,13 +142,13 @@ class ClassGroupController extends Controller
         }
 
         $institutionId = $request->query('institution_id');
+        $user = $this->adminUser();
         if ($institutionId && $user?->isSuperAdmin()) {
             $query->whereHas('examiner', fn ($e) => $e->where('institution_id', $institutionId));
         }
 
         $classGroups = $query->paginate(24)->withQueryString();
 
-        $user = $this->adminUser();
         // Data isolation: examiners see only their course(s) per group on the card (group name + their course + their quiz count)
         if ($user?->isExaminer() && $classGroups->isNotEmpty()) {
             $classGroups->load(['courses' => fn ($q) => $q->withPivot('examiner_id'), 'quizzes:id,class_group_id,course_id']);
@@ -164,10 +164,10 @@ class ClassGroupController extends Controller
         $levels = \App\Models\StudentLevel::ordered();
         $courseIds = $user?->assignedCourseIds() ?? [];
         $courses = Course::where('is_archived', false)
-            ->whereIn('id', $courseIds)
+            ->whereIn('id', $courseIds !== [] ? $courseIds : [-1])
             ->orderBy('name')
             ->get(['id', 'name', 'code']);
-        $lecturers = $user?->isCoordinator()
+        $lecturers = ($user?->isCoordinatorOnly() || $user?->isSuperAdmin())
             ? $user->examinersInScope()->get(['id', 'username', 'name'])
             : collect();
         $quizCategories = \App\Models\QuizCategory::ordered();
@@ -214,11 +214,11 @@ class ClassGroupController extends Controller
         $user = $this->adminUser();
         $courseIds = $user?->assignedCourseIds() ?? [];
         $courses = Course::where('is_archived', false)
-            ->whereIn('id', $courseIds)
+            ->whereIn('id', $courseIds !== [] ? $courseIds : [-1])
             ->with('examiners:id,username,name')
             ->orderBy('name')
             ->get();
-        $examiners = ($user?->isCoordinator() || $user?->isSuperAdmin())
+        $examiners = ($user?->isCoordinatorOnly() || $user?->isSuperAdmin())
             ? $user->examinersInScope()->get(['id', 'username', 'name'])
             : collect();
         $levels = \App\Models\StudentLevel::ordered();
@@ -266,14 +266,22 @@ class ClassGroupController extends Controller
 
         foreach ($assignments as $a) {
             $cid = (int) ($a['course_id'] ?? 0);
-            if (!$canAssign && !in_array($cid, $courseIds, true)) {
+            if (! in_array($cid, $courseIds, true)) {
                 return redirect()->route($this->staffRoutePrefix() . '.class-groups.create')
                     ->withInput()->with('error', 'Invalid course selection.');
             }
             $exam = User::find((int) ($a['examiner_id'] ?? 0));
-            if (!$exam || $exam->role !== User::ROLE_EXAMINER) {
+            if (! $exam || $exam->role !== User::ROLE_EXAMINER) {
                 return redirect()->route($this->staffRoutePrefix() . '.class-groups.create')
                     ->withInput()->with('error', 'Invalid lecturer selection.');
+            }
+            if ($user->isCoordinatorOnly() || $user->isSuperAdmin()) {
+                $inScope = $user->isSuperAdmin()
+                    || $user->examinersInScope()->where('id', $exam->id)->exists();
+                if (! $inScope) {
+                    return redirect()->route($this->staffRoutePrefix() . '.class-groups.create')
+                        ->withInput()->with('error', 'That lecturer is outside your institution scope.');
+                }
             }
         }
 
@@ -331,7 +339,7 @@ class ClassGroupController extends Controller
         $students = $classGroup->students()->orderBy('index_number')->paginate(20);
         $courseIds = $user?->assignedCourseIds() ?? [];
         $availableCourses = Course::where('is_archived', false)
-            ->whereIn('id', $courseIds)
+            ->whereIn('id', $courseIds !== [] ? $courseIds : [-1])
             ->orderBy('name')
             ->get();
         $examinerIds = $visibleCourses->pluck('pivot.examiner_id')->filter()->unique()->values()->all();
@@ -356,11 +364,11 @@ class ClassGroupController extends Controller
         $user = $this->adminUser();
         $courseIds = $user?->assignedCourseIds() ?? [];
         $courses = Course::where('is_archived', false)
-            ->whereIn('id', $courseIds)
+            ->whereIn('id', $courseIds !== [] ? $courseIds : [-1])
             ->with('examiners:id,username,name')
             ->orderBy('name')
             ->get();
-        $examiners = ($user?->isCoordinator() || $user?->isSuperAdmin())
+        $examiners = ($user?->isCoordinatorOnly() || $user?->isSuperAdmin())
             ? $user->examinersInScope()->get(['id', 'username', 'name'])
             : collect();
         $levels = \App\Models\StudentLevel::ordered();
@@ -405,14 +413,22 @@ class ClassGroupController extends Controller
 
         foreach ($assignments as $a) {
             $cid = (int) ($a['course_id'] ?? 0);
-            if (!$canAssign && !in_array($cid, $courseIds, true)) {
+            if (! in_array($cid, $courseIds, true)) {
                 return redirect()->route($this->staffRoutePrefix() . '.class-groups.edit', $classGroup)
                     ->withInput()->with('error', 'Invalid course selection.');
             }
             $exam = User::find((int) ($a['examiner_id'] ?? 0));
-            if (!$exam || $exam->role !== User::ROLE_EXAMINER) {
+            if (! $exam || $exam->role !== User::ROLE_EXAMINER) {
                 return redirect()->route($this->staffRoutePrefix() . '.class-groups.edit', $classGroup)
                     ->withInput()->with('error', 'Invalid lecturer selection.');
+            }
+            if ($user && ($user->isCoordinatorOnly() || $user->isSuperAdmin())) {
+                $inScope = $user->isSuperAdmin()
+                    || $user->examinersInScope()->where('id', $exam->id)->exists();
+                if (! $inScope) {
+                    return redirect()->route($this->staffRoutePrefix() . '.class-groups.edit', $classGroup)
+                        ->withInput()->with('error', 'That lecturer is outside your institution scope.');
+                }
             }
         }
 

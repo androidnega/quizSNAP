@@ -9,7 +9,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Course extends Model
 {
-    protected $fillable = ['name', 'code', 'is_archived', 'quiz_category_id', 'level_id', 'semester_id'];
+    protected $fillable = ['name', 'code', 'is_archived', 'quiz_category_id', 'level_id', 'semester_id', 'institution_id'];
+
+    public function institution(): BelongsTo
+    {
+        return $this->belongsTo(Institution::class);
+    }
 
     public function quizCategory(): BelongsTo
     {

@@ -67,7 +67,8 @@ class ClassGroupPolicy
     }
 
     /**
-     * Admin and Coordinator can create class groups (assign examiner). Examiners cannot create (Coordinator manages academic structure).
+     * Admin and Coordinator can create class groups (assign examiner). Examiners cannot create.
+     * Coordinators must have institution (or faculty/department) scope.
      */
     public function create(User $user): bool
     {
@@ -75,8 +76,8 @@ class ClassGroupPolicy
             return true;
         }
 
-        if ($user->role === User::ROLE_COORDINATOR || (bool) ($user->coordinator ?? false)) {
-            return true;
+        if ($user->isCoordinatorOnly()) {
+            return (bool) ($user->institution_id || $user->faculty_id || $user->department_id);
         }
 
         return false;

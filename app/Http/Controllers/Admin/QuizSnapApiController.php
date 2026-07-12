@@ -25,7 +25,12 @@ class QuizSnapApiController extends Controller
         $levelId = $request->query('level_id');
         $semesterId = $request->query('semester_id');
 
+        $user = auth()->user();
         $query = Course::where('is_archived', false)->orderBy('name');
+        if ($user instanceof \App\Models\User && ! $user->isSuperAdmin()) {
+            $ids = $user->assignedCourseIds();
+            $query->whereIn('id', $ids !== [] ? $ids : [-1]);
+        }
         if ($quizCategoryId) {
             $query->where('quiz_category_id', $quizCategoryId);
         }

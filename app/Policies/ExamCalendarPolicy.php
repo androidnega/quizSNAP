@@ -4,7 +4,6 @@ namespace App\Policies;
 
 use App\Models\ExamCalendar;
 use App\Models\User;
-use App\Models\ClassGroup;
 
 class ExamCalendarPolicy
 {
@@ -16,31 +15,32 @@ class ExamCalendarPolicy
 
     public function view(User $user, ExamCalendar $examCalendar): bool
     {
-        $user->loadMissing([]);
-        $examCalendar->load('classGroup');
+        $examCalendar->loadMissing('classGroup');
         $cg = $examCalendar->classGroup;
-        if (!$cg) {
-            return $user->isSuperAdmin() || $user->isCoordinator();
+        if (! $cg) {
+            return $user->isSuperAdmin();
         }
-        if ($user->isSuperAdmin() || $user->isCoordinator()) {
+        if ($user->isSuperAdmin()) {
             return true;
         }
-        return app(ClassGroupPolicy::class)->view($user, $cg);
+
+        return in_array((int) $cg->id, $user->classGroupIds(), true);
     }
 
     /** Only Coordinator and Super Admin create/update/delete exam calendar entries. */
     public function create(User $user): bool
     {
-        return $user->isSuperAdmin() || $user->isCoordinator();
+        return $user->isSuperAdmin() || $user->isCoordinatorOnly();
     }
 
     public function update(User $user, ExamCalendar $examCalendar): bool
     {
-        return $user->isSuperAdmin() || $user->isCoordinator();
+        return $this->view($user, $examCalendar)
+            && ($user->isSuperAdmin() || $user->isCoordinatorOnly());
     }
 
     public function delete(User $user, ExamCalendar $examCalendar): bool
     {
-        return $user->isSuperAdmin() || $user->isCoordinator();
+        return $this->update($user, $examCalendar);
     }
 }

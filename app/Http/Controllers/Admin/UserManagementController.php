@@ -857,14 +857,18 @@ class UserManagementController extends Controller
 
     private function examinerInCoordinatorScope(\App\Models\User $coordinator, \App\Models\User $examiner): bool
     {
-        if ($coordinator->faculty_id && (int) $examiner->faculty_id !== (int) $coordinator->faculty_id) {
-            return false;
+        if ($coordinator->faculty_id) {
+            return (int) $examiner->faculty_id === (int) $coordinator->faculty_id;
         }
-        if ($coordinator->department_id && (int) $examiner->department_id !== (int) $coordinator->department_id) {
-            return false;
+        if ($coordinator->department_id) {
+            return (int) $examiner->department_id === (int) $coordinator->department_id;
+        }
+        if ($coordinator->institution_id) {
+            return (int) $examiner->institution_id === (int) $coordinator->institution_id;
         }
 
-        return true;
+        // Fail closed: coordinator with no scope attributes cannot manage examiners.
+        return false;
     }
 
     private function applyCoordinatorExaminerScope($query, \App\Models\User $coordinator): void
@@ -874,6 +878,10 @@ class UserManagementController extends Controller
             $query->where('faculty_id', $coordinator->faculty_id);
         } elseif ($coordinator->department_id) {
             $query->where('department_id', $coordinator->department_id);
+        } elseif ($coordinator->institution_id) {
+            $query->where('institution_id', $coordinator->institution_id);
+        } else {
+            $query->whereRaw('1 = 0');
         }
     }
 

@@ -54,7 +54,13 @@ class ExamCalendarController extends Controller
         $this->authorize('create', ExamCalendar::class);
         $ids = $this->classGroupIds();
         $classGroups = ClassGroup::whereIn('id', $ids)->orderBy('name')->get(['id', 'name']);
-        $courses = Course::where('is_archived', false)->with('examiners:id,username,name')->orderBy('name')->get(['id', 'name', 'code']);
+        $user = $this->adminUser();
+        $courseIds = $user ? $user->assignedCourseIds() : [];
+        $courses = Course::where('is_archived', false)
+            ->whereIn('id', $courseIds !== [] ? $courseIds : [-1])
+            ->with('examiners:id,username,name')
+            ->orderBy('name')
+            ->get(['id', 'name', 'code']);
 
         return view('admin.exam-calendar.create', [
             'classGroups' => $classGroups,
@@ -68,10 +74,13 @@ class ExamCalendarController extends Controller
     {
         $this->authorize('create', ExamCalendar::class);
         $ids = $this->classGroupIds();
+        $user = $this->adminUser();
+        $courseIds = $user ? $user->assignedCourseIds() : [];
+        $courseIdList = $courseIds !== [] ? implode(',', $courseIds) : '0';
 
         $request->validate([
-            'class_group_id' => 'required|exists:class_groups,id|in:' . implode(',', $ids),
-            'course_id' => 'required|exists:courses,id',
+            'class_group_id' => 'required|exists:class_groups,id|in:' . implode(',', $ids !== [] ? $ids : [0]),
+            'course_id' => 'required|exists:courses,id|in:' . $courseIdList,
             'exam_type' => 'required|in:' . implode(',', array_keys(ExamCalendar::examTypeOptions())),
             'scheduled_at' => 'required|date',
             'ends_at' => 'nullable|date|after_or_equal:scheduled_at',
@@ -115,7 +124,13 @@ class ExamCalendarController extends Controller
             abort(404);
         }
         $classGroups = ClassGroup::whereIn('id', $ids)->orderBy('name')->get(['id', 'name']);
-        $courses = Course::where('is_archived', false)->with('examiners:id,username,name')->orderBy('name')->get(['id', 'name', 'code']);
+        $user = $this->adminUser();
+        $courseIds = $user ? $user->assignedCourseIds() : [];
+        $courses = Course::where('is_archived', false)
+            ->whereIn('id', $courseIds !== [] ? $courseIds : [-1])
+            ->with('examiners:id,username,name')
+            ->orderBy('name')
+            ->get(['id', 'name', 'code']);
 
         return view('admin.exam-calendar.edit', [
             'entry' => $examCalendar,
@@ -134,9 +149,13 @@ class ExamCalendarController extends Controller
             abort(404);
         }
 
+        $user = $this->adminUser();
+        $courseIds = $user ? $user->assignedCourseIds() : [];
+        $courseIdList = $courseIds !== [] ? implode(',', $courseIds) : '0';
+
         $request->validate([
-            'class_group_id' => 'required|exists:class_groups,id|in:' . implode(',', $ids),
-            'course_id' => 'required|exists:courses,id',
+            'class_group_id' => 'required|exists:class_groups,id|in:' . implode(',', $ids !== [] ? $ids : [0]),
+            'course_id' => 'required|exists:courses,id|in:' . $courseIdList,
             'exam_type' => 'required|in:' . implode(',', array_keys(ExamCalendar::examTypeOptions())),
             'scheduled_at' => 'required|date',
             'ends_at' => 'nullable|date|after_or_equal:scheduled_at',

@@ -331,6 +331,7 @@
     <script>window.QuizSnapLive=window.QuizSnapLive||{refreshers:[],registerRefresher:function(fn){if(typeof fn==='function')this.refreshers.push(fn);}};</script>
     @stack('scripts')
     @include('partials.support-issue-modal')
+    @if(\App\Support\LiveSupportAccess::isEnabled())
     @include('partials.support-live-chat')
     @php
         $liveSupportContext = [];
@@ -353,6 +354,9 @@
     <script src="{{ asset('js/support-live-media.js') }}?v={{ filemtime(public_path('js/support-live-media.js')) }}"></script>
     <script src="{{ asset('js/support-live-compose.js') }}?v={{ filemtime(public_path('js/support-live-compose.js')) }}"></script>
     <script src="{{ asset('js/support-live-chat.js') }}?v={{ filemtime(public_path('js/support-live-chat.js')) }}"></script>
+    @else
+    <script>window.LIVE_SUPPORT_PUBLIC = false;</script>
+    @endif
 
     @if(($reverbClientConfig = \App\Services\ReverbClientConfig::clientConfig()) !== null)
     <!-- Real-time: Reverb WebSocket + partial live refresh (no full-page reload) -->

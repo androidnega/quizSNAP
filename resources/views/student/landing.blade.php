@@ -823,12 +823,16 @@
         </div>
     </main>
 
+    @if(\App\Support\LiveSupportAccess::isEnabled())
     @include('student.partials.support-fab', ['supportPage' => 'Home'])
+    @endif
 </div>
 @endsection
 
 @push('scripts')
+@if(\App\Support\LiveSupportAccess::isEnabled())
 @include('student.partials.marketing-support-scripts')
+@endif
 <script>
 (function() {
     function scrollToToken() {

@@ -29,7 +29,11 @@ class AdminDashboardController extends Controller
             return $this->systemAdministratorDashboard();
         }
         if ($user?->isSupportAgent()) {
-            return redirect()->route('dashboard.support.index');
+            if (\App\Support\LiveSupportAccess::isEnabled()) {
+                return redirect()->route('dashboard.support.index');
+            }
+
+            return view('admin.dashboard-support-disabled');
         }
         if ($user?->isSuperAdmin()) {
             return $this->adminDashboard();

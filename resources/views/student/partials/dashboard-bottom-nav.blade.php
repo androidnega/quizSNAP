@@ -256,6 +256,7 @@
                 {{ $item['label'] }}
             </a>
             @endforeach
+            @if(\App\Support\LiveSupportAccess::isEnabled())
             <div class="sd-nav-fab-divider" style="--fab-i: {{ count($fabItems) }}" role="separator" aria-hidden="true"></div>
             <button type="button"
                role="menuitem"
@@ -269,11 +270,12 @@
                 </span>
                 Live chat
             </button>
+            @endif
         </div>
         <button type="button"
                 class="sd-nav-fab-toggle"
                 id="sd-nav-fab-toggle"
-                aria-label="Open menu and support"
+                aria-label="Open menu"
                 aria-expanded="false"
                 aria-controls="sd-nav-fab-menu">
             <span class="sd-nav-fab-toggle-icon sd-nav-fab-toggle-icon--open" aria-hidden="true"><i class="fas fa-plus"></i></span>

@@ -8,8 +8,18 @@ use App\Models\User;
 
 final class LiveSupportAccess
 {
+    /** Live chat is disabled for all roles until re-enabled. */
+    public static function isEnabled(): bool
+    {
+        return false;
+    }
+
     public static function canRespond(User $user): bool
     {
+        if (! self::isEnabled()) {
+            return false;
+        }
+
         return $user->isSuperAdmin()
             || $user->role === User::ROLE_COORDINATOR
             || $user->role === User::ROLE_EXAMINER
@@ -19,6 +29,10 @@ final class LiveSupportAccess
 
     public static function canDeleteSession(User $user): bool
     {
+        if (! self::isEnabled()) {
+            return false;
+        }
+
         return $user->isSuperAdmin()
             || $user->role === User::ROLE_SUPPORT_AGENT
             || $user->role === User::ROLE_COORDINATOR;
@@ -32,6 +46,10 @@ final class LiveSupportAccess
     /** @return list<string> Uppercase trimmed index numbers in staff scope. Empty = none. Null = all (super admin). */
     public static function scopedStudentIndices(User $user): ?array
     {
+        if (! self::isEnabled()) {
+            return [];
+        }
+
         if ($user->isSuperAdmin() || $user->role === User::ROLE_SUPPORT_AGENT) {
             return null;
         }
@@ -57,6 +75,10 @@ final class LiveSupportAccess
 
     public static function sessionInScope(User $user, SupportSession $session): bool
     {
+        if (! self::isEnabled()) {
+            return false;
+        }
+
         if ($user->isSuperAdmin() || $user->role === User::ROLE_SUPPORT_AGENT) {
             return true;
         }

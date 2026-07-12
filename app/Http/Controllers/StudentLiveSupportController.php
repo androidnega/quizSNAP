@@ -24,14 +24,31 @@ class StudentLiveSupportController extends Controller
 
     public function availability(): JsonResponse
     {
+        if (! LiveSupportAccess::isEnabled()) {
+            return response()->json([
+                'success' => true,
+                'enabled' => false,
+                'agents_online' => false,
+                'message' => 'Live chat is currently unavailable.',
+            ]);
+        }
+
         return response()->json([
             'success' => true,
+            'enabled' => true,
             'agents_online' => $this->presence->anyAgentOnline(),
         ]);
     }
 
     public function store(Request $request): JsonResponse
     {
+        if (! LiveSupportAccess::isEnabled()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Live chat is currently unavailable.',
+            ], 403);
+        }
+
         $guestRules = [];
         if (! session('student_id')) {
             $guestRules = [

@@ -119,7 +119,7 @@ class AdminAuthController extends Controller
                 return redirect()->route('dashboard')->with('success', 'Logged in');
             }
             if ($user->role === User::ROLE_SUPPORT_AGENT) {
-                return redirect()->route('dashboard.support.index')->with('success', 'Logged in');
+                return redirect()->route('dashboard')->with('success', 'Logged in');
             }
             // All other roles → unified dashboard at /dashboard
             return redirect()->intended(route('dashboard'))->with('success', 'Logged in');

@@ -151,9 +151,11 @@
 
     @include('student.partials.dashboard-bottom-nav')
 
+    @if(\App\Support\LiveSupportAccess::isEnabled())
     <div id="student-dashboard-support-fab" class="hidden lg:block">
         @include('student.partials.support-fab', ['supportContext' => $supportContext, 'supportPage' => $breadcrumbLabel])
     </div>
+    @endif
 </div>
 <script>
 (function(){
@@ -203,7 +205,9 @@
 </script>
 @endsection
 @push('scripts')
+@if(\App\Support\LiveSupportAccess::isEnabled())
 @include('student.partials.marketing-support-scripts')
+@endif
 <script>
 (function () {
     'use strict';

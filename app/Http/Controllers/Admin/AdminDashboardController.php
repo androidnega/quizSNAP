@@ -116,7 +116,10 @@ class AdminDashboardController extends Controller
     public function charts(): JsonResponse
     {
         $user = $this->adminUser();
-        if (! $user?->isExaminer()) {
+        $isExaminer = $user?->isExaminer()
+            || (string) session('admin_role') === 'examiner';
+
+        if (! $user || ! $isExaminer) {
             return response()->json(['success' => false, 'message' => 'Charts are available to examiners only.'], 403);
         }
 

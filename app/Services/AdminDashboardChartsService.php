@@ -38,10 +38,11 @@ class AdminDashboardChartsService
     /** @return list<int> */
     private function examinerQuizIds(?User $examiner): array
     {
-        if (! $examiner || ! $examiner->isExaminer()) {
+        if (! $examiner) {
             return [];
         }
 
+        // Scope strictly by examiner_id so charts never mix other examiners' quizzes.
         return Quiz::query()
             ->where('examiner_id', $examiner->id)
             ->pluck('id')
@@ -77,7 +78,7 @@ class AdminDashboardChartsService
     private function sessionSeries(array $quizIds, $since, string $bucket): array
     {
         if ($quizIds === [] || ! Schema::hasTable('quiz_sessions')) {
-            return ['labels' => [], 'values' => []];
+            return $this->padDailySeries([], $since);
         }
 
         $bucketSql = $this->bucketExpression('start_time', $bucket);
@@ -89,17 +90,14 @@ class AdminDashboardChartsService
             ->orderBy('bucket')
             ->get();
 
-        return [
-            'labels' => $rows->pluck('bucket')->map(fn ($v) => (string) $v)->all(),
-            'values' => $rows->pluck('total')->map(fn ($v) => (int) $v)->all(),
-        ];
+        return $this->padDailySeries($rows->pluck('total', 'bucket')->all(), $since);
     }
 
     /** @return array{labels: list<string>, values: list<int>} */
     private function resultCountSeries(array $quizIds, $since, string $bucket): array
     {
         if ($quizIds === [] || ! Schema::hasTable('results')) {
-            return ['labels' => [], 'values' => []];
+            return $this->padDailySeries([], $since);
         }
 
         $bucketSql = $this->bucketExpression('results.submitted_at', $bucket);
@@ -112,17 +110,14 @@ class AdminDashboardChartsService
             ->orderBy('bucket')
             ->get();
 
-        return [
-            'labels' => $rows->pluck('bucket')->map(fn ($v) => (string) $v)->all(),
-            'values' => $rows->pluck('total')->map(fn ($v) => (int) $v)->all(),
-        ];
+        return $this->padDailySeries($rows->pluck('total', 'bucket')->all(), $since);
     }
 
     /** @return array{labels: list<string>, values: list<float>} */
     private function avgScoreSeries(array $quizIds, $since, string $bucket): array
     {
         if ($quizIds === [] || ! Schema::hasTable('results')) {
-            return ['labels' => [], 'values' => []];
+            return $this->padDailySeries([], $since, true);
         }
 
         $bucketSql = $this->bucketExpression('results.submitted_at', $bucket);
@@ -136,10 +131,36 @@ class AdminDashboardChartsService
             ->orderBy('bucket')
             ->get();
 
-        return [
-            'labels' => $rows->pluck('bucket')->map(fn ($v) => (string) $v)->all(),
-            'values' => $rows->pluck('avg_score')->map(fn ($v) => round((float) $v, 1))->all(),
-        ];
+        $map = [];
+        foreach ($rows as $row) {
+            $map[(string) $row->bucket] = round((float) $row->avg_score, 1);
+        }
+
+        return $this->padDailySeries($map, $since, true);
+    }
+
+    /**
+     * Fill every day from $since through today so curve charts always have a continuous axis.
+     *
+     * @param  array<string, int|float>  $byBucket
+     * @return array{labels: list<string>, values: list<int|float>}
+     */
+    private function padDailySeries(array $byBucket, $since, bool $asFloat = false): array
+    {
+        $labels = [];
+        $values = [];
+        $cursor = $since->copy()->startOfDay();
+        $end = now()->startOfDay();
+
+        while ($cursor->lte($end)) {
+            $key = $cursor->format('Y-m-d');
+            $labels[] = $key;
+            $raw = $byBucket[$key] ?? 0;
+            $values[] = $asFloat ? round((float) $raw, 1) : (int) $raw;
+            $cursor->addDay();
+        }
+
+        return ['labels' => $labels, 'values' => $values];
     }
 
     /** @return array{labels: list<string>, values: list<int>} */

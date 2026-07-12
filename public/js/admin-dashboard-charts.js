@@ -20,11 +20,16 @@
         return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
     }
 
-    function areaFill(ctx, color) {
-        var chart = ctx.chart;
+    /** Chart.js scriptable context → CanvasRenderingContext2D gradient. */
+    function areaFill(scriptableCtx, color) {
+        var chart = scriptableCtx && scriptableCtx.chart;
+        if (!chart) return hexToRgba(color, 0.12);
         var area = chart.chartArea;
-        if (!area) return hexToRgba(color, 0.12);
-        var gradient = ctx.createLinearGradient(0, area.top, 0, area.bottom);
+        var canvasCtx = chart.ctx;
+        if (!area || !canvasCtx || typeof canvasCtx.createLinearGradient !== 'function') {
+            return hexToRgba(color, 0.12);
+        }
+        var gradient = canvasCtx.createLinearGradient(0, area.top, 0, area.bottom);
         gradient.addColorStop(0, hexToRgba(color, 0.28));
         gradient.addColorStop(0.55, hexToRgba(color, 0.08));
         gradient.addColorStop(1, hexToRgba(color, 0.01));
@@ -73,23 +78,35 @@
         });
     }
 
+    function normalizeSeries(labels, values) {
+        var labs = Array.isArray(labels) ? labels.slice() : [];
+        var vals = Array.isArray(values) ? values.slice() : [];
+        if (labs.length === 0) {
+            labs = ['—'];
+            vals = [0];
+        }
+        while (vals.length < labs.length) vals.push(0);
+        return { labels: labs, values: vals.slice(0, labs.length) };
+    }
+
     function renderCurve(id, labels, values, color, ySuggestedMax) {
         var canvas = document.getElementById(id);
         if (!canvas || !window.Chart) return;
         if (charts[id]) charts[id].destroy();
+        var series = normalizeSeries(labels, values);
         var stroke = color || palette[0];
         charts[id] = new Chart(canvas, {
             type: 'line',
             data: {
-                labels: labels,
+                labels: series.labels,
                 datasets: [{
-                    data: values,
+                    data: series.values,
                     borderColor: stroke,
                     backgroundColor: function (ctx) { return areaFill(ctx, stroke); },
-                    fill: true,
+                    fill: 'origin',
                     tension: 0.45,
                     cubicInterpolationMode: 'monotone',
-                    pointRadius: 0,
+                    pointRadius: series.values.length <= 1 ? 3 : 0,
                     pointHoverRadius: 4,
                     pointHoverBackgroundColor: stroke,
                     pointHoverBorderColor: '#fff',
@@ -105,12 +122,13 @@
         var canvas = document.getElementById(id);
         if (!canvas || !window.Chart) return;
         if (charts[id]) charts[id].destroy();
+        var series = normalizeSeries(labels, values);
         charts[id] = new Chart(canvas, {
             type: 'bar',
             data: {
-                labels: labels,
+                labels: series.labels,
                 datasets: [{
-                    data: values,
+                    data: series.values,
                     backgroundColor: hexToRgba(color || palette[1], 0.75),
                     borderRadius: 8,
                     maxBarThickness: 28,
@@ -124,13 +142,15 @@
         var canvas = document.getElementById(id);
         if (!canvas || !window.Chart) return;
         if (charts[id]) charts[id].destroy();
+        var labs = Array.isArray(labels) && labels.length ? labels : ['No data'];
+        var vals = Array.isArray(values) && values.length ? values : [1];
         charts[id] = new Chart(canvas, {
             type: 'doughnut',
             data: {
-                labels: labels,
+                labels: labs,
                 datasets: [{
-                    data: values,
-                    backgroundColor: palette.slice(0, labels.length),
+                    data: vals,
+                    backgroundColor: palette.slice(0, labs.length),
                     borderWidth: 0,
                     hoverOffset: 4,
                 }],
@@ -156,13 +176,23 @@
 
     function renderInsights(list) {
         var el = document.getElementById('dashboard-insights-list');
-        if (!el || !Array.isArray(list)) return;
+        if (!el) return;
         el.innerHTML = '';
-        list.forEach(function (text) {
+        (Array.isArray(list) ? list : []).forEach(function (text) {
             var li = document.createElement('li');
             li.textContent = text;
             el.appendChild(li);
         });
+    }
+
+    function showChartsError(message) {
+        var el = document.getElementById('dashboard-insights-list');
+        if (!el) return;
+        el.innerHTML = '';
+        var li = document.createElement('li');
+        li.className = 'text-rose-600 list-none pl-0';
+        li.textContent = message || 'Could not load charts.';
+        el.appendChild(li);
     }
 
     function applyData(data) {
@@ -184,23 +214,50 @@
             headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
             credentials: 'same-origin',
         })
-            .then(function (r) { return r.json(); })
-            .then(function (res) {
-                if (res.success && res.charts) applyData(res.charts);
+            .then(function (r) {
+                return r.json().then(function (res) {
+                    return { ok: r.ok, status: r.status, res: res };
+                });
             })
-            .catch(function () {});
+            .then(function (payload) {
+                if (payload.ok && payload.res && payload.res.success && payload.res.charts) {
+                    applyData(payload.res.charts);
+                    return;
+                }
+                var msg = (payload.res && payload.res.message) || ('Charts request failed (' + payload.status + ').');
+                showChartsError(msg);
+            })
+            .catch(function () {
+                showChartsError('Network error while loading charts.');
+            });
+    }
+
+    function whenChartReady(cb, attempts) {
+        attempts = attempts || 0;
+        if (window.Chart) {
+            cb();
+            return;
+        }
+        if (attempts > 40) {
+            showChartsError('Chart library failed to load. Refresh the page.');
+            return;
+        }
+        setTimeout(function () { whenChartReady(cb, attempts + 1); }, 50);
     }
 
     function init() {
-        var select = document.getElementById('dashboard-chart-period');
-        var period = select ? select.value : '30d';
-        load(period);
-        if (select) {
-            select.addEventListener('change', function () {
-                destroyAll();
-                load(select.value);
-            });
-        }
+        if (!document.getElementById('dashboard-trends-section')) return;
+        whenChartReady(function () {
+            var select = document.getElementById('dashboard-chart-period');
+            var period = select ? select.value : '30d';
+            load(period);
+            if (select) {
+                select.addEventListener('change', function () {
+                    destroyAll();
+                    load(select.value);
+                });
+            }
+        });
     }
 
     if (document.readyState === 'loading') {

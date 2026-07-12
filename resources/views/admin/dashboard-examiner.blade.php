@@ -154,8 +154,28 @@
     }
 })();
 </script>
-<script>window.AdminDashboardChartsConfig = { url: @json(route('dashboard.charts')), mode: 'examiner' };</script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
-<script src="{{ asset('js/admin-dashboard-charts.js') }}?v={{ filemtime(public_path('js/admin-dashboard-charts.js')) }}" defer></script>
+<script>
+window.AdminDashboardChartsConfig = { url: @json(route('dashboard.charts')), mode: 'examiner' };
+(function () {
+    function loadChartsApp() {
+        var s = document.createElement('script');
+        s.src = @json(asset('js/admin-dashboard-charts.js')) + '?v={{ filemtime(public_path('js/admin-dashboard-charts.js')) }}';
+        s.defer = true;
+        document.head.appendChild(s);
+    }
+    if (window.Chart) {
+        loadChartsApp();
+        return;
+    }
+    var chartJs = document.createElement('script');
+    chartJs.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js';
+    chartJs.onload = loadChartsApp;
+    chartJs.onerror = function () {
+        var el = document.getElementById('dashboard-insights-list');
+        if (el) el.innerHTML = '<li class="text-rose-600 list-none">Chart library failed to load.</li>';
+    };
+    document.head.appendChild(chartJs);
+})();
+</script>
 @endpush
 @endsection

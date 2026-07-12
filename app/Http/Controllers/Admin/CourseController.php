@@ -100,9 +100,9 @@ class CourseController extends Controller
         $examiners = $canAssignLecturers && $user
             ? $user->examinersInScope()->orderBy('username')->get()
             : collect();
-        $quizCategories = QuizCategory::ordered();
-        $levels = StudentLevel::ordered();
-        $semesters = Semester::ordered();
+        $quizCategories = QuizCategory::ordered($user);
+        $levels = StudentLevel::ordered($user);
+        $semesters = Semester::ordered($user);
 
         return view('admin.courses.create', compact('examiners', 'canAssignLecturers', 'quizCategories', 'levels', 'semesters'));
     }
@@ -174,9 +174,9 @@ class CourseController extends Controller
         $examiners = $canAssignLecturers && $user
             ? $user->examinersInScope()->orderBy('username')->get()
             : collect();
-        $quizCategories = QuizCategory::ordered();
-        $levels = StudentLevel::ordered();
-        $semesters = Semester::ordered();
+        $quizCategories = QuizCategory::ordered($user);
+        $levels = StudentLevel::ordered($user);
+        $semesters = Semester::ordered($user);
 
         return view('admin.courses.edit', compact('course', 'examiners', 'canAssignLecturers', 'quizCategories', 'levels', 'semesters'));
     }

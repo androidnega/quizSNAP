@@ -53,7 +53,9 @@ class QuizSnapApiController extends Controller
         $levelId = $request->query('level_id');
         $academicYearId = $request->query('academic_year_id');
 
+        $user = auth()->user() instanceof \App\Models\User ? auth()->user() : null;
         $query = AcademicClass::with('quizCategory', 'level', 'academicYear')->orderBy('name');
+        \App\Support\AcademicCatalogScope::apply($query, $user, 'academic_classes');
         if ($quizCategoryId) {
             $query->where('quiz_category_id', $quizCategoryId);
         }

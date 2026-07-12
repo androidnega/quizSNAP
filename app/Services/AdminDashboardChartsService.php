@@ -2,37 +2,51 @@
 
 namespace App\Services;
 
+use App\Models\Quiz;
 use App\Models\QuizSession;
 use App\Models\Result;
-use App\Models\Student;
-use App\Models\SupportSession;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
+/**
+ * Dashboard charts — examiner-only, scoped to that examiner's quizzes.
+ */
 class AdminDashboardChartsService
 {
-    public function dashboardCharts(string $period = '30d'): array
+    public function dashboardCharts(string $period = '30d', ?User $examiner = null): array
     {
-        return Cache::remember('admin_dashboard_charts:'.$period, 120, function () use ($period) {
+        $examinerId = $examiner?->id ?? 0;
+        $cacheKey = 'examiner_dashboard_charts:'.$examinerId.':'.$period;
+
+        return Cache::remember($cacheKey, 120, function () use ($period, $examiner) {
             [$since, $bucket] = $this->resolveRange($period);
+            $quizIds = $this->examinerQuizIds($examiner);
 
             return [
                 'period' => $period,
-                'quiz_activity' => $this->countSeries('quiz_sessions', 'start_time', $since, $bucket),
-                'exam_submissions' => $this->countSeries('results', 'submitted_at', $since, $bucket),
-                'student_growth' => $this->countSeries('students', 'created_at', $since, $bucket),
-                'live_support' => Schema::hasTable('support_sessions')
-                    ? $this->countSeries('support_sessions', 'created_at', $since, $bucket)
-                    : ['labels' => [], 'values' => []],
-                'avg_exam_scores' => $this->avgScoreSeries($since, $bucket),
-                'staff_roles' => $this->staffRoleBreakdown(),
-                'quiz_outcomes' => $this->quizOutcomeBreakdown($since),
-                'support_status' => $this->supportStatusBreakdown(),
-                'insights' => $this->buildInsights($since),
+                'quiz_activity' => $this->sessionSeries($quizIds, $since, $bucket),
+                'exam_submissions' => $this->resultCountSeries($quizIds, $since, $bucket),
+                'avg_exam_scores' => $this->avgScoreSeries($quizIds, $since, $bucket),
+                'quiz_outcomes' => $this->quizOutcomeBreakdown($quizIds, $since),
+                'insights' => $this->buildInsights($quizIds, $since),
             ];
         });
+    }
+
+    /** @return list<int> */
+    private function examinerQuizIds(?User $examiner): array
+    {
+        if (! $examiner || ! $examiner->isExaminer()) {
+            return [];
+        }
+
+        return Quiz::query()
+            ->where('examiner_id', $examiner->id)
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
     }
 
     /** @return array{0: \Illuminate\Support\Carbon, 1: string} */
@@ -60,16 +74,40 @@ class AdminDashboardChartsService
     }
 
     /** @return array{labels: list<string>, values: list<int>} */
-    private function countSeries(string $table, string $column, $since, string $bucket): array
+    private function sessionSeries(array $quizIds, $since, string $bucket): array
     {
-        if (! Schema::hasTable($table) || ! Schema::hasColumn($table, $column)) {
+        if ($quizIds === [] || ! Schema::hasTable('quiz_sessions')) {
             return ['labels' => [], 'values' => []];
         }
 
-        $bucketSql = $this->bucketExpression($column, $bucket);
-        $rows = DB::table($table)
+        $bucketSql = $this->bucketExpression('start_time', $bucket);
+        $rows = DB::table('quiz_sessions')
             ->selectRaw("{$bucketSql} as bucket, COUNT(*) as total")
-            ->where($column, '>=', $since)
+            ->whereIn('quiz_id', $quizIds)
+            ->where('start_time', '>=', $since)
+            ->groupBy('bucket')
+            ->orderBy('bucket')
+            ->get();
+
+        return [
+            'labels' => $rows->pluck('bucket')->map(fn ($v) => (string) $v)->all(),
+            'values' => $rows->pluck('total')->map(fn ($v) => (int) $v)->all(),
+        ];
+    }
+
+    /** @return array{labels: list<string>, values: list<int>} */
+    private function resultCountSeries(array $quizIds, $since, string $bucket): array
+    {
+        if ($quizIds === [] || ! Schema::hasTable('results')) {
+            return ['labels' => [], 'values' => []];
+        }
+
+        $bucketSql = $this->bucketExpression('results.submitted_at', $bucket);
+        $rows = DB::table('results')
+            ->join('quiz_sessions', 'quiz_sessions.id', '=', 'results.quiz_session_id')
+            ->selectRaw("{$bucketSql} as bucket, COUNT(*) as total")
+            ->whereIn('quiz_sessions.quiz_id', $quizIds)
+            ->where('results.submitted_at', '>=', $since)
             ->groupBy('bucket')
             ->orderBy('bucket')
             ->get();
@@ -81,17 +119,19 @@ class AdminDashboardChartsService
     }
 
     /** @return array{labels: list<string>, values: list<float>} */
-    private function avgScoreSeries($since, string $bucket): array
+    private function avgScoreSeries(array $quizIds, $since, string $bucket): array
     {
-        if (! Schema::hasTable('results') || ! Schema::hasColumn('results', 'submitted_at')) {
+        if ($quizIds === [] || ! Schema::hasTable('results')) {
             return ['labels' => [], 'values' => []];
         }
 
-        $bucketSql = $this->bucketExpression('submitted_at', $bucket);
+        $bucketSql = $this->bucketExpression('results.submitted_at', $bucket);
         $rows = DB::table('results')
-            ->selectRaw("{$bucketSql} as bucket, AVG(score) as avg_score")
-            ->where('submitted_at', '>=', $since)
-            ->whereNotNull('score')
+            ->join('quiz_sessions', 'quiz_sessions.id', '=', 'results.quiz_session_id')
+            ->selectRaw("{$bucketSql} as bucket, AVG(results.score) as avg_score")
+            ->whereIn('quiz_sessions.quiz_id', $quizIds)
+            ->where('results.submitted_at', '>=', $since)
+            ->whereNotNull('results.score')
             ->groupBy('bucket')
             ->orderBy('bucket')
             ->get();
@@ -103,33 +143,18 @@ class AdminDashboardChartsService
     }
 
     /** @return array{labels: list<string>, values: list<int>} */
-    private function staffRoleBreakdown(): array
+    private function quizOutcomeBreakdown(array $quizIds, $since): array
     {
-        if (! Schema::hasTable('users')) {
-            return ['labels' => [], 'values' => []];
+        if ($quizIds === [] || ! Schema::hasTable('results')) {
+            return ['labels' => ['Pass (≥50%)', 'Below 50%'], 'values' => [0, 0]];
         }
 
-        $rows = User::query()
-            ->selectRaw('role, COUNT(*) as total')
-            ->groupBy('role')
-            ->orderByDesc('total')
-            ->get();
+        $base = Result::query()
+            ->whereHas('quizSession', fn ($q) => $q->whereIn('quiz_id', $quizIds))
+            ->where('submitted_at', '>=', $since);
 
-        return [
-            'labels' => $rows->pluck('role')->map(fn ($r) => ucwords(str_replace('_', ' ', (string) $r)))->all(),
-            'values' => $rows->pluck('total')->map(fn ($v) => (int) $v)->all(),
-        ];
-    }
-
-    /** @return array{labels: list<string>, values: list<int>} */
-    private function quizOutcomeBreakdown($since): array
-    {
-        if (! Schema::hasTable('results')) {
-            return ['labels' => ['Pass', 'Fail'], 'values' => [0, 0]];
-        }
-
-        $pass = Result::query()->where('submitted_at', '>=', $since)->where('score', '>=', 50)->count();
-        $fail = Result::query()->where('submitted_at', '>=', $since)->where('score', '<', 50)->count();
+        $pass = (clone $base)->where('score', '>=', 50)->count();
+        $fail = (clone $base)->where('score', '<', 50)->count();
 
         return [
             'labels' => ['Pass (≥50%)', 'Below 50%'],
@@ -137,63 +162,42 @@ class AdminDashboardChartsService
         ];
     }
 
-    /** @return array{labels: list<string>, values: list<int>} */
-    private function supportStatusBreakdown(): array
-    {
-        if (! Schema::hasTable('support_sessions')) {
-            return ['labels' => [], 'values' => []];
-        }
-
-        $rows = SupportSession::query()
-            ->selectRaw('status, COUNT(*) as total')
-            ->groupBy('status')
-            ->orderBy('status')
-            ->get();
-
-        return [
-            'labels' => $rows->pluck('status')->map(fn ($s) => ucfirst((string) $s))->all(),
-            'values' => $rows->pluck('total')->map(fn ($v) => (int) $v)->all(),
-        ];
-    }
-
     /** @return list<string> */
-    private function buildInsights($since): array
+    private function buildInsights(array $quizIds, $since): array
     {
         $insights = [];
 
-        if (Schema::hasTable('support_sessions')) {
-            $waiting = SupportSession::query()->where('status', SupportSession::STATUS_WAITING)->count();
-            if ($waiting > 0) {
-                $insights[] = "{$waiting} live support chat(s) waiting for an agent — assign staff or enable alerts.";
-            }
+        if ($quizIds === []) {
+            return ['Create and publish quizzes to see activity charts for your classes.'];
         }
 
-        if (Schema::hasTable('quiz_sessions')) {
-            $activeQuizzes = QuizSession::query()
-                ->whereNull('ended_at')
-                ->where('start_time', '>=', now()->subHours(2))
-                ->count();
-            if ($activeQuizzes > 0) {
-                $insights[] = "{$activeQuizzes} quiz session(s) may still be in progress — check Operations Center.";
-            }
+        $active = QuizSession::query()
+            ->whereIn('quiz_id', $quizIds)
+            ->whereNull('ended_at')
+            ->where('start_time', '>=', now()->subHours(2))
+            ->count();
+        if ($active > 0) {
+            $insights[] = "{$active} of your quiz session(s) may still be in progress.";
         }
 
-        if (Schema::hasTable('results')) {
-            $recent = Result::query()->where('submitted_at', '>=', $since)->avg('score');
-            if ($recent !== null) {
-                $insights[] = 'Average exam score in this period: '.round((float) $recent, 1).'%.';
-            }
+        $avg = Result::query()
+            ->whereHas('quizSession', fn ($q) => $q->whereIn('quiz_id', $quizIds))
+            ->where('submitted_at', '>=', $since)
+            ->avg('score');
+        if ($avg !== null) {
+            $insights[] = 'Your average exam score this period: '.round((float) $avg, 1).'%.';
         }
 
-        if (Schema::hasTable('students')) {
-            $newStudents = Student::query()->where('created_at', '>=', $since)->count();
-            if ($newStudents > 0) {
-                $insights[] = "{$newStudents} new student record(s) added in this period.";
-            }
+        $sessions = QuizSession::query()
+            ->whereIn('quiz_id', $quizIds)
+            ->where('start_time', '>=', $since)
+            ->count();
+        if ($sessions > 0) {
+            $insights[] = "{$sessions} quiz session(s) started in this period.";
         }
 
         if ($insights === []) {
-            $insights[] = 'Platform activity looks steady. Use the charts below to spot trends early.';
+            $insights[] = 'No recent activity yet — charts will fill as students take your quizzes.';
         }
 
         return $insights;

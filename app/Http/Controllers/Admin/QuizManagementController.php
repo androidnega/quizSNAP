@@ -134,10 +134,10 @@ class QuizManagementController extends Controller
             session()->flash('error', 'Error');
         }
         // QuizSnap academic structure for cascading selects
-        $quizCategories = QuizCategory::ordered();
-        $levels = StudentLevel::ordered();
-        $semesters = \App\Models\Semester::ordered();
-        $academicYears = AcademicYear::orderBy('year', 'desc')->get();
+        $quizCategories = QuizCategory::ordered($user);
+        $levels = StudentLevel::ordered($user);
+        $semesters = \App\Models\Semester::ordered($user);
+        $academicYears = AcademicYear::ordered($user);
         return view('admin.quizzes.create', compact('classGroups', 'aiApiAvailable', 'aiGenerationEnabled', 'aiTokenStatus', 'quizCategories', 'levels', 'semesters', 'academicYears'));
     }
 

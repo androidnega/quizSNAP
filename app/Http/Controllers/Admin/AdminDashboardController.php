@@ -112,8 +112,8 @@ class AdminDashboardController extends Controller
     public function charts(): JsonResponse
     {
         $user = $this->adminUser();
-        if (! $user?->isSuperAdmin()) {
-            return response()->json(['success' => false], 403);
+        if (! $user?->isExaminer()) {
+            return response()->json(['success' => false, 'message' => 'Charts are available to examiners only.'], 403);
         }
 
         $period = request()->query('period', '30d');
@@ -123,7 +123,7 @@ class AdminDashboardController extends Controller
 
         return response()->json([
             'success' => true,
-            'charts' => app(AdminDashboardChartsService::class)->dashboardCharts($period),
+            'charts' => app(AdminDashboardChartsService::class)->dashboardCharts($period, $user),
         ]);
     }
 
@@ -144,8 +144,9 @@ class AdminDashboardController extends Controller
                 ->paginate(10);
 
             $classGroups = ! empty($classGroupIds)
-                ? ClassGroup::withCount('students')
+                ? ClassGroup::withCount(['students', 'quizzes', 'courses'])
                     ->with([
+                        'level',
                         'courses' => function ($q) use ($user) {
                             if ($user && \Illuminate\Support\Facades\Schema::hasColumn('class_group_course', 'examiner_id')) {
                                 $q->wherePivot('examiner_id', $user->id);
@@ -158,9 +159,26 @@ class AdminDashboardController extends Controller
                     ->get()
                 : collect();
 
+            if ($user?->isExaminer()) {
+                foreach ($classGroups as $g) {
+                    $myCourses = $g->relationLoaded('courses')
+                        ? $g->courses->filter(fn ($c) => (int) ($c->pivot->examiner_id ?? 0) === (int) $user->id)->values()
+                        : collect();
+                    $g->setAttribute('my_courses', $myCourses);
+                    $g->setAttribute('my_courses_count', $myCourses->count());
+                    $g->setAttribute('my_quizzes_count', Quiz::query()
+                        ->where('class_group_id', $g->id)
+                        ->where('examiner_id', $user->id)
+                        ->count());
+                }
+            }
+
             $classGroupsCount = $classGroups->filter(function ($g) {
                 return $g->relationLoaded('courses') && $g->courses->isNotEmpty();
             })->count();
+            if ($classGroupsCount === 0) {
+                $classGroupsCount = $classGroups->count();
+            }
 
             $sessionsWithResults = QuizSession::query()
                 ->whereNotNull('ended_at')
@@ -215,6 +233,20 @@ class AdminDashboardController extends Controller
             $stats = $emptyStats;
         }
 
-        return view('admin.dashboard-coordinator', compact('stats'));
+        $classGroups = collect();
+        try {
+            $ids = $user ? $user->classGroupIds() : [];
+            if ($ids !== []) {
+                $classGroups = ClassGroup::withCount(['students', 'quizzes', 'courses'])
+                    ->with('level')
+                    ->whereIn('id', $ids)
+                    ->orderBy('name')
+                    ->get();
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        return view('admin.dashboard-coordinator', compact('stats', 'classGroups'));
     }
 }

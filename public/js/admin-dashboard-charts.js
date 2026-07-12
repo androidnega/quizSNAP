@@ -120,15 +120,15 @@
 
     function applyData(data) {
         if (!data) return;
-        renderLine('chart-quiz-activity', data.quiz_activity.labels, data.quiz_activity.values, palette[0]);
-        renderLine('chart-exam-submissions', data.exam_submissions.labels, data.exam_submissions.values, palette[2]);
-        renderBar('chart-student-growth', data.student_growth.labels, data.student_growth.values, palette[1]);
-        renderBar('chart-live-support', data.live_support.labels, data.live_support.values, palette[4]);
-        renderLine('chart-avg-scores', data.avg_exam_scores.labels, data.avg_exam_scores.values, palette[5]);
-        renderPie('chart-staff-roles', data.staff_roles.labels, data.staff_roles.values);
-        renderPie('chart-quiz-outcomes', data.quiz_outcomes.labels, data.quiz_outcomes.values);
-        renderPie('chart-support-status', data.support_status.labels, data.support_status.values);
-        renderInsights(data.insights);
+        if (data.quiz_activity) renderLine('chart-quiz-activity', data.quiz_activity.labels, data.quiz_activity.values, palette[0]);
+        if (data.exam_submissions) renderLine('chart-exam-submissions', data.exam_submissions.labels, data.exam_submissions.values, palette[2]);
+        if (data.student_growth) renderBar('chart-student-growth', data.student_growth.labels, data.student_growth.values, palette[1]);
+        if (data.live_support) renderBar('chart-live-support', data.live_support.labels, data.live_support.values, palette[4]);
+        if (data.avg_exam_scores) renderLine('chart-avg-scores', data.avg_exam_scores.labels, data.avg_exam_scores.values, palette[5]);
+        if (data.staff_roles) renderPie('chart-staff-roles', data.staff_roles.labels, data.staff_roles.values);
+        if (data.quiz_outcomes) renderPie('chart-quiz-outcomes', data.quiz_outcomes.labels, data.quiz_outcomes.values);
+        if (data.support_status) renderPie('chart-support-status', data.support_status.labels, data.support_status.values);
+        renderInsights(data.insights || []);
     }
 
     function load(period) {

@@ -2,19 +2,21 @@
 
 namespace App\Models;
 
+use App\Support\AcademicCatalogScope;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-/**
- * Coordinator-managed academic classes: e.g. "BTECH IT Level 100".
- * Belongs to Category, Level, Academic Year.
- */
 class AcademicClass extends Model
 {
     protected $table = 'academic_classes';
 
-    protected $fillable = ['name', 'quiz_category_id', 'level_id', 'academic_year_id'];
+    protected $fillable = ['name', 'quiz_category_id', 'level_id', 'academic_year_id', 'faculty_id'];
+
+    public function faculty(): BelongsTo
+    {
+        return $this->belongsTo(Faculty::class);
+    }
 
     public function quizCategory(): BelongsTo
     {
@@ -46,13 +48,21 @@ class AcademicClass extends Model
         return $this->hasMany(ClassGroup::class, 'academic_class_id');
     }
 
-    /** Display label: "BTECH IT Level 100 (2025/2026)" */
     public function getDisplayLabelAttribute(): string
     {
         $parts = [$this->name];
         if ($this->academicYear) {
             $parts[] = '(' . $this->academicYear->year . ')';
         }
+
         return implode(' ', $parts);
+    }
+
+    public static function ordered(?User $user = null): \Illuminate\Database\Eloquent\Collection
+    {
+        $q = static::query()->with(['quizCategory', 'level', 'academicYear'])->orderBy('name');
+        AcademicCatalogScope::apply($q, $user ?? auth()->user(), 'academic_classes');
+
+        return $q->get();
     }
 }

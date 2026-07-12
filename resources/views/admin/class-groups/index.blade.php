@@ -112,28 +112,57 @@
     @endif
 
     @if($classGroups->isNotEmpty())
-        <section class="border border-gray-200 rounded-lg overflow-hidden">
-            <div class="px-4 py-3 bg-gray-50 border-b border-gray-200">
-                <h2 class="text-sm font-semibold text-gray-700">Groups</h2>
-            </div>
-            <div class="p-3 bg-white">
-                <div class="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
-                    @foreach($classGroups as $g)
-                        @include('admin.class-groups.partials.group-card', ['g' => $g])
-                    @endforeach
+        <section class="space-y-3">
+            <div class="flex items-end justify-between gap-3">
+                <div>
+                    <h2 class="text-sm font-semibold text-slate-900">Groups</h2>
+                    <p class="text-xs text-slate-500">{{ $classGroups->count() }} class group{{ $classGroups->count() === 1 ? '' : 's' }} in your scope</p>
                 </div>
             </div>
+            <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                @foreach($classGroups as $g)
+                    @include('admin.class-groups.partials.group-card', ['g' => $g])
+                @endforeach
+            </div>
         </section>
-        @if($classGroups->hasPages())
-            <div class="mt-4">{{ $classGroups->links() }}</div>
-        @endif
     @else
-        <div class="rounded-lg border border-gray-200 bg-gray-50 p-8 text-center">
-            <p class="text-sm text-gray-500">No class groups yet. Create one to get started.</p>
+        <div class="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
+            <p class="text-sm text-slate-500">No class groups yet. Create one to get started.</p>
             @can('create', \App\Models\ClassGroup::class)
-            <a href="{{ route('dashboard.class-groups.create') }}" class="mt-3 inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium text-gray-900 bg-yellow-400 hover:bg-yellow-500 border border-yellow-600/30 shadow-sm">Add class group</a>
+            <a href="{{ route('dashboard.class-groups.create') }}" class="mt-3 inline-flex items-center rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800">Add class group</a>
             @endcan
         </div>
     @endif
 </div>
+
+@push('styles')
+<style>
+.qs-reveal { opacity: 0; transform: translateY(18px); transition: opacity .55s ease, transform .55s ease; }
+.qs-reveal.is-visible { opacity: 1; transform: none; }
+</style>
+@endpush
+@push('scripts')
+<script>
+(function () {
+    var nodes = document.querySelectorAll('.qs-reveal');
+    if (!nodes.length) return;
+    if (!('IntersectionObserver' in window)) {
+        nodes.forEach(function (n) { n.classList.add('is-visible'); });
+        return;
+    }
+    var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('is-visible');
+                io.unobserve(entry.target);
+            }
+        });
+    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+    nodes.forEach(function (n, i) {
+        n.style.transitionDelay = (Math.min(i, 8) * 0.05) + 's';
+        io.observe(n);
+    });
+})();
+</script>
+@endpush
 @endsection

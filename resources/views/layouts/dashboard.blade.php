@@ -216,12 +216,15 @@
     </aside>
 
     <div class="examiner-main flex flex-col flex-1 min-w-0 min-h-0" data-quizsnap-skip-live-reload>
-        <header class="flex min-h-14 flex-shrink-0 items-stretch border-b border-gray-200 bg-white z-10 min-w-0 safe-area-header">
-            <div class="examiner-page flex flex-1 flex-wrap items-center gap-2 sm:gap-3 w-full min-w-0 px-3 py-2 sm:px-4 md:px-6">
-                <button type="button" id="examiner-sidebar-menu-btn" class="flex h-11 w-11 min-h-[44px] min-w-[44px] flex-shrink-0 items-center justify-center rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-300 touch-manipulation" aria-label="Open menu" title="Open menu" style="display: none;">
-                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        <header class="flex min-h-[3.5rem] flex-shrink-0 items-stretch border-b border-slate-200/80 bg-white/95 backdrop-blur-sm z-10 min-w-0 safe-area-header">
+            <div class="examiner-page flex flex-1 flex-wrap items-center gap-2 sm:gap-3 w-full min-w-0 px-3 py-2 sm:px-5 md:px-6">
+                <button type="button" id="examiner-sidebar-menu-btn" class="flex h-10 w-10 min-h-[40px] min-w-[40px] flex-shrink-0 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-300 touch-manipulation" aria-label="Open menu" title="Open menu" style="display: none;">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
                 </button>
-                <h1 class="min-w-0 flex-1 truncate text-base sm:text-lg font-semibold text-gray-900">@yield('dashboard_heading', 'Dashboard')</h1>
+                <div class="min-w-0 flex-1">
+                    <p class="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400 leading-none mb-0.5 hidden sm:block">QuizSnap</p>
+                    <h1 class="truncate text-base sm:text-lg font-semibold tracking-tight text-slate-900 leading-tight">@yield('dashboard_heading', 'Dashboard')</h1>
+                </div>
                 @php
                     $examiner = auth()->user();
                     $showSmsInHeader = $examiner && $examiner->isCoordinator();
@@ -230,10 +233,10 @@
                     }
                     $smsRemaining = $showSmsInHeader ? $examiner->sms_remaining : 0;
                     $smsAllocation = $showSmsInHeader ? ($examiner->sms_allocation ?? 0) : 0;
-                    $smsColorClass = $smsRemaining >= 100 ? 'text-green-600' : 'text-red-600';
+                    $smsColorClass = $smsRemaining >= 100 ? 'text-emerald-700' : 'text-rose-700';
                 @endphp
                 @if($examiner && ($examiner->isExaminer() || $examiner->isCoordinator()))
-                <div class="flex flex-shrink-0 items-center gap-2 sm:gap-3 flex-wrap justify-end">
+                <div class="flex flex-shrink-0 items-center gap-2 flex-wrap justify-end">
                     @if($examiner->isExaminer())
                     @php
                         try {
@@ -242,16 +245,17 @@
                             report($e);
                             $aiTokenStatus = ['remaining' => 0];
                         }
-                        $aiTokenColor = ($aiTokenStatus['remaining'] ?? 0) > 0 ? 'text-primary-600' : 'text-red-600';
+                        $aiTokenColor = ($aiTokenStatus['remaining'] ?? 0) > 0 ? 'text-indigo-700' : 'text-rose-700';
                     @endphp
-                    <div class="flex items-center gap-1 sm:gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-2 py-1.5 sm:px-2.5 text-xs sm:text-sm {{ $aiTokenColor }}" title="AI quiz generations remaining">
+                    <div class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs {{ $aiTokenColor }}" title="AI quiz generations remaining">
+                        <span class="text-[10px] font-medium uppercase tracking-wide text-slate-400">AI</span>
                         <span class="font-semibold tabular-nums">{{ $aiTokenStatus['remaining'] }}</span>
                     </div>
                     @endif
                     @if($showSmsInHeader)
-                    <div class="flex flex-shrink-0 items-center gap-1 sm:gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-2 py-1.5 sm:px-2.5 text-xs sm:text-sm {{ $smsColorClass }}" title="SMS balance">
-                        <span class="text-gray-500 hidden sm:inline">SMS:</span>
-                        <span class="font-semibold">{{ $smsRemaining }}</span>
+                    <div class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs {{ $smsColorClass }}" title="SMS balance">
+                        <span class="text-[10px] font-medium uppercase tracking-wide text-slate-400 hidden sm:inline">SMS</span>
+                        <span class="font-semibold tabular-nums">{{ $smsRemaining }}</span>
                     </div>
                     @endif
                 </div>
@@ -260,23 +264,23 @@
                     @include('admin.monitoring.partials.header-bell')
                 @endif
                 <div class="relative flex flex-shrink-0 items-center" id="profile-menu-wrap">
-                    <button type="button" class="flex h-11 min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 rounded-full pl-0.5 pr-2 py-0.5 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 touch-manipulation overflow-hidden" aria-expanded="false" aria-haspopup="true" id="profile-menu-btn" title="Profile">
+                    <button type="button" class="flex h-10 min-h-[40px] min-w-[40px] items-center justify-center gap-1.5 rounded-full border border-slate-200 bg-white pl-0.5 pr-1.5 py-0.5 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-300 touch-manipulation overflow-hidden" aria-expanded="false" aria-haspopup="true" id="profile-menu-btn" title="Profile">
                         @php $user = auth()->user(); @endphp
-                        <span class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full overflow-hidden border border-gray-200 {{ $user && $user->avatar_url ? '' : 'bg-gray-200' }}">
+                        <span class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full overflow-hidden border border-slate-200 {{ $user && $user->avatar_url ? '' : 'bg-slate-100' }}">
                         @if($user && $user->avatar_url)
                             <img src="{{ $user->avatar_url }}" alt="Profile" class="h-full w-full object-cover" />
                         @else
-                            <span class="flex h-full w-full items-center justify-center text-gray-600 text-sm font-semibold leading-none" style="line-height: 2.25rem;">{{ $user ? strtoupper(substr($user->name ?? $user->username ?? 'U', 0, 1)) : 'U' }}</span>
+                            <span class="flex h-full w-full items-center justify-center text-slate-600 text-sm font-semibold leading-none" style="line-height: 2rem;">{{ $user ? strtoupper(substr($user->name ?? $user->username ?? 'U', 0, 1)) : 'U' }}</span>
                         @endif
                         </span>
-                        <svg class="h-4 w-4 flex-shrink-0 text-gray-500 hidden sm:block" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        <svg class="h-3.5 w-3.5 flex-shrink-0 text-slate-400 hidden sm:block" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                     </button>
-                    <div id="profile-menu-dropdown" class="absolute right-0 top-full z-[100] mt-1.5 w-48 sm:w-56 rounded-lg border border-gray-200 bg-white py-1 shadow-lg hidden">
-                        <a href="{{ route('dashboard.profile.show') }}" class="block px-4 py-3 sm:py-2.5 text-sm text-gray-700 hover:bg-gray-100 whitespace-nowrap touch-manipulation">Profile &amp; info</a>
-                        <a href="{{ route('dashboard.profile.password') }}" class="block px-4 py-3 sm:py-2.5 text-sm text-gray-700 hover:bg-gray-100 whitespace-nowrap touch-manipulation">Reset password</a>
-                        <form action="{{ route('logout') }}" method="post" class="border-t border-gray-100 mt-1">
+                    <div id="profile-menu-dropdown" class="absolute right-0 top-full z-[100] mt-1.5 w-48 sm:w-56 rounded-xl border border-slate-200 bg-white py-1 shadow-lg hidden">
+                        <a href="{{ route('dashboard.profile.show') }}" class="block px-4 py-3 sm:py-2.5 text-sm text-slate-700 hover:bg-slate-50 whitespace-nowrap touch-manipulation">Profile &amp; info</a>
+                        <a href="{{ route('dashboard.profile.password') }}" class="block px-4 py-3 sm:py-2.5 text-sm text-slate-700 hover:bg-slate-50 whitespace-nowrap touch-manipulation">Reset password</a>
+                        <form action="{{ route('logout') }}" method="post" class="border-t border-slate-100 mt-1">
                             @csrf
-                            <button type="submit" class="block w-full px-4 py-3 sm:py-2.5 text-left text-sm font-medium text-gray-700 hover:bg-gray-100 whitespace-nowrap touch-manipulation">Log out</button>
+                            <button type="submit" class="block w-full px-4 py-3 sm:py-2.5 text-left text-sm font-medium text-slate-700 hover:bg-slate-50 whitespace-nowrap touch-manipulation">Log out</button>
                         </form>
                     </div>
                 </div>

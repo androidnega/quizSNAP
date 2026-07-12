@@ -2,16 +2,26 @@
 
 namespace App\Models;
 
+use App\Support\AcademicCatalogScope;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class StudentLevel extends Model
 {
     protected $table = 'student_levels';
 
-    protected $fillable = ['value', 'label', 'sort_order'];
+    protected $fillable = ['value', 'label', 'sort_order', 'faculty_id'];
 
-    public static function ordered(): \Illuminate\Database\Eloquent\Collection
+    public function faculty(): BelongsTo
     {
-        return static::orderBy('sort_order')->orderBy('value')->get();
+        return $this->belongsTo(Faculty::class);
+    }
+
+    public static function ordered(?User $user = null): \Illuminate\Database\Eloquent\Collection
+    {
+        $q = static::query()->orderBy('sort_order')->orderBy('value');
+        AcademicCatalogScope::apply($q, $user ?? auth()->user(), 'student_levels');
+
+        return $q->get();
     }
 }

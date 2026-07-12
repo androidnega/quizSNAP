@@ -147,7 +147,7 @@ class ClassGroupController extends Controller
             $query->whereHas('examiner', fn ($e) => $e->where('institution_id', $institutionId));
         }
 
-        $classGroups = $query->paginate(24)->withQueryString();
+        $classGroups = $query->orderBy('name')->get();
 
         // Data isolation: examiners see only their course(s) per group on the card (group name + their course + their quiz count)
         if ($user?->isExaminer() && $classGroups->isNotEmpty()) {
@@ -161,7 +161,7 @@ class ClassGroupController extends Controller
             }
         }
 
-        $levels = \App\Models\StudentLevel::ordered();
+        $levels = \App\Models\StudentLevel::ordered($user);
         $courseIds = $user?->assignedCourseIds() ?? [];
         $courses = Course::where('is_archived', false)
             ->whereIn('id', $courseIds !== [] ? $courseIds : [-1])
@@ -170,8 +170,8 @@ class ClassGroupController extends Controller
         $lecturers = ($user?->isCoordinatorOnly() || $user?->isSuperAdmin())
             ? $user->examinersInScope()->get(['id', 'username', 'name'])
             : collect();
-        $quizCategories = \App\Models\QuizCategory::ordered();
-        $academicYears = \App\Models\AcademicYear::orderBy('year', 'desc')->get(['id', 'year']);
+        $quizCategories = \App\Models\QuizCategory::ordered($user);
+        $academicYears = \App\Models\AcademicYear::ordered($user);
         $institutions = $user?->isSuperAdmin()
             ? \App\Models\Institution::orderBy('name')->get(['id', 'name', 'region'])
             : collect();
@@ -221,10 +221,10 @@ class ClassGroupController extends Controller
         $examiners = ($user?->isCoordinatorOnly() || $user?->isSuperAdmin())
             ? $user->examinersInScope()->get(['id', 'username', 'name'])
             : collect();
-        $levels = \App\Models\StudentLevel::ordered();
-        $semesters = Semester::orderBy('sort_order')->orderBy('name')->get();
-        $academicYears = \App\Models\AcademicYear::orderBy('year', 'desc')->get();
-        $academicClasses = AcademicClass::with('academicYear')->orderBy('name')->get();
+        $levels = \App\Models\StudentLevel::ordered($user);
+        $semesters = Semester::ordered($user);
+        $academicYears = \App\Models\AcademicYear::ordered($user);
+        $academicClasses = AcademicClass::ordered($user);
         $accentColors = ClassGroup::ACCENT_COLORS;
         $allowedDevicesOptions = Schema::hasColumn('class_groups', 'allowed_devices') ? ClassGroup::allowedDevicesOptions() : [];
         return view('admin.class-groups.create', compact('courses', 'examiners', 'levels', 'semesters', 'academicYears', 'academicClasses', 'accentColors', 'allowedDevicesOptions'));
@@ -371,10 +371,10 @@ class ClassGroupController extends Controller
         $examiners = ($user?->isCoordinatorOnly() || $user?->isSuperAdmin())
             ? $user->examinersInScope()->get(['id', 'username', 'name'])
             : collect();
-        $levels = \App\Models\StudentLevel::ordered();
-        $semesters = Semester::orderBy('sort_order')->orderBy('name')->get();
-        $academicYears = \App\Models\AcademicYear::orderBy('year', 'desc')->get();
-        $academicClasses = AcademicClass::orderBy('name')->get();
+        $levels = \App\Models\StudentLevel::ordered($user);
+        $semesters = Semester::ordered($user);
+        $academicYears = \App\Models\AcademicYear::ordered($user);
+        $academicClasses = AcademicClass::ordered($user);
         $accentColors = ClassGroup::ACCENT_COLORS;
         $allowedDevicesOptions = Schema::hasColumn('class_groups', 'allowed_devices') ? ClassGroup::allowedDevicesOptions() : [];
         $allowedDevicesForForm = $classGroup->getEffectiveAllowedDevices();

@@ -131,57 +131,33 @@ class AdminDashboardController extends Controller
         ]);
     }
 
-    /** Examiner dashboard: my class groups, my quizzes, recent sessions. */
+    /** Examiner dashboard: stats + examiner-scoped charts only. */
     public function examinerDashboard(): View
     {
         $user = $this->adminUser();
         $emptyStats = ['quizzes' => 0, 'sessions' => 0, 'results' => 0];
+        $classGroupsCount = 0;
+        $stats = $emptyStats;
+        $needsFacultyDepartment = false;
 
         try {
-            $classGroupIds = $user ? $user->classGroupIds() : [];
             $quizQuery = Quiz::query()
                 ->when($user && ! $user->isSuperAdmin(), fn ($q) => $q->where('examiner_id', $user->id));
 
-            $quizzes = (clone $quizQuery)
-                ->with(['course', 'classGroup'])
-                ->orderByDesc('created_at')
-                ->paginate(10);
-
-            $classGroups = ! empty($classGroupIds)
-                ? ClassGroup::withCount(['students', 'quizzes', 'courses'])
-                    ->with([
-                        'level',
-                        'courses' => function ($q) use ($user) {
-                            if ($user && \Illuminate\Support\Facades\Schema::hasColumn('class_group_course', 'examiner_id')) {
-                                $q->wherePivot('examiner_id', $user->id);
-                            }
-                            $q->where('is_archived', false)->orderBy('name');
-                        },
-                    ])
+            $classGroupIds = $user ? $user->classGroupIds() : [];
+            if ($classGroupIds !== []) {
+                $classGroupsCount = ClassGroup::query()
                     ->whereIn('id', $classGroupIds)
-                    ->orderBy('name')
-                    ->get()
-                : collect();
-
-            if ($user?->isExaminer()) {
-                foreach ($classGroups as $g) {
-                    $myCourses = $g->relationLoaded('courses')
-                        ? $g->courses->filter(fn ($c) => (int) ($c->pivot->examiner_id ?? 0) === (int) $user->id)->values()
-                        : collect();
-                    $g->setAttribute('my_courses', $myCourses);
-                    $g->setAttribute('my_courses_count', $myCourses->count());
-                    $g->setAttribute('my_quizzes_count', Quiz::query()
-                        ->where('class_group_id', $g->id)
-                        ->where('examiner_id', $user->id)
-                        ->count());
+                    ->when(
+                        $user && \Illuminate\Support\Facades\Schema::hasColumn('class_group_course', 'examiner_id'),
+                        function ($q) use ($user) {
+                            $q->whereHas('courses', fn ($c) => $c->where('class_group_course.examiner_id', $user->id));
+                        }
+                    )
+                    ->count();
+                if ($classGroupsCount === 0) {
+                    $classGroupsCount = count($classGroupIds);
                 }
-            }
-
-            $classGroupsCount = $classGroups->filter(function ($g) {
-                return $g->relationLoaded('courses') && $g->courses->isNotEmpty();
-            })->count();
-            if ($classGroupsCount === 0) {
-                $classGroupsCount = $classGroups->count();
             }
 
             $sessionsWithResults = QuizSession::query()
@@ -196,24 +172,12 @@ class AdminDashboardController extends Controller
                 'results' => $sessionsWithResults,
             ];
 
-            $recentSessions = QuizSession::with(['quiz', 'result'])
-                ->whereIn('quiz_id', (clone $quizQuery)->select('id'))
-                ->orderByDesc('start_time')
-                ->limit(20)
-                ->get();
-
             $needsFacultyDepartment = $user && $user->isExaminer() && (! $user->faculty_id || ! $user->department_id);
         } catch (\Throwable $e) {
             report($e);
-            $quizzes = Quiz::query()->whereRaw('1 = 0')->paginate(10);
-            $classGroups = collect();
-            $classGroupsCount = 0;
-            $recentSessions = collect();
-            $stats = $emptyStats;
-            $needsFacultyDepartment = false;
         }
 
-        return view('admin.dashboard-examiner', compact('quizzes', 'classGroups', 'classGroupsCount', 'recentSessions', 'stats', 'needsFacultyDepartment'));
+        return view('admin.dashboard-examiner', compact('classGroupsCount', 'stats', 'needsFacultyDepartment'));
     }
 
     /** Coordinator dashboard: class groups, courses, examiners, exam calendar — no quiz authoring. */

@@ -76,13 +76,12 @@
 </article>
 @else
 <article class="qs-reveal group relative flex flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white transition duration-300 hover:-translate-y-0.5 hover:border-slate-300">
-    <div class="h-1.5 w-full {{ $tone['bar'] }}"></div>
     <div class="flex flex-1 flex-col p-4 sm:p-5">
         <div class="flex items-start justify-between gap-3">
             <a href="{{ route('dashboard.class-groups.show', $g) }}" class="min-w-0 flex-1 no-underline">
                 <h3 class="text-[15px] font-semibold tracking-tight text-slate-900 line-clamp-2 group-hover:text-slate-700" title="{{ $g->name }}">{{ $g->name }}</h3>
                 @if($levelLabel)
-                    <span class="mt-2 inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold {{ $tone['chip'] }}">{{ $levelLabel }}</span>
+                    <span class="mt-2 inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold {{ $isExaminer ? 'bg-slate-100 text-slate-700' : $tone['chip'] }}">{{ $levelLabel }}</span>
                 @endif
             </a>
             <div class="flex flex-shrink-0 items-center gap-1" onclick="event.stopPropagation();">

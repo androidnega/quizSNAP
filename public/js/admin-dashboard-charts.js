@@ -6,7 +6,16 @@
 
     var cfg = window.AdminDashboardChartsConfig || {};
     var charts = {};
-    var palette = ['#4f46e5', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#64748b'];
+    // QuizSnap brand yellows (ThemeService / homeYellow)
+    var palette = [
+        '#fbbf24', // brand
+        '#f59e0b', // brand_dark / amber-500
+        '#eab308', // yellow-500
+        '#FFD500', // homeYellow
+        '#d97706', // amber-600
+        '#b45309', // brand_deep
+        '#78350f', // amber-900
+    ];
 
     function hexToRgba(hex, alpha) {
         var h = (hex || '#4f46e5').replace('#', '');
@@ -150,7 +159,9 @@
                 labels: labs,
                 datasets: [{
                     data: vals,
-                    backgroundColor: palette.slice(0, labs.length),
+                    backgroundColor: labs.length === 2
+                        ? ['#fbbf24', '#b45309']
+                        : palette.slice(0, labs.length),
                     borderWidth: 0,
                     hoverOffset: 4,
                 }],
@@ -198,10 +209,10 @@
     function applyData(data) {
         if (!data) return;
         if (data.quiz_activity) renderCurve('chart-quiz-activity', data.quiz_activity.labels, data.quiz_activity.values, palette[0]);
-        if (data.exam_submissions) renderCurve('chart-exam-submissions', data.exam_submissions.labels, data.exam_submissions.values, palette[2]);
-        if (data.student_growth) renderBar('chart-student-growth', data.student_growth.labels, data.student_growth.values, palette[1]);
+        if (data.exam_submissions) renderCurve('chart-exam-submissions', data.exam_submissions.labels, data.exam_submissions.values, palette[1]);
+        if (data.student_growth) renderBar('chart-student-growth', data.student_growth.labels, data.student_growth.values, palette[2]);
         if (data.live_support) renderBar('chart-live-support', data.live_support.labels, data.live_support.values, palette[4]);
-        if (data.avg_exam_scores) renderCurve('chart-avg-scores', data.avg_exam_scores.labels, data.avg_exam_scores.values, palette[5], 100);
+        if (data.avg_exam_scores) renderCurve('chart-avg-scores', data.avg_exam_scores.labels, data.avg_exam_scores.values, palette[3], 100);
         if (data.staff_roles) renderPie('chart-staff-roles', data.staff_roles.labels, data.staff_roles.values);
         if (data.quiz_outcomes) renderPie('chart-quiz-outcomes', data.quiz_outcomes.labels, data.quiz_outcomes.values);
         if (data.support_status) renderPie('chart-support-status', data.support_status.labels, data.support_status.values);

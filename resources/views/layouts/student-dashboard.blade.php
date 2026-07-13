@@ -38,26 +38,35 @@
     }
 @endphp
 <div class="min-h-screen flex flex-col theme-bg" id="student-dashboard-wrap">
+    {{-- Mobile top bar: menu + logout (desktop header is separate below) --}}
+    <div class="lg:hidden sticky top-0 z-30 flex h-14 items-center justify-between gap-3 px-4 theme-header safe-area-t" id="student-mobile-topbar">
+        <button type="button" id="student-mobile-menu-btn" class="shrink-0 flex h-10 w-10 items-center justify-center rounded-xl theme-header-text theme-header-hover focus:outline-none focus:ring-2 focus:ring-slate-700 focus:ring-offset-2 focus:ring-offset-[var(--theme-brand)]" aria-label="Open menu" aria-expanded="false" aria-controls="student-mobile-sidebar">
+            <i class="fas fa-bars text-base"></i>
+        </button>
+        @include('partials.brand-logo', [
+            'appName' => $appName,
+            'href' => route('dashboard'),
+            'size' => 'sm',
+            'variant' => 'on-brand',
+            'class' => 'shrink-0',
+        ])
+        <form action="{{ isset($student) && $student ? route('student.account.logout') : route('logout') }}" method="post" class="shrink-0">
+            @csrf
+            <button type="submit" class="inline-flex h-10 items-center gap-1.5 rounded-xl px-3 text-sm font-semibold theme-header-text theme-header-hover focus:outline-none focus:ring-2 focus:ring-slate-700 focus:ring-offset-2 focus:ring-offset-[var(--theme-brand)]" aria-label="Log out">
+                <i class="fas fa-sign-out-alt text-sm" aria-hidden="true"></i>
+                <span>Log out</span>
+            </button>
+        </form>
+    </div>
+
     <header class="hidden lg:block sticky top-0 z-30 theme-header">
         <div class="mx-auto flex h-14 lg:h-16 w-full max-w-none lg:max-w-4xl xl:max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-            <div class="flex lg:hidden items-center gap-2.5 min-w-0 flex-1">
-                <button type="button" id="student-mobile-menu-btn" class="shrink-0 flex h-10 w-10 items-center justify-center rounded-xl theme-header-text theme-header-hover focus:outline-none focus:ring-2 focus:ring-slate-700 focus:ring-offset-2 focus:ring-offset-[var(--theme-brand)]" aria-label="Open menu" aria-expanded="false" aria-controls="student-mobile-sidebar">
-                    <i class="fas fa-bars text-base"></i>
-                </button>
-                @include('partials.brand-logo', [
-                    'appName' => $appName,
-                    'href' => route('dashboard'),
-                    'size' => 'sm',
-                    'variant' => 'on-brand',
-                    'class' => 'shrink-0',
-                ])
-            </div>
             @include('partials.brand-logo', [
                 'appName' => $appName,
                 'href' => route('dashboard'),
                 'size' => 'lg',
                 'variant' => 'on-brand',
-                'class' => 'hidden lg:inline-flex shrink-0',
+                'class' => 'inline-flex shrink-0',
             ])
 
             @if(isset($student) && $student)
@@ -114,14 +123,23 @@
         </div>
     </header>
 
-    <aside id="student-mobile-sidebar" class="fixed top-0 left-0 z-40 h-full w-72 max-w-[85vw] bg-white border-r border-slate-200 shadow-xl transition-transform duration-200 ease-out lg:hidden" style="transform: translateX(-100%);" aria-label="Mobile menu" aria-hidden="true">
-        <div class="flex items-center justify-between h-14 px-4 theme-header">
+    <aside id="student-mobile-sidebar" class="fixed top-0 left-0 z-40 h-full w-72 max-w-[85vw] bg-white border-r border-slate-200 shadow-xl transition-transform duration-200 ease-out lg:hidden flex flex-col" style="transform: translateX(-100%);" aria-label="Mobile menu" aria-hidden="true">
+        <div class="flex items-center justify-between h-14 px-4 theme-header shrink-0">
             <span class="text-sm font-bold theme-header-text">Menu</span>
             <button type="button" id="student-mobile-sidebar-close" class="p-2 rounded-lg theme-header-text theme-header-hover" aria-label="Close menu"><i class="fas fa-times"></i></button>
         </div>
-        <nav class="p-4 space-y-1" aria-label="Dashboard navigation">
+        <nav class="p-4 space-y-1 flex-1 overflow-y-auto" aria-label="Dashboard navigation">
             @include('student.partials.dashboard-sidebar-nav')
         </nav>
+        <div class="shrink-0 border-t border-slate-200 p-4 safe-area-b">
+            <form action="{{ isset($student) && $student ? route('student.account.logout') : route('logout') }}" method="post">
+                @csrf
+                <button type="submit" class="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 hover:bg-slate-100">
+                    <i class="fas fa-sign-out-alt text-slate-500" aria-hidden="true"></i>
+                    Log out
+                </button>
+            </form>
+        </div>
     </aside>
     <div id="student-mobile-sidebar-overlay" class="fixed inset-0 z-30 bg-slate-900/40 lg:hidden cursor-pointer pointer-events-none" aria-hidden="true" role="button" tabindex="-1" aria-label="Close menu" style="visibility: hidden;"></div>
 

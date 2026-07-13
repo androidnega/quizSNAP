@@ -256,14 +256,22 @@
                 {{ $item['label'] }}
             </a>
             @endforeach
-            @if(\App\Support\LiveSupportAccess::isEnabled())
             <div class="sd-nav-fab-divider" style="--fab-i: {{ count($fabItems) }}" role="separator" aria-hidden="true"></div>
+            <form action="{{ isset($student) && $student ? route('student.account.logout') : route('logout') }}" method="post" style="--fab-i: {{ count($fabItems) + 1 }}" class="sd-nav-fab-item" role="menuitem">
+                @csrf
+                <button type="submit" class="flex items-center gap-2 w-full text-left bg-transparent border-0 p-0 m-0 font-inherit text-inherit cursor-pointer" aria-label="Log out">
+                    <span class="sd-nav-fab-item-icon" aria-hidden="true"><i class="fas fa-sign-out-alt"></i></span>
+                    Log out
+                </button>
+            </form>
+            @if(\App\Support\LiveSupportAccess::isEnabled())
+            <div class="sd-nav-fab-divider" style="--fab-i: {{ count($fabItems) + 2 }}" role="separator" aria-hidden="true"></div>
             <button type="button"
                role="menuitem"
                data-qs-support-live
                data-support-context='@json($supportTriggerContext)'
                class="sd-nav-fab-item sd-nav-fab-item--support"
-               style="--fab-i: {{ count($fabItems) + 1 }}"
+               style="--fab-i: {{ count($fabItems) + 3 }}"
                aria-label="Open live chat with support">
                 <span class="sd-nav-fab-item-icon sd-nav-fab-item-icon--live" aria-hidden="true">
                     <i class="fas fa-comments"></i>

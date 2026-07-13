@@ -435,10 +435,10 @@
                     @endif
 
                     <div class="relative flex flex-shrink-0 items-center" id="profile-menu-wrap">
-                        <button type="button" class="dashboard-chrome-profile focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300 touch-manipulation" aria-expanded="false" aria-haspopup="true" id="profile-menu-btn" title="Profile">
+                        <button type="button" class="dashboard-chrome-profile focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300 touch-manipulation" aria-expanded="false" aria-haspopup="true" aria-controls="profile-menu-dropdown" id="profile-menu-btn" title="Profile">
                             <span class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg overflow-hidden {{ $headerUser && ($headerUser->avatar_url ?? null) ? '' : 'bg-rose-100 text-rose-700' }}">
                                 @if($headerUser && ($headerUser->avatar_url ?? null))
-                                    <img src="{{ $headerUser->avatar_url }}" alt="Profile" class="h-full w-full object-cover" />
+                                    <img src="{{ $headerUser->avatar_url }}" alt="" class="h-full w-full object-cover" />
                                 @else
                                     <span class="text-xs font-bold tracking-wide">{{ $headerInitials }}</span>
                                 @endif
@@ -447,15 +447,41 @@
                                 <span class="text-sm font-semibold text-gray-900 truncate max-w-[8rem]">{{ $headerName }}</span>
                                 <span class="text-[11px] text-gray-400">{{ $headerRoleLabel }}</span>
                             </span>
-                            <i class="fas fa-chevron-down text-[10px] text-gray-400 hidden sm:inline"></i>
+                            <i class="fas fa-chevron-down text-[10px] text-gray-400 hidden sm:inline profile-chevron" aria-hidden="true"></i>
                         </button>
-                        <div id="profile-menu-dropdown" class="absolute right-0 top-full z-[200] mt-1.5 w-48 sm:w-56 rounded-xl border border-slate-200 bg-white py-1 shadow-lg hidden">
-                            <a href="{{ route('dashboard.profile.show') }}" class="block px-4 py-3 sm:py-2.5 text-sm text-slate-700 hover:bg-slate-50 whitespace-nowrap touch-manipulation">Profile &amp; info</a>
-                            <a href="{{ route('dashboard.profile.password') }}" class="block px-4 py-3 sm:py-2.5 text-sm text-slate-700 hover:bg-slate-50 whitespace-nowrap touch-manipulation">Reset password</a>
-                            <form action="{{ route('logout') }}" method="post" class="border-t border-slate-100 mt-1">
-                                @csrf
-                                <button type="submit" class="block w-full px-4 py-3 sm:py-2.5 text-left text-sm font-medium text-rose-700 hover:bg-rose-50 whitespace-nowrap touch-manipulation">Log out</button>
-                            </form>
+                        <div id="profile-menu-dropdown" class="profile-menu-panel" role="menu" aria-labelledby="profile-menu-btn" hidden>
+                            <div class="profile-menu-head">
+                                <span class="profile-menu-head-avatar {{ $headerUser && ($headerUser->avatar_url ?? null) ? 'bg-slate-100' : 'bg-rose-100 text-rose-700' }}">
+                                    @if($headerUser && ($headerUser->avatar_url ?? null))
+                                        <img src="{{ $headerUser->avatar_url }}" alt="" class="h-full w-full object-cover">
+                                    @else
+                                        {{ $headerInitials }}
+                                    @endif
+                                </span>
+                                <span class="min-w-0">
+                                    <span class="block text-sm font-semibold text-slate-900 truncate">{{ $headerName }}</span>
+                                    <span class="block text-[11px] text-slate-500 truncate mt-0.5">{{ $headerRoleLabel }}</span>
+                                </span>
+                            </div>
+                            <div class="profile-menu-list">
+                                <a href="{{ route('dashboard.profile.show') }}" class="profile-menu-item" role="menuitem">
+                                    <span class="profile-menu-item-icon" aria-hidden="true"><i class="fas fa-user"></i></span>
+                                    Profile &amp; info
+                                </a>
+                                <a href="{{ route('dashboard.profile.password') }}" class="profile-menu-item" role="menuitem">
+                                    <span class="profile-menu-item-icon" aria-hidden="true"><i class="fas fa-key"></i></span>
+                                    Reset password
+                                </a>
+                            </div>
+                            <div class="profile-menu-foot">
+                                <form action="{{ route('logout') }}" method="post">
+                                    @csrf
+                                    <button type="submit" class="profile-menu-item profile-menu-item--danger" role="menuitem">
+                                        <span class="profile-menu-item-icon" aria-hidden="true"><i class="fas fa-sign-out-alt"></i></span>
+                                        Log out
+                                    </button>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -554,15 +580,32 @@
     var profileDropdown = document.getElementById('profile-menu-dropdown');
     var profileWrap = document.getElementById('profile-menu-wrap');
     if (profileBtn && profileDropdown) {
-        function toggleProfileMenu(e) {
-            if (e) { e.stopPropagation(); }
-            var open = profileDropdown.classList.contains('hidden');
-            profileDropdown.classList.toggle('hidden', !open);
-            profileBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        var profileCloseTimer = null;
+        function openProfileMenu() {
+            if (profileCloseTimer) {
+                clearTimeout(profileCloseTimer);
+                profileCloseTimer = null;
+            }
+            profileDropdown.hidden = false;
+            requestAnimationFrame(function () {
+                profileDropdown.classList.add('is-open');
+            });
+            profileBtn.setAttribute('aria-expanded', 'true');
         }
         function closeProfileMenu() {
-            profileDropdown.classList.add('hidden');
+            profileDropdown.classList.remove('is-open');
             profileBtn.setAttribute('aria-expanded', 'false');
+            profileCloseTimer = setTimeout(function () {
+                if (!profileDropdown.classList.contains('is-open')) {
+                    profileDropdown.hidden = true;
+                }
+                profileCloseTimer = null;
+            }, 180);
+        }
+        function toggleProfileMenu(e) {
+            if (e) { e.stopPropagation(); }
+            if (profileDropdown.classList.contains('is-open')) closeProfileMenu();
+            else openProfileMenu();
         }
         profileBtn.addEventListener('click', function (e) {
             e.stopPropagation();
@@ -570,7 +613,13 @@
         });
         document.addEventListener('click', function (e) {
             if (profileWrap && profileWrap.contains(e.target)) return;
-            closeProfileMenu();
+            if (profileDropdown.classList.contains('is-open')) closeProfileMenu();
+        });
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && profileDropdown.classList.contains('is-open')) {
+                closeProfileMenu();
+                profileBtn.focus();
+            }
         });
     }
 })();

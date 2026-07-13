@@ -72,48 +72,93 @@
 
             @if(isset($student) && $student)
             <div class="relative shrink-0" id="student-profile-menu">
-                <button type="button" id="student-profile-btn" class="flex items-center gap-2 rounded-xl py-1.5 pl-1.5 pr-2 lg:py-2 lg:pl-2 lg:pr-4 theme-header-hover focus:outline-none focus:ring-2 focus:ring-slate-700 focus:ring-offset-2 focus:ring-offset-[var(--theme-brand)] transition-colors" aria-expanded="false" aria-haspopup="true" aria-controls="student-profile-dropdown">
-                    <span class="flex h-9 w-9 items-center justify-center rounded-full bg-white/80 text-slate-800 font-medium text-sm"><i class="fas fa-user text-xs"></i></span>
-                    <span class="block text-left max-w-[76px] sm:max-w-[100px] lg:max-w-[140px] truncate">
-                        <span class="block text-xs lg:text-sm font-semibold text-slate-900 truncate">{{ $student->first_name }}</span>
-                        <span class="block text-[10px] lg:text-xs text-slate-700 font-mono truncate">{{ $student->index_number }}</span>
+                <button type="button" id="student-profile-btn" class="dashboard-chrome-profile !bg-white/75 !border-white/60 focus:outline-none focus:ring-2 focus:ring-slate-700 focus:ring-offset-2 focus:ring-offset-[var(--theme-brand)]" aria-expanded="false" aria-haspopup="true" aria-controls="student-profile-dropdown" title="Profile">
+                    <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900/10 text-slate-800 font-medium text-sm"><i class="fas fa-user text-xs" aria-hidden="true"></i></span>
+                    <span class="hidden sm:flex flex-col items-start leading-tight min-w-0 pr-0.5">
+                        <span class="text-sm font-semibold text-slate-900 truncate max-w-[8rem]">{{ $student->first_name }}</span>
+                        <span class="text-[11px] text-slate-600 font-mono truncate max-w-[8rem]">{{ $student->index_number }}</span>
                     </span>
-                    <i class="fas fa-chevron-down text-slate-700 text-[10px] lg:text-xs"></i>
+                    <i class="fas fa-chevron-down text-[10px] text-slate-600 hidden sm:inline profile-chevron" aria-hidden="true"></i>
                 </button>
-                <div id="student-profile-dropdown" class="absolute right-0 mt-2 w-56 rounded-xl border border-slate-200 bg-white py-1 z-50 hidden shadow-lg" role="menu">
-                    <div class="px-4 py-3 border-b border-slate-100">
-                        <p class="text-sm font-medium text-slate-800 truncate">{{ $student->display_name }}</p>
-                        <p class="text-xs text-slate-500 font-mono">{{ $student->index_number }}</p>
+                <div id="student-profile-dropdown" class="profile-menu-panel" role="menu" aria-labelledby="student-profile-btn" hidden>
+                    <div class="profile-menu-head">
+                        <span class="profile-menu-head-avatar bg-slate-100 text-slate-700"><i class="fas fa-user text-xs" aria-hidden="true"></i></span>
+                        <span class="min-w-0">
+                            <span class="block text-sm font-semibold text-slate-900 truncate">{{ $student->display_name }}</span>
+                            <span class="block text-[11px] text-slate-500 font-mono truncate mt-0.5">{{ $student->index_number }}</span>
+                        </span>
                     </div>
-                    <a href="{{ route('dashboard.my-profile') }}" class="block px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors" role="menuitem"><i class="fas fa-user mr-2 text-slate-400 text-xs"></i>Profile</a>
-                    <form action="{{ route('student.account.logout') }}" method="post" class="block">
-                        @csrf
-                        <button type="submit" class="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors" role="menuitem"><i class="fas fa-sign-out-alt mr-2 text-slate-400 text-xs"></i>Log out</button>
-                    </form>
+                    <div class="profile-menu-list">
+                        <a href="{{ route('dashboard.my-profile') }}" class="profile-menu-item" role="menuitem">
+                            <span class="profile-menu-item-icon" aria-hidden="true"><i class="fas fa-user"></i></span>
+                            Profile
+                        </a>
+                    </div>
+                    <div class="profile-menu-foot">
+                        <form action="{{ route('student.account.logout') }}" method="post">
+                            @csrf
+                            <button type="submit" class="profile-menu-item profile-menu-item--danger" role="menuitem">
+                                <span class="profile-menu-item-icon" aria-hidden="true"><i class="fas fa-sign-out-alt"></i></span>
+                                Log out
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
             <script>
-            (function(){var btn=document.getElementById('student-profile-btn');var drop=document.getElementById('student-profile-dropdown');if(!btn||!drop)return;function open(){drop.classList.remove('hidden');btn.setAttribute('aria-expanded','true');}function close(){drop.classList.add('hidden');btn.setAttribute('aria-expanded','false');}btn.addEventListener('click',function(e){e.stopPropagation();if(drop.classList.contains('hidden'))open();else close();});document.addEventListener('click',function(){close();});drop.addEventListener('click',function(e){e.stopPropagation();});})();
+            (function(){
+                var btn=document.getElementById('student-profile-btn');
+                var drop=document.getElementById('student-profile-dropdown');
+                var wrap=document.getElementById('student-profile-menu');
+                if(!btn||!drop)return;
+                var t=null;
+                function open(){ if(t){clearTimeout(t);t=null;} drop.hidden=false; requestAnimationFrame(function(){ drop.classList.add('is-open'); }); btn.setAttribute('aria-expanded','true'); }
+                function close(){ drop.classList.remove('is-open'); btn.setAttribute('aria-expanded','false'); t=setTimeout(function(){ if(!drop.classList.contains('is-open')) drop.hidden=true; t=null; },180); }
+                btn.addEventListener('click',function(e){ e.stopPropagation(); drop.classList.contains('is-open')?close():open(); });
+                document.addEventListener('click',function(e){ if(wrap&&wrap.contains(e.target))return; if(drop.classList.contains('is-open'))close(); });
+                document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&drop.classList.contains('is-open')){ close(); btn.focus(); } });
+            })();
             </script>
             @elseif(isset($user) && $user)
             <div class="relative shrink-0" id="student-profile-menu">
-                <button type="button" id="student-profile-btn" class="flex items-center gap-2 rounded-full lg:rounded-xl py-2 pl-2 pr-2 lg:pr-4 theme-header-hover focus:outline-none focus:ring-2 focus:ring-slate-700 focus:ring-offset-2 focus:ring-offset-[var(--theme-brand)] transition-colors" aria-expanded="false" aria-haspopup="true" aria-controls="student-profile-dropdown">
-                    <span class="flex h-9 w-9 items-center justify-center rounded-full bg-white/80 text-slate-800 font-medium text-sm"><i class="fas fa-user text-xs"></i></span>
-                    <span class="hidden lg:block text-left max-w-[140px] truncate text-sm font-semibold text-slate-900 truncate">{{ $user->name ?? $user->username }}</span>
-                    <i class="fas fa-chevron-down text-slate-700 text-xs hidden lg:block"></i>
+                <button type="button" id="student-profile-btn" class="dashboard-chrome-profile !bg-white/75 !border-white/60 focus:outline-none focus:ring-2 focus:ring-slate-700 focus:ring-offset-2 focus:ring-offset-[var(--theme-brand)]" aria-expanded="false" aria-haspopup="true" aria-controls="student-profile-dropdown" title="Profile">
+                    <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900/10 text-slate-800 font-medium text-sm"><i class="fas fa-user text-xs" aria-hidden="true"></i></span>
+                    <span class="hidden lg:flex flex-col items-start leading-tight min-w-0 pr-0.5">
+                        <span class="text-sm font-semibold text-slate-900 truncate max-w-[8rem]">{{ $user->name ?? $user->username }}</span>
+                    </span>
+                    <i class="fas fa-chevron-down text-[10px] text-slate-600 hidden lg:inline profile-chevron" aria-hidden="true"></i>
                 </button>
-                <div id="student-profile-dropdown" class="absolute right-0 mt-2 w-56 rounded-xl border border-slate-200 bg-white py-1 z-50 hidden shadow-lg" role="menu">
-                    <div class="px-4 py-3 border-b border-slate-100">
-                        <p class="text-sm font-medium text-slate-800 truncate">{{ $user->name ?? $user->username }}</p>
+                <div id="student-profile-dropdown" class="profile-menu-panel" role="menu" aria-labelledby="student-profile-btn" hidden>
+                    <div class="profile-menu-head">
+                        <span class="profile-menu-head-avatar bg-slate-100 text-slate-700"><i class="fas fa-user text-xs" aria-hidden="true"></i></span>
+                        <span class="min-w-0">
+                            <span class="block text-sm font-semibold text-slate-900 truncate">{{ $user->name ?? $user->username }}</span>
+                        </span>
                     </div>
-                    <form action="{{ route('logout') }}" method="post" class="block">
-                        @csrf
-                        <button type="submit" class="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors" role="menuitem"><i class="fas fa-sign-out-alt mr-2 text-slate-400 text-xs"></i>Log out</button>
-                    </form>
+                    <div class="profile-menu-foot">
+                        <form action="{{ route('logout') }}" method="post">
+                            @csrf
+                            <button type="submit" class="profile-menu-item profile-menu-item--danger" role="menuitem">
+                                <span class="profile-menu-item-icon" aria-hidden="true"><i class="fas fa-sign-out-alt"></i></span>
+                                Log out
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
             <script>
-            (function(){var btn=document.getElementById('student-profile-btn');var drop=document.getElementById('student-profile-dropdown');if(!btn||!drop)return;function open(){drop.classList.remove('hidden');btn.setAttribute('aria-expanded','true');}function close(){drop.classList.add('hidden');btn.setAttribute('aria-expanded','false');}btn.addEventListener('click',function(e){e.stopPropagation();if(drop.classList.contains('hidden'))open();else close();});document.addEventListener('click',function(){close();});drop.addEventListener('click',function(e){e.stopPropagation();});})();
+            (function(){
+                var btn=document.getElementById('student-profile-btn');
+                var drop=document.getElementById('student-profile-dropdown');
+                var wrap=document.getElementById('student-profile-menu');
+                if(!btn||!drop)return;
+                var t=null;
+                function open(){ if(t){clearTimeout(t);t=null;} drop.hidden=false; requestAnimationFrame(function(){ drop.classList.add('is-open'); }); btn.setAttribute('aria-expanded','true'); }
+                function close(){ drop.classList.remove('is-open'); btn.setAttribute('aria-expanded','false'); t=setTimeout(function(){ if(!drop.classList.contains('is-open')) drop.hidden=true; t=null; },180); }
+                btn.addEventListener('click',function(e){ e.stopPropagation(); drop.classList.contains('is-open')?close():open(); });
+                document.addEventListener('click',function(e){ if(wrap&&wrap.contains(e.target))return; if(drop.classList.contains('is-open'))close(); });
+                document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&drop.classList.contains('is-open')){ close(); btn.focus(); } });
+            })();
             </script>
             @else
             <div class="flex items-center gap-2 shrink-0">

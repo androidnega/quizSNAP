@@ -363,8 +363,9 @@
                 ];
             }
         @endphp
+        <div class="w-full shrink-0 px-3 pt-3 sm:px-4 md:px-6">
         <header class="dashboard-chrome-header relative flex flex-shrink-0 items-center z-30 min-w-0 overflow-visible safe-area-header">
-            <div class="examiner-page flex flex-1 flex-wrap items-center gap-2.5 sm:gap-3 w-full min-w-0 px-3 py-2.5 sm:px-4 md:px-5 overflow-visible">
+            <div class="flex flex-1 flex-wrap items-center gap-2.5 sm:gap-3 w-full min-w-0 px-3 py-2 sm:px-4 overflow-visible">
                 <div class="flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3">
                     <button type="button" id="examiner-sidebar-menu-btn" class="dashboard-chrome-toggle flex flex-shrink-0 items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 touch-manipulation" aria-label="Toggle sidebar" title="Toggle sidebar">
                         <i class="fas fa-bars text-sm"></i>
@@ -459,6 +460,7 @@
                 </div>
             </div>
         </header>
+        </div>
 
         <main class="examiner-main-content flex-1 min-h-0 overflow-y-auto overflow-x-hidden bg-[#f4f5f7] overscroll-behavior-y-contain">
             @php
@@ -466,7 +468,7 @@
                 $fullWidthFormPage = request()->routeIs('dashboard.quizzes.create') || request()->routeIs('dashboard.quizzes.edit');
             @endphp
             <div class="examiner-page w-full min-h-full max-w-full {{ $fullBleedPage ? 'p-0' : 'px-3 py-4 sm:px-4 sm:py-6 md:px-6 md:py-8 safe-area-main' }}">
-                <div class="examiner-dashboard-content w-full max-w-none overflow-x-hidden {{ $fullBleedPage ? 'px-0' : 'px-0 md:px-2' }}">
+                <div class="examiner-dashboard-content w-full max-w-none overflow-x-hidden px-0">
                     @if($isCoordinatorOnly && (request()->routeIs('dashboard') || request()->routeIs('dashboard.coordinators.*') || request()->routeIs('dashboard.class-groups.*') || request()->routeIs('dashboard.courses.*') || request()->routeIs('dashboard.profile.*')))
                     <nav class="coordinator-breadcrumb flex items-center gap-2 text-sm text-gray-600 mb-4" aria-label="Breadcrumb">
                         <a href="{{ route('dashboard') }}" class="hover:text-primary-600">Dashboard</a>

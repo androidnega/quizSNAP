@@ -270,14 +270,15 @@
             }
         }
 
-        /* Header chrome: floating rounded rectangle */
+        /* Header chrome: same horizontal width as body content */
         .dashboard-chrome-header {
             background: #ffffff;
             border: 1px solid #e5e7eb;
-            border-radius: 1.25rem;
-            margin: 0.75rem 0.75rem 0;
-            min-height: 4.25rem;
+            border-radius: 1rem;
+            margin: 0;
+            min-height: 3.75rem;
             box-shadow: none;
+            width: 100%;
         }
         .dashboard-chrome-toggle {
             width: 2.5rem;

@@ -148,10 +148,10 @@
         .examiner-nav-link svg,
         .examiner-nav-link > i {
             box-sizing: border-box;
-            width: 2.35rem !important;
-            height: 2.35rem !important;
-            min-width: 2.35rem;
-            padding: 0.55rem;
+            width: 1.85rem !important;
+            height: 1.85rem !important;
+            min-width: 1.85rem;
+            padding: 0.4rem;
             border-radius: 9999px;
             display: inline-flex !important;
             align-items: center;
@@ -161,10 +161,10 @@
             transition: background-color .15s ease, color .15s ease, box-shadow .15s ease;
         }
         .examiner-nav-link > i {
-            font-size: 0.85rem;
+            font-size: 0.75rem;
             line-height: 1;
             text-align: center;
-            width: 2.35rem !important;
+            width: 1.85rem !important;
         }
         .examiner-nav-link:hover svg,
         .examiner-nav-link:hover > i {
@@ -182,7 +182,7 @@
         .examiner-nav-link--active > i {
             background-color: #111827 !important;
             color: #ffffff !important;
-            box-shadow: 0 6px 16px rgba(17, 24, 39, 0.18);
+            box-shadow: none;
         }
         .examiner-nav-link--active:hover svg,
         .examiner-nav-link--active:hover > i {
@@ -190,13 +190,25 @@
             color: #ffffff !important;
         }
         .examiner-sidebar-nav {
-            padding-top: 0.5rem;
-            padding-bottom: 1rem;
+            padding-top: 0.25rem;
+            padding-bottom: 0.5rem;
         }
         .examiner-sidebar-nav > ul {
             display: flex;
             flex-direction: column;
-            gap: 0.35rem;
+            gap: 0.05rem;
+        }
+        /* Internal list scroll (students, quizzes, etc.) — scrollbar hidden */
+        .dashboard-list-scroll {
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .dashboard-list-scroll::-webkit-scrollbar {
+            width: 0;
+            height: 0;
+            display: none;
         }
         .examiner-sidebar-header {
             height: 4.25rem;
@@ -216,13 +228,13 @@
         /* When sidebar is collapsed on desktop, show only icons (no text labels) */
         @media (min-width: 768px) {
             .examiner-sidebar--collapsed {
-                width: 4.75rem !important;
-                min-width: 4.75rem !important;
+                width: 4.25rem !important;
+                min-width: 4.25rem !important;
                 margin: 0.75rem 0 0.75rem 0.75rem;
                 height: calc(100% - 1.5rem) !important;
-                border-radius: 1.75rem;
+                border-radius: 1.5rem;
                 border: 1px solid #eef0f3;
-                box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+                box-shadow: none;
             }
             .examiner-sidebar--collapsed .examiner-nav-text,
             .examiner-sidebar--collapsed .examiner-sidebar-brand-text,

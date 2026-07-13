@@ -91,22 +91,6 @@ class ClassGroupPolicy
         return $this->coordinatorCanAccess($user, $classGroup);
     }
 
-    /**
-     * Only examiner (assigned to the group) or Super Admin can generate a one-time fallback login code.
-     * Coordinators must not have access to generate code.
-     */
-    public function generateFallbackCode(User $user, ClassGroup $classGroup): bool
-    {
-        if ($user->isSuperAdmin()) {
-            return true;
-        }
-        if (! $user->isStaff() || $user->isCoordinator()) {
-            return false;
-        }
-
-        return $this->isExaminerAssignedToClassGroup($user, $classGroup);
-    }
-
     public function delete(User $user, ClassGroup $classGroup): bool
     {
         return $this->coordinatorCanAccess($user, $classGroup);

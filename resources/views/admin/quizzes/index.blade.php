@@ -33,7 +33,8 @@
         </a>
     </div>
 
-    <div class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+    <div class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden flex flex-col max-h-[min(36rem,65vh)]">
+        <div class="dashboard-list-scroll flex-1 min-h-0">
         @forelse($quizzes as $q)
             @php
                 if (!$q->hasEnoughApprovedQuestions()) {
@@ -50,7 +51,7 @@
                     $statusClass = 'bg-gray-100 text-gray-600 ring-gray-200';
                 }
             @endphp
-            <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 px-4 sm:px-5 py-4 border-b border-gray-100 last:border-b-0 hover:bg-gray-50/70 transition-colors">
+            <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3.5 border-b border-gray-100 last:border-b-0 hover:bg-gray-50/70 transition-colors">
                 <div class="min-w-0 flex-1">
                     <div class="flex flex-wrap items-center gap-2 mb-1">
                         <a href="{{ route('dashboard.quizzes.show', $q) }}" class="text-[15px] font-semibold text-gray-900 truncate hover:text-gray-700 tracking-tight" title="{{ $q->title }}">{{ $q->title }}</a>
@@ -100,9 +101,10 @@
                 @endif
             </div>
         @endforelse
+        </div>
 
         @if($quizzes->hasPages())
-            <div class="border-t border-gray-100 bg-gray-50/80 px-4 py-3">{{ $quizzes->links() }}</div>
+            <div class="border-t border-gray-100 bg-gray-50/80 px-4 py-3 shrink-0">{{ $quizzes->links() }}</div>
         @endif
     </div>
 </div>

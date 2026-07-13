@@ -967,38 +967,6 @@ class ClassGroupController extends Controller
     }
 
     /**
-     * Generate a one-time fallback login code for a student (examiner or super admin/coordinator).
-     * Code is displayed on screen for staff to give to the student; not sent via SMS.
-     */
-    public function generateFallbackCode(Request $request, string $classGroupId, ClassGroupStudent $student): RedirectResponse
-    {
-        $classGroup = $student->classGroup;
-        if (!$classGroup || (string) $classGroupId !== (string) $classGroup->getRouteKey()) {
-            abort(404);
-        }
-        $this->authorize('generateFallbackCode', $classGroup);
-
-        $code = (string) random_int(100000, 999999);
-        $indexHash = Student::hashIndexNumber($student->index_number);
-
-        Otp::where('index_number_hash', $indexHash)
-            ->where('type', Otp::TYPE_EXAMINER_FALLBACK)
-            ->whereNull('used_at')
-            ->update(['used_at' => now()]);
-
-        Otp::create([
-            'index_number_hash' => $indexHash,
-            'type' => Otp::TYPE_EXAMINER_FALLBACK,
-            'code' => $code,
-            'expires_at' => null,
-        ]);
-
-        return redirect()->route($this->staffRoutePrefix() . '.class-groups.students.show', [$classGroup, $student])
-            ->with('success', 'One-time login code generated. Give it to the student. It does not expire until they use it successfully.')
-            ->with('fallback_code', $code);
-    }
-
-    /**
      * Export class group students list as Excel.
      */
     public function exportStudentsExcel(ClassGroup $classGroup): \Symfony\Component\HttpFoundation\BinaryFileResponse

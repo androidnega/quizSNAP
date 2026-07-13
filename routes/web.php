@@ -244,7 +244,6 @@ Route::middleware('admin.auth')->group(function () {
         Route::put('/class-groups/{classGroupId}/students/{student}', [ClassGroupController::class, 'updateStudent'])->name('class-groups.students.update');
         Route::delete('/class-groups/{classGroupId}/students/{student}', [ClassGroupController::class, 'destroyStudent'])->name('class-groups.students.destroy');
         Route::delete('/class-groups/{classGroupId}/students/{student}/phone', [ClassGroupController::class, 'removeStudentPhone'])->name('class-groups.students.remove-phone');
-        Route::post('/class-groups/{classGroupId}/students/{student}/fallback-code', [ClassGroupController::class, 'generateFallbackCode'])->name('class-groups.students.fallback-code');
 
         // Super Admin + Coordinator: global student search (scoped by role)
         Route::get('/students', [\App\Http\Controllers\Admin\StaffStudentsController::class, 'index'])->name('students.index');

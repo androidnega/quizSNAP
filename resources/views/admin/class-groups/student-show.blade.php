@@ -10,13 +10,6 @@
     @if(session('success'))
         <div class="alert alert-success mb-4">{{ session('success') }}</div>
     @endif
-    @if(session('fallback_code'))
-        <div class="rounded-lg border-2 border-amber-400 bg-amber-100 p-4 mb-4">
-            <p class="text-sm font-medium text-amber-900 mb-1">One-time login code — give this to the student</p>
-            <p class="text-2xl font-bold font-mono tracking-widest text-amber-900 bg-yellow-300 inline-block px-4 py-2 rounded">{{ session('fallback_code') }}</p>
-            <p class="text-xs text-amber-800 mt-2">Student enters their index number and this 6-digit code on the student login page. The code stays valid until they use it once (generating a new code cancels unused older codes).</p>
-        </div>
-    @endif
     @if(session('error'))
         <div class="alert alert-error mb-4">{{ session('error') }}</div>
     @endif
@@ -42,14 +35,6 @@
                     </button>
                 </form>
                 @endif
-                @else
-                {{-- Examiner: can only generate one-time fallback code; cannot edit student or reset OTP --}}
-                @can('generateFallbackCode', $classGroup)
-                <form action="{{ route('dashboard.class-groups.students.fallback-code', [$classGroup, $student]) }}" method="post" class="inline">
-                    @csrf
-                    <button type="submit" class="inline-flex items-center justify-center w-9 h-9 rounded-md text-amber-700 hover:bg-amber-100 border border-amber-300 hover:border-amber-400" title="Generate one-time login code"><i class="fas fa-key"></i></button>
-                </form>
-                @endcan
                 @endcan
             </div>
         </div>

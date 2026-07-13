@@ -98,6 +98,14 @@
                         <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-primary-100 text-primary-700">{{ $sessionsStats['total_students'] }}</span>
                     @endif
                 </a>
+                <a href="{{ route('dashboard.quizzes.show', ['quiz' => $quiz, 'tab' => 'gallery']) }}" data-quiz-tab="gallery"
+                   class="quiz-tab-link py-3 px-4 text-sm font-semibold whitespace-nowrap border-b-3 transition-all flex items-center gap-2 {{ $activeTab === 'gallery' ? 'border-primary-500 text-primary-700 bg-white shadow-sm' : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-white/70' }}">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    <span>Gallery</span>
+                    @if($sessionsStats['total_students'] > 0)
+                        <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">{{ $sessionsStats['total_students'] }}</span>
+                    @endif
+                </a>
                 <a href="{{ route('dashboard.quizzes.show', ['quiz' => $quiz, 'tab' => 'scores']) }}" data-quiz-tab="scores"
                    class="quiz-tab-link py-3 px-4 text-sm font-semibold whitespace-nowrap border-b-3 transition-all flex items-center gap-2 {{ $activeTab === 'scores' ? 'border-primary-500 text-primary-700 bg-white shadow-sm' : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-white/70' }}">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
@@ -206,6 +214,19 @@
                 var matches = !qUpper || index.indexOf(qUpper) !== -1 || normalizedIndex.indexOf(normalizedQuery) !== -1;
                 row.style.display = matches ? '' : 'none';
             });
+        } else if (id === 'gallery-search-index') {
+            var galleryQ = q.toUpperCase().trim();
+            var galleryNormQ = galleryQ.replace(/[^A-Z0-9]/g, '');
+            var visible = 0;
+            container.querySelectorAll('.gallery-card').forEach(function(card) {
+                var index = (card.getAttribute('data-student-index') || '').toUpperCase().trim();
+                var normalizedIndex = index.replace(/[^A-Z0-9]/g, '');
+                var matches = !galleryQ || index.indexOf(galleryQ) !== -1 || normalizedIndex.indexOf(galleryNormQ) !== -1;
+                card.style.display = matches ? '' : 'none';
+                if (matches) visible++;
+            });
+            var emptyFilter = document.getElementById('gallery-empty-filter');
+            if (emptyFilter) emptyFilter.classList.toggle('hidden', visible > 0 || !galleryQ);
         } else if (id === 'questions-search' || id === 'pool-search') {
             var qLower = q.toLowerCase();
             var selector = id === 'questions-search' ? '.approved-question-row' : '.pool-question-row';
@@ -216,7 +237,7 @@
         }
     });
     container.addEventListener('keyup', function(e) {
-        if (e.target && (e.target.id === 'sessions-search-index' || e.target.id === 'questions-search' || e.target.id === 'pool-search')) {
+        if (e.target && (e.target.id === 'sessions-search-index' || e.target.id === 'gallery-search-index' || e.target.id === 'questions-search' || e.target.id === 'pool-search')) {
             e.target.dispatchEvent(new Event('input', { bubbles: true }));
         }
     });

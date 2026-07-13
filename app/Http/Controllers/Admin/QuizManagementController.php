@@ -7,7 +7,9 @@ use App\Http\Controllers\Admin\Concerns\InteractsWithAdminSession;
 use App\Http\Controllers\Concerns\BroadcastsDataUpdatesSafely;
 use App\Models\AcademicClass;
 use App\Models\ClassGroup;
+use App\Models\ClassGroupStudent;
 use App\Models\Course;
+use App\Models\Student;
 use App\Models\AcademicYear;
 use App\Models\QuizCategory;
 use App\Models\Semester;
@@ -838,17 +840,43 @@ class QuizManagementController extends Controller
             'students_with_violations' => $completedSessions->filter(fn ($s) => $s->violations->count() > 0)->count(),
         ];
 
+        // Gallery: same completed writers, sorted by index for scanning
+        $gallerySessions = $sessionsPaginator
+            ->sortBy(fn ($s) => strtoupper(trim((string) ($s->student_index ?? ''))))
+            ->values();
+        $galleryNames = [];
+        if ($quiz->class_group_id && $gallerySessions->isNotEmpty()) {
+            $hashes = $gallerySessions
+                ->map(fn ($s) => Student::hashIndexNumber($s->student_index ?? null))
+                ->filter(fn ($h) => $h !== hash('sha256', ''))
+                ->unique()
+                ->values()
+                ->all();
+            if ($hashes !== []) {
+                $roster = ClassGroupStudent::query()
+                    ->where('class_group_id', $quiz->class_group_id)
+                    ->whereIn('index_number_hash', $hashes)
+                    ->get(['index_number', 'student_name']);
+                foreach ($roster as $row) {
+                    $key = strtoupper(trim((string) $row->index_number));
+                    if ($key !== '' && filled($row->student_name)) {
+                        $galleryNames[$key] = trim((string) $row->student_name);
+                    }
+                }
+            }
+        }
+
         // Question analytics: per-question answered count and correct count (from completed sessions only)
         $questionStats = $this->computeQuestionStats($quiz, $completedSessions);
 
         $allowedDevicesEffective = $quiz->getEffectiveAllowedDevices();
         $aiGenerationProgress = AiQuizGenerationProgress::get((int) $quiz->id);
-        $data = compact('quiz', 'unapprovedPools', 'unapprovedPoolsTotal', 'approvedQuestions', 'approvedQuestionsTotal', 'sessionsPaginator', 'sessionsStats', 'questionStats', 'allowedDevicesEffective', 'aiGenerationProgress');
+        $data = compact('quiz', 'unapprovedPools', 'unapprovedPoolsTotal', 'approvedQuestions', 'approvedQuestionsTotal', 'sessionsPaginator', 'sessionsStats', 'gallerySessions', 'galleryNames', 'questionStats', 'allowedDevicesEffective', 'aiGenerationProgress');
 
         // Live tab/pagination: return only the tab HTML fragment for AJAX requests
         if ($request->ajax()) {
             $tab = $request->get('tab');
-            if (! in_array($tab, ['overview', 'sessions', 'scores', 'analytics'], true)) {
+            if (! in_array($tab, ['overview', 'sessions', 'gallery', 'scores', 'analytics'], true)) {
                 $tab = 'overview'; // default so pagination (e.g. questions_page=2) returns overview partial, not full page
             }
             return response()->view('admin.quizzes.partials.' . $tab, $data);

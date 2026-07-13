@@ -14,8 +14,8 @@
 @endphp
 @if($canAccessMonitoring ?? false)
 <div class="relative flex flex-shrink-0 items-center" id="monitoring-notification-wrap">
-    <button type="button" id="monitoring-notification-btn" class="relative flex h-11 w-11 items-center justify-center rounded-lg text-gray-700 hover:bg-gray-100" aria-label="Monitoring notifications">
-        <i class="fas fa-bell text-lg"></i>
+    <button type="button" id="monitoring-notification-btn" class="dashboard-chrome-bell relative flex items-center justify-center focus:outline-none" aria-label="Monitoring notifications">
+        <i class="fas fa-bell text-sm"></i>
         <span id="monitoring-notification-badge" class="absolute -top-0.5 -right-0.5 min-w-[1.1rem] rounded-full bg-red-600 px-1 text-[10px] font-bold leading-4 text-white text-center {{ $monitoringUnread ? '' : 'hidden' }}">{{ $monitoringUnread }}</span>
     </button>
     <div id="monitoring-notification-dropdown" class="absolute right-0 top-full z-[120] mt-1.5 hidden w-80 max-w-[calc(100vw-1rem)] rounded-xl border border-gray-200 bg-white shadow-xl">

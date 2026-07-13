@@ -4,85 +4,67 @@
     $shortBy = max(0, $neededCount - $approvedCount);
 @endphp
 
-{{-- Questions summary bar (top of page) --}}
-<section class="mb-6 rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-    <div class="px-5 py-4">
-        <div class="flex flex-wrap items-center gap-x-6 gap-y-4">
-            <div class="flex items-baseline gap-2">
-                <h2 class="text-lg font-semibold text-gray-900">Questions</h2>
-                <span class="text-sm text-gray-500">{{ $approvedQuestionsTotal ?? 0 }} question(s) in quiz (showing {{ $approvedQuestions->count() ?? 0 }} on this page)</span>
+{{-- Questions summary --}}
+<section class="mb-4 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+    <div class="px-4 py-4 sm:px-5">
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-3">
+            <div class="min-w-0">
+                <h2 class="text-base font-semibold text-gray-900 tracking-tight">Questions</h2>
+                <p class="text-xs text-gray-500 mt-0.5">{{ $approvedQuestionsTotal ?? 0 }} approved · {{ $unapprovedPoolsTotal ?? 0 }} in pool</p>
             </div>
-            @if(($approvedQuestionsTotal ?? 0) > 0)
-            <a href="{{ route('dashboard.quizzes.questions.export.txt', $quiz) }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg border border-gray-300 transition-colors" download>
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-                Download questions TXT
-            </a>
-            @else
-            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-400 bg-gray-50 rounded-lg border border-gray-200 cursor-not-allowed" title="Approve questions to enable download" aria-disabled="true">
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-                Download questions TXT
-            </span>
-            @endif
-            @if(($approvedQuestionsTotal ?? 0) > 0 || ($unapprovedPoolsTotal ?? 0) > 0)
-            <a href="{{ route('dashboard.quizzes.questions.export.full-pool-txt', $quiz) }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-primary-800 bg-primary-50 hover:bg-primary-100 rounded-lg border border-primary-200 transition-colors" download>
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                Download full pool TXT (approved + pending, with answers)
-            </a>
-            @endif
-            <div class="flex-1 min-w-[200px] max-w-sm">
-                <label for="questions-search" class="sr-only">Search questions</label>
-                <input type="text" id="questions-search" placeholder="Type to filter by question text, topic, type…" class="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-primary-500 focus:border-primary-500" autocomplete="off">
-            </div>
-            @if($unapprovedPoolsTotal > 0)
-            <div class="flex flex-wrap items-center gap-3">
-                <p class="text-sm text-gray-600">You have <strong>{{ $unapprovedPoolsTotal }}</strong> question(s) in the pool below.</p>
-                <span class="text-sm text-gray-500">Click Approve All to add them to the quiz.</span>
-                @if(!$quiz->hasStarted())
+            <div class="flex flex-wrap items-center gap-2 ml-auto">
+                @if(($approvedQuestionsTotal ?? 0) > 0)
+                <a href="{{ route('dashboard.quizzes.questions.export.txt', $quiz) }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-xl border border-gray-200 transition" download>
+                    <i class="fas fa-file-alt text-[10px]"></i>
+                    Questions TXT
+                </a>
+                @endif
+                @if(($approvedQuestionsTotal ?? 0) > 0 || ($unapprovedPoolsTotal ?? 0) > 0)
+                <a href="{{ route('dashboard.quizzes.questions.export.full-pool-txt', $quiz) }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-xl border border-gray-200 transition" download>
+                    <i class="fas fa-download text-[10px]"></i>
+                    Full pool
+                </a>
+                @endif
+                <div class="relative min-w-[12rem] flex-1 sm:flex-none sm:w-56">
+                    <label for="questions-search" class="sr-only">Search questions</label>
+                    <input type="text" id="questions-search" placeholder="Filter questions…" class="w-full text-sm border border-gray-200 rounded-xl px-3 py-1.5 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-gray-900 focus:border-gray-900" autocomplete="off">
+                </div>
+                @if($unapprovedPoolsTotal > 0 && !$quiz->hasStarted())
                 <form action="{{ route('dashboard.quizzes.approve-all-pool', $quiz) }}" method="post" class="inline" onsubmit="return confirm('This will approve ALL {{ $unapprovedPoolsTotal }} pending questions. Continue?');">
                     @csrf
-                    <button type="submit" class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded-lg shadow-sm transition-colors">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                        Approve All ({{ $unapprovedPoolsTotal }})
+                    <button type="submit" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-gray-900 hover:bg-gray-800 rounded-xl transition">
+                        Approve all ({{ $unapprovedPoolsTotal }})
                     </button>
                 </form>
                 @endif
             </div>
-            @endif
         </div>
     </div>
 </section>
 
-{{-- Action Required: unapproved questions in pool --}}
 @if(!$quiz->is_published && !$quiz->hasEnoughApprovedQuestions() && $unapprovedPoolsTotal > 0)
-    <div class="bg-primary-50 border-2 border-primary-300 rounded-lg p-4 flex items-start gap-3">
-        <svg class="w-6 h-6 text-primary-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-        </svg>
-        <div class="flex-1">
-            <p class="font-semibold text-primary-900 mb-1">Action Required: Approve Generated Questions</p>
-            <p class="text-sm text-primary-800">
-                You have <strong>{{ $unapprovedPoolsTotal }} generated question(s)</strong> waiting for approval below.
-                Click <strong>"Approve All ({{ $unapprovedPoolsTotal }})"</strong> to add them to your quiz.
-                You need at least <strong>{{ $neededCount }} approved</strong> (currently {{ $approvedCount }}).
+    <div class="mb-4 rounded-2xl border border-gray-200 bg-white p-4 flex items-start gap-3 shadow-sm">
+        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-900 text-white"><i class="fas fa-check text-xs"></i></span>
+        <div class="flex-1 min-w-0">
+            <p class="text-sm font-semibold text-gray-900">Approve generated questions</p>
+            <p class="text-xs text-gray-500 mt-0.5">
+                {{ $unapprovedPoolsTotal }} waiting in the pool. Need at least {{ $neededCount }} approved (currently {{ $approvedCount }}).
             </p>
         </div>
     </div>
 @endif
 @if(!$quiz->is_published && !$quiz->hasEnoughApprovedQuestions() && $unapprovedPoolsTotal === 0 && $shortBy > 0)
-    <div class="bg-warning-50 border-2 border-warning-300 rounded-lg p-4 flex items-start gap-3">
-        <svg class="w-6 h-6 text-warning-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92z" clip-rule="evenodd"/>
-        </svg>
-        <div class="flex-1">
-            <p class="font-semibold text-warning-900 mb-1">Need {{ $shortBy }} more question(s) to publish</p>
-            <p class="text-sm text-warning-800 mb-3">
-                This quiz is set to require <strong>{{ $neededCount }} questions</strong>. You have <strong>{{ $approvedCount }} approved</strong>.
-                There are no questions waiting in the pool — the "other {{ $shortBy }}" were never added.
+    <div class="mb-4 rounded-2xl border border-gray-200 bg-white p-4 flex items-start gap-3 shadow-sm">
+        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700"><i class="fas fa-exclamation text-xs"></i></span>
+        <div class="flex-1 min-w-0">
+            <p class="text-sm font-semibold text-gray-900">Need {{ $shortBy }} more question(s) to publish</p>
+            <p class="text-xs text-gray-500 mt-0.5 mb-3">
+                Requires {{ $neededCount }} questions. You have {{ $approvedCount }} approved and none waiting in the pool.
             </p>
-            <p class="text-sm text-warning-800 mb-2">You can:</p>
-            <ul class="text-sm text-warning-800 list-disc list-inside space-y-1 mb-3">
-                <li><strong>Add {{ $shortBy }} more:</strong> Use AI to generate questions below (or add manually), then approve them.</li>
-                <li><strong>Use {{ $approvedCount }} questions:</strong> Edit the quiz and set "Questions per student" to {{ $approvedCount }} (or 0) so you can publish with what you have.</li>
+            <p class="text-xs text-gray-500 mb-2">You can:</p>
+            <ul class="text-xs text-gray-500 list-disc list-inside space-y-1 mb-3">
+                <li><strong class="text-gray-700">Add {{ $shortBy }} more:</strong> Generate with AI below, then approve.</li>
+                <li><strong class="text-gray-700">Use {{ $approvedCount }}:</strong> Edit quiz and set questions per student to {{ $approvedCount }}.</li>
             </ul>
             <div class="flex flex-wrap gap-2">
                 @php
@@ -96,28 +78,27 @@
                     }
                 @endphp
 
-                {{-- DeepSeek batch generation --}}
                 <div id="ai-batch-wrap-{{ $quiz->id }}">
                     <button type="button"
                         id="ai-batch-btn-{{ $quiz->id }}"
-                        class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60"
+                        class="inline-flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold rounded-xl text-white bg-gray-900 hover:bg-gray-800 disabled:opacity-60"
                         onclick="startAiBatchGeneration('{{ $quiz->id }}','{{ route('dashboard.quizzes.ai-generate', $quiz) }}','{{ $generateTopicsStr }}',{{ $quiz->number_of_questions }})">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
-                        Generate questions with AI
+                        <i class="fas fa-wand-magic-sparkles text-[10px]"></i>
+                        Generate with AI
                     </button>
                     <div id="ai-batch-progress-{{ $quiz->id }}" class="mt-2 hidden">
                         <div class="flex items-center gap-2 mb-1">
-                            <svg class="w-4 h-4 text-indigo-600 animate-spin flex-shrink-0" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
-                            <span id="ai-batch-status-{{ $quiz->id }}" class="text-sm text-indigo-700 font-medium">Starting…</span>
+                            <svg class="w-4 h-4 text-gray-600 animate-spin flex-shrink-0" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                            <span id="ai-batch-status-{{ $quiz->id }}" class="text-sm text-gray-700 font-medium">Starting…</span>
                         </div>
-                        <div class="w-full bg-gray-200 rounded-full h-2">
-                            <div id="ai-batch-bar-{{ $quiz->id }}" class="bg-indigo-600 h-2 rounded-full transition-all duration-300" style="width:0%"></div>
+                        <div class="w-full bg-gray-100 rounded-full h-1.5">
+                            <div id="ai-batch-bar-{{ $quiz->id }}" class="bg-gray-900 h-1.5 rounded-full transition-all duration-300" style="width:0%"></div>
                         </div>
-                        <p id="ai-batch-alert-{{ $quiz->id }}" class="hidden mt-2 text-sm rounded-lg px-3 py-2" role="alert"></p>
+                        <p id="ai-batch-alert-{{ $quiz->id }}" class="hidden mt-2 text-sm rounded-xl px-3 py-2" role="alert"></p>
                     </div>
                 </div>
 
-                <a href="{{ route('dashboard.quizzes.edit', $quiz) }}" class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg text-gray-700 bg-white border border-gray-300 hover:bg-gray-50">Edit quiz (topics, required number)</a>
+                <a href="{{ route('dashboard.quizzes.edit', $quiz) }}" class="inline-flex items-center px-3.5 py-1.5 text-xs font-medium rounded-xl text-gray-700 bg-white border border-gray-200 hover:bg-gray-50">Edit quiz</a>
             </div>
 
 <script>
@@ -278,18 +259,18 @@ function startAiBatchGeneration(quizId, batchUrl, topics, target) {
         $showEndQuiz = $quizWindowOpen && (!$quiz->ends_at || $quiz->ends_at->isFuture());
         $quizEnded = $quiz->hasEnded();
     @endphp
-    <div class="bg-primary-50 border border-primary-200 rounded-lg p-2 min-w-0">
+    <div class="mb-4 rounded-2xl border border-gray-200 bg-white p-3 shadow-sm min-w-0">
         <div class="flex flex-wrap items-center gap-2">
             @if(!$quizEnded && $quiz->link_token)
             @php $shareUrl = route('student.rules.show.quiz', ['token' => $quiz->link_token]); @endphp
-            <span class="text-xs font-medium text-primary-800 shrink-0">Token:</span>
-            <input type="text" readonly value="{{ $quiz->link_token }}" id="quiz-token-{{ $quiz->id }}" class="w-36 text-xs font-mono font-semibold text-gray-800 bg-white border border-primary-300 rounded px-2 py-1.5 cursor-pointer focus:ring-2 focus:ring-primary-500" title="Click Copy to copy" />
-            <button type="button" data-quiz-copy-from="quiz-token-{{ $quiz->id }}" class="quiz-copy-btn inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg text-white bg-primary-600 hover:bg-primary-700 focus:ring-2 focus:ring-primary-500">Copy</button>
+            <span class="text-xs font-medium text-gray-500 shrink-0">Token</span>
+            <input type="text" readonly value="{{ $quiz->link_token }}" id="quiz-token-{{ $quiz->id }}" class="w-36 text-xs font-mono font-semibold text-gray-800 bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-1.5 cursor-pointer focus:ring-2 focus:ring-gray-900" title="Click Copy to copy" />
+            <button type="button" data-quiz-copy-from="quiz-token-{{ $quiz->id }}" class="quiz-copy-btn inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-xl text-white bg-gray-900 hover:bg-gray-800">Copy</button>
             <details class="text-xs ml-1">
-                <summary class="cursor-pointer text-primary-600 hover:text-primary-800 font-medium">Share link</summary>
+                <summary class="cursor-pointer text-gray-500 hover:text-gray-800 font-medium">Share link</summary>
                 <div class="flex items-center gap-2 mt-2 flex-wrap">
-                    <input type="text" readonly value="{{ $shareUrl }}" id="quiz-share-url-{{ $quiz->id }}" class="flex-1 min-w-0 max-w-xs text-xs font-mono text-gray-600 bg-white border border-primary-200 rounded px-2 py-1.5" title="Copy with button" />
-                    <button type="button" data-quiz-copy-from="quiz-share-url-{{ $quiz->id }}" class="quiz-copy-btn inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg text-gray-700 bg-gray-200 hover:bg-gray-300">Copy</button>
+                    <input type="text" readonly value="{{ $shareUrl }}" id="quiz-share-url-{{ $quiz->id }}" class="flex-1 min-w-0 max-w-xs text-xs font-mono text-gray-600 bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-1.5" title="Copy with button" />
+                    <button type="button" data-quiz-copy-from="quiz-share-url-{{ $quiz->id }}" class="quiz-copy-btn inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-xl text-gray-700 bg-white border border-gray-200 hover:bg-gray-50">Copy</button>
                 </div>
             </details>
             <span class="flex-1"></span>
@@ -298,48 +279,46 @@ function startAiBatchGeneration(quizId, batchUrl, topics, target) {
             <div class="flex items-center gap-2">
                 <form action="{{ route('dashboard.quizzes.extend-time', $quiz) }}" method="post" class="inline flex items-center gap-1" onsubmit="return confirm('Extend quiz time? This will add time to all active student sessions.');">
                     @csrf
-                    <input type="number" name="additional_minutes" min="1" max="120" value="10" required class="w-16 text-xs border border-gray-300 rounded px-1.5 py-0.5" placeholder="min">
-                    <button type="submit" class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700">Extend Time</button>
+                    <input type="number" name="additional_minutes" min="1" max="120" value="10" required class="w-16 text-xs border border-gray-200 rounded-xl px-1.5 py-1" placeholder="min">
+                    <button type="submit" class="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-xl text-white bg-gray-900 hover:bg-gray-800">Extend</button>
                 </form>
             </div>
             @endif
             @if($showEndQuiz)
             <form action="{{ route('dashboard.quizzes.end', $quiz) }}" method="post" class="inline" onsubmit="return confirm('End this quiz now? Students will no longer be able to start or submit.');">
                 @csrf
-                <button type="submit" class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700">End quiz</button>
+                <button type="submit" class="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-xl text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-100">End quiz</button>
             </form>
             @elseif($quizEnded)
-            <span class="text-xs font-medium text-gray-600 py-0.5 px-2">Quiz ended — token and link are no longer available. You can still view questions, sessions, scores, and analytics below.</span>
+            <span class="text-xs font-medium text-gray-500 py-0.5 px-2">Quiz ended — link unavailable. Sessions, scores, and analytics still work.</span>
             @else
             <form action="{{ route('dashboard.quizzes.unpublish', $quiz) }}" method="post" class="inline">
                 @csrf
-                <button type="submit" class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded text-gray-700 bg-gray-200 hover:bg-gray-300">Unpublish</button>
+                <button type="submit" class="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-xl text-gray-700 bg-white border border-gray-200 hover:bg-gray-50">Unpublish</button>
             </form>
             @endif
         </div>
     </div>
 @else
-    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+    <div class="mb-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
         <div class="flex items-start justify-between gap-4">
             <div class="flex items-center gap-3">
-                <svg class="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
-                </svg>
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-500"><i class="fas fa-eye-slash text-xs"></i></span>
                 <div>
-                    <p class="font-medium text-gray-900">This quiz is not published</p>
-                    <p class="text-sm text-gray-600">Students cannot see this quiz on the landing page until you publish it.</p>
+                    <p class="text-sm font-semibold text-gray-900">Not published</p>
+                    <p class="text-xs text-gray-500 mt-0.5">Students can’t see this quiz until you publish.</p>
                     @if(!$quiz->hasEnoughApprovedQuestions())
-                        <p class="text-sm text-warning-600 font-medium mt-1">⚠️ Need {{ $quiz->getQuestionsPerStudent() }} approved questions (currently: {{ $quiz->questions->count() }})</p>
+                        <p class="text-xs text-amber-700 font-medium mt-1">Need {{ $quiz->getQuestionsPerStudent() }} approved (currently {{ $quiz->questions->count() }})</p>
                     @endif
                 </div>
             </div>
             <div class="flex flex-col items-end gap-2">
                 <form action="{{ route('dashboard.quizzes.publish', $quiz) }}" method="post" class="inline">
                     @csrf
-                    <button type="submit" class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg {{ $quiz->hasEnoughApprovedQuestions() ? 'text-white bg-primary-600 hover:bg-primary-700' : 'text-gray-500 bg-gray-300 cursor-not-allowed' }}" @if(!$quiz->hasEnoughApprovedQuestions()) disabled onclick="event.preventDefault(); alert('Please approve at least {{ $quiz->getQuestionsPerStudent() }} questions first. Scroll down to see the \'Approve All\' button.');" @endif>Publish Quiz</button>
+                    <button type="submit" class="inline-flex items-center px-3.5 py-1.5 text-xs font-semibold rounded-xl {{ $quiz->hasEnoughApprovedQuestions() ? 'text-white bg-gray-900 hover:bg-gray-800' : 'text-gray-400 bg-gray-100 cursor-not-allowed' }}" @if(!$quiz->hasEnoughApprovedQuestions()) disabled onclick="event.preventDefault(); alert('Please approve at least {{ $quiz->getQuestionsPerStudent() }} questions first. Scroll down to see the \'Approve All\' button.');" @endif>Publish</button>
                 </form>
                 @if(!$quiz->hasEnoughApprovedQuestions() && $unapprovedPoolsTotal > 0)
-                    <p class="text-xs text-gray-600 text-right">👇 Scroll down &amp; click "Approve All ({{ $unapprovedPoolsTotal }})"</p>
+                    <p class="text-[11px] text-gray-500 text-right">Approve All ({{ $unapprovedPoolsTotal }}) below</p>
                 @endif
             </div>
         </div>
@@ -347,51 +326,43 @@ function startAiBatchGeneration(quizId, batchUrl, topics, target) {
 @endif
 
 @if($quiz->is_active && !$quiz->hasEnoughApprovedQuestions())
-    <div class="mb-6 bg-warning-50 border border-warning-200 rounded-lg p-4 flex gap-3">
-        <svg class="w-6 h-6 text-warning-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-        </svg>
-        <div class="text-sm text-warning-800">
-            <p class="font-medium">Quiz locked until approval complete</p>
-            <p>Students cannot see or take this quiz until at least {{ $quiz->getQuestionsPerStudent() }} question(s) are approved. Currently: {{ $quiz->questions->count() }} approved.</p>
+    <div class="mb-4 rounded-2xl border border-gray-200 bg-white p-4 flex gap-3 shadow-sm">
+        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700"><i class="fas fa-lock text-xs"></i></span>
+        <div class="text-xs text-gray-600">
+            <p class="text-sm font-semibold text-gray-900">Locked until approval is complete</p>
+            <p class="mt-0.5">Students can’t take this quiz until at least {{ $quiz->getQuestionsPerStudent() }} question(s) are approved. Currently: {{ $quiz->questions->count() }}.</p>
         </div>
     </div>
 @endif
 
-<div class="grid gap-6">
+<div class="grid gap-4">
     @if($unapprovedPools->isNotEmpty())
-    <section class="card p-6 border-2 border-warning-200 bg-warning-50/30">
-        <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-warning-100 rounded-lg flex items-center justify-center">
-                    <svg class="w-6 h-6 text-warning-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                </div>
-                <div>
-                    <h2 class="text-xl font-semibold text-gray-900">Question Pool (Unapproved)</h2>
-                    <p class="text-sm text-gray-600">{{ $unapprovedPoolsTotal }} AI-generated question(s) awaiting approval (showing {{ $unapprovedPools->count() }} on this page)</p>
-                </div>
+    <section class="rounded-2xl border border-gray-200 bg-white p-4 sm:p-5 shadow-sm">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div class="min-w-0">
+                <h2 class="text-sm font-semibold text-gray-900 tracking-tight">Question pool</h2>
+                <p class="text-xs text-gray-500 mt-0.5">{{ $unapprovedPoolsTotal }} awaiting approval</p>
             </div>
             <div class="w-full sm:w-auto sm:min-w-[200px]">
-                <label for="pool-search" class="block text-xs font-medium text-gray-600 mb-1">Search pool</label>
-                <input type="text" id="pool-search" placeholder="Type to filter questions…" class="w-full text-sm py-2 px-3 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-primary-500 focus:border-primary-500" autocomplete="off">
+                <label for="pool-search" class="sr-only">Search pool</label>
+                <input type="text" id="pool-search" placeholder="Filter pool…" class="w-full text-sm py-1.5 px-3 border border-gray-200 rounded-xl bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-gray-900 focus:border-gray-900" autocomplete="off">
             </div>
             @if(!$quiz->hasStarted())
             <form action="{{ route('dashboard.quizzes.approve-all-pool', $quiz) }}" method="post" class="inline" onsubmit="return confirm('This will approve ALL {{ $unapprovedPoolsTotal }} pending questions. Continue?');">
                 @csrf
-                <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg text-white bg-primary-600 hover:bg-primary-700 {{ $unapprovedPoolsTotal > 0 ? 'animate-pulse' : '' }}">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                    <span>Approve All ({{ $unapprovedPoolsTotal }})</span>
+                <button type="submit" class="inline-flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold rounded-xl text-white bg-gray-900 hover:bg-gray-800">
+                    Approve all ({{ $unapprovedPoolsTotal }})
                 </button>
             </form>
             @endif
         </div>
-        <div class="space-y-4" id="pool-questions-list">
+        <div class="space-y-3" id="pool-questions-list">
             @foreach($unapprovedPools as $idx => $pool)
                 @php
                     $poolOptTexts = is_array($pool->options ?? null) ? implode(' ', array_column($pool->options, 'text')) : '';
                     $poolSearchText = implode(' ', array_filter([$pool->question_text ?? '', $pool->topic ?? '', $poolOptTexts]));
                 @endphp
-                <div class="border border-warning-200 rounded-lg p-4 bg-white flex flex-wrap items-start justify-between gap-3 pool-question-row" data-search="{{ strtolower(strip_tags($poolSearchText)) }}">
+                <div class="border border-gray-100 rounded-xl p-3.5 bg-white flex flex-wrap items-start justify-between gap-3 pool-question-row" data-search="{{ strtolower(strip_tags($poolSearchText)) }}">
                     <div class="flex-1 min-w-0">
                         @php
                             $poolRawText = trim((string)($pool->question_text ?? ''));
@@ -439,20 +410,22 @@ function startAiBatchGeneration(quizId, batchUrl, topics, target) {
     </section>
     @endif
 
-    <section class="card p-6">
+    <section class="rounded-2xl border border-gray-200 bg-white p-4 sm:p-5 shadow-sm">
         @if($approvedQuestions->isEmpty())
-            <div class="text-center py-12">
-                <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <div class="text-center py-10">
+                <p class="text-sm font-medium text-gray-600 mb-1">No approved questions yet</p>
                 @if($unapprovedPoolsTotal > 0)
-                    <p class="text-gray-700 mb-2">You have <strong>{{ $unapprovedPoolsTotal }}</strong> question(s) in the pool below.</p>
-                    <p class="text-sm text-gray-600">Use <strong>Approve All</strong> at the top to add them to the quiz.</p>
+                    <p class="text-xs text-gray-400">{{ $unapprovedPoolsTotal }} waiting in the pool — approve them above.</p>
                 @else
-                    <p class="text-gray-500 mb-4">No questions added yet</p>
-                    <p class="text-sm text-gray-600">Add questions manually or generate them with AI (edit quiz).</p>
+                    <p class="text-xs text-gray-400">Add questions manually or generate them with AI.</p>
                 @endif
             </div>
         @else
-            <div class="space-y-4" id="approved-questions-list">
+            <div class="mb-3">
+                <h2 class="text-sm font-semibold text-gray-900 tracking-tight">Approved questions</h2>
+                <p class="text-xs text-gray-500 mt-0.5">{{ $approvedQuestions->count() }} in this quiz</p>
+            </div>
+            <div class="space-y-3" id="approved-questions-list">
                 @foreach($approvedQuestions as $idx => $q)
                     @php
                         $rawText = trim((string)($q->text ?? ''));

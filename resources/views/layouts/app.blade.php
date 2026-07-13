@@ -127,29 +127,200 @@
 
     {{-- Shared dashboard/examiner sidebar styles (active link highlighting) --}}
     <style>
+        .examiner-wrap {
+            background: #f4f5f7;
+        }
+        .examiner-sidebar {
+            background: #ffffff;
+            border-right: 1px solid #eef0f3;
+            box-shadow: none;
+        }
         .examiner-nav-link {
-            color: #4b5563; /* gray-600 */
+            color: #6b7280; /* gray-500 */
+            background: transparent !important;
+            border-radius: 0.85rem;
+            font-weight: 500;
         }
         .examiner-nav-link:hover {
-            background-color: #f3f4f6; /* gray-100 */
+            background: transparent !important;
             color: #111827; /* gray-900 */
         }
+        .examiner-nav-link svg,
+        .examiner-nav-link > i {
+            box-sizing: border-box;
+            width: 2.35rem !important;
+            height: 2.35rem !important;
+            min-width: 2.35rem;
+            padding: 0.55rem;
+            border-radius: 9999px;
+            display: inline-flex !important;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            color: inherit;
+            transition: background-color .15s ease, color .15s ease, box-shadow .15s ease;
+        }
+        .examiner-nav-link > i {
+            font-size: 0.85rem;
+            line-height: 1;
+            text-align: center;
+            width: 2.35rem !important;
+        }
+        .examiner-nav-link:hover svg,
+        .examiner-nav-link:hover > i {
+            background-color: #f3f4f6;
+        }
         .examiner-nav-link--active {
-            background-color: rgba(234, 179, 8, 0.12); /* action/amber tint */
+            background: transparent !important;
             color: #111827;
+            font-weight: 700;
         }
         .examiner-nav-link--active .examiner-nav-text {
             color: #111827;
         }
-        .examiner-nav-link--active svg {
-            color: #eab308; /* action-500 */
+        .examiner-nav-link--active svg,
+        .examiner-nav-link--active > i {
+            background-color: #111827 !important;
+            color: #ffffff !important;
+            box-shadow: 0 6px 16px rgba(17, 24, 39, 0.18);
+        }
+        .examiner-nav-link--active:hover svg,
+        .examiner-nav-link--active:hover > i {
+            background-color: #111827 !important;
+            color: #ffffff !important;
+        }
+        .examiner-sidebar-nav {
+            padding-top: 0.5rem;
+            padding-bottom: 1rem;
+        }
+        .examiner-sidebar-nav > ul {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+        .examiner-sidebar-header {
+            height: 4.25rem;
+        }
+        .examiner-sidebar-brand .quizsnap-brand-mark,
+        .examiner-sidebar-brand img {
+            border-radius: 9999px;
+        }
+        .examiner-sidebar-brand .quizsnap-brand-mark--plain {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #111827;
+            color: #fff;
+            font-weight: 800;
         }
         /* When sidebar is collapsed on desktop, show only icons (no text labels) */
         @media (min-width: 768px) {
+            .examiner-sidebar--collapsed {
+                width: 4.75rem !important;
+                min-width: 4.75rem !important;
+                margin: 0.75rem 0 0.75rem 0.75rem;
+                height: calc(100% - 1.5rem) !important;
+                border-radius: 1.75rem;
+                border: 1px solid #eef0f3;
+                box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+            }
             .examiner-sidebar--collapsed .examiner-nav-text,
-            .examiner-sidebar--collapsed .examiner-sidebar-brand-text {
+            .examiner-sidebar--collapsed .examiner-sidebar-brand-text,
+            .examiner-sidebar--collapsed .quizsnap-wordmark,
+            .examiner-sidebar--collapsed .quizsnap-brand-logo__wordmark,
+            .examiner-sidebar--collapsed .examiner-sidebar-chevron {
                 display: none !important;
             }
+            .examiner-sidebar--collapsed .examiner-sidebar-header {
+                justify-content: center;
+                padding-left: 0.5rem;
+                padding-right: 0.5rem;
+            }
+            .examiner-sidebar--collapsed .examiner-sidebar-brand {
+                justify-content: center;
+                width: 100%;
+            }
+            .examiner-sidebar--collapsed .examiner-sidebar-nav {
+                padding-left: 0.55rem;
+                padding-right: 0.55rem;
+            }
+            .examiner-sidebar--collapsed .examiner-nav-link {
+                justify-content: center;
+                padding-left: 0.35rem;
+                padding-right: 0.35rem;
+            }
+            .examiner-sidebar--collapsed .examiner-sidebar-footer {
+                padding-left: 0.55rem;
+                padding-right: 0.55rem;
+            }
+            .examiner-sidebar--collapsed .examiner-sidebar-footer .examiner-nav-link {
+                justify-content: center;
+            }
+        }
+
+        /* Header chrome matching reference */
+        .dashboard-chrome-header {
+            background: transparent;
+            border-bottom: none;
+        }
+        .dashboard-chrome-toggle {
+            width: 2.75rem;
+            height: 2.75rem;
+            border-radius: 9999px;
+            border: 1.5px solid #243b6b;
+            background: #fff;
+            color: #374151;
+        }
+        .dashboard-chrome-search {
+            position: relative;
+            display: flex;
+            align-items: center;
+            min-width: 0;
+            width: min(22rem, 42vw);
+            background: #fff;
+            border-radius: 9999px;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+            border: 1px solid #eef0f3;
+        }
+        .dashboard-chrome-search input {
+            width: 100%;
+            border: 0;
+            background: transparent;
+            padding: 0.7rem 3.25rem 0.7rem 1.15rem;
+            font-size: 0.875rem;
+            color: #111827;
+            outline: none;
+            border-radius: 9999px;
+        }
+        .dashboard-chrome-search button {
+            position: absolute;
+            right: 0.35rem;
+            width: 2.15rem;
+            height: 2.15rem;
+            border-radius: 9999px;
+            background: #111827;
+            color: #fff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .dashboard-chrome-bell {
+            width: 2.75rem;
+            height: 2.75rem;
+            border-radius: 9999px;
+            background: #fff;
+            border: 1px solid #eef0f3;
+            color: #6b7280;
+        }
+        .dashboard-chrome-profile {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.65rem;
+            padding: 0.3rem 0.75rem 0.3rem 0.3rem;
+            border-radius: 9999px;
+            background: #fff;
+            border: 1px solid #eef0f3;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
         }
 
         /* Hide vertical scrollbar on coordinator/examiner sidebar; content still scrolls */
@@ -194,6 +365,9 @@
                 z-index: 40;
                 width: min(85vw, 18rem) !important;
                 min-width: 0 !important;
+                margin: 0 !important;
+                height: 100% !important;
+                border-radius: 0 !important;
                 transition: transform 0.25s ease-out, box-shadow 0.25s ease-out;
                 box-shadow: none;
             }
@@ -228,6 +402,10 @@
             .examiner-sidebar-nav a {
                 min-height: 44px;
                 -webkit-tap-highlight-color: transparent;
+            }
+            .dashboard-chrome-search {
+                width: 100%;
+                max-width: none;
             }
         }
 

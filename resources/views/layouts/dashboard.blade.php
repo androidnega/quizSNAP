@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('title', $dashboardTitle ?? 'Dashboard')
-@section('body_class', 'bg-slate-200 h-screen overflow-hidden')
+@section('body_class', 'bg-[#f4f5f7] h-screen overflow-hidden')
 
 @php
     $layoutAdminUser = auth()->user();
@@ -28,36 +28,36 @@
     $canRespondToSupport = $layoutAdminUser && \App\Support\LiveSupportAccess::canRespond($layoutAdminUser);
 @endphp
 @section('content')
-<div class="examiner-wrap flex h-screen bg-offwhite overflow-hidden">
+<div class="examiner-wrap flex h-screen bg-[#f4f5f7] overflow-hidden">
     <div id="examiner-overlay" class="examiner-overlay fixed inset-0 z-30 bg-black/40 md:hidden hidden" aria-hidden="true"></div>
 
-    <aside id="examiner-sidebar" class="examiner-sidebar flex h-full flex-col w-64 flex-shrink-0 bg-white border-r border-gray-200 shadow-sm" aria-label="Dashboard navigation" data-collapsed="false">
+    <aside id="examiner-sidebar" class="examiner-sidebar flex h-full flex-col w-64 flex-shrink-0 bg-white" aria-label="Dashboard navigation" data-collapsed="false">
         <div class="examiner-sidebar-inner flex flex-col h-full">
-            <div class="examiner-sidebar-header flex h-16 flex-shrink-0 items-center justify-between gap-2 px-4">
+            <div class="examiner-sidebar-header flex h-[4.25rem] flex-shrink-0 items-center justify-between gap-2 px-4">
                 <a href="{{ $isSystemAdmin ? $systemAdminHome : route('dashboard') }}" class="examiner-sidebar-brand flex min-w-0 flex-shrink-0 items-center gap-3 overflow-hidden transition-opacity hover:opacity-80">
                     @php $user = auth()->user(); $inst = $user?->institution; @endphp
                     @if($isCoordinatorOnly)
                         @if($inst && $inst->logo_url)
-                            <img src="{{ $inst->logo_url }}" alt="{{ Str::upper($inst->name ?? '') }}" class="h-10 w-10 flex-shrink-0 object-contain rounded-lg border border-gray-200 bg-white">
+                            <img src="{{ $inst->logo_url }}" alt="{{ Str::upper($inst->name ?? '') }}" class="h-10 w-10 flex-shrink-0 object-contain rounded-full border border-gray-200 bg-white">
                         @else
-                            <span class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-primary-600 text-white font-bold text-lg shadow-sm">C</span>
+                            <span class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-gray-900 text-white font-bold text-lg shadow-sm">C</span>
                         @endif
-                        <span class="examiner-sidebar-brand-text truncate text-lg font-bold">Coordinator</span>
+                        <span class="examiner-sidebar-brand-text truncate text-lg font-bold text-gray-900">Coordinator</span>
                     @else
                         @if($inst && $inst->logo_url)
-                            <img src="{{ $inst->logo_url }}" alt="{{ Str::upper($inst->name ?? '') }}" class="h-9 w-9 flex-shrink-0 object-contain rounded-lg border border-gray-200 bg-white opacity-90" aria-hidden="true">
+                            <img src="{{ $inst->logo_url }}" alt="{{ Str::upper($inst->name ?? '') }}" class="h-9 w-9 flex-shrink-0 object-contain rounded-full border border-gray-200 bg-white opacity-90" aria-hidden="true">
                         @endif
                         @include('partials.brand-logo', [
-                            'href' => $isSystemAdmin ? $systemAdminHome : route('dashboard'),
+                            'href' => null,
                             'size' => 'sm',
                             'variant' => 'plain',
+                            'showWordmark' => true,
                             'class' => 'min-w-0',
                         ])
                     @endif
                 </a>
-                <button type="button" id="examiner-sidebar-toggle-inner" data-examiner-collapse class="examiner-sidebar-chevron flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-gray-700 hover:bg-gray-200 hover:text-gray-900 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-300 md:flex" aria-label="Collapse sidebar" title="Collapse sidebar (desktop)">
-                    <svg class="h-5 w-5 transition-transform hidden md:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/></svg>
-                    <svg class="h-6 w-6 md:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18L18 6M6 6l12 12"/></svg>
+                <button type="button" id="examiner-sidebar-toggle-inner" data-examiner-collapse class="examiner-sidebar-chevron md:hidden flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-gray-700 hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300" aria-label="Close sidebar" title="Close sidebar">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
 
@@ -232,85 +232,111 @@
     </aside>
 
     <div class="examiner-main flex flex-col flex-1 min-w-0 min-h-0" data-quizsnap-skip-live-reload>
-        <header class="relative flex min-h-[3.5rem] flex-shrink-0 items-stretch border-b border-slate-200/80 bg-white/95 backdrop-blur-sm z-30 min-w-0 overflow-visible safe-area-header">
-            <div class="examiner-page flex flex-1 items-center gap-2 sm:gap-3 w-full min-w-0 px-3 py-2 sm:px-5 md:px-6 overflow-visible">
-                <button type="button" id="examiner-sidebar-menu-btn" class="flex h-10 w-10 min-h-[40px] min-w-[40px] flex-shrink-0 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-300 touch-manipulation" aria-label="Open menu" title="Open menu" style="display: none;">
-                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
-                </button>
-                <div class="min-w-0 flex-1">
-                    <p class="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400 leading-none mb-0.5 hidden sm:block">QuizSnap</p>
-                    <h1 class="truncate text-base sm:text-lg font-semibold tracking-tight text-slate-900 leading-tight">@yield('dashboard_heading', 'Dashboard')</h1>
-                </div>
-                @php
-                    $examiner = auth()->user();
-                    $showSmsInHeader = $examiner && $examiner->isCoordinator();
-                    if ($showSmsInHeader) {
-                        $examiner->refresh();
-                    }
-                    $smsRemaining = $showSmsInHeader ? $examiner->sms_remaining : 0;
-                    $smsAllocation = $showSmsInHeader ? ($examiner->sms_allocation ?? 0) : 0;
-                    $smsColorClass = $smsRemaining >= 100 ? 'text-emerald-700' : 'text-rose-700';
-                @endphp
-                @if($examiner && ($examiner->isExaminer() || $examiner->isCoordinator()))
-                <div class="flex flex-shrink-0 items-center gap-2 flex-wrap justify-end">
-                    @if($examiner->isExaminer())
-                    @php
-                        try {
-                            $aiTokenStatus = app(\App\Services\AiQuizTokenService::class)->getStatus($examiner);
-                        } catch (\Throwable $e) {
-                            report($e);
-                            $aiTokenStatus = ['remaining' => 0];
-                        }
-                        $aiTokenColor = ($aiTokenStatus['remaining'] ?? 0) > 0 ? 'text-indigo-700' : 'text-rose-700';
-                    @endphp
-                    <div class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs {{ $aiTokenColor }} max-[360px]:hidden" title="AI quiz generations remaining">
-                        <span class="text-[10px] font-medium uppercase tracking-wide text-slate-400">AI</span>
-                        <span class="font-semibold tabular-nums">{{ $aiTokenStatus['remaining'] }}</span>
-                    </div>
-                    @endif
-                    @if($showSmsInHeader)
-                    <div class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs {{ $smsColorClass }}" title="SMS balance">
-                        <span class="text-[10px] font-medium uppercase tracking-wide text-slate-400 hidden sm:inline">SMS</span>
-                        <span class="font-semibold tabular-nums">{{ $smsRemaining }}</span>
-                    </div>
-                    @endif
-                </div>
-                @endif
-                @if($canAccessMonitoring ?? false)
-                    @include('admin.monitoring.partials.header-bell')
-                @endif
-                <div class="relative flex flex-shrink-0 items-center gap-1.5" id="profile-menu-wrap">
-                    <form action="{{ route('logout') }}" method="post" class="sm:hidden">
-                        @csrf
-                        <button type="submit" class="inline-flex h-10 min-h-[40px] items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 hover:bg-rose-50 hover:border-rose-200 hover:text-rose-700 focus:outline-none focus:ring-2 focus:ring-slate-300 touch-manipulation" title="Log out" aria-label="Log out">
-                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-                            <span>Log out</span>
-                        </button>
-                    </form>
-                    <button type="button" class="flex h-10 min-h-[40px] min-w-[40px] items-center justify-center gap-1.5 rounded-full border border-slate-200 bg-white pl-0.5 pr-1.5 py-0.5 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-300 touch-manipulation" aria-expanded="false" aria-haspopup="true" id="profile-menu-btn" title="Profile">
-                        @php $user = auth()->user(); @endphp
-                        <span class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full overflow-hidden border border-slate-200 {{ $user && $user->avatar_url ? '' : 'bg-slate-100' }}">
-                        @if($user && $user->avatar_url)
-                            <img src="{{ $user->avatar_url }}" alt="Profile" class="h-full w-full object-cover" />
-                        @else
-                            <span class="flex h-full w-full items-center justify-center text-slate-600 text-sm font-semibold leading-none" style="line-height: 2rem;">{{ $user ? strtoupper(substr($user->name ?? $user->username ?? 'U', 0, 1)) : 'U' }}</span>
-                        @endif
-                        </span>
-                        <svg class="h-3.5 w-3.5 flex-shrink-0 text-slate-400 hidden sm:block" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+        @php
+            $headerUser = auth()->user() ?: $layoutAdminUser;
+            $headerName = trim((string) ($headerUser->name ?? $headerUser->username ?? 'Staff'));
+            $headerFirst = trim((string) Str::of($headerName)->before(' '));
+            if ($headerFirst === '') {
+                $headerFirst = $headerName !== '' ? $headerName : 'there';
+            }
+            $headerInitials = Str::upper(Str::substr(preg_replace('/\s+/', '', $headerName) ?: 'U', 0, 2));
+            if (str_contains($headerName, ' ')) {
+                $parts = preg_split('/\s+/', $headerName) ?: [];
+                $headerInitials = Str::upper(Str::substr($parts[0] ?? 'U', 0, 1) . Str::substr($parts[1] ?? '', 0, 1));
+            }
+            $headerRoleLabel = $isSuperAdmin ? 'Admin'
+                : ($isSystemAdmin ? 'System Admin'
+                : ($isCoordinatorOnly ? 'Coordinator'
+                : ($isExaminer ? 'Examiner'
+                : ($isSupportAgent ? 'Support' : 'Staff'))));
+            $showSmsInHeader = $headerUser && method_exists($headerUser, 'isCoordinator') && $headerUser->isCoordinator();
+            if ($showSmsInHeader) {
+                $headerUser->refresh();
+            }
+            $smsRemaining = $showSmsInHeader ? $headerUser->sms_remaining : 0;
+            $smsColorClass = $smsRemaining >= 100 ? 'text-emerald-700' : 'text-rose-700';
+            $searchAction = ($isExaminer || $isSuperAdmin) ? route('dashboard.quizzes.index') : route('dashboard');
+        @endphp
+        <header class="dashboard-chrome-header relative flex min-h-[4.5rem] flex-shrink-0 items-stretch z-30 min-w-0 overflow-visible safe-area-header">
+            <div class="examiner-page flex flex-1 flex-wrap items-center gap-3 sm:gap-4 w-full min-w-0 px-3 py-3 sm:px-5 md:px-6 overflow-visible">
+                <div class="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
+                    <button type="button" id="examiner-sidebar-menu-btn" class="dashboard-chrome-toggle flex flex-shrink-0 items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 touch-manipulation" aria-label="Toggle sidebar" title="Toggle sidebar">
+                        <i class="fas fa-bars text-sm"></i>
                     </button>
-                    <div id="profile-menu-dropdown" class="absolute right-0 top-full z-[200] mt-1.5 w-48 sm:w-56 rounded-xl border border-slate-200 bg-white py-1 shadow-lg hidden">
-                        <a href="{{ route('dashboard.profile.show') }}" class="block px-4 py-3 sm:py-2.5 text-sm text-slate-700 hover:bg-slate-50 whitespace-nowrap touch-manipulation">Profile &amp; info</a>
-                        <a href="{{ route('dashboard.profile.password') }}" class="block px-4 py-3 sm:py-2.5 text-sm text-slate-700 hover:bg-slate-50 whitespace-nowrap touch-manipulation">Reset password</a>
-                        <form action="{{ route('logout') }}" method="post" class="border-t border-slate-100 mt-1">
-                            @csrf
-                            <button type="submit" class="block w-full px-4 py-3 sm:py-2.5 text-left text-sm font-medium text-rose-700 hover:bg-rose-50 whitespace-nowrap touch-manipulation">Log out</button>
-                        </form>
+                    <div class="min-w-0">
+                        <h1 class="truncate text-xl sm:text-2xl font-bold tracking-tight text-gray-900 leading-tight">Hello, {{ $headerFirst }}!</h1>
+                        <p class="truncate text-xs sm:text-sm text-gray-400 mt-0.5 hidden sm:block">@hasSection('dashboard_subheading')@yield('dashboard_subheading')@elseExplore quizzes, sessions, and activity across your platform.@endif</p>
+                    </div>
+                </div>
+
+                <div class="flex flex-shrink-0 items-center gap-2 sm:gap-3 ml-auto">
+                    @if($headerUser && method_exists($headerUser, 'isExaminer') && ($headerUser->isExaminer() || $headerUser->isCoordinator()))
+                        @if($headerUser->isExaminer())
+                        @php
+                            try {
+                                $aiTokenStatus = app(\App\Services\AiQuizTokenService::class)->getStatus($headerUser);
+                            } catch (\Throwable $e) {
+                                report($e);
+                                $aiTokenStatus = ['remaining' => 0];
+                            }
+                            $aiTokenColor = ($aiTokenStatus['remaining'] ?? 0) > 0 ? 'text-indigo-700' : 'text-rose-700';
+                        @endphp
+                        <div class="hidden lg:inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-2.5 py-1 text-xs {{ $aiTokenColor }}" title="AI quiz generations remaining">
+                            <span class="text-[10px] font-medium uppercase tracking-wide text-gray-400">AI</span>
+                            <span class="font-semibold tabular-nums">{{ $aiTokenStatus['remaining'] }}</span>
+                        </div>
+                        @endif
+                        @if($showSmsInHeader)
+                        <div class="hidden md:inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-2.5 py-1 text-xs {{ $smsColorClass }}" title="SMS balance">
+                            <span class="text-[10px] font-medium uppercase tracking-wide text-gray-400">SMS</span>
+                            <span class="font-semibold tabular-nums">{{ $smsRemaining }}</span>
+                        </div>
+                        @endif
+                    @endif
+
+                    <form action="{{ $searchAction }}" method="get" class="dashboard-chrome-search hidden sm:flex" role="search">
+                        <label for="dashboard-global-search" class="sr-only">Search</label>
+                        <input id="dashboard-global-search" type="search" name="q" value="{{ request('q') }}" placeholder="Search..." autocomplete="off">
+                        <button type="submit" aria-label="Search"><i class="fas fa-search text-xs"></i></button>
+                    </form>
+
+                    @if($canAccessMonitoring ?? false)
+                        @include('admin.monitoring.partials.header-bell')
+                    @else
+                        <span class="dashboard-chrome-bell hidden sm:inline-flex items-center justify-center" aria-hidden="true">
+                            <i class="fas fa-bell text-sm"></i>
+                        </span>
+                    @endif
+
+                    <div class="relative flex flex-shrink-0 items-center" id="profile-menu-wrap">
+                        <button type="button" class="dashboard-chrome-profile focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300 touch-manipulation" aria-expanded="false" aria-haspopup="true" id="profile-menu-btn" title="Profile">
+                            <span class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full overflow-hidden {{ $headerUser && ($headerUser->avatar_url ?? null) ? '' : 'bg-rose-100 text-rose-700' }}">
+                                @if($headerUser && ($headerUser->avatar_url ?? null))
+                                    <img src="{{ $headerUser->avatar_url }}" alt="Profile" class="h-full w-full object-cover" />
+                                @else
+                                    <span class="text-xs font-bold tracking-wide">{{ $headerInitials }}</span>
+                                @endif
+                            </span>
+                            <span class="hidden sm:flex flex-col items-start leading-tight min-w-0 pr-0.5">
+                                <span class="text-sm font-semibold text-gray-900 truncate max-w-[8rem]">{{ $headerName }}</span>
+                                <span class="text-[11px] text-gray-400">{{ $headerRoleLabel }}</span>
+                            </span>
+                            <i class="fas fa-chevron-down text-[10px] text-gray-400 hidden sm:inline"></i>
+                        </button>
+                        <div id="profile-menu-dropdown" class="absolute right-0 top-full z-[200] mt-1.5 w-48 sm:w-56 rounded-xl border border-slate-200 bg-white py-1 shadow-lg hidden">
+                            <a href="{{ route('dashboard.profile.show') }}" class="block px-4 py-3 sm:py-2.5 text-sm text-slate-700 hover:bg-slate-50 whitespace-nowrap touch-manipulation">Profile &amp; info</a>
+                            <a href="{{ route('dashboard.profile.password') }}" class="block px-4 py-3 sm:py-2.5 text-sm text-slate-700 hover:bg-slate-50 whitespace-nowrap touch-manipulation">Reset password</a>
+                            <form action="{{ route('logout') }}" method="post" class="border-t border-slate-100 mt-1">
+                                @csrf
+                                <button type="submit" class="block w-full px-4 py-3 sm:py-2.5 text-left text-sm font-medium text-rose-700 hover:bg-rose-50 whitespace-nowrap touch-manipulation">Log out</button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
         </header>
 
-        <main class="examiner-main-content flex-1 min-h-0 overflow-y-auto overflow-x-hidden bg-offwhite overscroll-behavior-y-contain">
+        <main class="examiner-main-content flex-1 min-h-0 overflow-y-auto overflow-x-hidden bg-[#f4f5f7] overscroll-behavior-y-contain">
             @php
                 $fullBleedPage = request()->routeIs('dashboard.profile.*') || request()->routeIs('dashboard.system.reset.*') || request()->routeIs('system.reset.*') || request()->is('dashboard/system/reset*');
                 $fullWidthFormPage = request()->routeIs('dashboard.quizzes.create') || request()->routeIs('dashboard.quizzes.edit');
@@ -352,17 +378,22 @@
     var collapsed = localStorage.getItem(KEY) === 'collapsed';
     function updateMenuButton() {
         if (!menuBtn) return;
-        var show = !isDesktop() || collapsed;
-        menuBtn.style.setProperty('display', show ? 'flex' : 'none');
-        menuBtn.setAttribute('aria-label', collapsed && isDesktop() ? 'Expand sidebar' : 'Open menu');
-        menuBtn.setAttribute('title', collapsed && isDesktop() ? 'Expand sidebar' : 'Open menu');
+        menuBtn.style.setProperty('display', 'flex');
+        menuBtn.setAttribute('aria-label', collapsed && isDesktop() ? 'Expand sidebar' : (isDesktop() ? 'Collapse sidebar' : 'Open menu'));
+        menuBtn.setAttribute('title', collapsed && isDesktop() ? 'Expand sidebar' : (isDesktop() ? 'Collapse sidebar' : 'Open menu'));
     }
     function setCollapsed(c) {
         collapsed = c;
         localStorage.setItem(KEY, c ? 'collapsed' : 'expanded');
         sidebar.setAttribute('data-collapsed', c ? 'true' : 'false');
         sidebar.classList.toggle('examiner-sidebar--collapsed', c);
-        if (isDesktop()) { sidebar.style.width = c ? '4.5rem' : ''; sidebar.style.minWidth = c ? '4.5rem' : ''; } else { sidebar.style.width = ''; sidebar.style.minWidth = ''; }
+        if (isDesktop()) {
+            sidebar.style.width = c ? '4.75rem' : '';
+            sidebar.style.minWidth = c ? '4.75rem' : '';
+        } else {
+            sidebar.style.width = '';
+            sidebar.style.minWidth = '';
+        }
         if (overlay) overlay.classList.toggle('hidden', c);
         if (toggleInner) { toggleInner.setAttribute('aria-label', c ? 'Expand sidebar' : 'Collapse sidebar'); toggleInner.setAttribute('title', c ? 'Expand sidebar' : 'Collapse sidebar'); }
         updateMenuButton();
@@ -372,7 +403,11 @@
         updateMenuButton();
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
-    if (menuBtn) menuBtn.addEventListener('click', function(e) { e.preventDefault(); setCollapsed(false); });
+    if (menuBtn) menuBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        if (isDesktop()) setCollapsed(!collapsed);
+        else setCollapsed(false);
+    });
     if (overlay) overlay.addEventListener('click', function() { setCollapsed(true); });
     document.addEventListener('click', function(e) {
         var collapseBtn = e.target && e.target.closest && e.target.closest('[data-examiner-collapse]');

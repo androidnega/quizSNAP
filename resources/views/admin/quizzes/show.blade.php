@@ -2,6 +2,7 @@
 
 @section('title', $quiz->title)
 @section('dashboard_heading', \Illuminate\Support\Str::limit($quiz->title, 40))
+@section('dashboard_subheading', 'Manage questions, sessions, gallery, scores, and analytics for this quiz.')
 
 @section('dashboard_content')
 @php $activeTab = request('tab', 'overview'); @endphp

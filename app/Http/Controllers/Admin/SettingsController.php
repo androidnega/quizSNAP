@@ -98,6 +98,9 @@ class SettingsController extends Controller
             'deepseek_key_masked' => $deepseekKeyMasked,
             'ai_quiz_generation_enabled' => ($settings[Setting::KEY_AI_QUIZ_GENERATION_ENABLED] ?? '1') === '1',
             'app_name' => $settings[Setting::KEY_APP_NAME] ?? config('app.name'),
+            'institution_name' => $settings[Setting::KEY_INSTITUTION_NAME] ?? '',
+            'institution_logo' => $settings[Setting::KEY_INSTITUTION_LOGO] ?? null,
+            'institution_logo_url' => Setting::institutionLogoUrl($settings[Setting::KEY_INSTITUTION_LOGO] ?? null),
             'app_timezone' => $settings[Setting::KEY_APP_TIMEZONE] ?? config('app.timezone', 'UTC'),
             'footer_copyright' => $settings[Setting::KEY_FOOTER_COPYRIGHT] ?? '© {year} '.config('app.name', 'QuizSnap').'. All rights reserved.',
             'mail_mailer' => $settings[Setting::KEY_MAIL_MAILER] ?? 'smtp',
@@ -238,6 +241,10 @@ class SettingsController extends Controller
         return match ($tab) {
             'general' => array_merge($rules, [
                 'app_name' => 'nullable|string|max:255',
+                'institution_name' => 'nullable|string|max:255',
+                'institution_logo_url' => 'nullable|string|max:2048',
+                'institution_logo_file' => 'nullable|image|max:2048',
+                'institution_logo_clear' => 'nullable|boolean',
                 'app_timezone' => 'nullable|string|max:100',
                 'footer_copyright' => 'nullable|string|max:512',
                 'disable_ip_device_restrictions' => 'nullable|boolean',
@@ -353,9 +360,32 @@ class SettingsController extends Controller
     private function saveGeneralTabSettings(Request $request, bool $isSuperAdmin): void
     {
         Setting::setValue(Setting::KEY_APP_NAME, $request->filled('app_name') ? trim($request->app_name) : null);
+        Setting::setValue(Setting::KEY_INSTITUTION_NAME, $request->filled('institution_name') ? trim($request->institution_name) : null);
         Setting::setValue(Setting::KEY_APP_TIMEZONE, $request->filled('app_timezone') ? trim($request->app_timezone) : null);
         Setting::setValue(Setting::KEY_FOOTER_COPYRIGHT, $request->filled('footer_copyright') ? trim($request->footer_copyright) : null);
         Setting::setValue(Setting::KEY_DISABLE_IP_DEVICE_RESTRICTIONS, $request->boolean('disable_ip_device_restrictions') ? '1' : '0');
+
+        $previousLogo = Setting::getValue(Setting::KEY_INSTITUTION_LOGO, '');
+        if ($request->boolean('institution_logo_clear')) {
+            LocalUploadService::deletePublicPath(Setting::institutionLogoStoragePath($previousLogo));
+            Setting::setValue(Setting::KEY_INSTITUTION_LOGO, null);
+        } elseif ($request->hasFile('institution_logo_file')) {
+            $stored = LocalUploadService::storePublicFile($request->file('institution_logo_file'), 'uploads/logo');
+            if ($stored) {
+                LocalUploadService::deletePublicPath(Setting::institutionLogoStoragePath($previousLogo));
+                Setting::setValue(Setting::KEY_INSTITUTION_LOGO, $stored['path']);
+            }
+        } elseif ($request->filled('institution_logo_url')) {
+            $url = trim(preg_replace('/[\r\n]+/', '', $request->institution_logo_url) ?? '');
+            if ($url !== '' && (preg_match('#^https?://#i', $url) || str_starts_with($url, '/') || filter_var($url, FILTER_VALIDATE_URL))) {
+                // Prefer storing local paths as storage-relative when pasted as /storage/...
+                $toStore = Setting::institutionLogoStoragePath($url) ?? $url;
+                if ($toStore !== $previousLogo) {
+                    LocalUploadService::deletePublicPath(Setting::institutionLogoStoragePath($previousLogo));
+                }
+                Setting::setValue(Setting::KEY_INSTITUTION_LOGO, $toStore);
+            }
+        }
 
         if ($isSuperAdmin && $request->filled('theme_preset')) {
             $preset = trim((string) $request->theme_preset);

@@ -185,6 +185,7 @@ class PageCacheService
         return [
             Setting::KEY_APP_NAME,
             Setting::KEY_INSTITUTION_NAME,
+            Setting::KEY_INSTITUTION_LOGO,
             Setting::KEY_LANDING_HERO_IMAGE,
             Setting::KEY_LANDING_HERO_ENABLED,
             Setting::KEY_LANDING_SHOW_QUIZ_TOKEN,

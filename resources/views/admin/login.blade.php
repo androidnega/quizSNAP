@@ -7,7 +7,7 @@
 @section('content')
 @php
     $institutionName = trim((string) \App\Models\Setting::getValue(\App\Models\Setting::KEY_INSTITUTION_NAME, ''));
-    $institutionLogo = trim((string) \App\Models\Setting::getValue(\App\Models\Setting::KEY_INSTITUTION_LOGO, ''));
+    $institutionLogo = \App\Models\Setting::institutionLogoUrl();
     $appName = trim((string) \App\Models\Setting::getValue(\App\Models\Setting::KEY_APP_NAME, 'QuizSnap')) ?: 'QuizSnap';
 @endphp
 <div class="min-h-[100dvh] min-h-screen flex items-center justify-center px-4 py-6">

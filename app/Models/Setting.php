@@ -103,6 +103,8 @@ class Setting extends Model
             self::KEY_DEEPSEEK_API,
             self::KEY_AI_QUIZ_GENERATION_ENABLED,
             self::KEY_APP_NAME,
+            self::KEY_INSTITUTION_NAME,
+            self::KEY_INSTITUTION_LOGO,
             self::KEY_APP_TIMEZONE,
             self::KEY_FOOTER_COPYRIGHT,
             self::KEY_MAIL_MAILER,
@@ -446,6 +448,39 @@ class Setting extends Model
             'out_of_frame_seconds' => max(5, min(120, (int) ($values[self::KEY_PROCTORING_OUT_OF_FRAME_SECONDS] ?? 30))),
             'multiple_faces_seconds' => max(5, min(120, (int) ($values[self::KEY_PROCTORING_MULTIPLE_FACES_SECONDS] ?? 35))),
         ];
+    }
+
+    /** Public URL suitable for <img src> from the stored institution_logo setting. */
+    public static function institutionLogoUrl(?string $stored = null): string
+    {
+        $stored = trim((string) ($stored ?? self::getValue(self::KEY_INSTITUTION_LOGO, '') ?? ''));
+        if ($stored === '') {
+            return '';
+        }
+        if (str_starts_with($stored, 'http://') || str_starts_with($stored, 'https://')) {
+            return $stored;
+        }
+        if (str_starts_with($stored, '/')) {
+            return url($stored);
+        }
+
+        return asset('storage/'.ltrim($stored, '/'));
+    }
+
+    /** Relative path under storage/app/public for a local logo, or null when remote/empty. */
+    public static function institutionLogoStoragePath(?string $stored = null): ?string
+    {
+        $stored = trim((string) ($stored ?? self::getValue(self::KEY_INSTITUTION_LOGO, '') ?? ''));
+        if ($stored === '' || str_starts_with($stored, 'http://') || str_starts_with($stored, 'https://')) {
+            return null;
+        }
+        if (str_contains($stored, '/storage/')) {
+            $relative = preg_replace('#^.*/storage/#', '', $stored);
+
+            return ($relative !== null && $relative !== '') ? $relative : null;
+        }
+
+        return ltrim($stored, '/');
     }
 
     /** Keys whose values are stored encrypted (API keys, secrets, mail password). */

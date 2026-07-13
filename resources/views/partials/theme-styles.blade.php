@@ -85,6 +85,18 @@
     .quizsnap-brand-mark--md { width: 2.25rem; height: 2.25rem; border-radius: 0.5rem; }
     .quizsnap-brand-mark--lg { width: 2.625rem; height: 2.625rem; border-radius: 0.5625rem; }
 
+    .quizsnap-brand-mark--image {
+        overflow: hidden;
+        background: #ffffff;
+        color: transparent;
+    }
+    .quizsnap-brand-mark__image {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        display: block;
+    }
+
     .quizsnap-brand-mark svg {
         width: 100%;
         height: 100%;

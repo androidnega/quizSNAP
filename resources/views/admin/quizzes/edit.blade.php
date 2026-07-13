@@ -19,8 +19,15 @@
 </style>
 @endpush
 @section('dashboard_content')
-<div class="w-full max-w-4xl mx-auto space-y-6">
-    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 md:p-8">
+<div class="w-full min-w-0 space-y-4">
+    <div class="min-w-0">
+        <a href="{{ route('dashboard.quizzes.show', $quiz) }}" class="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+            {{ $quiz->title }}
+        </a>
+        <h1 class="mt-1 text-xl sm:text-2xl font-semibold tracking-tight text-gray-900">Edit quiz</h1>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 md:p-6">
             @if(session('success'))
                 <div class="alert alert-success mb-6" role="alert">
                     {{ session('success') }}

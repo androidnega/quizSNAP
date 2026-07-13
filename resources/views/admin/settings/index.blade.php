@@ -5,62 +5,46 @@
 
 @section('dashboard_content')
 <div class="w-full space-y-6">
-        <div class="mb-6">
-            <div class="flex items-center gap-2 text-sm text-gray-600 mb-4">
-                <a href="{{ route('dashboard') }}" class="hover:text-primary-600">Dashboard</a>
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                <span class="text-gray-900 font-medium">Settings</span>
-            </div>
-            <h1 class="text-3xl font-bold text-gray-900">Admin Settings</h1>
-            <p class="text-gray-600 mt-1">System configuration: general, email, AI, and storage</p>
-            <a href="{{ route('dashboard.student-levels.index') }}" class="mt-2 inline-flex items-center gap-1 text-sm text-primary-600 hover:text-primary-800">Student Levels →</a>
+            <div class="mb-6">
+            <h1 class="text-2xl sm:text-3xl font-semibold tracking-tight text-gray-900">Settings</h1>
+            <p class="text-gray-500 mt-1 text-sm">App branding, email, AI, storage, and access controls</p>
         </div>
 
-        <form action="{{ route('dashboard.settings.update') }}" method="post" class="space-y-8" id="settings-form" enctype="multipart/form-data">
+        <form action="{{ route('dashboard.settings.update') }}" method="post" class="space-y-6" id="settings-form" enctype="multipart/form-data">
             @csrf
             <input type="hidden" name="settings_tab" id="settings_tab" value="general">
 
             <!-- Tabs Navigation -->
             <div class="card overflow-hidden">
-                <div class="border-b border-gray-200 overflow-x-auto overflow-y-hidden">
-                    <nav class="flex -mb-px flex-nowrap min-w-0 w-max sm:w-full sm:flex-wrap" aria-label="Settings tabs">
-                        <button type="button" class="settings-tab-btn whitespace-nowrap px-4 py-3 sm:px-6 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm touch-manipulation min-h-[44px]" data-tab="general" id="tab-btn-general">
-                            <svg class="w-4 h-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                <div class="settings-tabs-bar border-b border-gray-200 bg-gray-50/80 px-3 py-2.5 sm:px-4 overflow-x-auto">
+                    <nav class="flex flex-nowrap items-center gap-1.5 min-w-0 w-max" aria-label="Settings tabs" role="tablist">
+                        <button type="button" role="tab" class="settings-tab-btn inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-white/80 touch-manipulation transition-colors" data-tab="general" id="tab-btn-general" aria-selected="false">
                             General
                         </button>
                         @if($is_super_admin ?? false)
-                        <button type="button" class="settings-tab-btn whitespace-nowrap px-4 py-3 sm:px-6 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm touch-manipulation min-h-[44px]" data-tab="student-dashboard" id="tab-btn-student-dashboard">
-                            <svg class="w-4 h-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/></svg>
+                        <button type="button" role="tab" class="settings-tab-btn inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-white/80 touch-manipulation transition-colors" data-tab="student-dashboard" id="tab-btn-student-dashboard" aria-selected="false">
                             Student dashboard
                         </button>
                         @endif
-                        <button type="button" class="settings-tab-btn whitespace-nowrap px-4 py-3 sm:px-6 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm touch-manipulation min-h-[44px]" data-tab="email" id="tab-btn-email">
-                            <svg class="w-4 h-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                        <button type="button" role="tab" class="settings-tab-btn inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-white/80 touch-manipulation transition-colors" data-tab="email" id="tab-btn-email" aria-selected="false">
                             Email
                         </button>
-                        <button type="button" class="settings-tab-btn whitespace-nowrap px-4 py-3 sm:px-6 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm touch-manipulation min-h-[44px]" data-tab="ai" id="tab-btn-ai">
-                            <svg class="w-4 h-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+                        <button type="button" role="tab" class="settings-tab-btn inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-white/80 touch-manipulation transition-colors" data-tab="ai" id="tab-btn-ai" aria-selected="false">
                             AI
                         </button>
-                        <button type="button" class="settings-tab-btn whitespace-nowrap px-4 py-3 sm:px-6 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm touch-manipulation min-h-[44px]" data-tab="supabase" id="tab-btn-supabase">
-                            <svg class="w-4 h-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h16v12H4zM4 16l4 4h8l4-4"/>
-                            </svg>
+                        <button type="button" role="tab" class="settings-tab-btn inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-white/80 touch-manipulation transition-colors" data-tab="supabase" id="tab-btn-supabase" aria-selected="false">
                             Supabase
                         </button>
-                        <button type="button" class="settings-tab-btn whitespace-nowrap px-4 py-3 sm:px-6 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm touch-manipulation min-h-[44px]" data-tab="otp" id="tab-btn-otp">
-                            <svg class="w-4 h-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                        <button type="button" role="tab" class="settings-tab-btn inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-white/80 touch-manipulation transition-colors" data-tab="otp" id="tab-btn-otp" aria-selected="false">
                             OTP (SMS)
                         </button>
                         @if($can_manage_proctoring ?? false)
-                        <button type="button" class="settings-tab-btn whitespace-nowrap px-4 py-3 sm:px-6 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm touch-manipulation min-h-[44px]" data-tab="proctoring" id="tab-btn-proctoring">
-                            <svg class="w-4 h-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                        <button type="button" role="tab" class="settings-tab-btn inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-white/80 touch-manipulation transition-colors" data-tab="proctoring" id="tab-btn-proctoring" aria-selected="false">
                             Proctoring
                         </button>
                         @endif
                         @if($show_backup_tab ?? false)
-                        <button type="button" class="settings-tab-btn whitespace-nowrap px-4 py-3 sm:px-6 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm touch-manipulation min-h-[44px]" data-tab="backup" id="tab-btn-backup">
-                            <svg class="w-4 h-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                        <button type="button" role="tab" class="settings-tab-btn inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-white/80 touch-manipulation transition-colors" data-tab="backup" id="tab-btn-backup" aria-selected="false">
                             Digest
                         </button>
                         @endif
@@ -76,6 +60,39 @@
                                 <label for="app_name" class="block text-sm font-medium text-gray-700 mb-1.5">Application name</label>
                                 <input type="text" name="app_name" id="app_name" value="{{ old('app_name', $app_name ?? '') }}" placeholder="QuizSnap" class="block w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 focus:outline-none">
                                 <p class="text-xs text-gray-500 mt-1">Used in page titles and emails. Leave blank to use default.</p>
+                            </div>
+                            <div>
+                                <label for="institution_name" class="block text-sm font-medium text-gray-700 mb-1.5">Institution name</label>
+                                <input type="text" name="institution_name" id="institution_name" value="{{ old('institution_name', $institution_name ?? '') }}" placeholder="e.g. Accra Technical University" class="block w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 focus:outline-none">
+                                <p class="text-xs text-gray-500 mt-1">Shown on staff login, emails, and PDF exports.</p>
+                            </div>
+                            <div class="space-y-3 pt-2 border-t border-gray-200">
+                                <div>
+                                    <p class="block text-sm font-medium text-gray-700 mb-1">Logo</p>
+                                    <p class="text-xs text-gray-500 mb-3">Used on staff login, emails, PDFs, and the site brand mark. PNG or JPG, max 2&nbsp;MB.</p>
+                                </div>
+                                @php
+                                    $logoPreview = old('institution_logo_url', $institution_logo_url ?? '');
+                                    $logoPreview = is_string($logoPreview) ? trim($logoPreview) : '';
+                                @endphp
+                                @if($logoPreview !== '')
+                                    <div>
+                                        <p class="text-xs font-medium text-gray-500 mb-1.5">Current logo</p>
+                                        <img src="{{ e($logoPreview) }}" alt="Institution logo" class="max-h-16 max-w-[200px] object-contain rounded-lg border border-gray-200 bg-white p-2" referrerpolicy="no-referrer" loading="lazy" onerror="this.style.display='none';">
+                                    </div>
+                                    <label class="flex items-center gap-2 cursor-pointer">
+                                        <input type="checkbox" name="institution_logo_clear" value="1" class="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500">
+                                        <span class="text-sm text-gray-700">Remove current logo</span>
+                                    </label>
+                                @endif
+                                <div>
+                                    <label for="institution_logo_url" class="block text-sm font-medium text-gray-700 mb-1.5">Logo URL</label>
+                                    <input type="text" name="institution_logo_url" id="institution_logo_url" value="{{ old('institution_logo_url', $institution_logo_url ?? '') }}" placeholder="https://example.com/logo.png or /storage/..." class="block w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 focus:outline-none">
+                                </div>
+                                <div>
+                                    <label for="institution_logo_file" class="block text-sm font-medium text-gray-700 mb-1.5">Or upload logo</label>
+                                    <input type="file" name="institution_logo_file" id="institution_logo_file" accept="image/*" class="block w-full text-sm text-gray-600 file:mr-2 file:py-2 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 file:border file:border-gray-200">
+                                </div>
                             </div>
                             <div>
                                 <label for="app_timezone" class="block text-sm font-medium text-gray-700 mb-1.5">Timezone</label>
@@ -867,13 +884,15 @@ document.addEventListener('DOMContentLoaded', function() {
         activeTab = targetTab;
         location.hash = targetTab;
         tabBtns.forEach(function(b) {
-            if (b.getAttribute('data-tab') === targetTab) {
-                b.classList.add('border-primary-500', 'text-primary-600');
-                b.classList.remove('border-transparent', 'text-gray-500');
-            } else {
-                b.classList.remove('border-primary-500', 'text-primary-600');
-                b.classList.add('border-transparent', 'text-gray-500');
-            }
+            var on = b.getAttribute('data-tab') === targetTab;
+            b.setAttribute('aria-selected', on ? 'true' : 'false');
+            b.classList.toggle('settings-tab-btn--active', on);
+            b.classList.toggle('bg-primary-600', on);
+            b.classList.toggle('text-white', on);
+            b.classList.toggle('shadow-sm', on);
+            b.classList.toggle('text-gray-600', !on);
+            b.classList.toggle('hover:text-gray-900', !on);
+            b.classList.toggle('hover:bg-white/80', !on);
         });
         tabContents.forEach(function(content) {
             content.classList.toggle('hidden', content.getAttribute('data-tab-content') !== targetTab);

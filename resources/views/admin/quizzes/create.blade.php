@@ -154,8 +154,19 @@
 @endpush
 
 @section('dashboard_content')
-<div class="w-full max-w-5xl mx-auto min-w-0 overflow-x-hidden" data-quizsnap-skip-live-reload="1">
-    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-5 md:p-8">
+<div class="w-full min-w-0 overflow-x-hidden space-y-4" data-quizsnap-skip-live-reload="1">
+    <div class="flex flex-wrap items-end justify-between gap-3">
+        <div class="min-w-0">
+            <a href="{{ route('dashboard.quizzes.index') }}" class="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                Quizzes
+            </a>
+            <h1 class="mt-1 text-xl sm:text-2xl font-semibold tracking-tight text-gray-900">Create quiz</h1>
+            <p class="mt-0.5 text-sm text-gray-500">Set up title, class groups, and questions.</p>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 md:p-6">
             @if(session('success'))
                 <div class="alert alert-success mb-6">
                     <svg class="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -529,14 +540,14 @@
 
                 <p class="text-xs text-gray-500">Allowed devices (desktop / mobile / both) are set by the coordinator on the class group.</p>
 
-                <div class="flex flex-wrap items-center gap-3 mt-6 pt-5 border-t border-gray-200">
-                    <button type="submit" class="btn px-6 py-3 rounded-lg font-semibold min-h-[48px] bg-yellow-400 hover:bg-yellow-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed" id="submit-btn" {{ $classGroups->isEmpty() && !isset($quizCategories) ? 'disabled' : '' }}>
-                        Create Quiz
+                <div class="flex flex-wrap items-center gap-2 mt-6 pt-5 border-t border-gray-100">
+                    <button type="submit" class="inline-flex items-center justify-center px-5 py-2.5 rounded-lg text-sm font-semibold bg-gray-900 text-white hover:bg-black focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed" id="submit-btn" {{ $classGroups->isEmpty() && !isset($quizCategories) ? 'disabled' : '' }}>
+                        Create quiz
                     </button>
-                    <p id="ai-submit-hint" class="text-xs text-slate-500 hidden w-full sm:w-auto">Use <strong>Generate questions</strong> above when AI is selected.</p>
-                    <a href="{{ route('dashboard.quizzes.index') }}" class="btn px-6 py-3 rounded-lg font-semibold min-h-[48px] bg-red-600 hover:bg-red-700 text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
+                    <a href="{{ route('dashboard.quizzes.index') }}" class="inline-flex items-center justify-center px-5 py-2.5 rounded-lg text-sm font-medium border border-gray-200 bg-white text-gray-700 hover:bg-gray-50">
                         Cancel
                     </a>
+                    <p id="ai-submit-hint" class="text-xs text-slate-500 hidden w-full sm:w-auto sm:ml-1">Use <strong>Generate questions</strong> above when AI is selected.</p>
                 </div>
                 @if($classGroups->isEmpty() && !isset($quizCategories))
                     <p class="text-sm text-red-600 mt-2">Create a class group or use QuizSnap academic context above first.</p>

@@ -13,43 +13,46 @@
         <div class="alert alert-error">{{ session('error') }}</div>
     @endif
 
-    <div class="flex flex-wrap items-center justify-between gap-2">
-        <a href="{{ route('dashboard.class-groups.show', $classGroup) }}" class="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900">
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
-            {{ $classGroup->display_name }}
-        </a>
-        <p class="text-xs text-gray-400 tabular-nums">{{ $students->total() }} indices</p>
+    <div class="flex flex-wrap items-end justify-between gap-3">
+        <div class="min-w-0">
+            <a href="{{ route('dashboard.class-groups.show', $classGroup) }}" class="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                {{ $classGroup->display_name }}
+            </a>
+            <h1 class="mt-1 text-xl sm:text-2xl font-semibold tracking-tight text-gray-900">Student indices</h1>
+        </div>
+        <p class="text-sm text-gray-400 tabular-nums">{{ $students->total() }} total</p>
     </div>
 
     @can('update', $classGroup)
-    <div class="rounded-2xl border border-gray-200 bg-white shadow-sm p-3 sm:p-4 space-y-2.5">
+    <div class="rounded-xl border border-gray-200 bg-white p-3 sm:p-4 space-y-3">
         <form action="{{ route('dashboard.class-groups.students.add', $classGroup) }}" method="post" class="flex flex-col sm:flex-row sm:items-end gap-2">
             @csrf
             <div class="min-w-0 flex-1">
                 <label for="index_number" class="sr-only">Index number</label>
-                <input type="text" name="index_number" id="index_number" required maxlength="64" placeholder="Index number e.g. BC/ITS/24/047" value="{{ old('index_number') }}" class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-400 focus:bg-white focus:outline-none focus:ring-0">
+                <input type="text" name="index_number" id="index_number" required maxlength="64" placeholder="Index number e.g. BC/ITS/24/047" value="{{ old('index_number') }}" class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-primary-200">
             </div>
             <div class="min-w-0 sm:w-48">
                 <label for="student_name" class="sr-only">Name</label>
-                <input type="text" name="student_name" id="student_name" maxlength="255" placeholder="Name (optional)" value="{{ old('student_name') }}" class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-400 focus:bg-white focus:outline-none focus:ring-0">
+                <input type="text" name="student_name" id="student_name" maxlength="255" placeholder="Name (optional)" value="{{ old('student_name') }}" class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-primary-200">
             </div>
-            <button type="submit" class="inline-flex items-center justify-center rounded-full bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-black shrink-0">Add</button>
+            <button type="submit" class="inline-flex items-center justify-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-black shrink-0">Add</button>
         </form>
 
-        <form action="{{ route('dashboard.class-groups.students.upload', $classGroup) }}" method="post" enctype="multipart/form-data" id="students-upload-form" class="flex flex-col sm:flex-row sm:items-center gap-2 border-t border-gray-100 pt-2.5">
+        <form action="{{ route('dashboard.class-groups.students.upload', $classGroup) }}" method="post" enctype="multipart/form-data" id="students-upload-form" class="flex flex-col sm:flex-row sm:items-center gap-2 border-t border-gray-100 pt-3">
             @csrf
             <div class="min-w-0 flex-1">
                 <label for="file" class="sr-only">File</label>
-                <input type="file" name="file" id="file" accept=".xlsx,.xls,.csv" required class="block w-full text-xs text-gray-500 file:mr-2 file:rounded-full file:border-0 file:bg-gray-100 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-gray-700 hover:file:bg-gray-200">
+                <input type="file" name="file" id="file" accept=".xlsx,.xls,.csv" required class="block w-full text-xs text-gray-500 file:mr-2 file:rounded-lg file:border-0 file:bg-gray-100 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-gray-700 hover:file:bg-gray-200">
             </div>
             <div class="sm:w-44 shrink-0">
                 <label for="upload_mode" class="sr-only">Mode</label>
-                <select name="upload_mode" id="upload_mode" required class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-800 focus:border-gray-400 focus:bg-white focus:outline-none focus:ring-0">
+                <select name="upload_mode" id="upload_mode" required class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-800 focus:border-primary-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-primary-200">
                     <option value="merge">Merge with list</option>
                     <option value="replace">Replace list</option>
                 </select>
             </div>
-            <button type="submit" id="students-upload-btn" class="inline-flex items-center justify-center rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-50 shrink-0">Upload</button>
+            <button type="submit" id="students-upload-btn" class="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-50 shrink-0">Upload</button>
         </form>
         <p class="text-[11px] text-gray-400 leading-snug">Excel/CSV · up to 1,200 rows · runs in background</p>
     </div>
@@ -125,21 +128,21 @@
     </div>
     @endcan
 
-    <div class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden flex flex-col max-h-[min(36rem,65vh)]">
+    <div class="rounded-xl border border-gray-200 bg-white overflow-hidden flex flex-col max-h-[min(36rem,65vh)]">
         <div class="px-4 py-3 border-b border-gray-100 flex flex-wrap items-center justify-between gap-2 shrink-0">
             <h2 class="text-sm font-semibold text-gray-900 tracking-tight">Indices</h2>
             <div class="flex flex-wrap items-center gap-1.5">
-                <a href="{{ route('dashboard.class-groups.students.export.excel', $classGroup) }}" class="inline-flex items-center rounded-full border border-gray-200 px-2.5 py-1 text-[11px] font-medium text-gray-600 hover:bg-gray-50" download>Excel</a>
-                <a href="{{ route('dashboard.class-groups.students.export.pdf', $classGroup) }}" class="inline-flex items-center rounded-full border border-gray-200 px-2.5 py-1 text-[11px] font-medium text-gray-600 hover:bg-gray-50" download>PDF</a>
+                <a href="{{ route('dashboard.class-groups.students.export.excel', $classGroup) }}" class="inline-flex items-center rounded-lg border border-gray-200 px-2.5 py-1 text-[11px] font-medium text-gray-600 hover:bg-gray-50" download>Excel</a>
+                <a href="{{ route('dashboard.class-groups.students.export.pdf', $classGroup) }}" class="inline-flex items-center rounded-lg border border-gray-200 px-2.5 py-1 text-[11px] font-medium text-gray-600 hover:bg-gray-50" download>PDF</a>
                 <form method="get" action="{{ route('dashboard.class-groups.students.index', $classGroup) }}" id="student-search-form" class="flex items-center">
                     <label for="student-search" class="sr-only">Search</label>
-                    <input type="search" name="search" id="student-search" value="{{ old('search', $search ?? '') }}" placeholder="Search…" class="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs text-gray-800 w-36 sm:w-44 focus:border-gray-400 focus:bg-white focus:outline-none" autocomplete="off">
+                    <input type="search" name="search" id="student-search" value="{{ old('search', $search ?? '') }}" placeholder="Search…" class="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1 text-xs text-gray-800 w-36 sm:w-44 focus:border-primary-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-primary-200" autocomplete="off">
                 </form>
                 @can('update', $classGroup)
                 <form id="bulk-delete-form" action="{{ route('dashboard.class-groups.students.bulk-destroy', $classGroup) }}" method="post" onsubmit="return confirm('Delete all selected students? This also removes their quiz data.');">
                     @csrf
                     @method('DELETE')
-                    <button type="submit" id="bulk-delete-btn" class="inline-flex items-center rounded-full bg-rose-50 border border-rose-100 px-2.5 py-1 text-[11px] font-medium text-rose-700 hover:bg-rose-100 disabled:opacity-40 disabled:cursor-not-allowed" disabled>
+                    <button type="submit" id="bulk-delete-btn" class="inline-flex items-center rounded-lg bg-rose-50 border border-rose-100 px-2.5 py-1 text-[11px] font-medium text-rose-700 hover:bg-rose-100 disabled:opacity-40 disabled:cursor-not-allowed" disabled>
                         Delete selected
                     </button>
                 </form>

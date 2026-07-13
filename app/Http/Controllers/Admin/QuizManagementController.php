@@ -2029,7 +2029,7 @@ class QuizManagementController extends Controller
         $logoPath = Setting::getValue(Setting::KEY_INSTITUTION_LOGO, '');
         $institutionLogoPath = null;
         if ($logoPath) {
-            if (str_starts_with($logoPath, 'http')) {
+            if (str_starts_with($logoPath, 'http://') || str_starts_with($logoPath, 'https://')) {
                 try {
                     $response = \Illuminate\Support\Facades\Http::timeout(10)->get($logoPath);
                     if ($response->successful()) {
@@ -2041,8 +2041,9 @@ class QuizManagementController extends Controller
                     // omit logo on fetch failure
                 }
             } else {
-                $fullPath = storage_path('app/public/' . $logoPath);
-                if (file_exists($fullPath)) {
+                $relative = Setting::institutionLogoStoragePath($logoPath);
+                $fullPath = $relative ? storage_path('app/public/' . $relative) : null;
+                if ($fullPath && file_exists($fullPath)) {
                     $mime = @mime_content_type($fullPath) ?: 'image/png';
                     $institutionLogoPath = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($fullPath));
                 }
@@ -2096,9 +2097,10 @@ class QuizManagementController extends Controller
         $classGroupName = $quiz->classGroup ? $quiz->classGroup->name : ($quiz->academicClass ? $quiz->academicClass->display_label : '—');
         $logoPath = Setting::getValue(Setting::KEY_INSTITUTION_LOGO, '');
         $institutionLogoPath = null;
-        if ($logoPath && ! str_starts_with($logoPath, 'http')) {
-            $fullPath = storage_path('app/public/' . $logoPath);
-            if (file_exists($fullPath)) {
+        if ($logoPath && ! str_starts_with($logoPath, 'http://') && ! str_starts_with($logoPath, 'https://')) {
+            $relative = Setting::institutionLogoStoragePath($logoPath);
+            $fullPath = $relative ? storage_path('app/public/' . $relative) : null;
+            if ($fullPath && file_exists($fullPath)) {
                 $mime = @mime_content_type($fullPath) ?: 'image/png';
                 $institutionLogoPath = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($fullPath));
             }

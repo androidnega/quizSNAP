@@ -1,7 +1,7 @@
 @php
     $appName = $appName ?? \App\Models\Setting::getValue(\App\Models\Setting::KEY_APP_NAME, config('app.name', 'QuizSnap'));
     $institutionName = $institutionName ?? \App\Models\Setting::getValue(\App\Models\Setting::KEY_INSTITUTION_NAME, '');
-    $logoUrl = $logoUrl ?? \App\Models\Setting::getValue(\App\Models\Setting::KEY_INSTITUTION_LOGO, '');
+    $logoUrl = $logoUrl ?? \App\Models\Setting::institutionLogoUrl();
     $year = $year ?? date('Y');
     $preheader = trim($preheader ?? '');
     $badge = $badge ?? null;

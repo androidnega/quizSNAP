@@ -55,35 +55,33 @@
 }
 #ai-generate-panel {
     margin-top: 0.875rem;
-    padding: 0.625rem 0.875rem;
-    border: 1px solid #e5e7eb;
-    border-radius: 0.625rem;
-    background: #fafafa;
+    padding: 0.875rem 1rem;
+    border: 1px solid var(--theme-border, #e5e7eb);
+    border-radius: 0.85rem;
+    background: var(--theme-surface, #fff);
 }
 #ai-generate-panel.ai-generating {
-    border-color: #c7d2fe;
-    background: #f8fafc;
+    border-color: var(--theme-brand-border, #fcd34d);
+    background: var(--theme-brand-soft, #fffbeb);
 }
 #ai-generate-panel .ai-progress-track {
-    height: 3px;
+    height: 4px;
     border-radius: 9999px;
-    background: #e5e7eb;
+    background: var(--theme-primary-100, #e5e7eb);
     overflow: hidden;
 }
 #ai-generate-panel .ai-progress-fill {
     height: 100%;
     border-radius: 9999px;
-    background: #6366f1;
+    background: linear-gradient(90deg, var(--theme-brand, #fbbf24), var(--theme-primary-600, #2563eb));
     transition: width 0.25s ease;
     min-width: 0;
 }
-#ai-generate-btn {
-    min-height: 0;
-}
+#ai-generate-btn { min-height: 0; }
 #ai-generate-live {
     margin-top: 0.75rem;
-    border: 1px solid #e0e7ff;
-    border-radius: 0.625rem;
+    border: 1px solid var(--theme-primary-100, #dbeafe);
+    border-radius: 0.75rem;
     background: #fff;
     padding: 0.75rem;
 }
@@ -111,8 +109,8 @@
     flex-shrink: 0;
     font-size: 0.625rem;
     font-weight: 700;
-    color: #6366f1;
-    background: #eef2ff;
+    color: var(--theme-brand-deep, #b45309);
+    background: var(--theme-brand-soft, #fef3c7);
     border-radius: 0.375rem;
     padding: 0.125rem 0.375rem;
     margin-top: 0.125rem;
@@ -135,7 +133,7 @@
     display: inline-block;
     width: 2px;
     height: 0.9em;
-    background: #6366f1;
+    background: var(--theme-brand, #fbbf24);
     margin-left: 1px;
     vertical-align: text-bottom;
     animation: ai-live-blink 0.8s step-end infinite;
@@ -146,9 +144,73 @@
 #ai-generate-done {
     margin-top: 0.75rem;
     padding: 0.75rem;
-    border-radius: 0.625rem;
+    border-radius: 0.75rem;
     border: 1px solid #bbf7d0;
     background: #f0fdf4;
+}
+.quiz-source-card {
+    position: relative;
+    display: flex;
+    gap: 0.875rem;
+    align-items: flex-start;
+    padding: 1rem;
+    border-radius: 0.9rem;
+    border: 1.5px solid var(--theme-border, #e5e7eb);
+    background: #fff;
+    cursor: pointer;
+    transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+}
+.quiz-source-card:hover { border-color: var(--theme-primary-300, #93c5fd); }
+.quiz-source-card.is-selected {
+    border-color: var(--theme-brand, #fbbf24);
+    background: var(--theme-brand-soft, #fffbeb);
+    box-shadow: 0 0 0 1px var(--theme-brand, #fbbf24);
+}
+.quiz-source-card.is-disabled { opacity: 0.55; cursor: not-allowed; }
+.quiz-source-card input { position: absolute; opacity: 0; pointer-events: none; }
+.quiz-source-icon {
+    flex-shrink: 0;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.75rem;
+    display: grid;
+    place-items: center;
+    background: var(--theme-primary-50, #eff6ff);
+    color: var(--theme-primary-700, #1d4ed8);
+}
+.quiz-source-card.is-selected .quiz-source-icon {
+    background: var(--theme-brand, #fbbf24);
+    color: #78350f;
+}
+.quiz-source-card--json .quiz-source-icon {
+    background: #f1f5f9;
+    color: #475569;
+}
+.quiz-source-card--json.is-selected .quiz-source-icon {
+    background: var(--theme-primary-600, #2563eb);
+    color: #fff;
+}
+.quiz-step3-block {
+    border: 1px solid var(--theme-border, #e5e7eb);
+    border-radius: 1rem;
+    background: #fff;
+    padding: 1rem 1.1rem;
+}
+.quiz-step3-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+.quiz-step3-heading-icon {
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 0.5rem;
+    display: grid;
+    place-items: center;
+    background: var(--theme-brand-soft, #fef3c7);
+    color: var(--theme-brand-deep, #b45309);
+    flex-shrink: 0;
 }
 </style>
 @endpush
@@ -413,19 +475,20 @@
                 <div class="quiz-create-panel hidden" data-step-panel="3">
                     <div class="mb-5">
                         <h2 class="text-base font-semibold text-gray-900">Add questions</h2>
-                        <p class="text-sm text-gray-500 mt-0.5">Generate with AI or paste JSON. JSON does not use AI tokens.</p>
+                        <p class="text-sm text-gray-500 mt-0.5">Choose how to build the question pool. JSON paste does not use AI tokens.</p>
                     </div>
 
-                <fieldset class="mb-5 rounded-xl border border-gray-200 p-4 bg-gray-50/40">
-                    <legend class="text-sm font-semibold text-gray-900 px-1">Method</legend>
-                    <div class="space-y-2 mt-1">
-                        <label class="flex items-start gap-3 p-3 rounded-lg border border-gray-200 bg-white cursor-pointer hover:border-primary-300 {{ !$canUseAi ? 'opacity-60' : '' }}">
-                            <input type="radio" name="question_source" value="ai" class="mt-1 w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500 question-source-radio" {{ $defaultQuestionSource === 'ai' ? 'checked' : '' }} {{ !$canUseAi ? 'disabled' : '' }}>
-                            <span>
-                                <span class="block text-sm font-medium text-gray-900">Generate with AI (DeepSeek)</span>
-                                <span class="block text-xs text-gray-500 mt-0.5">Add topics, then generate. One token only if questions are created.</span>
+                    <div class="grid sm:grid-cols-2 gap-3 mb-5" role="radiogroup" aria-label="Question source">
+                        <label class="quiz-source-card quiz-source-card--ai {{ $defaultQuestionSource === 'ai' ? 'is-selected' : '' }} {{ !$canUseAi ? 'is-disabled' : '' }}">
+                            <input type="radio" name="question_source" value="ai" class="question-source-radio" {{ $defaultQuestionSource === 'ai' ? 'checked' : '' }} {{ !$canUseAi ? 'disabled' : '' }}>
+                            <span class="quiz-source-icon" aria-hidden="true">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                            </span>
+                            <span class="min-w-0">
+                                <span class="block text-sm font-semibold text-gray-900">Generate with AI</span>
+                                <span class="block text-xs text-gray-500 mt-0.5 leading-relaxed">Topics → DeepSeek builds questions. Uses 1 token when questions are created.</span>
                                 @if(!$canUseAi)
-                                    <span class="block text-xs text-amber-700 mt-1">
+                                    <span class="block text-xs text-amber-800 mt-1.5 font-medium">
                                         @if(!($aiGenerationEnabled ?? true))
                                             AI is disabled in Settings → AI.
                                         @elseif(!($aiApiAvailable ?? false))
@@ -437,119 +500,158 @@
                                 @endif
                             </span>
                         </label>
-                        <label class="flex items-start gap-3 p-3 rounded-lg border border-gray-200 bg-white cursor-pointer hover:border-primary-300">
-                            <input type="radio" name="question_source" value="json" class="mt-1 w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500 question-source-radio" {{ $defaultQuestionSource === 'json' ? 'checked' : '' }}>
-                            <span>
-                                <span class="block text-sm font-medium text-gray-900">Paste JSON</span>
-                                <span class="block text-xs text-gray-500 mt-0.5">Import questions from external tools (ChatGPT, etc.).</span>
+                        <label class="quiz-source-card quiz-source-card--json {{ $defaultQuestionSource === 'json' ? 'is-selected' : '' }}">
+                            <input type="radio" name="question_source" value="json" class="question-source-radio" {{ $defaultQuestionSource === 'json' ? 'checked' : '' }}>
+                            <span class="quiz-source-icon" aria-hidden="true">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                            </span>
+                            <span class="min-w-0">
+                                <span class="block text-sm font-semibold text-gray-900">Paste JSON</span>
+                                <span class="block text-xs text-gray-500 mt-0.5 leading-relaxed">Import from ChatGPT or another tool. Free — no AI tokens.</span>
                             </span>
                         </label>
                     </div>
-                    @error('question_source')<p class="text-sm text-red-600 mt-2">{{ $message }}</p>@enderror
-                </fieldset>
+                    @error('question_source')<p class="text-sm text-red-600 mb-4">{{ $message }}</p>@enderror
 
-                <div id="section-ai-topics" class="mb-5 {{ $defaultQuestionSource === 'json' ? 'hidden' : '' }}">
-                    <label for="topics-input" class="block font-medium text-gray-700 mb-2">Topics *</label>
-                    <input type="hidden" name="topics" id="topics-value" value="{{ old('topics') }}">
-                    <input type="text" id="topics-input" autocomplete="off" placeholder="Type a topic, press comma to add" class="input" aria-describedby="topic-tags-hint">
-                    <div id="topic-tags" class="flex flex-wrap gap-2 min-h-[2rem] mt-2" role="list" aria-label="Added topics"></div>
-                    <p id="topic-tags-hint" class="text-xs text-gray-500 mt-1">Add topics manually, or upload a course outline below and let AI suggest topics.</p>
-                    @error('topics')<p class="text-sm text-red-600 mt-2">{{ $message }}</p>@enderror
+                <div id="section-ai-topics" class="space-y-4 {{ $defaultQuestionSource === 'json' ? 'hidden' : '' }}">
+                    <div class="quiz-step3-block">
+                        <div class="quiz-step3-heading">
+                            <span class="quiz-step3-heading-icon" aria-hidden="true">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+                            </span>
+                            <div>
+                                <p class="text-sm font-semibold text-gray-900">Topics</p>
+                                <p class="text-xs text-gray-500">Type a topic and press comma or Enter</p>
+                            </div>
+                        </div>
+                        <input type="hidden" name="topics" id="topics-value" value="{{ old('topics') }}">
+                        <input type="text" id="topics-input" autocomplete="off" placeholder="e.g. Networking, OSI model…" class="input" aria-describedby="topic-tags-hint">
+                        <div id="topic-tags" class="flex flex-wrap gap-2 min-h-[2rem] mt-2.5" role="list" aria-label="Added topics"></div>
+                        <p id="topic-tags-hint" class="text-xs text-gray-500 mt-1.5">Or extract topics from a course outline below.</p>
+                        @error('topics')<p class="text-sm text-red-600 mt-2">{{ $message }}</p>@enderror
+                    </div>
 
-                    <div class="mt-4 rounded-xl border border-gray-200 bg-gray-50/80 p-4 space-y-3">
-                        <p class="text-sm font-medium text-gray-800">Course outline <span class="font-normal text-gray-500">(optional)</span></p>
-                        <p class="text-xs text-gray-500">Upload or paste your syllabus. AI can extract teachable topics.</p>
-                        <div>
-                            <label for="source_outline" class="block text-sm font-medium text-gray-700 mb-1">Upload file</label>
-                            <input type="file" id="source_outline" name="source_outline" accept=".txt,.pdf,.docx" class="block w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100">
-                            <p class="text-xs text-gray-500 mt-1">.txt, .pdf, or .docx (max 10 MB)</p>
+                    <div class="quiz-step3-block space-y-3">
+                        <div class="quiz-step3-heading mb-0">
+                            <span class="quiz-step3-heading-icon" aria-hidden="true">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            </span>
+                            <div>
+                                <p class="text-sm font-semibold text-gray-900">Course outline <span class="font-normal text-gray-400">(optional)</span></p>
+                                <p class="text-xs text-gray-500">Upload or paste a syllabus for AI topic suggestions</p>
+                            </div>
                         </div>
                         <div>
-                            <label for="source_script" class="block text-sm font-medium text-gray-700 mb-1">Or paste outline text</label>
-                            <textarea id="source_script" name="source_script" rows="4" class="input w-full min-h-[6rem] resize-y" placeholder="Paste course outline or syllabus text here…">{{ old('source_script') }}</textarea>
+                            <label for="source_outline" class="block text-xs font-medium text-gray-600 mb-1">Upload file</label>
+                            <input type="file" id="source_outline" name="source_outline" accept=".txt,.pdf,.docx" class="block w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[color:var(--theme-brand-soft,#fef3c7)] file:text-[color:var(--theme-brand-deep,#b45309)] hover:file:opacity-90">
+                            <p class="text-[11px] text-gray-400 mt-1">.txt, .pdf, or .docx · max 10 MB</p>
                         </div>
-                        <div class="flex flex-wrap items-center gap-3">
-                            <button type="button" id="extract-topics-btn" class="btn btn-primary px-4 py-2 text-sm inline-flex items-center gap-2" {{ !($aiApiAvailable ?? false) ? 'disabled' : '' }}>
+                        <div>
+                            <label for="source_script" class="block text-xs font-medium text-gray-600 mb-1">Or paste outline text</label>
+                            <textarea id="source_script" name="source_script" rows="3" class="input w-full min-h-[5rem] resize-y text-sm" placeholder="Paste course outline or syllabus text…">{{ old('source_script') }}</textarea>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2.5 pt-1">
+                            <button type="button" id="extract-topics-btn" class="inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-semibold text-[color:var(--theme-brand-deep,#78350f)] bg-[color:var(--theme-brand,#fbbf24)] hover:opacity-90 disabled:opacity-50" {{ !($aiApiAvailable ?? false) ? 'disabled' : '' }}>
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
-                                Extract topics with AI
+                                Extract topics
                             </button>
                             <span id="extract-topics-feedback" class="text-sm text-gray-600" aria-live="polite"></span>
                         </div>
                     </div>
 
-                    <div id="ai-generate-panel" class="mt-3">
+                    <div id="ai-generate-panel">
                         <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
                             @if($canUseAi && isset($aiTokenStatus))
-                                <span class="text-[11px] font-medium text-slate-500 tabular-nums">{{ $aiTokenStatus['remaining'] }} token{{ ($aiTokenStatus['remaining'] ?? 0) === 1 ? '' : 's' }}</span>
+                                <span class="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold tabular-nums bg-[color:var(--theme-brand-soft,#fef3c7)] text-[color:var(--theme-brand-deep,#92400e)]">
+                                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2a1 1 0 01.894.553l1.382 2.8 3.09.45a1 1 0 01.554 1.705l-2.236 2.18.528 3.078a1 1 0 01-1.451 1.054L10 12.347l-2.761 1.453a1 1 0 01-1.451-1.054l.528-3.078-2.236-2.18a1 1 0 01.554-1.705l3.09-.45L9.106 2.553A1 1 0 0110 2z"/></svg>
+                                    {{ $aiTokenStatus['remaining'] }} token{{ ($aiTokenStatus['remaining'] ?? 0) === 1 ? '' : 's' }}
+                                </span>
                             @endif
-                            <button type="button" id="ai-generate-btn" class="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed transition-colors" {{ !$canUseAi ? 'disabled' : '' }}>
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                            <button type="button" id="ai-generate-btn" class="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold text-white bg-[color:var(--theme-primary-600,#2563eb)] hover:bg-[color:var(--theme-primary-700,#1d4ed8)] focus:outline-none focus:ring-2 focus:ring-[color:var(--theme-primary-400,#60a5fa)] focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed transition-colors" {{ !$canUseAi ? 'disabled' : '' }}>
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                                 Generate questions
                             </button>
                             <span id="ai-generate-status" class="text-[11px] text-slate-500 truncate max-w-[14rem] hidden" aria-live="polite"></span>
-                            <span id="ai-generate-percent" class="text-[11px] font-semibold tabular-nums text-indigo-600 hidden">0%</span>
+                            <span id="ai-generate-percent" class="text-[11px] font-semibold tabular-nums text-[color:var(--theme-primary-600,#2563eb)] hidden">0%</span>
                         </div>
-                        <div id="ai-generate-progress" class="hidden mt-2" aria-live="polite">
+                        <div id="ai-generate-progress" class="hidden mt-2.5" aria-live="polite">
                             <div class="ai-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="ai-generate-progressbar">
                                 <div id="ai-generate-bar" class="ai-progress-fill" style="width:0%"></div>
                             </div>
                             <p id="ai-generate-counts" class="text-[10px] text-slate-500 mt-1 tabular-nums">0 / 0</p>
                         </div>
                         <div id="ai-generate-live" class="hidden" aria-live="polite">
-                            <p class="text-[11px] font-semibold text-indigo-800 mb-2">Writing questions…</p>
+                            <p class="text-[11px] font-semibold text-[color:var(--theme-brand-deep,#92400e)] mb-2">Writing questions…</p>
                             <ul id="ai-generate-live-list"></ul>
                         </div>
                         <div id="ai-generate-done" class="hidden" role="status">
                             <p id="ai-generate-done-msg" class="text-sm font-medium text-green-800 mb-2"></p>
                             <div class="flex flex-wrap gap-2">
-                                <a href="#" id="ai-generate-open-quiz" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 no-underline">Open quiz to review</a>
-                                <button type="button" id="ai-generate-stay-btn" class="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50">Stay on this page</button>
+                                <a href="#" id="ai-generate-open-quiz" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[color:var(--theme-primary-600,#2563eb)] hover:bg-[color:var(--theme-primary-700,#1d4ed8)] no-underline">Open quiz to review</a>
+                                <button type="button" id="ai-generate-stay-btn" class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium text-slate-700 bg-white border border-slate-200 hover:bg-slate-50">Stay on this page</button>
                             </div>
                         </div>
                         <p id="ai-generate-error" class="hidden text-xs text-red-600 mt-2" role="alert"></p>
                     </div>
                 </div>
 
-                <div id="section-json-prompt" class="{{ $defaultQuestionSource === 'ai' ? 'hidden' : '' }}">
-                <p class="text-sm font-semibold text-gray-900 mt-2">Optional: copy prompt for external AI</p>
-                <p class="text-sm text-gray-500 mt-1 mb-3">Add topics and copy this prompt, then paste the JSON response below.</p>
-                <div class="mb-5 rounded-xl border border-gray-200 bg-gray-50 p-4">
-                    <div class="mb-3">
-                        <label for="json-prompt-topics-input" class="block text-sm font-medium text-gray-700 mb-1">Topics (for prompt only)</label>
-                        <input type="text" id="json-prompt-topics-input" autocomplete="off" placeholder="Type a topic, press comma to add" class="input">
-                        <input type="hidden" id="json-prompt-topics-value" value="">
-                        <div id="json-prompt-topic-tags" class="flex flex-wrap gap-2 min-h-[2rem] mt-2" role="list"></div>
-                    </div>
-                    <textarea id="generated-ai-prompt" readonly rows="10" class="generated-prompt-textarea w-full rounded-lg border border-gray-200 bg-gray-50/50 px-3 py-2.5 font-mono font-normal resize-y min-h-[8.5rem] focus:ring-2 focus:ring-primary-300 focus:border-primary-300 placeholder-gray-400" style="color: #9ca3af; font-size: 0.8125rem; line-height: 1.45;" aria-label="Generated prompt — add topics to enable copy" placeholder="Add topics above to generate the prompt…" data-prompt-default="true"></textarea>
-                    <div class="flex flex-wrap items-center gap-3 mt-3">
-                        <button type="button" id="copy-ai-prompt-btn" class="btn btn-primary px-4 py-2 text-sm inline-flex items-center gap-2 opacity-50 cursor-not-allowed" disabled aria-label="Add topics above to enable copy">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
-                            Copy prompt
-                        </button>
-                        <span id="copy-ai-prompt-feedback" class="text-sm text-gray-600" aria-live="polite"></span>
-                    </div>
-                </div>
-
-                <p class="text-sm font-semibold text-gray-900">Paste question JSON</p>
-                <p class="text-sm text-gray-500 mt-1 mb-3">Paste the JSON array, then validate before creating.</p>
-                <div class="mb-5">
-                    <label for="ai-json-input" class="sr-only">Paste AI-generated JSON</label>
-                    <textarea id="ai-json-input" name="ai_json" rows="8" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 font-mono text-sm text-gray-800 resize-y min-h-[8.5rem] @error('ai_json') border-danger-500 @enderror" placeholder='[{"type":"mcq","text":"Question?","options":{"A":"...","B":"...","C":"...","D":"..."},"correct":"A","topic":"..."}]' aria-describedby="json-validation-result json-validation-errors"></textarea>
-                    @if($errors->has('ai_json'))
-                        <div id="json-validation-errors" class="text-sm text-red-600 mt-1" role="alert">
-                            <ul class="list-disc list-inside">
-                                @foreach($errors->get('ai_json') as $err)
-                                    <li>{{ is_array($err) ? implode(' ', $err) : $err }}</li>
-                                @endforeach
-                            </ul>
+                <div id="section-json-prompt" class="space-y-4 {{ $defaultQuestionSource === 'ai' ? 'hidden' : '' }}">
+                    <div class="quiz-step3-block">
+                        <div class="quiz-step3-heading">
+                            <span class="quiz-step3-heading-icon" aria-hidden="true">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                            </span>
+                            <div>
+                                <p class="text-sm font-semibold text-gray-900">Copy prompt for external AI</p>
+                                <p class="text-xs text-gray-500">Optional — use with ChatGPT, then paste the JSON below</p>
+                            </div>
                         </div>
-                    @endif
-                    <div id="json-validation-result" class="text-sm hidden mt-1" aria-live="polite"></div>
-                    <div class="flex flex-wrap items-center gap-2 mt-2">
-                        <button type="button" id="validate-json-btn" class="validate-json-btn btn px-4 py-2 text-sm font-medium rounded-lg text-white bg-gray-500 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2">Validate JSON</button>
-                        <span id="validate-json-feedback" class="text-sm text-gray-500" aria-live="polite"></span>
+                        <div class="mb-3">
+                            <label for="json-prompt-topics-input" class="block text-xs font-medium text-gray-600 mb-1">Topics for prompt</label>
+                            <input type="text" id="json-prompt-topics-input" autocomplete="off" placeholder="Type a topic, press comma to add" class="input">
+                            <input type="hidden" id="json-prompt-topics-value" value="">
+                            <div id="json-prompt-topic-tags" class="flex flex-wrap gap-2 min-h-[2rem] mt-2" role="list"></div>
+                        </div>
+                        <textarea id="generated-ai-prompt" readonly rows="8" class="generated-prompt-textarea w-full rounded-lg border border-gray-200 bg-gray-50/50 px-3 py-2.5 font-mono font-normal resize-y min-h-[7rem] focus:ring-2 focus:ring-primary-300 focus:border-primary-300 placeholder-gray-400" style="color: #9ca3af; font-size: 0.8125rem; line-height: 1.45;" aria-label="Generated prompt — add topics to enable copy" placeholder="Add topics above to generate the prompt…" data-prompt-default="true"></textarea>
+                        <div class="flex flex-wrap items-center gap-3 mt-3">
+                            <button type="button" id="copy-ai-prompt-btn" class="inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-semibold text-[color:var(--theme-brand-deep,#78350f)] bg-[color:var(--theme-brand,#fbbf24)] hover:opacity-90 opacity-50 cursor-not-allowed" disabled aria-label="Add topics above to enable copy">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                                Copy prompt
+                            </button>
+                            <span id="copy-ai-prompt-feedback" class="text-sm text-gray-600" aria-live="polite"></span>
+                        </div>
                     </div>
-                </div>
+
+                    <div class="quiz-step3-block">
+                        <div class="quiz-step3-heading">
+                            <span class="quiz-step3-heading-icon" aria-hidden="true">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                            </span>
+                            <div>
+                                <p class="text-sm font-semibold text-gray-900">Paste question JSON</p>
+                                <p class="text-xs text-gray-500">Validate before continuing to schedule</p>
+                            </div>
+                        </div>
+                        <label for="ai-json-input" class="sr-only">Paste AI-generated JSON</label>
+                        <textarea id="ai-json-input" name="ai_json" rows="8" class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 font-mono text-sm text-gray-800 resize-y min-h-[8rem] @error('ai_json') border-danger-500 @enderror" placeholder='[{"type":"mcq","text":"Question?","options":{"A":"...","B":"...","C":"...","D":"..."},"correct":"A","topic":"..."}]' aria-describedby="json-validation-result json-validation-errors"></textarea>
+                        @if($errors->has('ai_json'))
+                            <div id="json-validation-errors" class="text-sm text-red-600 mt-1" role="alert">
+                                <ul class="list-disc list-inside">
+                                    @foreach($errors->get('ai_json') as $err)
+                                        <li>{{ is_array($err) ? implode(' ', $err) : $err }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
+                        <div id="json-validation-result" class="text-sm hidden mt-1" aria-live="polite"></div>
+                        <div class="flex flex-wrap items-center gap-2 mt-3">
+                            <button type="button" id="validate-json-btn" class="validate-json-btn inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-semibold text-white bg-[color:var(--theme-primary-600,#2563eb)] hover:bg-[color:var(--theme-primary-700,#1d4ed8)]">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                Validate JSON
+                            </button>
+                            <span id="validate-json-feedback" class="text-sm text-gray-500" aria-live="polite"></span>
+                        </div>
+                    </div>
                 </div>
                 </div>
 
@@ -1316,6 +1418,10 @@
 
     function syncQuestionSourceSections() {
         var source = selectedSource();
+        radios.forEach(function(r) {
+            var card = r.closest('.quiz-source-card');
+            if (card) card.classList.toggle('is-selected', r.checked);
+        });
         if (sectionAi) sectionAi.classList.toggle('hidden', source !== 'ai');
         if (sectionJson) sectionJson.classList.toggle('hidden', source !== 'json');
         if (aiJsonInput) {

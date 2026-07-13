@@ -69,7 +69,7 @@ class QuizManagementController extends Controller
         return $user ? $user->classGroupIds() : [];
     }
 
-    public function index(Request $request): View
+    public function index(Request $request): View|JsonResponse
     {
         $user = $this->adminUser();
         $classGroupIds = $this->classGroupIds();
@@ -118,7 +118,21 @@ class QuizManagementController extends Controller
         }
 
         $quizzes = $query->paginate(15)->withQueryString();
-        return view('admin.quizzes.index', compact('quizzes', 'tab'));
+
+        if ($request->boolean('ajax')) {
+            return response()->json([
+                'html' => view('admin.quizzes.partials.quiz-list-items', [
+                    'quizzes' => $quizzes,
+                    'activeTab' => $tab === 'ended' ? 'ended' : 'active',
+                    'search' => $q,
+                ])->render(),
+                'pagination' => $quizzes->hasPages() ? $quizzes->withQueryString()->links()->toHtml() : '',
+                'meta' => $quizzes->total().' quizzes',
+                'total' => $quizzes->total(),
+            ]);
+        }
+
+        return view('admin.quizzes.index', compact('quizzes', 'tab') + ['q' => $q]);
     }
 
     public function create(): View

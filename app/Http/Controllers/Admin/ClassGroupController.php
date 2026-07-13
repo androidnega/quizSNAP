@@ -539,7 +539,7 @@ class ClassGroupController extends Controller
     }
 
     /** Show the student indices management page for this class group. */
-    public function studentsIndex(Request $request, ClassGroup $classGroup): View
+    public function studentsIndex(Request $request, ClassGroup $classGroup): View|JsonResponse
     {
         $this->authorize('view', $classGroup);
         $classGroup->load(['examiner:id,username,name', 'level']);
@@ -563,10 +563,18 @@ class ClassGroupController extends Controller
         $isSuperAdmin = $this->adminUser()?->isSuperAdmin() ?? false;
 
         if ($request->boolean('ajax')) {
-            $html = view('admin.class-groups.partials.students-rows', compact('classGroup', 'students', 'isSuperAdmin'))->render();
+            $html = view('admin.class-groups.partials.students-rows', [
+                'classGroup' => $classGroup,
+                'students' => $students,
+                'isSuperAdmin' => $isSuperAdmin,
+                'search' => $search,
+            ])->render();
+
             return response()->json([
                 'html' => $html,
-                'next_page_url' => $students->hasMorePages() ? $students->nextPageUrl() . '&ajax=1' : null,
+                'pagination' => $students->hasPages() ? $students->withQueryString()->links()->toHtml() : '',
+                'meta' => $students->total().' total',
+                'total' => $students->total(),
             ]);
         }
 

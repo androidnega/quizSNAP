@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Services\ArkeselService;
 use App\Services\UserStaffLifecycleService;
 use App\Support\UserFriendlyMessages;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Http\RedirectResponse;
@@ -44,7 +45,7 @@ class UserManagementController extends Controller
         return $phone;
     }
 
-    public function index(Request $request): View
+    public function index(Request $request): View|JsonResponse
     {
         $user = $this->adminUser();
         $isSuperAdmin = $user && $user->isSuperAdmin();
@@ -87,6 +88,21 @@ class UserManagementController extends Controller
             report($e);
             $users = User::query()->whereRaw('1 = 0')->paginate(20);
             $institutions = collect();
+        }
+
+        if ($request->boolean('ajax')) {
+            return response()->json([
+                'html' => view('admin.users.partials.user-rows', compact(
+                    'users',
+                    'isSuperAdmin',
+                    'canManageAiTokens',
+                    'isCoordinatorManager',
+                    'search'
+                ))->render(),
+                'pagination' => $users->hasPages() ? $users->withQueryString()->links()->toHtml() : '',
+                'meta' => $users->total().' users',
+                'total' => $users->total(),
+            ]);
         }
 
         return view('admin.users.index', compact(

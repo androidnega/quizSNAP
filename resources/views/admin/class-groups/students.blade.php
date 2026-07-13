@@ -21,8 +21,10 @@
             </a>
             <h1 class="mt-1 text-xl sm:text-2xl font-semibold tracking-tight text-gray-900">Student indices</h1>
         </div>
-        <p class="text-sm text-gray-400 tabular-nums">{{ $students->total() }} total</p>
+        <p class="text-sm text-gray-400 tabular-nums" id="live-search-meta">{{ $students->total() }} total</p>
     </div>
+
+    <div id="live-search-panel" class="hidden" data-live-search="1" data-param="search" aria-hidden="true"></div>
 
     @can('update', $classGroup)
     <div class="rounded-xl border border-gray-200 bg-white p-3 sm:p-4 space-y-3">
@@ -164,27 +166,19 @@
                         <th class="px-3 py-2 text-right text-[10px] font-medium text-gray-400 uppercase tracking-wide">Actions</th>
                     </tr>
                 </thead>
-                <tbody id="students-tbody" class="divide-y divide-gray-50 bg-white">
-                    @forelse($students as $s)
-                        @include('admin.class-groups.partials.students-rows', ['students' => collect([$s]), 'classGroup' => $classGroup, 'isSuperAdmin' => $isSuperAdmin])
-                    @empty
-                        <tr>
-                            <td colspan="5" class="px-4 py-10 text-center text-gray-400 text-sm">No students yet.@can('update', $classGroup) Add an index or upload a file.@endcan</td>
-                        </tr>
-                    @endforelse
+                <tbody id="live-search-results" class="divide-y divide-gray-50 bg-white">
+                    @include('admin.class-groups.partials.students-rows', ['students' => $students, 'classGroup' => $classGroup, 'isSuperAdmin' => $isSuperAdmin, 'search' => $search ?? ''])
                 </tbody>
             </table>
         </div>
-        @if($students->hasPages())
-        <div class="border-t border-gray-100 bg-gray-50/80 px-4 py-3 flex flex-wrap items-center justify-between gap-2 shrink-0">
-            <p class="text-xs text-gray-500">
-                {{ $students->firstItem() }}–{{ $students->lastItem() }} of {{ $students->total() }}
-            </p>
-            <div class="flex flex-wrap justify-end">
-                {{ $students->withQueryString()->links() }}
+        <div id="live-search-pagination-wrap" class="{{ $students->hasPages() ? '' : 'hidden' }} border-t border-gray-100 bg-gray-50/80 px-4 py-3 flex flex-wrap items-center justify-between gap-2 shrink-0">
+            <p class="text-xs text-gray-500" id="live-search-range"></p>
+            <div class="flex flex-wrap justify-end" id="live-search-pagination">
+                @if($students->hasPages())
+                    {{ $students->withQueryString()->links() }}
+                @endif
             </div>
         </div>
-        @endif
     </div>
 
     @push('scripts')
@@ -192,11 +186,77 @@
     (function() {
         var searchInput = document.getElementById('student-search');
         var searchForm = document.getElementById('student-search-form');
+        var results = document.getElementById('live-search-results');
+        var pagination = document.getElementById('live-search-pagination');
+        var paginationWrap = document.getElementById('live-search-pagination-wrap');
+        var meta = document.getElementById('live-search-meta');
+        var headerInput = document.getElementById('dashboard-global-search');
+        var abortCtrl = null;
+        var debounceTimer = null;
+        var lastQuery = String(searchInput && searchInput.value || '');
+
+        function applyPayload(data, url) {
+            if (results && typeof data.html === 'string') results.innerHTML = data.html;
+            if (pagination) pagination.innerHTML = data.pagination || '';
+            if (paginationWrap) paginationWrap.classList.toggle('hidden', !data.pagination);
+            if (meta && data.meta) meta.textContent = data.meta;
+            if (typeof window.attachStudentCheckboxListeners === 'function') window.attachStudentCheckboxListeners();
+            if (url) {
+                try { history.replaceState(null, '', url); } catch (e) {}
+            }
+        }
+
+        window.QuizsnapLiveSearchApply = applyPayload;
+
+        function fetchLive(query) {
+            var url = new URL(window.location.href);
+            if (query) url.searchParams.set('search', query);
+            else url.searchParams.delete('search');
+            url.searchParams.delete('page');
+            var fetchUrl = new URL(url.toString());
+            fetchUrl.searchParams.set('ajax', '1');
+            if (abortCtrl) abortCtrl.abort();
+            abortCtrl = new AbortController();
+            results && results.classList.add('opacity-60');
+            fetch(fetchUrl.toString(), {
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'same-origin',
+                signal: abortCtrl.signal,
+            })
+                .then(function(r) { return r.json().then(function(data) { return { ok: r.ok, data: data }; }); })
+                .then(function(payload) {
+                    if (!payload.ok || !payload.data) return;
+                    applyPayload(payload.data, url.pathname + url.search + url.hash);
+                })
+                .catch(function(err) {
+                    if (err && err.name === 'AbortError') return;
+                })
+                .finally(function() {
+                    results && results.classList.remove('opacity-60');
+                });
+        }
+
+        window.QuizsnapLiveSearchRun = function(query) {
+            query = String(query || '').trim();
+            if (searchInput && document.activeElement !== searchInput) searchInput.value = query;
+            if (headerInput && document.activeElement !== headerInput) headerInput.value = query;
+            lastQuery = query;
+            fetchLive(query);
+        };
+
         if (searchInput && searchForm) {
-            var debounceTimer;
+            searchForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                clearTimeout(debounceTimer);
+                window.QuizsnapLiveSearchRun(searchInput.value);
+            });
             searchInput.addEventListener('input', function() {
                 clearTimeout(debounceTimer);
-                debounceTimer = setTimeout(function() { searchForm.submit(); }, 350);
+                debounceTimer = setTimeout(function() {
+                    var q = String(searchInput.value || '').trim();
+                    if (q === lastQuery) return;
+                    window.QuizsnapLiveSearchRun(q);
+                }, 320);
             });
         }
 

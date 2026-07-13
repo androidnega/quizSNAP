@@ -97,6 +97,16 @@
         display: block;
     }
 
+    mark.search-hit {
+        background: linear-gradient(180deg, #fde68a 0%, #fbbf24 100%);
+        color: #78350f;
+        border-radius: 0.2rem;
+        padding: 0 0.12em;
+        font-weight: 600;
+        box-decoration-break: clone;
+        -webkit-box-decoration-break: clone;
+    }
+
     .quizsnap-brand-mark svg {
         width: 100%;
         height: 100%;

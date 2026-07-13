@@ -15,10 +15,12 @@
         @endif
     </p>
 
-    <form method="get" action="{{ route('dashboard.students.index') }}" class="flex flex-wrap items-end gap-3 rounded-lg border border-gray-200 bg-white p-4">
+    <div id="live-search-panel" class="hidden" data-live-search="1" data-param="search" aria-hidden="true"></div>
+
+    <form method="get" action="{{ route('dashboard.students.index') }}" id="staff-students-filter-form" class="flex flex-wrap items-end gap-3 rounded-lg border border-gray-200 bg-white p-4">
         <div class="min-w-[200px] flex-1">
             <label for="student_search" class="block text-xs font-medium text-gray-500 mb-1">Search</label>
-            <input type="search" name="search" id="student_search" value="{{ $search }}" placeholder="Index, name, or phone" class="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-gray-400 focus:ring-1 focus:ring-gray-300 focus:outline-none">
+            <input type="search" name="search" id="student_search" value="{{ $search }}" placeholder="Index, name, or phone" autocomplete="off" class="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-primary-400 focus:ring-1 focus:ring-primary-200 focus:outline-none">
         </div>
         <div>
             <label for="filter_class_group" class="block text-xs font-medium text-gray-500 mb-1">Class group</label>
@@ -46,6 +48,8 @@
         </div>
     </form>
 
+    <p id="live-search-meta" class="text-xs text-gray-400 tabular-nums">{{ $students->total() }} students</p>
+
     <div class="rounded-lg border border-gray-200 bg-white overflow-hidden">
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
@@ -61,53 +65,112 @@
                         <th class="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wide">Actions</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-100 bg-white">
-                    @forelse($students as $s)
-                    @php
-                        $classGroup = $s->classGroup;
-                        $phone = $s->studentAccount?->phone_contact;
-                        $phone = $phone && trim($phone) !== '' ? trim($phone) : null;
-                        $displayName = $s->studentAccount?->student_name ?? $s->student_name;
-                        $displayName = $displayName && trim($displayName) !== '' ? trim($displayName) : '—';
-                        $institution = $classGroup?->examiner?->institution;
-                    @endphp
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ $s->index_number }}</td>
-                        <td class="px-4 py-3 text-sm text-gray-600">{{ $displayName }}</td>
-                        <td class="px-4 py-3 text-sm text-gray-600">{{ $phone ?? '—' }}</td>
-                        <td class="px-4 py-3 text-sm text-gray-600">
-                            @if($classGroup)
-                                <a href="{{ route('dashboard.class-groups.show', $classGroup) }}" class="text-primary-600 hover:text-primary-800">{{ $classGroup->name }}</a>
-                            @else
-                                —
-                            @endif
-                        </td>
-                        @if($isSuperAdmin)
-                        <td class="px-4 py-3 text-sm text-gray-600">{{ $institution?->display_name ?? '—' }}</td>
-                        @endif
-                        <td class="px-4 py-3 text-right">
-                            @if($classGroup)
-                            <div class="inline-flex items-center justify-end gap-2 flex-wrap">
-                                <a href="{{ route('dashboard.class-groups.students.show', [$classGroup, $s]) }}" class="inline-flex items-center gap-1 text-gray-600 hover:text-primary-600 text-sm"><i class="fas fa-eye"></i> View</a>
-                                @can('update', $classGroup)
-                                <a href="{{ route('dashboard.class-groups.students.edit', [$classGroup, $s]) }}" class="inline-flex items-center gap-1 text-primary-600 hover:text-primary-800 text-sm"><i class="fas fa-pen"></i> Edit</a>
-                                @endcan
-                            </div>
-                            @endif
-                        </td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="{{ $isSuperAdmin ? 6 : 5 }}" class="px-4 py-10 text-center text-sm text-gray-500">No students found in your scope.</td>
-                    </tr>
-                    @endforelse
+                <tbody id="live-search-results" class="divide-y divide-gray-100 bg-white">
+                    @include('admin.students.partials.staff-rows', ['students' => $students, 'isSuperAdmin' => $isSuperAdmin, 'search' => $search])
                 </tbody>
             </table>
         </div>
     </div>
 
-    @if($students->hasPages())
-        <div>{{ $students->links() }}</div>
-    @endif
+    <div id="live-search-pagination-wrap" class="{{ $students->hasPages() ? '' : 'hidden' }}">
+        <div id="live-search-pagination">
+            @if($students->hasPages())
+                {{ $students->links() }}
+            @endif
+        </div>
+    </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+(function() {
+    var form = document.getElementById('staff-students-filter-form');
+    var searchInput = document.getElementById('student_search');
+    var headerInput = document.getElementById('dashboard-global-search');
+    var results = document.getElementById('live-search-results');
+    var pagination = document.getElementById('live-search-pagination');
+    var paginationWrap = document.getElementById('live-search-pagination-wrap');
+    var meta = document.getElementById('live-search-meta');
+    var abortCtrl = null;
+    var debounceTimer = null;
+    var lastQuery = String(searchInput && searchInput.value || '');
+
+    function applyPayload(data, url) {
+        if (results && typeof data.html === 'string') results.innerHTML = data.html;
+        if (pagination) pagination.innerHTML = data.pagination || '';
+        if (paginationWrap) paginationWrap.classList.toggle('hidden', !data.pagination);
+        if (meta && data.meta) {
+            meta.textContent = data.meta;
+            meta.classList.remove('hidden');
+        }
+        if (url) { try { history.replaceState(null, '', url); } catch (e) {} }
+    }
+    window.QuizsnapLiveSearchApply = applyPayload;
+
+    function currentFilters() {
+        var url = new URL(window.location.href);
+        if (form) {
+            var fd = new FormData(form);
+            fd.forEach(function(v, k) {
+                if (v) url.searchParams.set(k, v);
+                else url.searchParams.delete(k);
+            });
+        }
+        url.searchParams.delete('page');
+        return url;
+    }
+
+    function fetchLive() {
+        var url = currentFilters();
+        var fetchUrl = new URL(url.toString());
+        fetchUrl.searchParams.set('ajax', '1');
+        if (abortCtrl) abortCtrl.abort();
+        abortCtrl = new AbortController();
+        results && results.classList.add('opacity-60');
+        fetch(fetchUrl.toString(), {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin',
+            signal: abortCtrl.signal,
+        })
+            .then(function(r) { return r.json().then(function(data) { return { ok: r.ok, data: data }; }); })
+            .then(function(payload) {
+                if (!payload.ok || !payload.data) return;
+                applyPayload(payload.data, url.pathname + url.search + url.hash);
+            })
+            .catch(function(err) { if (err && err.name === 'AbortError') return; })
+            .finally(function() { results && results.classList.remove('opacity-60'); });
+    }
+
+    window.QuizsnapLiveSearchRun = function(query) {
+        query = String(query || '').trim();
+        if (searchInput && document.activeElement !== searchInput) searchInput.value = query;
+        if (headerInput && document.activeElement !== headerInput) headerInput.value = query;
+        lastQuery = query;
+        fetchLive();
+    };
+
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            clearTimeout(debounceTimer);
+            window.QuizsnapLiveSearchRun(searchInput ? searchInput.value : '');
+        });
+        ['filter_class_group', 'filter_institution'].forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) el.addEventListener('change', function() { window.QuizsnapLiveSearchRun(searchInput ? searchInput.value : ''); });
+        });
+    }
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(function() {
+                var q = String(searchInput.value || '').trim();
+                if (q === lastQuery) return;
+                window.QuizsnapLiveSearchRun(q);
+            }, 320);
+        });
+    }
+})();
+</script>
+@endpush

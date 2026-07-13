@@ -642,10 +642,84 @@
         }
     }
 
+    var searchAbort = null;
+
+    function applyLivePayload(data, displayUrl) {
+        if (typeof window.QuizsnapLiveSearchApply === 'function') {
+            window.QuizsnapLiveSearchApply(data, displayUrl);
+            return;
+        }
+        var results = document.getElementById('live-search-results');
+        var pagination = document.getElementById('live-search-pagination');
+        var paginationWrap = document.getElementById('live-search-pagination-wrap');
+        var meta = document.getElementById('live-search-meta');
+        if (results && typeof data.html === 'string') results.innerHTML = data.html;
+        if (pagination) pagination.innerHTML = data.pagination || '';
+        if (paginationWrap) paginationWrap.classList.toggle('hidden', !data.pagination);
+        if (meta) {
+            if (data.meta) {
+                meta.textContent = data.meta;
+                meta.classList.remove('hidden');
+            } else {
+                meta.classList.add('hidden');
+            }
+        }
+        if (displayUrl) {
+            try { history.replaceState(null, '', displayUrl); } catch (e) {}
+        }
+    }
+
     function runServerSearch() {
         var value = String(input.value || '').trim();
         if (value === lastServerQuery.trim()) return;
         lastServerQuery = value;
+
+        var panel = document.getElementById('live-search-panel');
+        if (panel || typeof window.QuizsnapLiveSearchRun === 'function') {
+            if (typeof window.QuizsnapLiveSearchRun === 'function') {
+                window.QuizsnapLiveSearchRun(value);
+                return;
+            }
+
+            var action = form.getAttribute('action') || window.location.href;
+            var url = new URL(action, window.location.origin);
+            var current = new URL(window.location.href);
+            if (url.pathname === current.pathname) {
+                current.searchParams.forEach(function(v, k) {
+                    if (k === param) return;
+                    url.searchParams.set(k, v);
+                });
+            }
+            if (value) url.searchParams.set(param, value);
+            else url.searchParams.delete(param);
+            url.searchParams.delete('page');
+
+            var fetchUrl = new URL(url.toString());
+            fetchUrl.searchParams.set('ajax', '1');
+            if (searchAbort) searchAbort.abort();
+            searchAbort = new AbortController();
+            var results = document.getElementById('live-search-results');
+            if (results) results.classList.add('opacity-60');
+            fetch(fetchUrl.toString(), {
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'same-origin',
+                signal: searchAbort.signal,
+            })
+                .then(function(r) { return r.json().then(function(data) { return { ok: r.ok, data: data }; }); })
+                .then(function(payload) {
+                    if (!payload.ok || !payload.data) return;
+                    applyLivePayload(payload.data, url.pathname + url.search + url.hash);
+                    var pageSearch = document.getElementById('student-search') || document.getElementById('student_search');
+                    if (pageSearch && document.activeElement !== pageSearch) pageSearch.value = value;
+                })
+                .catch(function(err) {
+                    if (err && err.name === 'AbortError') return;
+                })
+                .finally(function() {
+                    if (results) results.classList.remove('opacity-60');
+                });
+            return;
+        }
 
         var action = form.getAttribute('action') || window.location.href;
         var url = new URL(action, window.location.origin);
@@ -658,7 +732,6 @@
         }
         if (value) url.searchParams.set(param, value);
         else url.searchParams.delete(param);
-        // Reset pagination when searching.
         url.searchParams.delete('page');
         window.location.href = url.toString();
     }

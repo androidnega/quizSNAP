@@ -8,6 +8,7 @@ use App\Models\ClassGroup;
 use App\Models\ClassGroupStudent;
 use App\Models\Institution;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -15,7 +16,7 @@ class StaffStudentsController extends Controller
 {
     use InteractsWithAdminSession;
 
-    public function index(Request $request): View
+    public function index(Request $request): View|JsonResponse
     {
         $user = $this->adminUser();
         if (! $user || (! $user->isSuperAdmin() && $user->role !== User::ROLE_COORDINATOR)) {
@@ -69,6 +70,15 @@ class StaffStudentsController extends Controller
             : collect();
 
         $isSuperAdmin = $user->isSuperAdmin();
+
+        if ($request->boolean('ajax')) {
+            return response()->json([
+                'html' => view('admin.students.partials.staff-rows', compact('students', 'isSuperAdmin', 'search'))->render(),
+                'pagination' => $students->hasPages() ? $students->withQueryString()->links()->toHtml() : '',
+                'meta' => $students->total().' students',
+                'total' => $students->total(),
+            ]);
+        }
 
         return view('admin.students.staff-index', compact(
             'students',

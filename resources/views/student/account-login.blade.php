@@ -1,166 +1,562 @@
 @extends('layouts.app')
 
 @section('title', 'Student Login')
-@section('body_class', 'bg-offwhite')
+@section('body_class', 'sal-body')
 
 @php
     $universalOtpConfigured = \App\Services\StudentUniversalOtp::isConfigured();
+    $appName = \App\Models\Setting::getValue(\App\Models\Setting::KEY_APP_NAME, config('app.name', 'QuizSnap'));
+    $salInput = 'sal-input';
+    $salPassword = 'sal-input sal-input--password';
 @endphp
 
-@section('content')
-<div class="min-h-[100dvh] min-h-screen flex items-center justify-center px-4 py-8">
-    <div class="max-w-md w-full">
-        <div class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-            <h1 class="text-2xl font-bold text-gray-800 mb-2">Student login</h1>
-            <p class="text-gray-600 text-sm mb-6">@if(!empty($password_login_enabled))Enter your index number. First-time sign-in: verify your phone by SMS, then create a password, add your name and email. After that, sign in with your password only.@else Use your index number and phone to sign in. We'll send a one-time code by SMS. Keep this page open while you complete the steps.@endif</p>
+@push('styles')
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Sora:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --sal-ink: #12141a;
+        --sal-muted: #5b6170;
+        --sal-line: rgba(18, 20, 26, 0.1);
+        --sal-yellow: #ffd500;
+        --sal-yellow-deep: #e6bf00;
+        --sal-surface: rgba(255, 255, 255, 0.78);
+        --sal-soft: #f3f1ea;
+    }
+    .sal-body {
+        background: #f7f5ef !important;
+        font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+        color: var(--sal-ink);
+    }
+    .sal-page {
+        position: relative;
+        min-height: 100dvh;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: max(1.25rem, env(safe-area-inset-top)) 1.25rem max(1.5rem, env(safe-area-inset-bottom));
+        overflow: hidden;
+    }
+    .sal-atmosphere {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background:
+            radial-gradient(900px 480px at 12% -8%, rgba(255, 213, 0, 0.42), transparent 58%),
+            radial-gradient(720px 420px at 100% 12%, rgba(18, 20, 26, 0.08), transparent 55%),
+            linear-gradient(165deg, #fffdf6 0%, #f4f1e8 48%, #ebe7dc 100%);
+    }
+    .sal-atmosphere::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        opacity: 0.35;
+        background-image:
+            linear-gradient(rgba(18, 20, 26, 0.035) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(18, 20, 26, 0.035) 1px, transparent 1px);
+        background-size: 48px 48px;
+        mask-image: radial-gradient(ellipse 70% 65% at 50% 40%, #000 20%, transparent 80%);
+    }
+    .sal-orb {
+        position: absolute;
+        width: 22rem;
+        height: 22rem;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(255, 213, 0, 0.55) 0%, rgba(255, 213, 0, 0) 70%);
+        filter: blur(8px);
+        top: -6rem;
+        right: -4rem;
+        animation: sal-float 9s ease-in-out infinite;
+    }
+    @keyframes sal-float {
+        0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+        50% { transform: translate3d(-1.2rem, 1.4rem, 0) scale(1.05); }
+    }
+    .sal-shell {
+        position: relative;
+        z-index: 1;
+        width: 100%;
+        max-width: 26.5rem;
+        animation: sal-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    @keyframes sal-rise {
+        from { opacity: 0; transform: translateY(18px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .sal-brand {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.85rem;
+        margin-bottom: 1.75rem;
+    }
+    .sal-brand-mark {
+        width: 3rem;
+        height: 3rem;
+        border-radius: 0.95rem;
+        overflow: hidden;
+        background: var(--sal-yellow);
+        box-shadow: 0 10px 30px rgba(255, 213, 0, 0.35);
+        animation: sal-mark-in 0.85s cubic-bezier(0.22, 1, 0.36, 1) 0.05s both;
+    }
+    .sal-brand-mark img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+    @keyframes sal-mark-in {
+        from { opacity: 0; transform: scale(0.84) rotate(-6deg); }
+        to { opacity: 1; transform: scale(1) rotate(0deg); }
+    }
+    .sal-brand-name {
+        font-family: 'Sora', ui-sans-serif, system-ui, sans-serif;
+        font-size: clamp(2.15rem, 7vw, 2.65rem);
+        font-weight: 700;
+        letter-spacing: -0.045em;
+        line-height: 0.95;
+        color: var(--sal-ink);
+    }
+    .sal-brand-name span {
+        color: transparent;
+        background: linear-gradient(120deg, var(--sal-ink) 35%, #8a7600 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+    }
+    .sal-panel {
+        background: var(--sal-surface);
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+        border: 1px solid rgba(255, 255, 255, 0.65);
+        border-radius: 1.35rem;
+        padding: 1.35rem 1.35rem 1.25rem;
+        box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset, 0 18px 50px rgba(18, 20, 26, 0.06);
+    }
+    .sal-step {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    .sal-step.sal-step--enter {
+        animation: sal-step-in 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    @keyframes sal-step-in {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .sal-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #8a7600;
+    }
+    .sal-kicker::before {
+        content: '';
+        width: 0.5rem;
+        height: 0.5rem;
+        border-radius: 999px;
+        background: var(--sal-yellow);
+        box-shadow: 0 0 0 3px rgba(255, 213, 0, 0.28);
+    }
+    .sal-title {
+        font-family: 'Sora', ui-sans-serif, system-ui, sans-serif;
+        font-size: 1.35rem;
+        font-weight: 650;
+        letter-spacing: -0.03em;
+        line-height: 1.2;
+        color: var(--sal-ink);
+        margin: 0;
+    }
+    .sal-copy {
+        margin: 0;
+        font-size: 0.94rem;
+        line-height: 1.45;
+        color: var(--sal-muted);
+    }
+    .sal-field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+    }
+    .sal-label {
+        font-size: 0.78rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        color: #3d4350;
+    }
+    .sal-input {
+        width: 100%;
+        border: 1px solid var(--sal-line);
+        background: rgba(255, 255, 255, 0.9);
+        color: var(--sal-ink);
+        border-radius: 0.9rem;
+        padding: 0.9rem 1rem;
+        font-size: 1rem;
+        font-weight: 500;
+        outline: none;
+        transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+    }
+    .sal-input--password {
+        padding-right: 2.85rem;
+    }
+    .sal-input::placeholder { color: #9aa0ad; font-weight: 450; }
+    .sal-input:focus {
+        border-color: rgba(230, 191, 0, 0.85);
+        box-shadow: 0 0 0 4px rgba(255, 213, 0, 0.28);
+        background: #fff;
+    }
+    .sal-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        min-height: 3rem;
+        border: none;
+        border-radius: 0.95rem;
+        padding: 0.85rem 1rem;
+        font-family: 'Sora', ui-sans-serif, system-ui, sans-serif;
+        font-size: 0.95rem;
+        font-weight: 650;
+        letter-spacing: -0.01em;
+        cursor: pointer;
+        transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+    }
+    .sal-btn:active { transform: scale(0.985); }
+    .sal-btn--primary {
+        background: var(--sal-yellow);
+        color: var(--sal-ink);
+        box-shadow: 0 10px 24px rgba(255, 213, 0, 0.28);
+    }
+    .sal-btn--primary:hover { background: var(--sal-yellow-deep); }
+    .sal-btn--ghost {
+        background: transparent;
+        color: var(--sal-muted);
+        font-weight: 600;
+        font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+        min-height: 2.6rem;
+    }
+    .sal-btn--ghost:hover { color: var(--sal-ink); background: rgba(18, 20, 26, 0.04); }
+    .sal-btn--quiet {
+        background: rgba(18, 20, 26, 0.04);
+        color: var(--sal-ink);
+        font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+        font-weight: 600;
+    }
+    .sal-btn--quiet:hover { background: rgba(18, 20, 26, 0.07); }
+    .sal-link {
+        color: var(--sal-ink);
+        font-weight: 650;
+        text-decoration: none;
+        border-bottom: 1px solid rgba(18, 20, 26, 0.22);
+    }
+    .sal-link:hover { border-bottom-color: var(--sal-ink); }
+    .sal-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 0.55rem;
+        margin-top: 0.15rem;
+    }
+    .sal-error {
+        border-radius: 0.85rem;
+        border: 1px solid #fecaca;
+        background: #fff5f5;
+        color: #991b1b;
+        padding: 0.75rem 0.9rem;
+        font-size: 0.875rem;
+        line-height: 1.4;
+    }
+    .sal-hint {
+        border-radius: 0.85rem;
+        border: 1px solid rgba(230, 191, 0, 0.45);
+        background: rgba(255, 213, 0, 0.12);
+        color: #5c4d00;
+        padding: 0.8rem 0.9rem;
+        font-size: 0.875rem;
+        line-height: 1.4;
+    }
+    .sal-hint strong { color: var(--sal-ink); }
+    .sal-note {
+        border-radius: 0.85rem;
+        border: 1px solid var(--sal-line);
+        background: rgba(255, 255, 255, 0.55);
+        color: var(--sal-muted);
+        padding: 0.75rem 0.85rem;
+        font-size: 0.8rem;
+        line-height: 1.4;
+    }
+    .sal-otp {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.45rem;
+    }
+    .sal-otp .otp-digit {
+        width: 2.7rem;
+        height: 3.15rem;
+        text-align: center;
+        font-family: 'Sora', ui-sans-serif, system-ui, sans-serif;
+        font-size: 1.25rem;
+        font-weight: 650;
+        border: 1px solid var(--sal-line);
+        border-radius: 0.8rem;
+        background: rgba(255, 255, 255, 0.92);
+        color: var(--sal-ink);
+        outline: none;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .sal-otp .otp-digit:focus {
+        border-color: rgba(230, 191, 0, 0.85);
+        box-shadow: 0 0 0 4px rgba(255, 213, 0, 0.28);
+    }
+    .sal-foot {
+        margin-top: 1.1rem;
+        text-align: center;
+        font-size: 0.82rem;
+        color: var(--sal-muted);
+    }
+    .sal-foot a { color: var(--sal-ink); font-weight: 650; text-decoration: none; }
+    .sal-foot a:hover { text-decoration: underline; }
+    .sal-panel [data-password-toggle] {
+        color: #7a8190 !important;
+    }
+    .sal-panel [data-password-toggle]:hover {
+        color: var(--sal-ink) !important;
+    }
+    .sal-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    .sal-stack.hidden,
+    .sal-step.hidden {
+        display: none !important;
+    }
+    @media (max-width: 420px) {
+        .sal-panel { padding: 1.15rem 1.05rem 1.05rem; border-radius: 1.15rem; }
+        .sal-otp .otp-digit { width: 2.4rem; height: 2.9rem; font-size: 1.1rem; }
+        .sal-brand-name { font-size: 2rem; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .sal-shell, .sal-brand-mark, .sal-orb, .sal-step--enter { animation: none !important; }
+    }
+</style>
+@endpush
 
-            {{-- Step 1: Index number (primary flow) --}}
-            <div id="step-index" class="space-y-4">
+@section('content')
+<div class="sal-page">
+    <div class="sal-atmosphere" aria-hidden="true"></div>
+    <div class="sal-orb" aria-hidden="true"></div>
+
+    <div class="sal-shell">
+        <header class="sal-brand">
+            <div class="sal-brand-mark">
+                <img src="{{ \App\Support\BrandAssets::markUrl() }}" alt="{{ \App\Support\BrandAssets::logoAlt() }}" width="48" height="48" decoding="async">
+            </div>
+            <h1 class="sal-brand-name"><span>{{ $appName }}</span></h1>
+        </header>
+
+        <div class="sal-panel">
+            {{-- Step 1: Index number --}}
+            <div id="step-index" class="sal-step">
                 <div>
-                    <label for="index_number" class="block text-sm font-medium text-gray-700 mb-1">Index number</label>
-                    <input type="text" id="index_number" name="index_number" required placeholder="e.g. BC/ITS/24/047" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-primary-500 focus:border-primary-500" style="text-transform: uppercase;" autocomplete="off">
+                    <p class="sal-kicker">Student portal</p>
+                    <h2 class="sal-title" style="margin-top:0.35rem;">Sign in</h2>
+                    <p class="sal-copy" style="margin-top:0.45rem;">
+                        @if(!empty($password_login_enabled))
+                            Enter your index number to continue.
+                        @else
+                            Use your index and phone to get a one-time SMS code.
+                        @endif
+                    </p>
+                </div>
+                <div class="sal-field">
+                    <label for="index_number" class="sal-label">Index number</label>
+                    <input type="text" id="index_number" name="index_number" required placeholder="e.g. BC/ITS/24/047" class="{{ $salInput }}" style="text-transform: uppercase;" autocomplete="off">
                 </div>
                 <div id="index-error" class="hidden">
-                    <div class="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800" id="index-error-text"></div>
-                    <div id="index-error-index-guidance" class="hidden mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+                    <div class="sal-error" id="index-error-text"></div>
+                    <div id="index-error-index-guidance" class="hidden sal-hint" style="margin-top:0.65rem;">
                         <p class="font-semibold mb-1">Contact your class rep or lecturer</p>
                         <p>Your index is not on the class list yet. Ask your <strong>class rep</strong> or <strong>lecturer</strong> to add you.</p>
                     </div>
                     @if(\App\Support\LiveSupportAccess::isEnabled())
-                    <p id="index-error-support-wrap" class="hidden mt-2 text-sm text-gray-600">
+                    <p id="index-error-support-wrap" class="hidden" style="margin-top:0.65rem;font-size:0.875rem;color:var(--sal-muted);">
                         Need technical help?
-                        <button type="button" id="index-error-live-support" class="text-indigo-600 hover:underline font-medium">Open live chat</button>
+                        <button type="button" id="index-error-live-support" class="sal-link" style="border:0;background:none;padding:0;cursor:pointer;">Open live chat</button>
                     </p>
                     @endif
                 </div>
-                <button type="button" id="btn-index" class="w-full py-2.5 px-4 text-sm font-semibold rounded-lg text-white bg-primary-600 hover:bg-primary-700 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">Continue</button>
+                <div class="sal-actions">
+                    <button type="button" id="btn-index" class="sal-btn sal-btn--primary">Continue</button>
+                </div>
             </div>
 
-            {{-- Step 1b: Email (final onboarding step) --}}
-            <div id="step-email" class="space-y-4 hidden">
-                <p class="text-sm text-gray-600" id="email-step-message">Enter your email address for account recovery and notifications.</p>
+            {{-- Email --}}
+            <div id="step-email" class="sal-step hidden">
                 <div>
-                    <label for="student_email" class="block text-sm font-medium text-gray-700 mb-1">Email address</label>
-                    <input type="email" id="student_email" name="email" placeholder="you@example.com" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-primary-500 focus:border-primary-500" autocomplete="email">
+                    <p class="sal-kicker">Almost done</p>
+                    <h2 class="sal-title" style="margin-top:0.35rem;">Add your email</h2>
+                    <p class="sal-copy" style="margin-top:0.45rem;" id="email-step-message">Enter your email address for account recovery and notifications.</p>
+                </div>
+                <div class="sal-field">
+                    <label for="student_email" class="sal-label">Email address</label>
+                    <input type="email" id="student_email" name="email" placeholder="you@example.com" class="{{ $salInput }}" autocomplete="email">
                 </div>
                 <div id="email-error" class="hidden">
-                    <div class="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800" id="email-error-text"></div>
+                    <div class="sal-error" id="email-error-text"></div>
                 </div>
-                <button type="button" id="btn-save-email" class="w-full py-2.5 px-4 text-sm font-semibold rounded-lg text-white bg-primary-600 hover:bg-primary-700 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">Continue</button>
-                <button type="button" id="btn-back-email-to-index" class="w-full py-2 px-4 text-sm font-medium rounded-lg text-gray-700 bg-gray-200 hover:bg-gray-300">← Back</button>
+                <div class="sal-actions">
+                    <button type="button" id="btn-save-email" class="sal-btn sal-btn--primary">Continue</button>
+                    <button type="button" id="btn-back-email-to-index" class="sal-btn sal-btn--ghost">Back</button>
+                </div>
             </div>
 
             @if(!empty($password_login_enabled))
-            {{-- Password sign-in (index already verified) --}}
-            <div id="step-password" class="space-y-4 hidden">
-                <p class="text-sm text-gray-600" id="password-step-message">Enter your password.</p>
+            <div id="step-password" class="sal-step hidden">
                 <div>
-                    <label for="login_password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                    @include('student.partials.password-input', ['id' => 'login_password', 'name' => 'login_password', 'autocomplete' => 'current-password'])
+                    <p class="sal-kicker">Welcome back</p>
+                    <h2 class="sal-title" style="margin-top:0.35rem;">Enter password</h2>
+                    <p class="sal-copy" style="margin-top:0.45rem;" id="password-step-message">Enter your password.</p>
+                </div>
+                <div class="sal-field">
+                    <label for="login_password" class="sal-label">Password</label>
+                    @include('student.partials.password-input', ['id' => 'login_password', 'name' => 'login_password', 'autocomplete' => 'current-password', 'class' => $salPassword])
                 </div>
                 <div id="password-error" class="hidden">
-                    <div class="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800" id="password-error-text"></div>
+                    <div class="sal-error" id="password-error-text"></div>
                 </div>
-                <button type="button" id="btn-verify-password" class="w-full py-2.5 px-4 text-sm font-semibold rounded-lg text-white bg-primary-600 hover:bg-primary-700 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">Sign in</button>
-                @if(!empty($password_reset_enabled))
-                <p class="text-center text-sm">
-                    <a href="{{ route('student.password.forgot') }}" class="text-primary-600 hover:underline font-medium">Forgot password?</a>
-                </p>
-                @endif
-                @if(!empty($otp_return_login_enabled))
-                <button type="button" id="btn-password-use-sms" class="w-full py-2 px-4 text-sm font-medium rounded-lg text-primary-700 bg-primary-50 border border-primary-200 hover:bg-primary-100">Get a code by SMS instead</button>
-                @endif
-                <button type="button" id="btn-back-password-to-index" class="w-full py-2 px-4 text-sm font-medium rounded-lg text-gray-700 bg-gray-200 hover:bg-gray-300">← Back</button>
+                <div class="sal-actions">
+                    <button type="button" id="btn-verify-password" class="sal-btn sal-btn--primary">Sign in</button>
+                    @if(!empty($password_reset_enabled))
+                    <p style="text-align:center;margin:0.15rem 0 0;font-size:0.875rem;">
+                        <a href="{{ route('student.password.forgot') }}" class="sal-link">Forgot password?</a>
+                    </p>
+                    @endif
+                    @if(!empty($otp_return_login_enabled))
+                    <button type="button" id="btn-password-use-sms" class="sal-btn sal-btn--quiet">Get a code by SMS instead</button>
+                    @endif
+                    <button type="button" id="btn-back-password-to-index" class="sal-btn sal-btn--ghost">Back</button>
+                </div>
             </div>
             @endif
 
-            {{-- Phone verification (SMS OTP) --}}
-            <div id="step-phone" class="space-y-4 hidden">
-                <p class="text-sm text-gray-600" id="phone-step-message">Enter your active phone number. We'll send a one-time SMS code.</p>
+            <div id="step-phone" class="sal-step hidden">
                 <div>
-                    <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Phone number</label>
-                    <input type="tel" id="phone" name="phone" placeholder="233XXXXXXXXX" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-primary-500 focus:border-primary-500" autocomplete="tel">
+                    <p class="sal-kicker">Verify</p>
+                    <h2 class="sal-title" style="margin-top:0.35rem;">Your phone number</h2>
+                    <p class="sal-copy" style="margin-top:0.45rem;" id="phone-step-message">Enter your active phone number. We'll send a one-time SMS code.</p>
+                </div>
+                <div class="sal-field">
+                    <label for="phone" class="sal-label">Phone number</label>
+                    <input type="tel" id="phone" name="phone" placeholder="233XXXXXXXXX" class="{{ $salInput }}" autocomplete="tel">
                 </div>
                 <div id="phone-error" class="hidden">
-                    <div class="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800" id="phone-error-text"></div>
+                    <div class="sal-error" id="phone-error-text"></div>
                 </div>
-                <button type="button" id="btn-send-otp" class="w-full py-2.5 px-4 text-sm font-semibold rounded-lg text-white bg-primary-600 hover:bg-primary-700 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">Send code</button>
-                <button type="button" id="btn-back-to-index" class="w-full py-2 px-4 text-sm font-medium rounded-lg text-gray-700 bg-gray-200 hover:bg-gray-300">← Back</button>
+                <div class="sal-actions">
+                    <button type="button" id="btn-send-otp" class="sal-btn sal-btn--primary">Send code</button>
+                    <button type="button" id="btn-back-to-index" class="sal-btn sal-btn--ghost">Back</button>
+                </div>
             </div>
 
-            {{-- Onboarding: create password (after OTP) --}}
             @if(!empty($password_login_enabled))
-            <div id="step-setup-password" class="space-y-4 hidden">
-                <p class="text-sm text-gray-600" id="setup-password-message">Phone verified. Create a password for your account.</p>
+            <div id="step-setup-password" class="sal-step hidden">
                 <div>
-                    <label for="setup_password" class="block text-sm font-medium text-gray-700 mb-1">Password (min {{ \App\Models\Student::PASSWORD_MIN_LENGTH }} characters)</label>
-                    @include('student.partials.password-input', ['id' => 'setup_password', 'autocomplete' => 'new-password'])
+                    <p class="sal-kicker">Secure account</p>
+                    <h2 class="sal-title" style="margin-top:0.35rem;">Create a password</h2>
+                    <p class="sal-copy" style="margin-top:0.45rem;" id="setup-password-message">Phone verified. Create a password for your account.</p>
                 </div>
-                <div>
-                    <label for="setup_password_confirmation" class="block text-sm font-medium text-gray-700 mb-1">Confirm password</label>
-                    @include('student.partials.password-input', ['id' => 'setup_password_confirmation', 'autocomplete' => 'new-password'])
+                <div class="sal-field">
+                    <label for="setup_password" class="sal-label">Password (min {{ \App\Models\Student::PASSWORD_MIN_LENGTH }} characters)</label>
+                    @include('student.partials.password-input', ['id' => 'setup_password', 'autocomplete' => 'new-password', 'class' => $salPassword])
+                </div>
+                <div class="sal-field">
+                    <label for="setup_password_confirmation" class="sal-label">Confirm password</label>
+                    @include('student.partials.password-input', ['id' => 'setup_password_confirmation', 'autocomplete' => 'new-password', 'class' => $salPassword])
                 </div>
                 <div id="setup-password-error" class="hidden">
-                    <div class="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800" id="setup-password-error-text"></div>
+                    <div class="sal-error" id="setup-password-error-text"></div>
                 </div>
-                <button type="button" id="btn-setup-password" class="w-full py-2.5 px-4 text-sm font-semibold rounded-lg text-white bg-primary-600 hover:bg-primary-700">Continue</button>
+                <div class="sal-actions">
+                    <button type="button" id="btn-setup-password" class="sal-btn sal-btn--primary">Continue</button>
+                </div>
             </div>
 
-            {{-- Onboarding: display name --}}
-            <div id="step-setup-name" class="space-y-4 hidden">
-                <p class="text-sm text-gray-600" id="setup-name-message">What name should we show on your account?</p>
+            <div id="step-setup-name" class="sal-step hidden">
                 <div>
-                    <label for="setup_student_name" class="block text-sm font-medium text-gray-700 mb-1">Your name</label>
-                    <input type="text" id="setup_student_name" placeholder="Full name" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-primary-500 focus:border-primary-500" autocomplete="name" style="text-transform: capitalize;">
+                    <p class="sal-kicker">Profile</p>
+                    <h2 class="sal-title" style="margin-top:0.35rem;">Your name</h2>
+                    <p class="sal-copy" style="margin-top:0.45rem;" id="setup-name-message">What name should we show on your account?</p>
+                </div>
+                <div class="sal-field">
+                    <label for="setup_student_name" class="sal-label">Full name</label>
+                    <input type="text" id="setup_student_name" placeholder="Full name" class="{{ $salInput }}" autocomplete="name" style="text-transform: capitalize;">
                 </div>
                 <div id="setup-name-error" class="hidden">
-                    <div class="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800" id="setup-name-error-text"></div>
+                    <div class="sal-error" id="setup-name-error-text"></div>
                 </div>
-                <button type="button" id="btn-setup-name" class="w-full py-2.5 px-4 text-sm font-semibold rounded-lg text-white bg-primary-600 hover:bg-primary-700">Continue</button>
+                <div class="sal-actions">
+                    <button type="button" id="btn-setup-name" class="sal-btn sal-btn--primary">Continue</button>
+                </div>
             </div>
             @endif
 
-            {{-- OTP verification --}}
-            <div id="step-otp" class="space-y-4 hidden">
-                <p class="text-sm text-gray-600" id="otp-step-message">Enter the 6-digit code sent to your phone.</p>
-                <div id="otp-code-fields" class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Code</label>
-                        <div class="flex justify-center gap-2" id="otp-boxes-wrap">
+            <div id="step-otp" class="sal-step hidden">
+                <div>
+                    <p class="sal-kicker">One-time code</p>
+                    <h2 class="sal-title" style="margin-top:0.35rem;">Enter the code</h2>
+                    <p class="sal-copy" style="margin-top:0.45rem;" id="otp-step-message">Enter the 6-digit code sent to your phone.</p>
+                </div>
+                <div id="otp-code-fields" class="sal-step" style="gap:1rem;">
+                    <div class="sal-field">
+                        <label class="sal-label">Code</label>
+                        <div class="sal-otp" id="otp-boxes-wrap">
                             @for($i = 0; $i < 6; $i++)
-                            <input type="text" inputmode="numeric" pattern="[0-9]" maxlength="1" data-otp-index="{{ $i }}" autocomplete="one-time-code"
-                                class="w-11 h-12 text-center text-xl font-semibold border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 otp-digit">
+                            <input type="text" inputmode="numeric" pattern="[0-9]" maxlength="1" data-otp-index="{{ $i }}" autocomplete="one-time-code" class="otp-digit">
                             @endfor
                         </div>
                         <input type="hidden" id="otp_code" name="code" value="">
                     </div>
                     <div id="otp-error" class="hidden">
-                        <div class="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800" id="otp-error-text"></div>
+                        <div class="sal-error" id="otp-error-text"></div>
                     </div>
-                    <button type="button" id="btn-verify-otp" class="w-full py-2.5 px-4 text-sm font-semibold rounded-lg text-white bg-primary-600 hover:bg-primary-700 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">Verify code</button>
-                    <p class="text-center text-sm text-gray-500">Didn't get the code? <button type="button" id="btn-resend-otp" class="text-primary-600 hover:underline font-medium">Resend code</button></p>
-                    <div id="otp-universal-fallback-wrap" class="hidden rounded-lg border border-blue-200 bg-blue-50 p-3">
-                        <p id="otp-universal-fallback-hint" class="text-xs text-blue-900"></p>
+                    <div class="sal-actions">
+                        <button type="button" id="btn-verify-otp" class="sal-btn sal-btn--primary">Verify code</button>
+                        <p style="text-align:center;margin:0;font-size:0.875rem;color:var(--sal-muted);">
+                            Didn't get the code?
+                            <button type="button" id="btn-resend-otp" class="sal-link" style="border:0;background:none;padding:0;cursor:pointer;">Resend</button>
+                        </p>
+                    </div>
+                    <div id="otp-universal-fallback-wrap" class="hidden sal-note">
+                        <p id="otp-universal-fallback-hint" style="margin:0;"></p>
                     </div>
                     @if(!empty($onboarding_email_otp_enabled) && !empty($mail_configured))
-                    <div id="otp-email-fallback-wrap" class="hidden rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-3">
-                        <p id="otp-email-fallback-hint" class="text-xs text-amber-900 hidden">Having trouble with SMS? Get a one-time code by email instead (setup only).</p>
-                        <button type="button" id="btn-show-email-fallback" class="w-full py-2 px-4 text-sm font-medium rounded-lg text-amber-900 bg-white border border-amber-300 hover:bg-amber-100">Get code by email instead</button>
-                        <div id="otp-email-fallback-fields" class="hidden space-y-3">
-                            <div>
-                                <label for="fallback_email" class="block text-sm font-medium text-gray-700 mb-1">Email address</label>
-                                <input type="email" id="fallback_email" placeholder="you@example.com" autocomplete="email" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
-                                <p class="text-xs text-gray-600 mt-1">We will save this to your account and send a code that expires in 15 minutes.</p>
+                    <div id="otp-email-fallback-wrap" class="hidden sal-hint sal-stack">
+                        <p id="otp-email-fallback-hint" class="hidden" style="margin:0;">Having trouble with SMS? Get a one-time code by email instead (setup only).</p>
+                        <button type="button" id="btn-show-email-fallback" class="sal-btn sal-btn--quiet">Get code by email instead</button>
+                        <div id="otp-email-fallback-fields" class="hidden sal-stack">
+                            <div class="sal-field">
+                                <label for="fallback_email" class="sal-label">Email address</label>
+                                <input type="email" id="fallback_email" placeholder="you@example.com" autocomplete="email" class="{{ $salInput }}">
+                                <p style="margin:0;font-size:0.78rem;color:var(--sal-muted);">We will save this to your account and send a code that expires in 15 minutes.</p>
                             </div>
-                            <button type="button" id="btn-send-email-otp" class="w-full py-2.5 px-4 text-sm font-semibold rounded-lg text-white bg-primary-600 hover:bg-primary-700">Send code to email</button>
+                            <button type="button" id="btn-send-email-otp" class="sal-btn sal-btn--primary">Send code to email</button>
                         </div>
                     </div>
                     @endif
-                    <p id="otp-days-remaining" class="text-center text-sm text-gray-500 mt-1 hidden" aria-live="polite"></p>
-                    <button type="button" id="btn-back-to-phone" class="w-full py-2 px-4 text-sm font-medium rounded-lg text-gray-700 bg-gray-200 hover:bg-gray-300">← Back</button>
+                    <p id="otp-days-remaining" class="hidden" style="text-align:center;margin:0;font-size:0.8rem;color:var(--sal-muted);" aria-live="polite"></p>
+                    <button type="button" id="btn-back-to-phone" class="sal-btn sal-btn--ghost">Back</button>
                 </div>
             </div>
         </div>
+
+        <p class="sal-foot">
+            Staff member?
+            <a href="{{ route('login') }}">Staff sign in</a>
+        </p>
     </div>
 </div>
 
@@ -257,22 +653,27 @@
     var lastPhoneUsed = '';
 
     function showStep(step) {
-        stepIndex.classList.add('hidden');
-        if (stepEmail) stepEmail.classList.add('hidden');
-        stepPhone.classList.add('hidden');
-        stepOtp.classList.add('hidden');
-        if (stepPassword) stepPassword.classList.add('hidden');
-        if (stepSetupPassword) stepSetupPassword.classList.add('hidden');
-        if (stepSetupName) stepSetupName.classList.add('hidden');
-        if (step === 'index') stepIndex.classList.remove('hidden');
-        else if ((step === 'email' || step === 'setup_email') && stepEmail) stepEmail.classList.remove('hidden');
-        else if (step === 'phone') stepPhone.classList.remove('hidden');
-        else if (step === 'password' && stepPassword) stepPassword.classList.remove('hidden');
-        else if (step === 'setup_password' && stepSetupPassword) stepSetupPassword.classList.remove('hidden');
-        else if (step === 'setup_name' && stepSetupName) stepSetupName.classList.remove('hidden');
+        var panels = [stepIndex, stepEmail, stepPhone, stepOtp, stepPassword, stepSetupPassword, stepSetupName];
+        panels.forEach(function (el) {
+            if (!el) return;
+            el.classList.add('hidden');
+            el.classList.remove('sal-step--enter');
+        });
+        var active = null;
+        if (step === 'index') active = stepIndex;
+        else if ((step === 'email' || step === 'setup_email') && stepEmail) active = stepEmail;
+        else if (step === 'phone') active = stepPhone;
+        else if (step === 'password' && stepPassword) active = stepPassword;
+        else if (step === 'setup_password' && stepSetupPassword) active = stepSetupPassword;
+        else if (step === 'setup_name' && stepSetupName) active = stepSetupName;
         else if (step === 'otp') {
-            stepOtp.classList.remove('hidden');
+            active = stepOtp;
             initOtpBoxes();
+        }
+        if (active) {
+            active.classList.remove('hidden');
+            void active.offsetWidth;
+            active.classList.add('sal-step--enter');
         }
     }
 

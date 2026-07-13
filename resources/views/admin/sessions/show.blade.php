@@ -4,337 +4,334 @@
 @section('dashboard_heading', 'Session – ' . $session->student_index)
 
 @section('dashboard_content')
-@php use App\Support\ProctoringImageUrl; @endphp
-<div class="w-full space-y-3">
-    <nav class="flex flex-wrap items-center gap-x-2 text-sm text-gray-500">
-        <a href="{{ route('dashboard.quizzes.show', ['quiz' => $quiz, 'tab' => 'sessions']) }}" class="hover:text-primary-600 inline-flex items-center gap-1">← Back to scores</a>
-        <span>·</span>
-        <span class="font-medium text-gray-900 truncate max-w-[10rem] sm:max-w-none">{{ $quiz->title }}</span>
-        <span>·</span>
-        <span>Index {{ $session->student_index }}</span>
+@php
+    use App\Support\ProctoringImageUrl;
+
+    $typeLabels = [
+        'blur' => 'Window lost focus',
+        'tab_switch' => 'Switched to another tab',
+        'window_resize' => 'Window resized or minimized',
+        'phone_detected' => 'Phone detected',
+        'copy_paste' => 'Copy or paste attempted',
+        'right_click' => 'Right-click / context menu',
+        'screenshot_attempt' => 'Screenshot key pressed',
+        'multiple_ip' => 'Different IP address used',
+        'face_mismatch' => 'Face mismatch',
+        'no_face_during_quiz' => 'No face during quiz',
+        'face_out_of_frame' => 'Face out of frame',
+        'multiple_faces_during_quiz' => 'Multiple faces during quiz',
+        'multiple_faces_pre_quiz' => 'Multiple faces pre quiz',
+        'multiple_faces' => 'Multiple faces detected',
+        'head_turn' => 'Head turned away',
+        'static_face_detected' => 'Static face detected',
+        'other' => 'Other',
+    ];
+
+    $preUrl = !empty($session->pre_face_image) ? ProctoringImageUrl::resolve($session->pre_face_image) : null;
+    $postUrl = !empty($session->post_face_image) ? ProctoringImageUrl::resolve($session->post_face_image) : null;
+    $violationSnapshots = $session->violations->filter(fn ($v) => !empty($v->image_url))->take(5)->values();
+    $violationsFirst = $session->violations->take(5);
+    $violationsRest = $session->violations->slice(5);
+    $restCount = $violationsRest->count();
+    $violationCount = $session->result?->violations_count ?? $session->violations->count();
+    $indexKey = strtoupper(trim((string) ($session->student_index ?? '')));
+    $initials = $indexKey !== ''
+        ? \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr(preg_replace('/[^A-Za-z0-9]/', '', $indexKey) ?: '?', -2))
+        : '?';
+
+    $formatViolationDetails = function ($v): string {
+        $meta = $v->metadata;
+        if (is_string($meta)) {
+            $decoded = @json_decode($meta, true);
+            $meta = $decoded !== null ? $decoded : $meta;
+        }
+        if (is_array($meta)) {
+            if (isset($meta['expected'], $meta['got'])) {
+                return 'Expected IP: ' . $meta['expected'] . ' — Got: ' . $meta['got'];
+            }
+            $parts = [];
+            if (isset($meta['face_count'])) {
+                $parts[] = 'Face count: ' . (int) $meta['face_count'];
+            }
+            if (isset($meta['object'])) {
+                $parts[] = 'Object: ' . (string) $meta['object'];
+            }
+            if (isset($meta['reason'])) {
+                $parts[] = 'Reason: ' . (string) $meta['reason'];
+            }
+            if (isset($meta['warning_count'])) {
+                $parts[] = 'Warning count: ' . (int) $meta['warning_count'];
+            }
+            if (isset($meta['remaining_warnings'])) {
+                $parts[] = 'Remaining warnings: ' . (int) $meta['remaining_warnings'];
+            }
+            $loggedAt = $meta['logged_at'] ?? $meta['captured_at'] ?? $meta['detected_at'] ?? $meta['timestamp'] ?? null;
+            if ($loggedAt !== null) {
+                $parts[] = 'At ' . (is_numeric($loggedAt) ? date('M d, H:i:s', (int) $loggedAt) : (string) $loggedAt);
+            }
+            if ($parts === []) {
+                $parts[] = implode('; ', array_map(
+                    fn ($k, $val) => $k . ': ' . (is_scalar($val) ? $val : json_encode($val)),
+                    array_keys($meta),
+                    $meta
+                ));
+            }
+
+            return implode(' · ', array_filter($parts));
+        }
+
+        return (string) $meta !== '' ? (string) $meta : '';
+    };
+@endphp
+
+<div class="w-full space-y-4">
+    <nav class="flex flex-wrap items-center gap-x-2 text-xs text-gray-500">
+        <a href="{{ route('dashboard.quizzes.show', ['quiz' => $quiz, 'tab' => 'sessions']) }}" class="hover:text-gray-900 transition">← Sessions</a>
+        <span class="text-gray-300">/</span>
+        <span class="text-gray-600 truncate max-w-[12rem] sm:max-w-none">{{ $quiz->title }}</span>
+        <span class="text-gray-300">/</span>
+        <span class="font-medium text-gray-900">{{ $session->student_index }}</span>
     </nav>
 
-    {{-- Summary --}}
-    <section class="bg-white rounded-lg border border-gray-200 p-3">
-        <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
-            <h2 class="text-sm font-semibold text-gray-900">Summary</h2>
-            <div class="flex items-center gap-2">
-                @if($session->result && $session->isResultWithheld())
-                    <form method="post" action="{{ route('dashboard.quizzes.sessions.clear-withheld', [$quiz, $session]) }}" onsubmit="return confirm('Release result and allow student to see this score?');">
-                        @csrf
-                        <button type="submit" class="text-xs font-medium px-2.5 py-1.5 rounded border border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100">Release result</button>
-                    </form>
+    {{-- Hero summary --}}
+    <section class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+        <div class="px-4 py-4 sm:px-5 sm:py-5 flex flex-wrap items-start justify-between gap-4">
+            <div class="flex items-center gap-3.5 min-w-0">
+                <div class="h-14 w-14 shrink-0 overflow-hidden rounded-full bg-gray-100 ring-1 ring-black/5">
+                    @if($preUrl)
+                        <img src="{{ $preUrl }}" alt="" class="h-full w-full object-cover object-top">
+                    @else
+                        <span class="flex h-full w-full items-center justify-center text-sm font-semibold text-gray-400">{{ $initials }}</span>
+                    @endif
+                </div>
+                <div class="min-w-0">
+                    <p class="text-base sm:text-lg font-semibold tracking-tight text-gray-900 truncate">{{ $session->student_index }}</p>
+                    <p class="text-xs text-gray-500 mt-0.5">
+                        {{ $session->device_label ?? 'Device' }}
+                        <span class="text-gray-300">·</span>
+                        {{ $session->start_time?->format('M j, g:i A') ?? '—' }}
+                        →
+                        {{ $session->ended_at?->format('g:i A') ?? '—' }}
+                    </p>
+                    @if($session->result && $session->isResultWithheld())
+                        <p class="mt-1 text-[11px] font-semibold uppercase tracking-wide text-rose-600">Result on hold</p>
+                    @endif
+                </div>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+                @if($session->result)
+                    <div class="rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2 text-right">
+                        <p class="text-[10px] uppercase tracking-wide text-gray-400 font-medium">Mark</p>
+                        <p class="text-lg font-semibold tabular-nums text-gray-900 leading-tight">{{ $session->result->correct_count }}/{{ $session->result->total_questions }}</p>
+                        <p class="text-[11px] text-gray-400 tabular-nums">{{ number_format((float) $session->result->score, 1) }}%</p>
+                    </div>
+                    <div class="rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-right">
+                        <p class="text-[10px] uppercase tracking-wide text-gray-400 font-medium">Violations</p>
+                        <p class="text-lg font-semibold tabular-nums {{ $violationCount > 0 ? 'text-rose-600' : 'text-gray-900' }} leading-tight">{{ $violationCount }}</p>
+                    </div>
                 @endif
-                <form method="post" action="{{ route('dashboard.quizzes.sessions.reset-ip', [$quiz, $session]) }}" onsubmit="return confirm('Reset IP lock?');">
-                    @csrf
-                    <button type="submit" class="text-xs font-medium px-2.5 py-1.5 rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-50">Reset IP Lock</button>
-                </form>
-                <form method="post" action="{{ route('dashboard.quizzes.sessions.kill', [$quiz, $session]) }}" onsubmit="return confirm('Kill this session? This will remove the result and allow the student to retake the quiz.');">
-                    @csrf
-                    <button type="submit" class="text-xs font-medium px-2.5 py-1.5 rounded border border-red-300 bg-red-50 text-red-700 hover:bg-red-100">Kill session</button>
-                </form>
+
+                <div class="flex flex-wrap items-center gap-1.5">
+                    @if($session->result && $session->isResultWithheld())
+                        <form method="post" action="{{ route('dashboard.quizzes.sessions.clear-withheld', [$quiz, $session]) }}" onsubmit="return confirm('Release result and allow student to see this score?');">
+                            @csrf
+                            <button type="submit" class="text-xs font-medium px-3 py-1.5 rounded-lg bg-gray-900 text-white hover:bg-gray-800 transition">Release</button>
+                        </form>
+                    @endif
+                    <form method="post" action="{{ route('dashboard.quizzes.sessions.reset-ip', [$quiz, $session]) }}" onsubmit="return confirm('Reset IP lock?');">
+                        @csrf
+                        <button type="submit" class="text-xs font-medium px-3 py-1.5 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition">Reset IP</button>
+                    </form>
+                    <form method="post" action="{{ route('dashboard.quizzes.sessions.kill', [$quiz, $session]) }}" onsubmit="return confirm('Kill this session? This will remove the result and allow the student to retake the quiz.');">
+                        @csrf
+                        <button type="submit" class="text-xs font-medium px-3 py-1.5 rounded-lg border border-rose-200 text-rose-700 hover:bg-rose-50 transition">Kill</button>
+                    </form>
+                </div>
             </div>
         </div>
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 text-xs">
-            <div><span class="text-gray-500 block">Index</span><span class="font-medium text-gray-900">{{ $session->student_index }}</span></div>
-            <div><span class="text-gray-500 block">IP</span><span class="font-mono text-gray-900 truncate block" title="{{ $session->ip_address }}">{{ $session->ip_address }}</span></div>
-            <div><span class="text-gray-500 block">Device</span><span class="text-gray-900" title="{{ $session->user_agent ?? '' }}">{{ $session->device_label ?? 'Laptop' }}</span></div>
-            <div><span class="text-gray-500 block">Started</span><span class="text-gray-900">{{ $session->start_time?->format('M d, H:i') ?? '-' }}</span></div>
-            <div><span class="text-gray-500 block">Ended</span><span class="text-gray-900">{{ $session->ended_at?->format('M d, H:i') ?? '-' }}</span></div>
-            <div><span class="text-gray-500 block">Mark</span>
-                @if($session->result)
-                    <div class="flex items-center gap-1.5 mt-0.5">
-                        <span class="inline-block px-1.5 py-0.5 text-xs font-semibold rounded tabular-nums
-                            @if($session->result->score >= 70) bg-green-100 text-green-800
-                            @elseif($session->result->score >= 50) bg-amber-100 text-amber-800
-                            @else bg-red-100 text-red-800
-                            @endif">{{ number_format((float) $session->result->score, 1) }}%</span>
-                        <span class="inline-block px-1.5 py-0.5 text-xs font-semibold rounded tabular-nums bg-slate-100 text-slate-700">{{ $session->result->correct_count }}/{{ $session->result->total_questions }}</span>
-                        @if($session->isResultWithheld())
-                            <span class="inline-block px-1.5 py-0.5 text-xs font-semibold rounded bg-red-100 text-red-700">Result on hold</span>
-                        @endif
-                    </div>
-                @else<span class="text-gray-400">-</span>@endif
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-px bg-gray-100 border-t border-gray-100">
+            <div class="bg-white px-4 py-3">
+                <p class="text-[10px] uppercase tracking-wide text-gray-400 font-medium">IP</p>
+                <p class="mt-0.5 text-xs font-medium text-gray-900 font-mono truncate" title="{{ $session->ip_address }}">{{ $session->ip_address ?: '—' }}</p>
             </div>
-            <div><span class="text-gray-500 block">Violations</span>
-                @if($session->result)
-                    <span class="inline-block px-1.5 py-0.5 text-xs font-semibold rounded {{ $session->result->violations_count > 0 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800' }}">{{ $session->result->violations_count }}</span>
-                @else<span class="text-gray-400">-</span>@endif
+            <div class="bg-white px-4 py-3">
+                <p class="text-[10px] uppercase tracking-wide text-gray-400 font-medium">Device</p>
+                <p class="mt-0.5 text-xs font-medium text-gray-900 truncate" title="{{ $session->user_agent ?? '' }}">{{ $session->device_label ?? 'Laptop' }}</p>
+            </div>
+            <div class="bg-white px-4 py-3">
+                <p class="text-[10px] uppercase tracking-wide text-gray-400 font-medium">Started</p>
+                <p class="mt-0.5 text-xs font-medium text-gray-900">{{ $session->start_time?->format('M d, H:i') ?? '—' }}</p>
+            </div>
+            <div class="bg-white px-4 py-3">
+                <p class="text-[10px] uppercase tracking-wide text-gray-400 font-medium">Ended</p>
+                <p class="mt-0.5 text-xs font-medium text-gray-900">{{ $session->ended_at?->format('M d, H:i') ?? '—' }}</p>
             </div>
         </div>
     </section>
 
-    {{-- Face Capture and Violation Log: at least two cards in one row, side by side --}}
-    <div class="grid grid-cols-2 gap-3 min-w-0">
-        {{-- Face Capture: profile-style small images --}}
-        <section class="min-w-0 bg-white rounded-lg border border-gray-200 p-3" id="face-capture">
-            <h2 class="text-sm font-semibold text-gray-900 mb-2">Face Capture</h2>
-            @php
-                $violationSnapshots = $session->violations
-                    ->filter(fn ($v) => !empty($v->image_url))
-                    ->take(5)
-                    ->values();
-            @endphp
-            <div class="flex flex-wrap gap-4">
-                <div class="flex flex-col items-center">
-                    <span class="text-xs text-gray-500 mb-1">1. At start</span>
-                    @if(!empty($session->pre_face_image))
-                        @php $preUrl = ProctoringImageUrl::resolve($session->pre_face_image); @endphp
-                        @if($preUrl)
-                        <button type="button" class="session-img-thumb rounded-lg border border-gray-200 overflow-hidden bg-gray-50 hover:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1" data-session-full-img="{{ $preUrl }}" data-session-img-alt="Face at start" aria-label="View full size">
-                            <img src="{{ $preUrl }}" alt="Face at start" class="w-20 h-20 object-cover object-top" loading="lazy">
-                        </button>
-                        <span class="text-xs text-gray-500 mt-1">Click to enlarge</span>
-                        @else
-                        <div class="w-20 h-20 rounded-lg border border-gray-200 bg-gray-50 flex items-center justify-center text-gray-400 text-xs text-center px-1">File missing</div>
-                        @endif
-                    @else
-                        <div class="w-20 h-20 rounded-lg border border-gray-200 bg-gray-50 flex items-center justify-center text-gray-400 text-xs">No image</div>
-                    @endif
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 min-w-0">
+        {{-- Face captures --}}
+        <section class="rounded-2xl border border-gray-200 bg-white shadow-sm p-4 sm:p-5" id="face-capture">
+            <div class="flex items-baseline justify-between gap-2 mb-4">
+                <h2 class="text-sm font-semibold text-gray-900 tracking-tight">Face captures</h2>
+                <p class="text-xs text-gray-400">Tap to enlarge</p>
+            </div>
+            <div class="flex flex-wrap gap-5">
+                <div class="flex flex-col items-center gap-1.5">
+                    <button type="button" @if($preUrl) class="session-img-thumb group" data-session-full-img="{{ $preUrl }}" data-session-img-alt="Face at start" aria-label="View full size" @else disabled @endif>
+                        <span class="block h-20 w-20 overflow-hidden rounded-full bg-gray-100 ring-1 ring-black/5 {{ $preUrl ? 'transition group-hover:ring-gray-300' : '' }}">
+                            @if($preUrl)
+                                <img src="{{ $preUrl }}" alt="Face at start" class="h-full w-full object-cover object-top" loading="lazy">
+                            @else
+                                <span class="flex h-full w-full items-center justify-center text-xs text-gray-400">No image</span>
+                            @endif
+                        </span>
+                    </button>
+                    <span class="text-[11px] text-gray-500">Start</span>
                 </div>
-                <div class="flex flex-col items-center">
-                    <span class="text-xs text-gray-500 mb-1">2. At end</span>
-                    @if(!empty($session->post_face_image))
-                        @php $postUrl = ProctoringImageUrl::resolve($session->post_face_image); @endphp
-                        @if($postUrl)
-                        <button type="button" class="session-img-thumb rounded-lg border border-gray-200 overflow-hidden bg-gray-50 hover:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1" data-session-full-img="{{ $postUrl }}" data-session-img-alt="Face at end" aria-label="View full size">
-                            <img src="{{ $postUrl }}" alt="Face at end" class="w-20 h-20 object-cover object-top" loading="lazy">
-                        </button>
-                        @else
-                        <div class="w-20 h-20 rounded-lg border border-gray-200 bg-gray-50 flex items-center justify-center text-gray-400 text-xs text-center px-1">File missing</div>
-                        @endif
+                <div class="flex flex-col items-center gap-1.5">
+                    <button type="button" @if($postUrl) class="session-img-thumb group" data-session-full-img="{{ $postUrl }}" data-session-img-alt="Face at end" aria-label="View full size" @else disabled @endif>
+                        <span class="block h-20 w-20 overflow-hidden rounded-full bg-gray-100 ring-1 ring-black/5 {{ $postUrl ? 'transition group-hover:ring-gray-300' : '' }}">
+                            @if($postUrl)
+                                <img src="{{ $postUrl }}" alt="Face at end" class="h-full w-full object-cover object-top" loading="lazy">
+                            @else
+                                <span class="flex h-full w-full items-center justify-center text-xs text-gray-400">No image</span>
+                            @endif
+                        </span>
+                    </button>
+                    <span class="text-[11px] text-gray-500">
+                        End
                         @if($postUrl && $session->post_face_captured_at)
-                            <span class="text-xs text-gray-500 mt-1">{{ $session->post_face_captured_at->format('M d, H:i') }}</span>
-                        @else
-                            <span class="text-xs text-gray-500 mt-1">Click to enlarge</span>
+                            · {{ $session->post_face_captured_at->format('H:i') }}
                         @endif
-                    @else
-                        <div class="w-20 h-20 rounded-lg border border-gray-200 bg-gray-50 flex items-center justify-center text-gray-400 text-xs">No image</div>
-                    @endif
+                    </span>
                 </div>
-                <div class="flex flex-col items-start">
-                    <span class="text-xs text-gray-500 mb-1">3. During quiz (max 5)</span>
+                <div class="flex flex-col items-start gap-1.5 min-w-0">
+                    <span class="text-[11px] text-gray-500 mb-0.5">During quiz</span>
                     @if($violationSnapshots->isNotEmpty())
                         <div class="flex flex-wrap gap-2">
                             @foreach($violationSnapshots as $snap)
                                 @php $imgUrl = ProctoringImageUrl::resolve($snap->image_url); @endphp
                                 @if($imgUrl)
-                                <button type="button" class="session-img-thumb rounded-lg border border-gray-200 overflow-hidden bg-gray-50 hover:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1" data-session-full-img="{{ $imgUrl }}" data-session-img-alt="Violation capture {{ $loop->iteration }}" aria-label="View full size">
-                                    <img src="{{ $imgUrl }}" alt="Violation capture {{ $loop->iteration }}" class="w-16 h-16 object-cover object-top" loading="lazy">
-                                </button>
+                                    <button type="button" class="session-img-thumb group" data-session-full-img="{{ $imgUrl }}" data-session-img-alt="Violation capture {{ $loop->iteration }}" aria-label="View full size">
+                                        <span class="block h-14 w-14 overflow-hidden rounded-full bg-gray-100 ring-1 ring-black/5 transition group-hover:ring-gray-300">
+                                            <img src="{{ $imgUrl }}" alt="Violation capture {{ $loop->iteration }}" class="h-full w-full object-cover object-top" loading="lazy">
+                                        </span>
+                                    </button>
                                 @endif
                             @endforeach
                         </div>
-                        <span class="text-xs text-gray-500 mt-1">Auto-captured when face left frame.</span>
                     @else
-                        <div class="text-xs text-gray-400">No in-quiz captures.</div>
+                        <p class="text-xs text-gray-400">No in-quiz captures</p>
                     @endif
                 </div>
             </div>
         </section>
 
-        {{-- Violation Log: first 5 visible, then "Show more" to reveal rest --}}
-        <section class="min-w-0 bg-white rounded-lg border border-gray-200 p-3">
-            <h2 class="text-sm font-semibold text-gray-900 mb-2">Violation Log</h2>
+        {{-- Violations --}}
+        <section class="rounded-2xl border border-gray-200 bg-white shadow-sm p-4 sm:p-5 min-w-0">
+            <div class="flex items-baseline justify-between gap-2 mb-3">
+                <h2 class="text-sm font-semibold text-gray-900 tracking-tight">Violation log</h2>
+                <span class="text-xs tabular-nums text-gray-400">{{ $session->violations->count() }}</span>
+            </div>
+
             @if($session->violations->isEmpty())
-                <div class="text-center py-4 text-gray-500 text-xs">No violations recorded.</div>
+                <div class="rounded-xl border border-dashed border-gray-200 px-4 py-8 text-center text-xs text-gray-400">No violations recorded</div>
             @else
-                @php
-                    $violationsFirst = $session->violations->take(5);
-                    $violationsRest = $session->violations->slice(5);
-                    $restCount = $violationsRest->count();
-                @endphp
-                <div class="overflow-x-auto">
-                    <table class="min-w-full text-xs border border-gray-200 rounded overflow-hidden">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th scope="col" class="px-2 py-1.5 text-left font-semibold text-gray-700">#</th>
-                                <th scope="col" class="px-2 py-1.5 text-left font-semibold text-gray-700">Time</th>
-                                <th scope="col" class="px-2 py-1.5 text-left font-semibold text-gray-700">Type</th>
-                                <th scope="col" class="px-2 py-1.5 text-left font-semibold text-gray-700">Severity</th>
-                                <th scope="col" class="px-2 py-1.5 text-left font-semibold text-gray-700">Details</th>
-                                <th scope="col" class="px-2 py-1.5 text-left font-semibold text-gray-700">Image</th>
+                <div class="overflow-x-auto -mx-1">
+                    <table class="min-w-full text-xs">
+                        <thead>
+                            <tr class="border-b border-gray-100 text-left text-[10px] uppercase tracking-wide text-gray-400">
+                                <th scope="col" class="px-2 py-2 font-medium">#</th>
+                                <th scope="col" class="px-2 py-2 font-medium">Time</th>
+                                <th scope="col" class="px-2 py-2 font-medium">Type</th>
+                                <th scope="col" class="px-2 py-2 font-medium">Severity</th>
+                                <th scope="col" class="px-2 py-2 font-medium">Details</th>
+                                <th scope="col" class="px-2 py-2 font-medium">Img</th>
                             </tr>
                         </thead>
-                        <tbody class="bg-white divide-y divide-gray-100">
+                        <tbody class="divide-y divide-gray-50">
                             @foreach($violationsFirst as $idx => $v)
                                 @php
-                                    $typeLabels = [
-                                        'blur' => 'Window lost focus',
-                                        'tab_switch' => 'Switched to another tab',
-                                        'window_resize' => 'Window resized or minimized',
-                                        'phone_detected' => 'Phone detected',
-                                        'copy_paste' => 'Copy or paste attempted',
-                                        'right_click' => 'Right-click / context menu',
-                                        'screenshot_attempt' => 'Screenshot key pressed',
-                                        'multiple_ip' => 'Different IP address used',
-                                        'face_mismatch' => 'Face mismatch',
-                                        'no_face_during_quiz' => 'No face during quiz',
-                                        'face_out_of_frame' => 'Face out of frame',
-                                        'multiple_faces_during_quiz' => 'Multiple faces during quiz',
-                                        'multiple_faces_pre_quiz' => 'Multiple faces pre quiz',
-                                        'multiple_faces' => 'Multiple faces detected',
-                                        'head_turn' => 'Head turned away',
-                                        'static_face_detected' => 'Static face detected',
-                                        'other' => 'Other',
-                                    ];
                                     $label = $typeLabels[$v->type] ?? ucfirst(str_replace('_', ' ', $v->type));
-                                    $meta = $v->metadata;
-                                    if (is_string($meta)) {
-                                        $decoded = @json_decode($meta, true);
-                                        $meta = $decoded !== null ? $decoded : $meta;
-                                    }
-                                    $details = '';
-                                    if (is_array($meta)) {
-                                        if (isset($meta['expected'], $meta['got'])) {
-                                            $details = 'Expected IP: ' . e($meta['expected']) . ' — Got: ' . e($meta['got']);
-                                        } else {
-                                            $parts = [];
-                                            if (isset($meta['face_count'])) {
-                                                $parts[] = 'Face count: ' . (int) $meta['face_count'];
-                                            }
-                                            if (isset($meta['object'])) {
-                                                $parts[] = 'Object: ' . (string) $meta['object'];
-                                            }
-                                            if (isset($meta['reason'])) {
-                                                $parts[] = 'Reason: ' . (string) $meta['reason'];
-                                            }
-                                            if (isset($meta['warning_count'])) {
-                                                $parts[] = 'Warning count: ' . (int) $meta['warning_count'];
-                                            }
-                                            if (isset($meta['remaining_warnings'])) {
-                                                $parts[] = 'Remaining warnings: ' . (int) $meta['remaining_warnings'];
-                                            }
-                                            $loggedAt = $meta['logged_at'] ?? $meta['captured_at'] ?? $meta['detected_at'] ?? $meta['timestamp'] ?? null;
-                                            if ($loggedAt !== null) {
-                                                $parts[] = 'At ' . (is_numeric($loggedAt) ? date('M d, H:i:s', (int) $loggedAt) : (string) $loggedAt);
-                                            }
-
-                                            if (empty($parts)) {
-                                                $parts[] = implode('; ', array_map(fn ($k, $val) => $k . ': ' . (is_scalar($val) ? $val : json_encode($val)), array_keys($meta), $meta));
-                                            }
-                                            $details = implode(' | ', array_filter($parts));
-                                        }
-                                    } elseif ((string)$meta !== '') {
-                                        $details = (string) $meta;
-                                    }
+                                    $details = $formatViolationDetails($v);
                                 @endphp
-                                <tr class="hover:bg-gray-50">
-                                    <td class="px-2 py-1.5 tabular-nums font-medium text-gray-600">{{ $idx + 1 }}</td>
-                                    <td class="px-2 py-1.5 whitespace-nowrap text-gray-700">{{ $v->occurred_at?->format('M d, H:i:s') ?? '—' }}</td>
-                                    <td class="px-2 py-1.5">
-                                        <span class="px-1.5 py-0.5 rounded font-medium bg-red-100 text-red-800">{{ $label }}</span>
-                                    </td>
-                                    <td class="px-2 py-1.5">
+                                <tr class="hover:bg-gray-50/80">
+                                    <td class="px-2 py-2 tabular-nums text-gray-400">{{ $idx + 1 }}</td>
+                                    <td class="px-2 py-2 whitespace-nowrap text-gray-600">{{ $v->occurred_at?->format('M d, H:i:s') ?? '—' }}</td>
+                                    <td class="px-2 py-2 font-medium text-gray-900">{{ $label }}</td>
+                                    <td class="px-2 py-2">
                                         @if($v->severity === 'critical')
-                                            <span class="px-1.5 py-0.5 rounded font-medium bg-red-200 text-red-900">Critical</span>
+                                            <span class="text-rose-600 font-medium">Critical</span>
                                         @else
-                                            <span class="px-1.5 py-0.5 rounded font-medium bg-amber-100 text-amber-800">Warning</span>
+                                            <span class="text-gray-500">Warning</span>
                                         @endif
                                     </td>
-                                    <td class="px-2 py-1.5 text-gray-600 max-w-[200px] sm:max-w-xs break-words">{{ $details ?: '—' }}</td>
-                                    <td class="px-2 py-1.5">
+                                    <td class="px-2 py-2 text-gray-500 max-w-[12rem] break-words">{{ $details !== '' ? $details : '—' }}</td>
+                                    <td class="px-2 py-2">
                                         @if(!empty($v->image_url))
                                             @php $imgUrl = ProctoringImageUrl::resolve($v->image_url); @endphp
                                             @if($imgUrl)
-                                            <button type="button" class="session-img-thumb rounded border border-gray-200 overflow-hidden" data-session-full-img="{{ $imgUrl }}" data-session-img-alt="Violation image {{ $idx + 1 }}" aria-label="Open violation image">
-                                                <img src="{{ $imgUrl }}" alt="Violation image {{ $idx + 1 }}" class="w-10 h-10 object-cover" loading="lazy">
-                                            </button>
+                                                <button type="button" class="session-img-thumb" data-session-full-img="{{ $imgUrl }}" data-session-img-alt="Violation image {{ $idx + 1 }}" aria-label="Open violation image">
+                                                    <img src="{{ $imgUrl }}" alt="Violation image {{ $idx + 1 }}" class="w-8 h-8 rounded-full object-cover ring-1 ring-black/5" loading="lazy">
+                                                </button>
                                             @else
-                                            <span class="text-gray-400">—</span>
+                                                <span class="text-gray-300">—</span>
                                             @endif
                                         @else
-                                            <span class="text-gray-400">—</span>
+                                            <span class="text-gray-300">—</span>
                                         @endif
                                     </td>
                                 </tr>
                             @endforeach
                             @if($restCount > 0)
-                                <tr id="violation-log-show-more-row" class="bg-gray-50 border-t border-gray-200">
-                                    <td colspan="6" class="px-2 py-2">
-                                        <button type="button" id="violation-log-toggle" class="inline-flex items-center gap-1.5 text-xs font-medium text-primary-600 hover:text-primary-800 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 rounded px-1 py-0.5" aria-expanded="false" aria-controls="violation-log-more">
-                                            <svg id="violation-log-chevron" class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-                                            <span id="violation-log-toggle-text">Show {{ $restCount }} more violation{{ $restCount === 1 ? '' : 's' }}</span>
+                                <tr id="violation-log-show-more-row">
+                                    <td colspan="6" class="px-2 py-2.5">
+                                        <button type="button" id="violation-log-toggle" class="inline-flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900" aria-expanded="false" aria-controls="violation-log-more">
+                                            <svg id="violation-log-chevron" class="w-3.5 h-3.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                                            <span id="violation-log-toggle-text">Show {{ $restCount }} more</span>
                                         </button>
                                     </td>
                                 </tr>
                             @endif
                         </tbody>
                         @if($restCount > 0)
-                            <tbody id="violation-log-more" class="bg-white divide-y divide-gray-100 hidden" hidden>
+                            <tbody id="violation-log-more" class="divide-y divide-gray-50 hidden" hidden>
                                 @foreach($violationsRest as $idx => $v)
-                                @php
-                                    $typeLabels = [
-                                        'blur' => 'Window lost focus',
-                                        'tab_switch' => 'Switched to another tab',
-                                        'window_resize' => 'Window resized or minimized',
-                                        'phone_detected' => 'Phone detected',
-                                        'copy_paste' => 'Copy or paste attempted',
-                                        'right_click' => 'Right-click / context menu',
-                                        'screenshot_attempt' => 'Screenshot key pressed',
-                                        'multiple_ip' => 'Different IP address used',
-                                        'face_mismatch' => 'Face mismatch',
-                                        'no_face_during_quiz' => 'No face during quiz',
-                                        'face_out_of_frame' => 'Face out of frame',
-                                        'multiple_faces_during_quiz' => 'Multiple faces during quiz',
-                                        'multiple_faces' => 'Multiple faces detected',
-                                        'multiple_faces_pre_quiz' => 'Multiple faces pre quiz',
-                                        'head_turn' => 'Head turned away',
-                                        'static_face_detected' => 'Static face detected',
-                                        'other' => 'Other',
-                                    ];
-                                    $label = $typeLabels[$v->type] ?? ucfirst(str_replace('_', ' ', $v->type));
-                                    $meta = $v->metadata;
-                                    if (is_string($meta)) {
-                                        $decoded = @json_decode($meta, true);
-                                        $meta = $decoded !== null ? $decoded : $meta;
-                                    }
-                                    $details = '';
-                                    if (is_array($meta)) {
-                                        if (isset($meta['expected'], $meta['got'])) {
-                                            $details = 'Expected IP: ' . e($meta['expected']) . ' — Got: ' . e($meta['got']);
-                                        } else {
-                                            $parts = [];
-                                            if (isset($meta['face_count'])) { $parts[] = 'Face count: ' . (int) $meta['face_count']; }
-                                            if (isset($meta['object'])) { $parts[] = 'Object: ' . (string) $meta['object']; }
-                                            if (isset($meta['reason'])) { $parts[] = 'Reason: ' . (string) $meta['reason']; }
-                                            if (isset($meta['warning_count'])) { $parts[] = 'Warning count: ' . (int) $meta['warning_count']; }
-                                            if (isset($meta['remaining_warnings'])) { $parts[] = 'Remaining warnings: ' . (int) $meta['remaining_warnings']; }
-                                            $loggedAt = $meta['logged_at'] ?? $meta['captured_at'] ?? $meta['detected_at'] ?? $meta['timestamp'] ?? null;
-                                            if ($loggedAt !== null) { $parts[] = 'At ' . (is_numeric($loggedAt) ? date('M d, H:i:s', (int) $loggedAt) : (string) $loggedAt); }
-                                            if (empty($parts)) { $parts[] = implode('; ', array_map(fn ($k, $val) => $k . ': ' . (is_scalar($val) ? $val : json_encode($val)), array_keys($meta), $meta)); }
-                                            $details = implode(' | ', array_filter($parts));
-                                        }
-                                    } elseif ((string)$meta !== '') { $details = (string) $meta; }
-                                    $rowNum = $violationsFirst->count() + $idx + 1;
-                                @endphp
-                                <tr class="hover:bg-gray-50">
-                                    <td class="px-2 py-1.5 tabular-nums font-medium text-gray-600">{{ $rowNum }}</td>
-                                    <td class="px-2 py-1.5 whitespace-nowrap text-gray-700">{{ $v->occurred_at?->format('M d, H:i:s') ?? '—' }}</td>
-                                    <td class="px-2 py-1.5"><span class="px-1.5 py-0.5 rounded font-medium bg-red-100 text-red-800">{{ $label }}</span></td>
-                                    <td class="px-2 py-1.5">
-                                        @if($v->severity === 'critical')
-                                            <span class="px-1.5 py-0.5 rounded font-medium bg-red-200 text-red-900">Critical</span>
-                                        @else
-                                            <span class="px-1.5 py-0.5 rounded font-medium bg-amber-100 text-amber-800">Warning</span>
-                                        @endif
-                                    </td>
-                                    <td class="px-2 py-1.5 text-gray-600 max-w-[200px] sm:max-w-xs break-words">{{ $details ?: '—' }}</td>
-                                    <td class="px-2 py-1.5">
-                                        @if(!empty($v->image_url))
-                                            @php $imgUrl = ProctoringImageUrl::resolve($v->image_url); @endphp
-                                            @if($imgUrl)
-                                            <button type="button" class="session-img-thumb rounded border border-gray-200 overflow-hidden" data-session-full-img="{{ $imgUrl }}" data-session-img-alt="Violation image {{ $rowNum }}" aria-label="Open violation image">
-                                                <img src="{{ $imgUrl }}" alt="Violation image {{ $rowNum }}" class="w-10 h-10 object-cover" loading="lazy">
-                                            </button>
+                                    @php
+                                        $label = $typeLabels[$v->type] ?? ucfirst(str_replace('_', ' ', $v->type));
+                                        $details = $formatViolationDetails($v);
+                                        $rowNum = $violationsFirst->count() + $idx + 1;
+                                    @endphp
+                                    <tr class="hover:bg-gray-50/80">
+                                        <td class="px-2 py-2 tabular-nums text-gray-400">{{ $rowNum }}</td>
+                                        <td class="px-2 py-2 whitespace-nowrap text-gray-600">{{ $v->occurred_at?->format('M d, H:i:s') ?? '—' }}</td>
+                                        <td class="px-2 py-2 font-medium text-gray-900">{{ $label }}</td>
+                                        <td class="px-2 py-2">
+                                            @if($v->severity === 'critical')
+                                                <span class="text-rose-600 font-medium">Critical</span>
                                             @else
-                                            <span class="text-gray-400">—</span>
+                                                <span class="text-gray-500">Warning</span>
                                             @endif
-                                        @else
-                                            <span class="text-gray-400">—</span>
-                                        @endif
-                                    </td>
-                                </tr>
+                                        </td>
+                                        <td class="px-2 py-2 text-gray-500 max-w-[12rem] break-words">{{ $details !== '' ? $details : '—' }}</td>
+                                        <td class="px-2 py-2">
+                                            @if(!empty($v->image_url))
+                                                @php $imgUrl = ProctoringImageUrl::resolve($v->image_url); @endphp
+                                                @if($imgUrl)
+                                                    <button type="button" class="session-img-thumb" data-session-full-img="{{ $imgUrl }}" data-session-img-alt="Violation image {{ $rowNum }}" aria-label="Open violation image">
+                                                        <img src="{{ $imgUrl }}" alt="Violation image {{ $rowNum }}" class="w-8 h-8 rounded-full object-cover ring-1 ring-black/5" loading="lazy">
+                                                    </button>
+                                                @else
+                                                    <span class="text-gray-300">—</span>
+                                                @endif
+                                            @else
+                                                <span class="text-gray-300">—</span>
+                                            @endif
+                                        </td>
+                                    </tr>
                                 @endforeach
                             </tbody>
                         @endif
@@ -360,7 +357,7 @@
                                 more.setAttribute('hidden', '');
                                 more.classList.add('hidden');
                                 if (chevron) chevron.style.transform = '';
-                                if (text) text.textContent = 'Show {{ $restCount }} more violation{{ $restCount === 1 ? '' : 's' }}';
+                                if (text) text.textContent = 'Show {{ $restCount }} more';
                                 btn.setAttribute('aria-expanded', 'false');
                             }
                         });
@@ -368,14 +365,14 @@
                 })();
                 </script>
                 @endif
-                <p class="mt-2 text-xs text-gray-500">Critical violations trigger immediate auto-submit: phone detected, screenshot attempt, tab switch/minimize, multiple faces, resize/fullscreen exit, opening another window/app, copy/paste, and multiple IP.</p>
+                <p class="mt-3 text-[11px] leading-relaxed text-gray-400">Critical events auto-submit: phone, screenshot, tab switch, multiple faces, resize/fullscreen exit, another window, copy/paste, multiple IP.</p>
             @endif
         </section>
     </div>
 
-    {{-- Question-by-question review (lecturer view mirrors student review) --}}
-    <section class="bg-white rounded-lg border border-gray-200 p-3">
-        <h2 class="text-sm font-semibold text-gray-900 mb-2">Question Review</h2>
+    {{-- Question review --}}
+    <section class="rounded-2xl border border-gray-200 bg-white shadow-sm p-4 sm:p-5">
+        <h2 class="text-sm font-semibold text-gray-900 tracking-tight mb-3">Question review</h2>
         @php
             $assignedQuestions = $assignedQuestions ?? collect();
             $answersByQuestion = $session->answers->keyBy(fn ($a) => (int) $a->question_id);
@@ -383,7 +380,7 @@
             $shuffledByQuestion = $session->shuffled_question_options ?? [];
         @endphp
         @if($assignedQuestions->isEmpty())
-            <p class="text-xs text-gray-500">No assigned question snapshot found for this session.</p>
+            <p class="text-xs text-gray-400">No assigned question snapshot found for this session.</p>
         @else
             <div class="space-y-2">
                 @foreach($assignedQuestions as $idx => $question)
@@ -400,8 +397,12 @@
                             foreach ($opts as $opt) {
                                 $k = is_array($opt) ? (string) ($opt['key'] ?? '') : (string) $opt;
                                 $t = is_array($opt) ? (string) ($opt['text'] ?? $k) : (string) $opt;
-                                if ($k === $studentAnswerRaw) $studentAnswerText = $t;
-                                if ($k === trim((string) $sessionCorrect)) $correctText = $t;
+                                if ($k === $studentAnswerRaw) {
+                                    $studentAnswerText = $t;
+                                }
+                                if ($k === trim((string) $sessionCorrect)) {
+                                    $correctText = $t;
+                                }
                             }
                         }
                         $reason = null;
@@ -411,28 +412,31 @@
                             $reason = trim((string) ($question->explanation_wrong ?? '')) !== '' ? $question->explanation_wrong : ($answer?->explanation_wrong ?? null);
                         }
                     @endphp
-                    <div class="rounded border p-2 {{ $isCorrect ? 'border-green-200 bg-green-50/50' : 'border-red-200 bg-red-50/50' }}">
-                        <p class="text-xs font-semibold text-gray-900">{{ $idx + 1 }}. {{ $question->text }}</p>
-                        <div class="mt-1 text-xs text-gray-700 space-y-0.5">
+                    <div class="rounded-xl border border-gray-200 bg-white px-3.5 py-3">
+                        <div class="flex items-start justify-between gap-3">
+                            <p class="text-[13px] font-medium text-gray-900 leading-snug">
+                                <span class="text-gray-400 font-normal tabular-nums mr-1">{{ $idx + 1 }}.</span>
+                                {{ $question->text }}
+                            </p>
+                            <span class="shrink-0 text-[11px] font-semibold tabular-nums {{ $isCorrect ? 'text-emerald-600' : 'text-rose-600' }}">
+                                {{ $isCorrect ? 'Correct' : 'Wrong' }}
+                            </span>
+                        </div>
+                        <div class="mt-2 grid gap-1 text-xs text-gray-600">
                             <p>
-                                <span class="font-medium">Student:</span>
+                                <span class="text-gray-400">Student</span>
                                 @if($isAnswered)
-                                    {{ $studentAnswerRaw }}@if($studentAnswerText !== null). {{ $studentAnswerText }}@endif
+                                    · {{ $studentAnswerRaw }}@if($studentAnswerText !== null) — {{ $studentAnswerText }}@endif
                                 @else
-                                    <span class="text-red-700 font-medium">Not answered</span>
+                                    · <span class="text-rose-600">Not answered</span>
                                 @endif
                             </p>
-                            <p><span class="font-medium text-green-700">Correct:</span> {{ $sessionCorrect }}@if($correctText !== null). {{ $correctText }}@endif</p>
                             <p>
-                                <span class="font-medium">Status:</span>
-                                @if($isCorrect)
-                                    <span class="text-green-700 font-semibold">Correct</span>
-                                @else
-                                    <span class="text-red-700 font-semibold">Wrong</span>
-                                @endif
+                                <span class="text-gray-400">Correct</span>
+                                · {{ $sessionCorrect }}@if($correctText !== null) — {{ $correctText }}@endif
                             </p>
                             @if($reason)
-                                <p><span class="font-medium text-red-700">Reason:</span> {{ $reason }}</p>
+                                <p class="text-gray-500"><span class="text-gray-400">Note</span> · {{ $reason }}</p>
                             @endif
                         </div>
                     </div>
@@ -440,16 +444,12 @@
             </div>
         @endif
     </section>
-
-    <div>
-        <a href="{{ route('dashboard.quizzes.show', $quiz) }}" class="inline-flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900">← Back to Quiz</a>
-    </div>
 </div>
 
 {{-- Lightbox --}}
 <div id="session-img-lightbox" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/80 p-4" role="dialog" aria-modal="true" aria-label="View image">
     <button type="button" id="session-img-lightbox-close" class="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/30 focus:outline-none" aria-label="Close">×</button>
-    <img id="session-img-lightbox-img" src="" alt="" class="max-w-full max-h-[85vh] w-auto h-auto object-contain rounded">
+    <img id="session-img-lightbox-img" src="" alt="" class="max-w-full max-h-[85vh] w-auto h-auto object-contain rounded-2xl">
 </div>
 
 <script>

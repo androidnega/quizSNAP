@@ -71,9 +71,9 @@
                     display: none;
                 }
                 .sessions-face {
-                    width: 1.875rem;
-                    height: 2.35rem;
-                    border-radius: 50%;
+                    width: 2rem;
+                    height: 2rem;
+                    border-radius: 9999px;
                 }
                 .sessions-face img {
                     transition: transform 0.35s ease;
@@ -82,17 +82,14 @@
                     transform: scale(1.06);
                 }
             </style>
-            <div class="sessions-scroll-hide">
-                <ul class="divide-y divide-gray-100" id="sessions-table-body" role="list">
+            <div class="sessions-scroll-hide bg-white">
+                <ul class="divide-y divide-gray-100 bg-white" id="sessions-table-body" role="list">
                     @foreach($sessionsPaginator as $session)
                         @php
                             $index = strtoupper(trim((string) ($session->student_index ?? '')));
                             $name = ($galleryNames ?? [])[$index] ?? null;
                             $violationCount = $session->violations->count();
                             $score = $session->result?->score;
-                            $scoreText = $score === null
-                                ? 'text-gray-400'
-                                : ($score >= 70 ? 'text-emerald-600' : ($score >= 50 ? 'text-amber-600' : 'text-rose-600'));
                             $faceUrl = !empty($session->pre_face_image)
                                 ? ProctoringImageUrl::resolve($session->pre_face_image)
                                 : null;
@@ -101,8 +98,8 @@
                                 : '?';
                         @endphp
                         <li class="sessions-row group" data-student-index="{{ $index }}">
-                            <div class="flex items-center gap-2.5 px-3 sm:px-4 py-1.5 hover:bg-gray-50 transition-colors {{ $violationCount > 0 ? 'bg-rose-50/50' : '' }}">
-                                <div class="sessions-face shrink-0 overflow-hidden bg-gradient-to-b from-slate-100 to-slate-200 ring-1 ring-black/5 shadow-sm">
+                            <div class="flex items-center gap-2.5 px-3 sm:px-4 py-1.5 bg-white hover:bg-gray-50 transition-colors">
+                                <div class="sessions-face shrink-0 overflow-hidden bg-gray-100 ring-1 ring-black/5">
                                     @if($faceUrl)
                                         <img src="{{ $faceUrl }}" alt="" class="h-full w-full object-cover object-top" loading="lazy">
                                     @else
@@ -116,23 +113,23 @@
                                         <span class="hidden md:inline text-xs text-gray-400 truncate max-w-[10rem]">{{ $name }}</span>
                                     @endif
                                     @if($session->isResultWithheld())
-                                        <span class="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-rose-600">Hold</span>
+                                        <span class="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-gray-500">Hold</span>
                                     @endif
                                     @if($violationCount > 0)
-                                        <span class="shrink-0 text-[10px] font-semibold tabular-nums text-rose-600" title="{{ $violationCount }} violation{{ $violationCount === 1 ? '' : 's' }}">· {{ $violationCount }}v</span>
+                                        <span class="shrink-0 text-[10px] font-semibold tabular-nums text-rose-600" title="{{ $violationCount }} violation{{ $violationCount === 1 ? '' : 's' }}">{{ $violationCount }}v</span>
                                     @endif
                                 </div>
 
                                 <div class="flex items-center gap-2 shrink-0">
                                     @if($session->result)
-                                        <span class="text-[13px] font-semibold tabular-nums {{ $scoreText }} min-w-[2.75rem] text-right">{{ $session->result->correct_count }}/{{ $session->result->total_questions }}</span>
+                                        <span class="text-[13px] font-semibold tabular-nums text-gray-900 min-w-[2.75rem] text-right">{{ $session->result->correct_count }}/{{ $session->result->total_questions }}</span>
                                         <span class="text-[11px] text-gray-400 tabular-nums min-w-[2.75rem] text-right">{{ number_format((float) $score, 0) }}%</span>
                                     @else
                                         <span class="text-xs text-gray-300 min-w-[2.75rem] text-right">—</span>
                                     @endif
 
                                     <a href="{{ route('dashboard.quizzes.sessions.show', [$quiz, $session]) }}"
-                                       class="text-xs font-medium {{ $violationCount > 0 ? 'text-rose-600 hover:text-rose-800' : 'text-primary-600 hover:text-primary-800' }}">
+                                       class="text-xs font-medium text-primary-600 hover:text-primary-800">
                                         View
                                     </a>
                                     <form action="{{ route('dashboard.quizzes.sessions.kill', [$quiz, $session]) }}" method="POST" class="inline" onsubmit="return confirm('Reset this session? The result will be removed and the student can retake the quiz.');">
@@ -146,7 +143,7 @@
                         </li>
                     @endforeach
                 </ul>
-                <p id="sessions-empty-filter" class="hidden px-4 py-8 text-center text-sm text-gray-500">No sessions match that index.</p>
+                <p id="sessions-empty-filter" class="hidden px-4 py-8 text-center text-sm text-gray-500 bg-white">No sessions match that index.</p>
             </div>
         @endif
     </div>

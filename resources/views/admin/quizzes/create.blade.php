@@ -224,8 +224,38 @@
                 $defaultQuestionSource = old('question_source', $canUseAi ? 'ai' : 'json');
             @endphp
 
-            <form action="{{ route('dashboard.quizzes.store') }}" method="post" id="quiz-create-form" class="space-y-6" enctype="multipart/form-data">
+            <form action="{{ route('dashboard.quizzes.store') }}" method="post" id="quiz-create-form" class="space-y-5" enctype="multipart/form-data" data-quiz-create-wizard="1">
                 @csrf
+
+                {{-- Stepper --}}
+                <nav class="quiz-create-steps flex flex-wrap items-center gap-1.5 sm:gap-2 pb-4 border-b border-gray-100" aria-label="Create quiz steps">
+                    <button type="button" class="quiz-create-step-btn quiz-create-step-btn--active inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium bg-primary-600 text-white shadow-sm" data-step="1" aria-current="step">
+                        <span class="inline-flex h-5 w-5 items-center justify-center rounded-md bg-white/20 text-[11px] font-bold">1</span>
+                        <span class="hidden sm:inline">Basics</span>
+                    </button>
+                    <span class="hidden sm:block h-px w-4 bg-gray-200" aria-hidden="true"></span>
+                    <button type="button" class="quiz-create-step-btn inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50" data-step="2">
+                        <span class="inline-flex h-5 w-5 items-center justify-center rounded-md bg-gray-100 text-[11px] font-bold text-gray-500">2</span>
+                        <span class="hidden sm:inline">Pool</span>
+                    </button>
+                    <span class="hidden sm:block h-px w-4 bg-gray-200" aria-hidden="true"></span>
+                    <button type="button" class="quiz-create-step-btn inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50" data-step="3">
+                        <span class="inline-flex h-5 w-5 items-center justify-center rounded-md bg-gray-100 text-[11px] font-bold text-gray-500">3</span>
+                        <span class="hidden sm:inline">Questions</span>
+                    </button>
+                    <span class="hidden sm:block h-px w-4 bg-gray-200" aria-hidden="true"></span>
+                    <button type="button" class="quiz-create-step-btn inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50" data-step="4">
+                        <span class="inline-flex h-5 w-5 items-center justify-center rounded-md bg-gray-100 text-[11px] font-bold text-gray-500">4</span>
+                        <span class="hidden sm:inline">Schedule</span>
+                    </button>
+                </nav>
+
+                {{-- Step 1: Basics --}}
+                <div class="quiz-create-panel" data-step-panel="1">
+                    <div class="mb-5">
+                        <h2 class="text-base font-semibold text-gray-900">Basics</h2>
+                        <p class="text-sm text-gray-500 mt-0.5">Title, exam type, class groups, and course.</p>
+                    </div>
 
                 <div class="mb-5">
                     <label for="title" class="block font-medium text-gray-700 mb-2">Quiz Title *</label>
@@ -245,7 +275,7 @@
                 </div>
 
                 @php
-                    $oldClassGroupIds = old('class_group_ids', request('class_group_ids', old('class_group_id') ? [old('class_group_id')] : []));
+                    $oldClassGroupIds = old('class_group_ids', request('class_group_ids', old('class_group_id') ? [old('class_group_id')] : (request('class_group_id') ? [request('class_group_id')] : [])));
                     if (! is_array($oldClassGroupIds)) {
                         $oldClassGroupIds = $oldClassGroupIds ? [(string) $oldClassGroupIds] : [];
                     }
@@ -253,14 +283,14 @@
                 <div class="mb-5">
                     <fieldset>
                         <legend class="block font-medium text-gray-700 mb-2">Class groups *</legend>
-                        <p class="text-xs text-gray-500 mb-3">Select one or more class groups assigned to you. The same exam is created for each group. Courses shared by all selected groups appear below.</p>
-                        <div class="space-y-2 rounded-lg border border-gray-200 p-3 bg-gray-50/50 max-h-64 overflow-y-auto" id="class-group-checkboxes">
+                        <p class="text-xs text-gray-500 mb-3">Select one or more class groups. Courses shared by all selected groups appear below.</p>
+                        <div class="space-y-1 rounded-xl border border-gray-200 p-2 bg-gray-50/50 max-h-56 overflow-y-auto dashboard-list-scroll" id="class-group-checkboxes">
                             @foreach($classGroups as $g)
-                                <label class="flex items-start gap-3 p-2 rounded-lg hover:bg-white cursor-pointer">
-                                    <input type="checkbox" name="class_group_ids[]" value="{{ $g->id }}" class="mt-1 w-4 h-4 rounded text-primary-600 border-gray-300 focus:ring-primary-500 class-group-checkbox" data-courses="{{ $g->courses->map(fn($c) => ['id' => $c->id, 'name' => $c->name])->toJson() }}" {{ in_array((string) $g->id, array_map('strval', $oldClassGroupIds), true) ? 'checked' : '' }}>
-                                    <span class="text-sm text-gray-800">
+                                <label class="flex items-start gap-3 px-2.5 py-2 rounded-lg hover:bg-white cursor-pointer">
+                                    <input type="checkbox" name="class_group_ids[]" value="{{ $g->id }}" class="mt-0.5 w-4 h-4 rounded text-primary-600 border-gray-300 focus:ring-primary-500 class-group-checkbox" data-courses="{{ $g->courses->map(fn($c) => ['id' => $c->id, 'name' => $c->name])->toJson() }}" {{ in_array((string) $g->id, array_map('strval', $oldClassGroupIds), true) ? 'checked' : '' }}>
+                                    <span class="text-sm text-gray-800 min-w-0">
                                         <span class="font-medium">{{ $g->display_name }}</span>
-                                        <span class="text-gray-500">({{ $g->students_count }} students)</span>
+                                        <span class="text-gray-400 tabular-nums"> · {{ $g->students_count }}</span>
                                     </span>
                                 </label>
                             @endforeach
@@ -345,8 +375,14 @@
                 </svg>
                 <strong>Please select a course</strong> {{ $errors->has('course_id') ? $errors->first('course_id') : '(from Class Group or QuizSnap section) before creating the quiz.' }}
             </div>
+                </div>
 
-                <p class="text-base font-semibold text-gray-900 mt-8 pt-5 border-t border-gray-200">Question pool &amp; per student</p>
+                {{-- Step 2: Pool --}}
+                <div class="quiz-create-panel hidden" data-step-panel="2">
+                    <div class="mb-5">
+                        <h2 class="text-base font-semibold text-gray-900">Question pool</h2>
+                        <p class="text-sm text-gray-500 mt-0.5">Types, counts, and how many each student gets.</p>
+                    </div>
                 @include('admin.quizzes.partials.question-type-fields')
                 <div class="grid md:grid-cols-2 gap-4 md:gap-6 mb-5">
                     <div>
@@ -370,11 +406,18 @@
                         @error('duration_minutes')<p class="text-sm text-red-600 mt-1">{{ $message }}</p>@enderror
                     </div>
                 </div>
+                </div>
 
-                <fieldset class="mb-5 rounded-lg border border-gray-200 p-4 bg-gray-50/40">
-                    <legend class="text-base font-semibold text-gray-900 px-1">How to add questions</legend>
-                    <p class="text-sm text-gray-500 mb-3">Choose one method. JSON paste does not use AI tokens.</p>
-                    <div class="space-y-3">
+                {{-- Step 3: Questions --}}
+                <div class="quiz-create-panel hidden" data-step-panel="3">
+                    <div class="mb-5">
+                        <h2 class="text-base font-semibold text-gray-900">Add questions</h2>
+                        <p class="text-sm text-gray-500 mt-0.5">Generate with AI or paste JSON. JSON does not use AI tokens.</p>
+                    </div>
+
+                <fieldset class="mb-5 rounded-xl border border-gray-200 p-4 bg-gray-50/40">
+                    <legend class="text-sm font-semibold text-gray-900 px-1">Method</legend>
+                    <div class="space-y-2 mt-1">
                         <label class="flex items-start gap-3 p-3 rounded-lg border border-gray-200 bg-white cursor-pointer hover:border-primary-300 {{ !$canUseAi ? 'opacity-60' : '' }}">
                             <input type="radio" name="question_source" value="ai" class="mt-1 w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500 question-source-radio" {{ $defaultQuestionSource === 'ai' ? 'checked' : '' }} {{ !$canUseAi ? 'disabled' : '' }}>
                             <span>
@@ -397,7 +440,7 @@
                             <input type="radio" name="question_source" value="json" class="mt-1 w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500 question-source-radio" {{ $defaultQuestionSource === 'json' ? 'checked' : '' }}>
                             <span>
                                 <span class="block text-sm font-medium text-gray-900">Paste JSON</span>
-                                <span class="block text-xs text-gray-500 mt-0.5">Import questions from external tools (ChatGPT, etc.) using the JSON format below.</span>
+                                <span class="block text-xs text-gray-500 mt-0.5">Import questions from external tools (ChatGPT, etc.).</span>
                             </span>
                         </label>
                     </div>
@@ -409,12 +452,12 @@
                     <input type="hidden" name="topics" id="topics-value" value="{{ old('topics') }}">
                     <input type="text" id="topics-input" autocomplete="off" placeholder="Type a topic, press comma to add" class="input" aria-describedby="topic-tags-hint">
                     <div id="topic-tags" class="flex flex-wrap gap-2 min-h-[2rem] mt-2" role="list" aria-label="Added topics"></div>
-                    <p id="topic-tags-hint" class="text-xs text-gray-500 mt-1">Add topics manually, or upload a course outline below and let AI suggest topics. Remove any you do not want.</p>
+                    <p id="topic-tags-hint" class="text-xs text-gray-500 mt-1">Add topics manually, or upload a course outline below and let AI suggest topics.</p>
                     @error('topics')<p class="text-sm text-red-600 mt-2">{{ $message }}</p>@enderror
 
-                    <div class="mt-4 rounded-lg border border-gray-200 bg-gray-50/80 p-4 space-y-3">
+                    <div class="mt-4 rounded-xl border border-gray-200 bg-gray-50/80 p-4 space-y-3">
                         <p class="text-sm font-medium text-gray-800">Course outline <span class="font-normal text-gray-500">(optional)</span></p>
-                        <p class="text-xs text-gray-500">Upload or paste your syllabus. AI can extract teachable topics and skip course codes, titles, and other non-topic headers.</p>
+                        <p class="text-xs text-gray-500">Upload or paste your syllabus. AI can extract teachable topics.</p>
                         <div>
                             <label for="source_outline" class="block text-sm font-medium text-gray-700 mb-1">Upload file</label>
                             <input type="file" id="source_outline" name="source_outline" accept=".txt,.pdf,.docx" class="block w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100">
@@ -467,9 +510,9 @@
                 </div>
 
                 <div id="section-json-prompt" class="{{ $defaultQuestionSource === 'ai' ? 'hidden' : '' }}">
-                <p class="text-base font-semibold text-gray-900 mt-4 pt-4 border-t border-gray-200">Optional: copy prompt for external AI</p>
-                <p class="text-sm text-gray-500 mt-1 mb-3">Add topics below and copy this prompt into ChatGPT or another tool, then paste the JSON response in the next section.</p>
-                <div class="mb-5 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                <p class="text-sm font-semibold text-gray-900 mt-2">Optional: copy prompt for external AI</p>
+                <p class="text-sm text-gray-500 mt-1 mb-3">Add topics and copy this prompt, then paste the JSON response below.</p>
+                <div class="mb-5 rounded-xl border border-gray-200 bg-gray-50 p-4">
                     <div class="mb-3">
                         <label for="json-prompt-topics-input" class="block text-sm font-medium text-gray-700 mb-1">Topics (for prompt only)</label>
                         <input type="text" id="json-prompt-topics-input" autocomplete="off" placeholder="Type a topic, press comma to add" class="input">
@@ -486,8 +529,8 @@
                     </div>
                 </div>
 
-                <p class="text-base font-semibold text-gray-900 mt-4 pt-4 border-t border-gray-200">Paste question JSON</p>
-                <p class="text-sm text-gray-600 mt-1 mb-3">Paste the JSON array here, then click Validate before creating the quiz.</p>
+                <p class="text-sm font-semibold text-gray-900">Paste question JSON</p>
+                <p class="text-sm text-gray-500 mt-1 mb-3">Paste the JSON array, then validate before creating.</p>
                 <div class="mb-5">
                     <label for="ai-json-input" class="sr-only">Paste AI-generated JSON</label>
                     <textarea id="ai-json-input" name="ai_json" rows="8" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 font-mono text-sm text-gray-800 resize-y min-h-[8.5rem] @error('ai_json') border-danger-500 @enderror" placeholder='[{"type":"mcq","text":"Question?","options":{"A":"...","B":"...","C":"...","D":"..."},"correct":"A","topic":"..."}]' aria-describedby="json-validation-result json-validation-errors"></textarea>
@@ -507,8 +550,14 @@
                     </div>
                 </div>
                 </div>
+                </div>
 
-                <p class="text-base font-semibold text-gray-900 mt-8 pt-5 border-t border-gray-200">Scheduling</p>
+                {{-- Step 4: Schedule --}}
+                <div class="quiz-create-panel hidden" data-step-panel="4">
+                    <div class="mb-5">
+                        <h2 class="text-base font-semibold text-gray-900">Schedule &amp; publish</h2>
+                        <p class="text-sm text-gray-500 mt-0.5">When students can access the quiz and what they see after.</p>
+                    </div>
                 <div class="grid md:grid-cols-2 gap-4 md:gap-6 mb-5">
                     <div>
                         <label for="starts_at" class="block font-medium text-gray-700 mb-2">Starts at (optional)</label>
@@ -539,16 +588,23 @@
                 </div>
 
                 <p class="text-xs text-gray-500">Allowed devices (desktop / mobile / both) are set by the coordinator on the class group.</p>
-
-                <div class="flex flex-wrap items-center gap-2 mt-6 pt-5 border-t border-gray-100">
-                    <button type="submit" class="inline-flex items-center justify-center px-5 py-2.5 rounded-lg text-sm font-semibold bg-gray-900 text-white hover:bg-black focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed" id="submit-btn" {{ $classGroups->isEmpty() && !isset($quizCategories) ? 'disabled' : '' }}>
-                        Create quiz
-                    </button>
-                    <a href="{{ route('dashboard.quizzes.index') }}" class="inline-flex items-center justify-center px-5 py-2.5 rounded-lg text-sm font-medium border border-gray-200 bg-white text-gray-700 hover:bg-gray-50">
-                        Cancel
-                    </a>
-                    <p id="ai-submit-hint" class="text-xs text-slate-500 hidden w-full sm:w-auto sm:ml-1">Use <strong>Generate questions</strong> above when AI is selected.</p>
                 </div>
+
+                {{-- Wizard footer --}}
+                <div class="flex flex-wrap items-center justify-between gap-3 mt-2 pt-5 border-t border-gray-100">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button type="button" id="quiz-create-prev" class="inline-flex items-center justify-center px-4 py-2 rounded-lg text-sm font-medium border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hidden">Back</button>
+                        <a href="{{ route('dashboard.quizzes.index') }}" class="inline-flex items-center justify-center px-4 py-2 rounded-lg text-sm font-medium text-gray-500 hover:text-gray-800">Cancel</a>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <p id="ai-submit-hint" class="text-xs text-slate-500 hidden">Use <strong>Generate questions</strong> on step 3 when AI is selected.</p>
+                        <button type="button" id="quiz-create-next" class="inline-flex items-center justify-center px-5 py-2.5 rounded-lg text-sm font-semibold bg-primary-600 text-white hover:bg-primary-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-2">Continue</button>
+                        <button type="submit" class="inline-flex items-center justify-center px-5 py-2.5 rounded-lg text-sm font-semibold bg-gray-900 text-white hover:bg-black focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed hidden" id="submit-btn" {{ $classGroups->isEmpty() && !isset($quizCategories) ? 'disabled' : '' }}>
+                            Create quiz
+                        </button>
+                    </div>
+                </div>
+                <p id="quiz-create-step-error" class="text-sm text-red-600 mt-2 hidden" role="alert"></p>
                 @if($classGroups->isEmpty() && !isset($quizCategories))
                     <p class="text-sm text-red-600 mt-2">Create a class group or use QuizSnap academic context above first.</p>
                 @endif
@@ -567,6 +623,153 @@
 @endif
 @push('scripts')
 <script src="{{ asset('js/quiz-question-types.js') }}"></script>
+<script>
+(function() {
+    var form = document.getElementById('quiz-create-form');
+    if (!form || !form.getAttribute('data-quiz-create-wizard')) return;
+    var totalSteps = 4;
+    var step = 1;
+    var panels = form.querySelectorAll('[data-step-panel]');
+    var stepBtns = form.querySelectorAll('.quiz-create-step-btn');
+    var prevBtn = document.getElementById('quiz-create-prev');
+    var nextBtn = document.getElementById('quiz-create-next');
+    var submitBtn = document.getElementById('submit-btn');
+    var stepError = document.getElementById('quiz-create-step-error');
+
+    function showStepError(msg) {
+        if (!stepError) return;
+        if (!msg) {
+            stepError.classList.add('hidden');
+            stepError.textContent = '';
+            return;
+        }
+        stepError.textContent = msg;
+        stepError.classList.remove('hidden');
+    }
+
+    function setStep(n, opts) {
+        opts = opts || {};
+        n = Math.max(1, Math.min(totalSteps, n));
+        if (!opts.skipValidate && n > step) {
+            var err = validateStep(step);
+            if (err) {
+                showStepError(err);
+                return false;
+            }
+        }
+        showStepError('');
+        step = n;
+        panels.forEach(function(panel) {
+            var on = String(panel.getAttribute('data-step-panel')) === String(step);
+            panel.classList.toggle('hidden', !on);
+        });
+        stepBtns.forEach(function(btn) {
+            var s = parseInt(btn.getAttribute('data-step'), 10);
+            var on = s === step;
+            var done = s < step;
+            btn.classList.toggle('quiz-create-step-btn--active', on);
+            btn.classList.toggle('bg-primary-600', on);
+            btn.classList.toggle('text-white', on);
+            btn.classList.toggle('shadow-sm', on);
+            btn.classList.toggle('text-gray-600', !on);
+            btn.classList.toggle('hover:bg-gray-50', !on);
+            btn.setAttribute('aria-current', on ? 'step' : 'false');
+            var badge = btn.querySelector('span');
+            if (badge) {
+                badge.classList.toggle('bg-white/20', on);
+                badge.classList.toggle('text-white', false);
+                badge.classList.toggle('bg-gray-100', !on && !done);
+                badge.classList.toggle('text-gray-500', !on && !done);
+                badge.classList.toggle('bg-primary-100', done && !on);
+                badge.classList.toggle('text-primary-700', done && !on);
+            }
+        });
+        if (prevBtn) prevBtn.classList.toggle('hidden', step === 1);
+        if (nextBtn) nextBtn.classList.toggle('hidden', step === totalSteps);
+        if (submitBtn) submitBtn.classList.toggle('hidden', step !== totalSteps);
+        try {
+            history.replaceState(null, '', '#step-' + step);
+        } catch (e) {}
+        return true;
+    }
+
+    function validateStep(s) {
+        if (s === 1) {
+            var title = document.getElementById('title');
+            if (!title || !String(title.value || '').trim()) return 'Enter a quiz title.';
+            var quizsnap = document.getElementById('course_id_quizsnap');
+            var usesQuizSnap = quizsnap && quizsnap.value;
+            if (!usesQuizSnap) {
+                var checked = form.querySelectorAll('input.class-group-checkbox:checked');
+                if (!checked.length) return 'Select at least one class group.';
+            }
+            var courseInput = document.getElementById('course_id_input');
+            var courseSelect = document.getElementById('course_id');
+            var courseVal = (courseInput && courseInput.value) || (courseSelect && courseSelect.value) || (quizsnap && quizsnap.value) || '';
+            if (!courseVal) return 'Select a course to continue.';
+            return '';
+        }
+        if (s === 2) {
+            var per = document.getElementById('questions_per_student');
+            var pool = document.getElementById('number_of_questions');
+            var duration = document.getElementById('duration_minutes');
+            var perN = parseInt(per && per.value, 10);
+            var poolN = parseInt(pool && pool.value, 10);
+            var durN = parseInt(duration && duration.value, 10);
+            if (!poolN || poolN < 1) return 'Pool size must be at least 1.';
+            if (!perN || perN < 1) return 'Questions per student must be at least 1.';
+            if (perN > poolN) return 'Questions per student cannot exceed the pool total.';
+            if (!durN || durN < 1) return 'Enter a duration in minutes.';
+            return '';
+        }
+        return '';
+    }
+
+    if (prevBtn) prevBtn.addEventListener('click', function() { setStep(step - 1, { skipValidate: true }); });
+    if (nextBtn) nextBtn.addEventListener('click', function() { setStep(step + 1); });
+    stepBtns.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var target = parseInt(btn.getAttribute('data-step'), 10);
+            if (target < step) setStep(target, { skipValidate: true });
+            else if (target > step) {
+                for (var i = step; i < target; i++) {
+                    var err = validateStep(i);
+                    if (err) { showStepError(err); setStep(i, { skipValidate: true }); return; }
+                }
+                setStep(target, { skipValidate: true });
+            }
+        });
+    });
+
+    // Open the step that owns any validation errors
+    var openStep = 1;
+    @if($errors->any())
+        @php
+            $keys = $errors->keys();
+            $step3Keys = ['topics', 'ai_json', 'question_source', 'source_script', 'source_outline'];
+            $step2Keys = ['number_of_questions', 'questions_per_student', 'duration_minutes', 'mcq_count', 'true_false_count', 'fill_in_count', 'include_mcq', 'include_true_false', 'include_fill_in'];
+            $step4Keys = ['starts_at', 'ends_at', 'is_active', 'result_visibility'];
+            $resolved = 1;
+            foreach ($keys as $k) {
+                if (in_array($k, $step3Keys, true) || str_starts_with((string) $k, 'ai_json')) {
+                    $resolved = 3;
+                    break;
+                }
+                if (in_array($k, $step4Keys, true)) {
+                    $resolved = 4;
+                } elseif (in_array($k, $step2Keys, true)) {
+                    $resolved = max($resolved, 2);
+                }
+            }
+        @endphp
+        openStep = {{ (int) $resolved }};
+    @else
+        var hashMatch = (location.hash || '').match(/^#step-(\d)$/);
+        if (hashMatch) openStep = parseInt(hashMatch[1], 10) || 1;
+    @endif
+    setStep(openStep, { skipValidate: true });
+})();
+</script>
 <script>
 (function() {
     function getSelectedClassGroupCheckboxes() {

@@ -116,35 +116,32 @@
                 </div>
             </div>
 
-            <div class="flex flex-wrap items-center gap-2">
+            <div class="flex flex-wrap items-stretch gap-2">
                 @if($session->result)
-                    <div class="rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2 text-right">
-                        <p class="text-[10px] uppercase tracking-wide text-gray-400 font-medium">Mark</p>
-                        <p class="text-lg font-semibold tabular-nums text-gray-900 leading-tight">{{ $session->result->correct_count }}/{{ $session->result->total_questions }}</p>
-                        <p class="text-[11px] text-gray-400 tabular-nums">{{ number_format((float) $session->result->score, 1) }}%</p>
+                    <div class="inline-flex h-11 min-w-[5.5rem] flex-col items-center justify-center rounded-xl border border-gray-200 bg-gray-50 px-3">
+                        <span class="text-[10px] font-medium uppercase tracking-wide text-gray-400 leading-none">Mark</span>
+                        <span class="mt-1 text-sm font-semibold tabular-nums text-gray-900 leading-none">{{ $session->result->correct_count }}/{{ $session->result->total_questions }} · {{ number_format((float) $session->result->score, 0) }}%</span>
                     </div>
-                    <div class="rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-right">
-                        <p class="text-[10px] uppercase tracking-wide text-gray-400 font-medium">Violations</p>
-                        <p class="text-lg font-semibold tabular-nums {{ $violationCount > 0 ? 'text-rose-600' : 'text-gray-900' }} leading-tight">{{ $violationCount }}</p>
+                    <div class="inline-flex h-11 min-w-[5rem] flex-col items-center justify-center rounded-xl border border-gray-200 bg-white px-3">
+                        <span class="text-[10px] font-medium uppercase tracking-wide text-gray-400 leading-none">Violations</span>
+                        <span class="mt-1 text-sm font-semibold tabular-nums leading-none {{ $violationCount > 0 ? 'text-rose-600' : 'text-gray-900' }}">{{ $violationCount }}</span>
                     </div>
                 @endif
 
-                <div class="flex flex-wrap items-center gap-1.5">
-                    @if($session->result && $session->isResultWithheld())
-                        <form method="post" action="{{ route('dashboard.quizzes.sessions.clear-withheld', [$quiz, $session]) }}" onsubmit="return confirm('Release result and allow student to see this score?');">
-                            @csrf
-                            <button type="submit" class="text-xs font-medium px-3 py-1.5 rounded-lg bg-gray-900 text-white hover:bg-gray-800 transition">Release</button>
-                        </form>
-                    @endif
-                    <form method="post" action="{{ route('dashboard.quizzes.sessions.reset-ip', [$quiz, $session]) }}" onsubmit="return confirm('Reset IP lock?');">
+                @if($session->result && $session->isResultWithheld())
+                    <form method="post" action="{{ route('dashboard.quizzes.sessions.clear-withheld', [$quiz, $session]) }}" class="inline-flex" onsubmit="return confirm('Release result and allow student to see this score?');">
                         @csrf
-                        <button type="submit" class="text-xs font-medium px-3 py-1.5 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition">Reset IP</button>
+                        <button type="submit" class="inline-flex h-11 items-center justify-center rounded-xl bg-gray-900 px-3.5 text-xs font-semibold text-white hover:bg-black transition">Release</button>
                     </form>
-                    <form method="post" action="{{ route('dashboard.quizzes.sessions.kill', [$quiz, $session]) }}" onsubmit="return confirm('Kill this session? This will remove the result and allow the student to retake the quiz.');">
-                        @csrf
-                        <button type="submit" class="text-xs font-medium px-3 py-1.5 rounded-lg border border-rose-200 text-rose-700 hover:bg-rose-50 transition">Kill</button>
-                    </form>
-                </div>
+                @endif
+                <form method="post" action="{{ route('dashboard.quizzes.sessions.reset-ip', [$quiz, $session]) }}" class="inline-flex" onsubmit="return confirm('Reset IP lock?');">
+                    @csrf
+                    <button type="submit" class="inline-flex h-11 items-center justify-center rounded-xl border border-gray-200 bg-white px-3.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition">Reset IP</button>
+                </form>
+                <form method="post" action="{{ route('dashboard.quizzes.sessions.kill', [$quiz, $session]) }}" class="inline-flex" onsubmit="return confirm('Kill this session? This will remove the result and allow the student to retake the quiz.');">
+                    @csrf
+                    <button type="submit" class="inline-flex h-11 items-center justify-center rounded-xl border border-rose-200 bg-white px-3.5 text-xs font-semibold text-rose-700 hover:bg-rose-50 transition">Kill</button>
+                </form>
             </div>
         </div>
 

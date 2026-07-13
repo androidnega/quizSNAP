@@ -34,24 +34,22 @@
     <aside id="examiner-sidebar" class="examiner-sidebar flex h-full flex-col w-64 flex-shrink-0 bg-white" aria-label="Dashboard navigation" data-collapsed="false">
         <div class="examiner-sidebar-inner flex flex-col h-full">
             <div class="examiner-sidebar-header flex h-[4.25rem] flex-shrink-0 items-center justify-between gap-2 px-4">
-                <a href="{{ $isSystemAdmin ? $systemAdminHome : route('dashboard') }}" class="examiner-sidebar-brand flex min-w-0 flex-shrink-0 items-center gap-3 overflow-hidden transition-opacity hover:opacity-80">
+                <a href="{{ $isSystemAdmin ? $systemAdminHome : route('dashboard') }}" class="examiner-sidebar-brand flex min-w-0 flex-shrink-0 items-center gap-3 overflow-hidden transition-opacity hover:opacity-80" aria-label="Dashboard home">
                     @php $user = auth()->user(); $inst = $user?->institution; @endphp
                     @if($isCoordinatorOnly)
                         @if($inst && $inst->logo_url)
-                            <img src="{{ $inst->logo_url }}" alt="{{ Str::upper($inst->name ?? '') }}" class="h-10 w-10 flex-shrink-0 object-contain rounded-full border border-gray-200 bg-white">
+                            <img src="{{ $inst->logo_url }}" alt="{{ Str::upper($inst->name ?? 'Logo') }}" class="h-10 w-10 flex-shrink-0 object-contain rounded-full border border-gray-200 bg-white">
                         @else
                             <span class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-gray-900 text-white font-bold text-lg shadow-sm">C</span>
                         @endif
-                        <span class="examiner-sidebar-brand-text truncate text-lg font-bold text-gray-900">Coordinator</span>
+                    @elseif($inst && $inst->logo_url)
+                        <img src="{{ $inst->logo_url }}" alt="{{ Str::upper($inst->name ?? 'Logo') }}" class="h-10 w-10 flex-shrink-0 object-contain rounded-full border border-gray-200 bg-white">
                     @else
-                        @if($inst && $inst->logo_url)
-                            <img src="{{ $inst->logo_url }}" alt="{{ Str::upper($inst->name ?? '') }}" class="h-9 w-9 flex-shrink-0 object-contain rounded-full border border-gray-200 bg-white opacity-90" aria-hidden="true">
-                        @endif
                         @include('partials.brand-logo', [
                             'href' => null,
                             'size' => 'sm',
                             'variant' => 'plain',
-                            'showWordmark' => true,
+                            'showWordmark' => false,
                             'class' => 'min-w-0',
                         ])
                     @endif
@@ -85,7 +83,7 @@
                             <span class="examiner-nav-text truncate">Dashboard</span>
                         </a>
                     </li>
-                    <li class="pt-3"><div class="px-3 mb-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider examiner-nav-text">QuizSnap</div></li>
+                    <li class="pt-2"></li>
                     <li><a href="{{ route('dashboard.class-groups.index') }}" class="examiner-nav-link {{ request()->routeIs('dashboard.class-groups.*') ? 'examiner-nav-link--active' : '' }} group flex items-center gap-3 rounded-lg py-3 px-3 text-sm font-medium min-w-0 transition-all" title="Manage academic class groups and assign examiners"><svg class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg><span class="examiner-nav-text truncate">Class Groups</span></a></li>
                     @if($canManageStudents)
                     <li><a href="{{ route('dashboard.students.index') }}" class="examiner-nav-link {{ request()->routeIs('dashboard.students.index') ? 'examiner-nav-link--active' : '' }} group flex items-center gap-3 rounded-lg py-3 px-3 text-sm font-medium min-w-0 transition-all" title="Search and manage students in your scope"><svg class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg><span class="examiner-nav-text truncate">Students</span></a></li>
@@ -155,7 +153,7 @@
                     @endif
                     @endif
                     @if($isSuperAdmin)
-                    <li class="pt-3"><div class="px-3 mb-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider examiner-nav-text">QuizSnap</div></li>
+                    <li class="pt-2"></li>
                     <li>
                         <a href="{{ route('dashboard.class-groups.index') }}" class="examiner-nav-link {{ request()->routeIs('dashboard.class-groups.*') ? 'examiner-nav-link--active' : '' }} group flex items-center gap-3 rounded-lg py-3 px-3 text-sm font-medium min-w-0 transition-all" title="View all class groups across institutions">
                             <svg class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>

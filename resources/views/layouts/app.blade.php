@@ -135,6 +135,19 @@
             background: #ffffff;
             border-right: 1px solid #eef0f3;
             box-shadow: none;
+            overflow-x: hidden;
+        }
+        .examiner-nav-text {
+            display: inline-block;
+            max-width: 12rem;
+            overflow: hidden;
+            white-space: nowrap;
+            opacity: 1;
+            transform: translateX(0);
+            transition:
+                opacity .28s cubic-bezier(.22, 1, .36, 1),
+                max-width .36s cubic-bezier(.22, 1, .36, 1),
+                transform .36s cubic-bezier(.22, 1, .36, 1);
         }
         .examiner-nav-link {
             color: #6b7280; /* gray-500 */
@@ -226,9 +239,6 @@
             color: #fff;
             font-weight: 800;
         }
-        .examiner-sidebar-brand-logo {
-            gap: 0.55rem;
-        }
         .examiner-sidebar-brand .quizsnap-brand-logo__wordmark,
         .examiner-sidebar-brand-text {
             white-space: nowrap;
@@ -236,9 +246,13 @@
             max-width: 9rem;
             transform: translateX(0);
             transition:
-                opacity .2s cubic-bezier(.22, 1, .36, 1),
-                max-width .2s cubic-bezier(.22, 1, .36, 1),
-                transform .2s cubic-bezier(.22, 1, .36, 1);
+                opacity .28s cubic-bezier(.22, 1, .36, 1),
+                max-width .36s cubic-bezier(.22, 1, .36, 1),
+                transform .36s cubic-bezier(.22, 1, .36, 1);
+        }
+        .examiner-sidebar-brand-logo {
+            gap: 0.55rem;
+            transition: gap .32s cubic-bezier(.22, 1, .36, 1);
         }
         .examiner-sidebar-brand .quizsnap-wordmark {
             font-size: 1.05rem;
@@ -250,9 +264,34 @@
         .examiner-sidebar-brand .theme-wordmark-b { color: #ca8a04; }
         /* When sidebar is collapsed on desktop, show only icons (no text labels) */
         @media (min-width: 768px) {
+            .examiner-sidebar {
+                width: 16rem;
+                min-width: 16rem;
+                max-width: 16rem;
+                transition:
+                    width .42s cubic-bezier(.22, 1, .36, 1),
+                    min-width .42s cubic-bezier(.22, 1, .36, 1),
+                    max-width .42s cubic-bezier(.22, 1, .36, 1),
+                    margin .42s cubic-bezier(.22, 1, .36, 1),
+                    height .42s cubic-bezier(.22, 1, .36, 1),
+                    border-radius .42s cubic-bezier(.22, 1, .36, 1),
+                    border-color .35s ease,
+                    box-shadow .35s cubic-bezier(.22, 1, .36, 1),
+                    padding .35s cubic-bezier(.22, 1, .36, 1);
+            }
+            .examiner-sidebar-header,
+            .examiner-sidebar-nav,
+            .examiner-sidebar-footer,
+            .examiner-nav-link {
+                transition:
+                    padding .36s cubic-bezier(.22, 1, .36, 1),
+                    justify-content .36s cubic-bezier(.22, 1, .36, 1),
+                    gap .32s cubic-bezier(.22, 1, .36, 1);
+            }
             .examiner-sidebar--collapsed {
-                width: 4.25rem !important;
-                min-width: 4.25rem !important;
+                width: 4.5rem !important;
+                min-width: 4.5rem !important;
+                max-width: 4.5rem !important;
                 margin: 0.75rem 0 0.75rem 0.75rem;
                 height: calc(100% - 1.5rem) !important;
                 border-radius: 1.5rem;
@@ -260,6 +299,13 @@
                 box-shadow: none;
             }
             .examiner-sidebar--collapsed .examiner-nav-text,
+            .examiner-sidebar--collapsed .examiner-sidebar-chevron {
+                opacity: 0 !important;
+                max-width: 0 !important;
+                transform: translateX(-6px);
+                pointer-events: none;
+                overflow: hidden;
+            }
             .examiner-sidebar--collapsed .examiner-sidebar-chevron {
                 display: none !important;
             }
@@ -299,6 +345,19 @@
             }
             .examiner-sidebar--collapsed .examiner-sidebar-footer .examiner-nav-link {
                 justify-content: center;
+            }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .examiner-sidebar,
+            .examiner-sidebar-header,
+            .examiner-sidebar-nav,
+            .examiner-sidebar-footer,
+            .examiner-nav-link,
+            .examiner-nav-text,
+            .examiner-sidebar-brand .quizsnap-brand-logo__wordmark,
+            .examiner-sidebar-brand-text,
+            .examiner-sidebar-brand-logo {
+                transition-duration: 0.01ms !important;
             }
         }
 
@@ -577,7 +636,7 @@
                 margin: 0 !important;
                 height: 100% !important;
                 border-radius: 0 !important;
-                transition: transform 0.25s ease-out, box-shadow 0.25s ease-out;
+                transition: transform 0.42s cubic-bezier(.22, 1, .36, 1), box-shadow 0.35s cubic-bezier(.22, 1, .36, 1);
                 box-shadow: none;
             }
             .examiner-sidebar.examiner-sidebar--collapsed {
@@ -589,7 +648,7 @@
                 box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
             }
             .examiner-overlay {
-                transition: opacity 0.2s ease-out;
+                transition: opacity 0.32s cubic-bezier(.22, 1, .36, 1);
             }
             .examiner-main,
             .examiner-main-content {

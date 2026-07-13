@@ -531,13 +531,10 @@
         localStorage.setItem(KEY, c ? 'collapsed' : 'expanded');
         sidebar.setAttribute('data-collapsed', c ? 'true' : 'false');
         sidebar.classList.toggle('examiner-sidebar--collapsed', c);
-        if (isDesktop()) {
-            sidebar.style.width = c ? '4.75rem' : '';
-            sidebar.style.minWidth = c ? '4.75rem' : '';
-        } else {
-            sidebar.style.width = '';
-            sidebar.style.minWidth = '';
-        }
+        // Width/transform are CSS-animated — avoid inline snaps.
+        sidebar.style.width = '';
+        sidebar.style.minWidth = '';
+        sidebar.style.maxWidth = '';
         if (overlay) overlay.classList.toggle('hidden', c);
         if (toggleInner) { toggleInner.setAttribute('aria-label', c ? 'Expand sidebar' : 'Collapse sidebar'); toggleInner.setAttribute('title', c ? 'Expand sidebar' : 'Collapse sidebar'); }
         updateMenuButton();

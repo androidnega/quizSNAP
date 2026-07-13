@@ -21,7 +21,19 @@
             @method('PUT')
             <div>
                 <label for="index_number" class="block text-sm font-semibold text-gray-800 mb-2">Index number</label>
-                <input type="text" name="index_number" id="index_number" required maxlength="64" class="form-field-input" value="{{ old('index_number', $student->index_number) }}" placeholder="e.g. PS/IT/20/0001">
+                <input
+                    type="text"
+                    name="index_number"
+                    id="index_number"
+                    required
+                    maxlength="64"
+                    readonly
+                    class="form-field-input bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200 focus:ring-0 focus:border-gray-200"
+                    value="{{ old('index_number', $student->index_number) }}"
+                    aria-readonly="true"
+                    title="Index number cannot be changed"
+                >
+                <p class="text-xs text-gray-500 mt-1.5">Index is locked for this student record.</p>
                 @error('index_number')
                     <p class="text-sm text-red-600 mt-1.5">{{ $message }}</p>
                 @enderror

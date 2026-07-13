@@ -287,7 +287,7 @@
                         <div class="space-y-1 rounded-xl border border-gray-200 p-2 bg-gray-50/50 max-h-56 overflow-y-auto dashboard-list-scroll" id="class-group-checkboxes">
                             @foreach($classGroups as $g)
                                 <label class="flex items-start gap-3 px-2.5 py-2 rounded-lg hover:bg-white cursor-pointer">
-                                    <input type="checkbox" name="class_group_ids[]" value="{{ $g->id }}" class="mt-0.5 w-4 h-4 rounded text-primary-600 border-gray-300 focus:ring-primary-500 class-group-checkbox" data-courses="{{ $g->courses->map(fn($c) => ['id' => $c->id, 'name' => $c->name])->toJson() }}" {{ in_array((string) $g->id, array_map('strval', $oldClassGroupIds), true) ? 'checked' : '' }}>
+                                    <input type="checkbox" name="class_group_ids[]" value="{{ $g->id }}" class="mt-0.5 w-4 h-4 rounded text-primary-600 border-gray-300 focus:ring-primary-500 class-group-checkbox" data-courses="{{ $g->courses->map(fn($c) => ['id' => $c->id, 'name' => $c->name, 'code' => $c->code ?? ''])->values()->toJson() }}" {{ in_array((string) $g->id, array_map('strval', $oldClassGroupIds), true) ? 'checked' : '' }}>
                                     <span class="text-sm text-gray-800 min-w-0">
                                         <span class="font-medium">{{ $g->display_name }}</span>
                                         <span class="text-gray-400 tabular-nums"> · {{ $g->students_count }}</span>
@@ -303,13 +303,14 @@
                     @error('class_group_ids.*')<p class="text-sm text-red-600 mt-1">{{ $message }}</p>@enderror
                     <p id="quiz-create-class-group-required" class="text-sm text-red-600 mt-1 hidden">Select at least one class group.</p>
                 </div>
-                <div class="mb-5">
+                <div class="mb-5" id="quiz-create-course-wrap">
                     <label for="course_id" class="block font-medium text-gray-700 mb-2">Course *</label>
-                    <select id="course_id" class="input @error('course_id') border-danger-500 @enderror">
+                    <select id="course_id" class="input @error('course_id') border-danger-500 @enderror" aria-describedby="course-help course-status">
                         <option value="">Select class group(s) first</option>
                     </select>
                     <input type="hidden" name="course_id" id="course_id_input" value="{{ old('course_id') }}">
-                    <p class="text-xs text-gray-500 mt-1">Courses attached to every selected class group.</p>
+                    <p id="course-help" class="text-xs text-gray-500 mt-1.5">Select one or more class groups to load available courses.</p>
+                    <p id="course-status" class="hidden text-sm text-amber-700 mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2" role="status"></p>
                     @error('course_id')<p class="text-sm text-red-600 mt-1">{{ $message }}</p>@enderror
                 </div>
 
@@ -778,6 +779,9 @@
     var courseSelect = document.getElementById('course_id');
     var oldCourseId = @json(old('course_id'));
     var courseIdInput = document.getElementById('course_id_input');
+    var courseHelp = document.getElementById('course-help');
+    var courseStatus = document.getElementById('course-status');
+
     function parseCoursesFromCheckbox(cb) {
         try {
             return JSON.parse(cb.getAttribute('data-courses') || '[]');
@@ -793,31 +797,84 @@
             return acc.filter(function(c) { return ids.has(String(c.id)); });
         }, null) || [];
     }
+    function courseLabel(c) {
+        var code = String(c.code || '').trim();
+        var name = String(c.name || '').trim();
+        if (code && name) return code + ' — ' + name;
+        return name || code || ('Course #' + c.id);
+    }
+    function setCourseStatus(message, isError) {
+        if (!courseStatus) return;
+        if (!message) {
+            courseStatus.classList.add('hidden');
+            courseStatus.textContent = '';
+            return;
+        }
+        courseStatus.textContent = message;
+        courseStatus.classList.remove('hidden');
+        courseStatus.classList.toggle('border-amber-200', !isError);
+        courseStatus.classList.toggle('bg-amber-50', !isError);
+        courseStatus.classList.toggle('text-amber-700', !isError);
+        courseStatus.classList.toggle('border-rose-200', !!isError);
+        courseStatus.classList.toggle('bg-rose-50', !!isError);
+        courseStatus.classList.toggle('text-rose-700', !!isError);
+    }
     function updateCourses() {
+        if (!courseSelect) return;
         var checked = getSelectedClassGroupCheckboxes();
-        courseSelect.innerHTML = '<option value="">Select course</option>';
+        courseSelect.innerHTML = '';
+        courseSelect.disabled = false;
+
+        var placeholder = document.createElement('option');
+        placeholder.value = '';
+
         if (!checked.length) {
+            placeholder.textContent = 'Select class group(s) first';
+            courseSelect.appendChild(placeholder);
+            if (courseHelp) courseHelp.textContent = 'Select one or more class groups to load available courses.';
+            setCourseStatus('');
             var quizsnapEl = document.getElementById('course_id_quizsnap');
             if (!quizsnapEl || !quizsnapEl.value) { if (courseIdInput) courseIdInput.value = ''; }
             return;
         }
+
         var courseSets = checked.map(parseCoursesFromCheckbox);
-        var courses = intersectCourses(courseSets);
-        if (checked.length > 1 && courses.length === 0) {
-            var emptyOpt = document.createElement('option');
-            emptyOpt.value = '';
-            emptyOpt.textContent = 'No course shared by all selected groups';
-            courseSelect.appendChild(emptyOpt);
+        var courses = intersectCourses(courseSets).slice().sort(function(a, b) {
+            return courseLabel(a).localeCompare(courseLabel(b), undefined, { sensitivity: 'base' });
+        });
+
+        if (courses.length === 0) {
+            placeholder.textContent = 'No courses available';
+            courseSelect.appendChild(placeholder);
+            courseSelect.disabled = true;
+            if (courseHelp) courseHelp.textContent = '';
+            if (checked.length > 1) {
+                setCourseStatus('These class groups do not share a common course. Select groups that share a course, or pick one group.', true);
+            } else {
+                setCourseStatus('This class group has no courses assigned to you yet.', true);
+            }
             if (courseIdInput) courseIdInput.value = '';
             return;
         }
+
+        placeholder.textContent = courses.length === 1 ? 'Select course' : 'Select a course (' + courses.length + ')';
+        courseSelect.appendChild(placeholder);
         courses.forEach(function(c) {
             var o = document.createElement('option');
             o.value = c.id;
-            o.textContent = c.name;
+            o.textContent = courseLabel(c);
             if (String(c.id) === String(oldCourseId)) o.selected = true;
             courseSelect.appendChild(o);
         });
+        if (courses.length === 1 && !courseSelect.value) {
+            courseSelect.value = String(courses[0].id);
+        }
+        if (courseHelp) {
+            courseHelp.textContent = checked.length > 1
+                ? 'Showing courses shared by all ' + checked.length + ' selected class groups.'
+                : 'Courses assigned to the selected class group.';
+        }
+        setCourseStatus('');
         syncCourseId();
     }
     function syncCourseId() {

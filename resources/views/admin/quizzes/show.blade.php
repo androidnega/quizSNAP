@@ -206,14 +206,17 @@
         var q = (e.target.value || '').trim();
         if (id === 'sessions-search-index') {
             var qUpper = q.toUpperCase().trim();
+            var normalizedQuery = qUpper.replace(/[^A-Z0-9]/g, '');
+            var sessionsVisible = 0;
             container.querySelectorAll('.sessions-row').forEach(function(row) {
                 var index = (row.getAttribute('data-student-index') || '').toUpperCase().trim();
-                // Use includes for more flexible matching, handle special chars
-                var normalizedQuery = qUpper.replace(/[^A-Z0-9]/g, '');
                 var normalizedIndex = index.replace(/[^A-Z0-9]/g, '');
                 var matches = !qUpper || index.indexOf(qUpper) !== -1 || normalizedIndex.indexOf(normalizedQuery) !== -1;
                 row.style.display = matches ? '' : 'none';
+                if (matches) sessionsVisible++;
             });
+            var sessionsEmpty = document.getElementById('sessions-empty-filter');
+            if (sessionsEmpty) sessionsEmpty.classList.toggle('hidden', sessionsVisible > 0 || !qUpper);
         } else if (id === 'gallery-search-index') {
             var galleryQ = q.toUpperCase().trim();
             var galleryNormQ = galleryQ.replace(/[^A-Z0-9]/g, '');

@@ -1,24 +1,40 @@
 @extends('layouts.dashboard')
 
-@section('title', 'Add user')
-@section('dashboard_heading', 'Add user')
+@section('title', !empty($isCoordinatorManager) ? 'Add examiner' : 'Add user')
+@section('dashboard_heading', !empty($isCoordinatorManager) ? 'Add examiner' : 'Add user')
 
 @section('dashboard_content')
+@php
+    $isCoordinatorCreate = !empty($isCoordinatorManager);
+    $pageTitle = $isCoordinatorCreate ? 'Add examiner' : 'Add user';
+    $submitLabel = $isCoordinatorCreate ? 'Create examiner' : 'Create user';
+@endphp
 <div class="w-full min-w-0 max-w-full space-y-6 bg-slate-50/80 rounded-xl p-4 sm:p-6">
         <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-600 mb-4">
             <a href="{{ route('dashboard') }}" class="hover:text-primary-600 shrink-0">Dashboard</a>
             <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-            <a href="{{ route('dashboard.users.index') }}" class="hover:text-primary-600 shrink-0">User management</a>
+            <a href="{{ route('dashboard.users.index') }}" class="hover:text-primary-600 shrink-0">{{ $isCoordinatorCreate ? 'Examiners' : 'User management' }}</a>
             <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-            <span class="text-slate-900 font-medium">Add user</span>
+            <span class="text-slate-900 font-medium">{{ $pageTitle }}</span>
         </div>
 
         <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 sm:p-8 w-full min-w-0 max-w-full overflow-hidden">
-            <h1 class="text-xl sm:text-2xl font-bold text-slate-900 mb-6 pb-3 border-b border-slate-200">Add user</h1>
+            <h1 class="text-xl sm:text-2xl font-bold text-slate-900 mb-6 pb-3 border-b border-slate-200">{{ $pageTitle }}</h1>
 
             <form action="{{ route('dashboard.users.store') }}" method="post" class="qs-form w-full min-w-0">
                 @csrf
-                <x-form.section title="Account details" description="System monitors get Monitoring, Operations, and Intelligence access only. Examiners and coordinators also need institution, faculty, and department." :columns="2">
+                @if($isCoordinatorCreate)
+                    <input type="hidden" name="role" value="examiner">
+                    <input type="hidden" name="institution_id" value="{{ $coordinatorInstitutionId }}">
+                    <input type="hidden" name="faculty_id" value="{{ $coordinatorFacultyId }}">
+                @endif
+                <x-form.section
+                    title="Account details"
+                    :description="$isCoordinatorCreate
+                        ? 'New examiners are created in your faculty. Pick the department they belong to.'
+                        : 'System monitors get Monitoring, Operations, and Intelligence access only. Examiners and coordinators also need institution, faculty, and department.'"
+                    :columns="2"
+                >
                     <x-form.input name="username" label="Username" required placeholder="e.g. j.doe or jdoe" />
                     <x-form.input name="email" type="email" label="Email" optional placeholder="user@example.com" hint="Optional. Used for password reset." />
                     <x-form.input name="name" label="Display name" optional placeholder="e.g. John Doe" />
@@ -29,9 +45,10 @@
                             <span class="qs-label__optional" id="phone-optional-label">(optional)</span>
                         </label>
                         <input type="text" name="phone" id="phone" value="{{ old('phone') }}" class="qs-control @error('phone') qs-control--error @enderror" placeholder="e.g. 0544919953 or 233544919953">
-                        <p class="qs-hint">For examiner/coordinator: used to send login by SMS when enabled in Settings.</p>
+                        <p class="qs-hint">Used to send login by SMS when enabled in Settings.</p>
                         @error('phone')<p class="qs-error">{{ $message }}</p>@enderror
                     </div>
+                    @if(!$isCoordinatorCreate)
                     <x-form.select name="role" label="Role" required placeholder="— Select role —">
                         @foreach($creatableRoles ?? [] as $roleValue => $roleLabel)
                             @if(($canCreateSuperAdmin ?? false) || ! in_array($roleValue, ['super_admin', 'system_admin'], true))
@@ -62,13 +79,27 @@
                         <p class="qs-hint">Coordinator oversees all departments in this faculty.</p>
                         @error('faculty_id')<p class="qs-error">{{ $message }}</p>@enderror
                     </div>
+                    @else
+                    <div class="qs-field">
+                        <label class="qs-label"><span>Role</span></label>
+                        <p class="qs-control bg-slate-50 text-slate-700">Examiner</p>
+                    </div>
+                    <div class="qs-field">
+                        <label class="qs-label"><span>Institution</span></label>
+                        <p class="qs-control bg-slate-50 text-slate-700 truncate">{{ optional(($institutions ?? collect())->first())->display_name ?? '—' }}</p>
+                    </div>
+                    <div class="qs-field">
+                        <label class="qs-label"><span>Faculty</span></label>
+                        <p class="qs-control bg-slate-50 text-slate-700 truncate">{{ optional(($faculties ?? collect())->first())->name ?? '—' }}</p>
+                    </div>
+                    @endif
 
-                    <div id="department-field" class="qs-field staff-scope-field" style="display: none;">
+                    <div id="department-field" class="qs-field staff-scope-field" @if(!$isCoordinatorCreate) style="display: none;" @endif>
                         <label for="department_id" class="qs-label">
                             <span>Department</span>
                             <span id="department-required-star" class="qs-label__required">*</span>
                         </label>
-                        <select name="department_id" id="department_id" class="qs-control @error('department_id') qs-control--error @enderror">
+                        <select name="department_id" id="department_id" class="qs-control @error('department_id') qs-control--error @enderror" required>
                             <option value="">— Select department —</option>
                             @foreach($departments ?? [] as $dept)
                                 <option value="{{ $dept->id }}" {{ old('department_id') == $dept->id ? 'selected' : '' }}>{{ $dept->name }}</option>
@@ -97,7 +128,7 @@
                     </div>
                 </x-form.section>
 
-                <x-form.actions submit="Create user" :cancel="route('dashboard.users.index')" />
+                <x-form.actions :submit="$submitLabel" :cancel="route('dashboard.users.index')" />
             </form>
         </div>
     </div>
@@ -105,6 +136,7 @@
 @push('scripts')
 <script>
 (function() {
+    const isCoordinatorCreate = {{ json_encode($isCoordinatorCreate) }};
     const letters = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ';
     const digits = '23456789';
     const chars = letters + digits + '!@#$%&*';
@@ -140,7 +172,6 @@
         });
     });
 
-    // Show institution/faculty/department for Examiner and Coordinator; password vs SMS
     var sendSmsOnStaffCreation = {{ json_encode($sendSmsOnStaffCreation ?? false) }};
     var roleSelect = document.getElementById('role');
     var institutionField = document.getElementById('institution-field');
@@ -154,6 +185,31 @@
     var smsPasswordNotice = document.getElementById('sms-password-notice');
     var passwordInput = document.getElementById('password');
     var passwordConfirmation = document.getElementById('password_confirmation');
+
+    function applySmsPasswordUi(role) {
+        var showStaffFields = isCoordinatorCreate || role === 'examiner' || role === 'coordinator';
+        var isSupportAgent = role === 'support_agent';
+        var useSmsPassword = sendSmsOnStaffCreation && showStaffFields;
+        if (phoneField) {
+            phoneField.style.display = (showStaffFields || isSupportAgent) ? '' : 'none';
+            if (phoneRequiredStar) phoneRequiredStar.style.display = (useSmsPassword || isSupportAgent) ? '' : 'none';
+            var phoneOptional = document.getElementById('phone-optional-label');
+            if (phoneOptional) phoneOptional.style.display = (useSmsPassword || isSupportAgent) ? 'none' : '';
+            if (phoneInput) phoneInput.required = useSmsPassword || isSupportAgent;
+        }
+        if (passwordSection) {
+            if (passwordFields) passwordFields.style.display = useSmsPassword ? 'none' : '';
+            if (smsPasswordNotice) smsPasswordNotice.classList.toggle('hidden', !useSmsPassword);
+            if (passwordInput) passwordInput.required = !useSmsPassword;
+            if (passwordConfirmation) passwordConfirmation.required = !useSmsPassword;
+        }
+    }
+
+    if (isCoordinatorCreate) {
+        applySmsPasswordUi('examiner');
+        return;
+    }
+
     if (roleSelect) {
         function toggleInstFacDept() {
             var role = roleSelect.value;
@@ -187,28 +243,14 @@
                     }
                 }
             }
-            var showStaffFields = (role === 'examiner' || role === 'coordinator');
-            var isSupportAgent = role === 'support_agent';
-            var useSmsPassword = sendSmsOnStaffCreation && showStaffFields;
-            if (phoneField) {
-                phoneField.style.display = (showStaffFields || isSupportAgent) ? '' : 'none';
-                if (phoneRequiredStar) phoneRequiredStar.style.display = (useSmsPassword || isSupportAgent) ? '' : 'none';
-                var phoneOptional = document.getElementById('phone-optional-label');
-                if (phoneOptional) phoneOptional.style.display = (useSmsPassword || isSupportAgent) ? 'none' : '';
-                if (phoneInput) phoneInput.required = useSmsPassword || isSupportAgent;
-            }
-            if (passwordSection) {
-                if (passwordFields) passwordFields.style.display = useSmsPassword ? 'none' : '';
-                if (smsPasswordNotice) smsPasswordNotice.classList.toggle('hidden', !useSmsPassword);
-                if (passwordInput) passwordInput.required = !useSmsPassword;
-                if (passwordConfirmation) passwordConfirmation.required = !useSmsPassword;
-            }
+            applySmsPasswordUi(role);
         }
         roleSelect.addEventListener('change', toggleInstFacDept);
         toggleInstFacDept();
     }
 })();
 
+@if(empty($isCoordinatorManager))
 // AJAX: Institution → Faculty → Department cascading dropdowns
 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
 const facultiesByInstitutionUrl = @json(route('dashboard.faculties.by-institution', ['institution' => '__INSTITUTION__']));
@@ -338,6 +380,7 @@ document.querySelector('form[action*="users"]')?.addEventListener('submit', func
         alert('Please select a department for examiners.');
     }
 });
+@endif
 </script>
 @endpush
 @endsection

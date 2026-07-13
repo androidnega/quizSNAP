@@ -1,108 +1,108 @@
 @extends('layouts.dashboard')
 
 @section('title', 'Quizzes')
-@section('dashboard_heading', 'QUIZZES')
+@section('dashboard_heading', 'Quizzes')
 
 @section('dashboard_content')
-<div class="w-full space-y-6">
-    <div class="flex items-center justify-between flex-wrap gap-4">
-        <p class="text-sm text-gray-600 uppercase">Create and manage quizzes.</p>
-        <div class="flex items-center gap-2 flex-wrap">
-            <a href="{{ route('dashboard.quizzes.create') }}" class="inline-flex items-center justify-center gap-2 rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors uppercase">
-                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                Create Quiz
-            </a>
+@php
+    $activeTab = ($tab ?? 'active') === 'ended' ? 'ended' : 'active';
+@endphp
+<div class="w-full space-y-5">
+    <div class="flex flex-wrap items-end justify-between gap-3">
+        <div class="min-w-0">
+            <p class="text-sm text-gray-500">Create, publish, and review assessments.</p>
         </div>
+        <a href="{{ route('dashboard.quizzes.create') }}" class="inline-flex items-center justify-center gap-2 rounded-full bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-black focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 transition-colors shrink-0">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Create quiz
+        </a>
     </div>
 
-    {{-- Active / Ended tabs --}}
-    <div class="flex gap-1 border-b border-gray-200">
-        <a href="{{ route('dashboard.quizzes.index', ['tab' => 'active']) }}" class="px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors uppercase {{ ($tab ?? 'active') === 'active' ? 'bg-white border border-gray-200 border-b-0 -mb-px text-primary-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50' }}">
+    <div class="flex items-center gap-6 border-b border-gray-200">
+        <a href="{{ route('dashboard.quizzes.index', ['tab' => 'active']) }}" class="relative pb-3 text-sm font-medium transition-colors {{ $activeTab === 'active' ? 'text-gray-900' : 'text-gray-400 hover:text-gray-700' }}">
             Active
+            @if($activeTab === 'active')
+                <span class="absolute inset-x-0 -bottom-px h-0.5 bg-gray-900 rounded-full"></span>
+            @endif
         </a>
-        <a href="{{ route('dashboard.quizzes.index', ['tab' => 'ended']) }}" class="px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors uppercase {{ ($tab ?? 'active') === 'ended' ? 'bg-white border border-gray-200 border-b-0 -mb-px text-primary-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50' }}">
+        <a href="{{ route('dashboard.quizzes.index', ['tab' => 'ended']) }}" class="relative pb-3 text-sm font-medium transition-colors {{ $activeTab === 'ended' ? 'text-gray-900' : 'text-gray-400 hover:text-gray-700' }}">
             Ended
+            @if($activeTab === 'ended')
+                <span class="absolute inset-x-0 -bottom-px h-0.5 bg-gray-900 rounded-full"></span>
+            @endif
         </a>
     </div>
 
-    <div class="bg-white rounded-lg border border-gray-200 overflow-hidden w-full max-w-full">
-        <div class="w-full overflow-x-auto">
-            <table class="w-full max-w-full divide-y divide-gray-200 min-w-[520px]">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-2 py-1.5 sm:px-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider w-[min(180px,20%)]">Title</th>
-                        <th class="px-2 py-1.5 sm:px-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider w-[min(140px,18%)]">Group</th>
-                        <th class="px-2 py-1.5 sm:px-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider w-[min(120px,16%)]">Course</th>
-                        <th class="px-1.5 py-1.5 text-center text-xs font-medium text-gray-600 uppercase tracking-wider w-10">Q</th>
-                        <th class="px-1.5 py-1.5 text-center text-xs font-medium text-gray-600 uppercase tracking-wider w-10">Dur</th>
-                        <th class="px-2 py-1.5 sm:px-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider w-20">Status</th>
-                        <th class="px-2 py-1.5 sm:px-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider w-28">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    @forelse($quizzes as $q)
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-2 py-1.5 sm:px-3 align-top max-w-[180px]">
-                                <div class="font-medium text-gray-900 text-sm truncate uppercase" title="{{ $q->title }}">{{ $q->title }}</div>
-                                @if($q->topics)
-                                    <div class="text-xs text-gray-500 mt-0.5 truncate uppercase" title="{{ $q->topics }}">{{ Str::limit($q->topics, 28) }}</div>
-                                @endif
-                            </td>
-                            <td class="px-2 py-1.5 sm:px-3 align-top max-w-[140px]">
-                                <div class="text-sm text-gray-900 truncate uppercase" title="{{ $q->classGroup?->name ?? '' }}">{{ $q->classGroup ? Str::upper($q->classGroup->name ?? '') : '-' }}</div>
-                                @if($q->classGroup?->level)
-                                    <div class="mt-1">
-                                        <span class="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium uppercase {{ $q->classGroup->level_tag_classes ?? 'bg-gray-200 text-gray-800' }}">{{ $q->classGroup->level->label }}</span>
-                                    </div>
-                                @endif
-                            </td>
-                            <td class="px-2 py-1.5 sm:px-3 text-sm text-gray-600 align-top max-w-[120px] truncate uppercase" title="{{ $q->course->name ?? '' }}">{{ $q->course ? Str::upper($q->course->name ?? '') : '-' }}</td>
-                            <td class="px-1.5 py-1.5 text-sm text-gray-600 text-center align-top">{{ $q->getQuestionsPerStudent() }}</td>
-                            <td class="px-1.5 py-1.5 text-sm text-gray-600 text-center align-top">{{ $q->duration_minutes }}m</td>
-                            <td class="px-2 py-1.5 sm:px-3 align-top">
-                                @if(!$q->hasEnoughApprovedQuestions())
-                                    <span class="inline-flex px-1.5 py-0.5 text-xs font-semibold rounded-full bg-warning-100 text-warning-800 uppercase">Pending</span>
-                                @elseif($q->hasEnded())
-                                    <span class="inline-flex px-1.5 py-0.5 text-xs font-semibold rounded-full bg-gray-200 text-gray-700 uppercase">Ended</span>
-                                @elseif($q->is_published || $q->isActive())
-                                    <span class="inline-flex px-1.5 py-0.5 text-xs font-semibold rounded-full bg-success-100 text-success-800 uppercase">Active</span>
-                                @else
-                                    <span class="inline-flex px-1.5 py-0.5 text-xs font-semibold rounded-full bg-gray-100 text-gray-800 uppercase">Inactive</span>
-                                @endif
-                            </td>
-                            <td class="px-2 py-1.5 sm:px-3 text-right text-sm align-top">
-                                <div class="flex items-center justify-end gap-1 flex-wrap">
-                                    <a href="{{ route('dashboard.quizzes.show', $q) }}" class="text-primary-600 hover:text-primary-900 text-xs whitespace-nowrap uppercase">View</a>
-                                    <span class="text-gray-300">|</span>
-                                    <a href="{{ route('dashboard.quizzes.edit', $q) }}" class="text-primary-600 hover:text-primary-900 text-xs whitespace-nowrap uppercase">Edit</a>
-                                    @if(!$q->hasStarted())
-                                        <span class="text-gray-300">|</span>
-                                        <form action="{{ route('dashboard.quizzes.destroy', $q) }}" method="post" class="inline" onsubmit="return confirm('Delete this quiz?');">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="text-danger-600 hover:text-danger-800 text-xs whitespace-nowrap bg-transparent border-0 p-0 cursor-pointer font-medium uppercase">Delete</button>
-                                        </form>
-                                    @endif
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="7" class="px-6 py-12 text-center">
-                                @if(($tab ?? 'active') === 'ended')
-                                    <p class="text-gray-500 mb-4 uppercase">No ended quizzes.</p>
-                                @else
-                                    <p class="text-gray-500 mb-4 uppercase">No active quizzes yet.</p>
-                                    <a href="{{ route('dashboard.quizzes.create') }}" class="inline-flex items-center justify-center gap-2 rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors uppercase">Create Your First Quiz</a>
-                                @endif
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+    <div class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+        @forelse($quizzes as $q)
+            @php
+                if (!$q->hasEnoughApprovedQuestions()) {
+                    $statusLabel = 'Pending';
+                    $statusClass = 'bg-amber-50 text-amber-700 ring-amber-100';
+                } elseif ($q->hasEnded()) {
+                    $statusLabel = 'Ended';
+                    $statusClass = 'bg-gray-100 text-gray-600 ring-gray-200';
+                } elseif ($q->is_published || $q->isActive()) {
+                    $statusLabel = 'Active';
+                    $statusClass = 'bg-emerald-50 text-emerald-700 ring-emerald-100';
+                } else {
+                    $statusLabel = 'Inactive';
+                    $statusClass = 'bg-gray-100 text-gray-600 ring-gray-200';
+                }
+            @endphp
+            <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 px-4 sm:px-5 py-4 border-b border-gray-100 last:border-b-0 hover:bg-gray-50/70 transition-colors">
+                <div class="min-w-0 flex-1">
+                    <div class="flex flex-wrap items-center gap-2 mb-1">
+                        <a href="{{ route('dashboard.quizzes.show', $q) }}" class="text-[15px] font-semibold text-gray-900 truncate hover:text-gray-700 tracking-tight" title="{{ $q->title }}">{{ $q->title }}</a>
+                        <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset {{ $statusClass }}">{{ $statusLabel }}</span>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+                        @if($q->classGroup)
+                            <span class="truncate max-w-[14rem]" title="{{ $q->classGroup->name }}">{{ $q->classGroup->name }}</span>
+                            @if($q->classGroup->level)
+                                <span class="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium uppercase {{ $q->classGroup->level_tag_classes ?? 'bg-gray-100 text-gray-700' }}">{{ $q->classGroup->level->label }}</span>
+                            @endif
+                        @endif
+                        @if($q->course)
+                            <span class="truncate max-w-[12rem]" title="{{ $q->course->name }}">{{ $q->course->name }}</span>
+                        @endif
+                        @if($q->topics)
+                            <span class="truncate max-w-[10rem] text-gray-400" title="{{ $q->topics }}">{{ Str::limit($q->topics, 36) }}</span>
+                        @endif
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-4 sm:gap-5 shrink-0 text-xs text-gray-500 tabular-nums">
+                    <span title="Questions per student"><span class="font-semibold text-gray-800">{{ $q->getQuestionsPerStudent() }}</span> Q</span>
+                    <span title="Duration"><span class="font-semibold text-gray-800">{{ $q->duration_minutes }}</span> min</span>
+                </div>
+
+                <div class="flex items-center gap-2 shrink-0">
+                    <a href="{{ route('dashboard.quizzes.show', $q) }}" class="inline-flex items-center rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-colors">View</a>
+                    <a href="{{ route('dashboard.quizzes.edit', $q) }}" class="inline-flex items-center rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-colors">Edit</a>
+                    @if(!$q->hasStarted())
+                        <form action="{{ route('dashboard.quizzes.destroy', $q) }}" method="post" class="inline" onsubmit="return confirm('Delete this quiz?');">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="inline-flex items-center rounded-full border border-rose-100 bg-rose-50 px-3 py-1.5 text-xs font-medium text-rose-700 hover:bg-rose-100 transition-colors">Delete</button>
+                        </form>
+                    @endif
+                </div>
+            </div>
+        @empty
+            <div class="px-6 py-16 text-center">
+                @if($activeTab === 'ended')
+                    <p class="text-sm text-gray-500 mb-1">No ended quizzes yet.</p>
+                    <p class="text-xs text-gray-400">Finished assessments will appear here.</p>
+                @else
+                    <p class="text-sm text-gray-500 mb-4">No active quizzes yet.</p>
+                    <a href="{{ route('dashboard.quizzes.create') }}" class="inline-flex items-center justify-center gap-2 rounded-full bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-black focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 transition-colors">Create your first quiz</a>
+                @endif
+            </div>
+        @endforelse
+
         @if($quizzes->hasPages())
-            <div class="bg-gray-50 px-4 py-3 border-t border-gray-200">{{ $quizzes->links() }}</div>
+            <div class="border-t border-gray-100 bg-gray-50/80 px-4 py-3">{{ $quizzes->links() }}</div>
         @endif
     </div>
 </div>

@@ -92,32 +92,53 @@ class UserManagementController extends Controller
     {
         $user = $this->adminUser();
         $isSuperAdmin = $user && $user->isSuperAdmin();
-        
-        // Only Super Admin can create users
-        if (! $isSuperAdmin) {
+        $isCoordinatorManager = $user && $user->isCoordinator() && ! $isSuperAdmin;
+
+        if (! $isSuperAdmin && ! $isCoordinatorManager) {
             abort(403, UserFriendlyMessages::ADMIN_ONLY);
         }
-        // All super admins share the same privileges, including creating other admins.
-        $canCreateSuperAdmin = $isSuperAdmin && $user;
-        
-        $institutions = Institution::orderBy('name')->get();
-        $faculties = old('institution_id')
-            ? Faculty::where('institution_id', old('institution_id'))->orderBy('name')->get()
-            : collect();
-        $departments = old('faculty_id')
-            ? Department::where('faculty_id', old('faculty_id'))->orderBy('name')->get()
-            : collect();
+
+        if ($isCoordinatorManager && (! $user->institution_id || ! $user->faculty_id)) {
+            return redirect()->route('dashboard.users.index')
+                ->with('error', 'Your account needs an institution and faculty before you can create examiners. Contact a super admin.');
+        }
+
+        $canCreateSuperAdmin = (bool) $isSuperAdmin;
+        $creatableRoles = $isCoordinatorManager
+            ? [User::ROLE_EXAMINER => 'Examiner']
+            : User::superAdminCreatableRoles();
+
+        $institutions = $isSuperAdmin
+            ? Institution::orderBy('name')->get()
+            : Institution::where('id', $user->institution_id)->orderBy('name')->get();
+
+        $faculties = collect();
+        $departments = collect();
+        if ($isCoordinatorManager) {
+            $faculties = Faculty::where('id', $user->faculty_id)->orderBy('name')->get();
+            $departments = Department::where('faculty_id', $user->faculty_id)->orderBy('name')->get();
+        } elseif (old('institution_id')) {
+            $faculties = Faculty::where('institution_id', old('institution_id'))->orderBy('name')->get();
+            if (old('faculty_id')) {
+                $departments = Department::where('faculty_id', old('faculty_id'))->orderBy('name')->get();
+            }
+        }
+
         $sendSmsOnStaffCreation = Setting::getValue(Setting::KEY_SEND_SMS_ON_STAFF_CREATION, '0') === '1';
-        $creatableRoles = User::superAdminCreatableRoles();
+        $coordinatorInstitutionId = $isCoordinatorManager ? (int) $user->institution_id : null;
+        $coordinatorFacultyId = $isCoordinatorManager ? (int) $user->faculty_id : null;
 
         return view('admin.users.create', compact(
             'institutions',
             'faculties',
             'departments',
             'isSuperAdmin',
+            'isCoordinatorManager',
             'canCreateSuperAdmin',
             'sendSmsOnStaffCreation',
-            'creatableRoles'
+            'creatableRoles',
+            'coordinatorInstitutionId',
+            'coordinatorFacultyId'
         ));
     }
 
@@ -125,13 +146,30 @@ class UserManagementController extends Controller
     {
         $user = $this->adminUser();
         $isSuperAdmin = $user && $user->isSuperAdmin();
-        
-        // Only Super Admin can create users
-        if (! $isSuperAdmin) {
+        $isCoordinatorManager = $user && $user->isCoordinator() && ! $isSuperAdmin;
+
+        if (! $isSuperAdmin && ! $isCoordinatorManager) {
             abort(403, UserFriendlyMessages::ADMIN_ONLY);
         }
-        $creatableRoles = User::superAdminCreatableRoleKeys();
-        $canCreateSuperAdmin = $isSuperAdmin && $user;
+
+        if ($isCoordinatorManager && (! $user->institution_id || ! $user->faculty_id)) {
+            return redirect()->route('dashboard.users.index')
+                ->with('error', 'Your account needs an institution and faculty before you can create examiners.');
+        }
+
+        // Coordinators may only create examiners in their own faculty.
+        if ($isCoordinatorManager) {
+            $request->merge([
+                'role' => User::ROLE_EXAMINER,
+                'institution_id' => (int) $user->institution_id,
+                'faculty_id' => (int) $user->faculty_id,
+            ]);
+        }
+
+        $creatableRoles = $isCoordinatorManager
+            ? [User::ROLE_EXAMINER]
+            : User::superAdminCreatableRoleKeys();
+        $canCreateSuperAdmin = (bool) $isSuperAdmin;
 
         $role = $request->role;
         $isStaffRole = in_array($role, [User::ROLE_EXAMINER, User::ROLE_COORDINATOR], true);
@@ -143,9 +181,7 @@ class UserManagementController extends Controller
             'username' => 'required|string|max:255|unique:users,username',
             'email' => 'nullable|email|max:255',
             'name' => 'nullable|string|max:255',
-            'role' => $canCreateSuperAdmin
-                ? 'required|in:' . implode(',', $creatableRoles)
-                : 'required|in:examiner,coordinator',
+            'role' => 'required|in:' . implode(',', $creatableRoles),
         ];
         if ($useSmsFlow || $isSupportAgent) {
             $rules['phone'] = 'required|string|max:20';
@@ -177,6 +213,11 @@ class UserManagementController extends Controller
                     $rules['department_id'] = 'nullable|exists:departments,id';
                 }
             }
+        } elseif ($isCoordinatorManager) {
+            $rules['department_id'] = [
+                'required',
+                Rule::exists('departments', 'id')->where(fn ($q) => $q->where('faculty_id', (int) $user->faculty_id)),
+            ];
         }
 
         // Normalize phone for uniqueness check (DB stores normalized format); do not overwrite phone so old() keeps user input
@@ -220,7 +261,7 @@ class UserManagementController extends Controller
                 $attrs['phone'] = $phone;
             }
         }
-        if ($isSuperAdmin && $isStaffRole) {
+        if (($isSuperAdmin || $isCoordinatorManager) && $isStaffRole) {
             $attrs['institution_id'] = (int) $request->institution_id;
             $attrs['faculty_id'] = (int) $request->faculty_id;
             if ($role === User::ROLE_EXAMINER) {
@@ -232,13 +273,17 @@ class UserManagementController extends Controller
         if ($isSuperAdmin && $request->has('sms_allocation') && $request->input('sms_allocation') !== null && $request->input('sms_allocation') !== '') {
             $attrs['sms_allocation'] = max(0, (int) $request->sms_allocation);
         }
-        if ($isSuperAdmin && in_array($role, [User::ROLE_EXAMINER, User::ROLE_COORDINATOR], true)) {
+        if (($isSuperAdmin || $isCoordinatorManager) && in_array($role, [User::ROLE_EXAMINER, User::ROLE_COORDINATOR], true)) {
             $defaultAllocation = $role === User::ROLE_COORDINATOR ? 3 : 10;
             if (Schema::hasColumn('users', 'ai_quiz_tokens_allocation')) {
-                $attrs['ai_quiz_tokens_allocation'] = max(0, (int) ($request->ai_quiz_tokens_allocation ?? $defaultAllocation));
+                $attrs['ai_quiz_tokens_allocation'] = $isSuperAdmin
+                    ? max(0, (int) ($request->ai_quiz_tokens_allocation ?? $defaultAllocation))
+                    : $defaultAllocation;
             }
             if (Schema::hasColumn('users', 'ai_quiz_generation_allowed')) {
-                $attrs['ai_quiz_generation_allowed'] = $request->boolean('ai_quiz_generation_allowed', true);
+                $attrs['ai_quiz_generation_allowed'] = $isSuperAdmin
+                    ? $request->boolean('ai_quiz_generation_allowed', true)
+                    : true;
             }
         }
 

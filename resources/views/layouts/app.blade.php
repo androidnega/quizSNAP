@@ -258,18 +258,19 @@
             }
         }
 
-        /* Header chrome matching reference */
+        /* Header chrome: solid fills, no glass/transparency */
         .dashboard-chrome-header {
-            background: transparent;
-            border-bottom: none;
+            background: #ffffff;
+            border-bottom: 1px solid #e5e7eb;
         }
         .dashboard-chrome-toggle {
             width: 2.75rem;
             height: 2.75rem;
             border-radius: 9999px;
-            border: 1.5px solid #243b6b;
-            background: #fff;
-            color: #374151;
+            border: 1.5px solid #111827;
+            background: #ffffff;
+            color: #111827;
+            box-shadow: none;
         }
         .dashboard-chrome-search {
             position: relative;
@@ -277,10 +278,10 @@
             align-items: center;
             min-width: 0;
             width: min(22rem, 42vw);
-            background: #fff;
+            background: #f3f4f6;
             border-radius: 9999px;
-            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-            border: 1px solid #eef0f3;
+            box-shadow: none;
+            border: 1px solid #e5e7eb;
         }
         .dashboard-chrome-search input {
             width: 100%;
@@ -303,14 +304,16 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
+            box-shadow: none;
         }
         .dashboard-chrome-bell {
             width: 2.75rem;
             height: 2.75rem;
             border-radius: 9999px;
-            background: #fff;
-            border: 1px solid #eef0f3;
-            color: #6b7280;
+            background: #f3f4f6;
+            border: 1px solid #e5e7eb;
+            color: #374151;
+            box-shadow: none;
         }
         .dashboard-chrome-profile {
             display: inline-flex;
@@ -318,9 +321,9 @@
             gap: 0.65rem;
             padding: 0.3rem 0.75rem 0.3rem 0.3rem;
             border-radius: 9999px;
-            background: #fff;
-            border: 1px solid #eef0f3;
-            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+            background: #f3f4f6;
+            border: 1px solid #e5e7eb;
+            box-shadow: none;
         }
 
         /* Hide vertical scrollbar on coordinator/examiner sidebar; content still scrolls */

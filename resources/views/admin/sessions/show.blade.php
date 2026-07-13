@@ -30,9 +30,6 @@
     $preUrl = !empty($session->pre_face_image) ? ProctoringImageUrl::resolve($session->pre_face_image) : null;
     $postUrl = !empty($session->post_face_image) ? ProctoringImageUrl::resolve($session->post_face_image) : null;
     $violationSnapshots = $session->violations->filter(fn ($v) => !empty($v->image_url))->take(5)->values();
-    $violationsFirst = $session->violations->take(5);
-    $violationsRest = $session->violations->slice(5);
-    $restCount = $violationsRest->count();
     $violationCount = $session->result?->violations_count ?? $session->violations->count();
     $indexKey = strtoupper(trim((string) ($session->student_index ?? '')));
     $initials = $indexKey !== ''
@@ -231,8 +228,8 @@
         </section>
 
         {{-- Violations --}}
-        <section class="rounded-2xl border border-gray-200 bg-white shadow-sm p-4 sm:p-5 min-w-0">
-            <div class="flex items-baseline justify-between gap-2 mb-3">
+        <section class="rounded-2xl border border-gray-200 bg-white shadow-sm p-4 sm:p-5 min-w-0 flex flex-col max-h-[28rem]">
+            <div class="flex items-baseline justify-between gap-2 mb-3 shrink-0">
                 <h2 class="text-sm font-semibold text-gray-900 tracking-tight">Violation log</h2>
                 <span class="text-xs tabular-nums text-gray-400">{{ $session->violations->count() }}</span>
             </div>
@@ -240,9 +237,18 @@
             @if($session->violations->isEmpty())
                 <div class="rounded-xl border border-dashed border-gray-200 px-4 py-8 text-center text-xs text-gray-400">No violations recorded</div>
             @else
-                <div class="overflow-x-auto -mx-1">
+                <style>
+                    .session-panel-scroll {
+                        overflow-y: auto;
+                        overscroll-behavior: contain;
+                        -ms-overflow-style: none;
+                        scrollbar-width: none;
+                    }
+                    .session-panel-scroll::-webkit-scrollbar { width: 0; height: 0; display: none; }
+                </style>
+                <div class="session-panel-scroll flex-1 min-h-0 -mx-1">
                     <table class="min-w-full text-xs">
-                        <thead>
+                        <thead class="sticky top-0 bg-white">
                             <tr class="border-b border-gray-100 text-left text-[10px] uppercase tracking-wide text-gray-400">
                                 <th scope="col" class="px-2 py-2 font-medium">#</th>
                                 <th scope="col" class="px-2 py-2 font-medium">Time</th>
@@ -253,7 +259,7 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-50">
-                            @foreach($violationsFirst as $idx => $v)
+                            @foreach($session->violations as $idx => $v)
                                 @php
                                     $label = $typeLabels[$v->type] ?? ucfirst(str_replace('_', ' ', $v->type));
                                     $details = $formatViolationDetails($v);
@@ -286,93 +292,17 @@
                                     </td>
                                 </tr>
                             @endforeach
-                            @if($restCount > 0)
-                                <tr id="violation-log-show-more-row">
-                                    <td colspan="6" class="px-2 py-2.5">
-                                        <button type="button" id="violation-log-toggle" class="inline-flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900" aria-expanded="false" aria-controls="violation-log-more">
-                                            <svg id="violation-log-chevron" class="w-3.5 h-3.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-                                            <span id="violation-log-toggle-text">Show {{ $restCount }} more</span>
-                                        </button>
-                                    </td>
-                                </tr>
-                            @endif
                         </tbody>
-                        @if($restCount > 0)
-                            <tbody id="violation-log-more" class="divide-y divide-gray-50 hidden" hidden>
-                                @foreach($violationsRest as $idx => $v)
-                                    @php
-                                        $label = $typeLabels[$v->type] ?? ucfirst(str_replace('_', ' ', $v->type));
-                                        $details = $formatViolationDetails($v);
-                                        $rowNum = $violationsFirst->count() + $idx + 1;
-                                    @endphp
-                                    <tr class="hover:bg-gray-50/80">
-                                        <td class="px-2 py-2 tabular-nums text-gray-400">{{ $rowNum }}</td>
-                                        <td class="px-2 py-2 whitespace-nowrap text-gray-600">{{ $v->occurred_at?->format('M d, H:i:s') ?? '—' }}</td>
-                                        <td class="px-2 py-2 font-medium text-gray-900">{{ $label }}</td>
-                                        <td class="px-2 py-2">
-                                            @if($v->severity === 'critical')
-                                                <span class="text-rose-600 font-medium">Critical</span>
-                                            @else
-                                                <span class="text-gray-500">Warning</span>
-                                            @endif
-                                        </td>
-                                        <td class="px-2 py-2 text-gray-500 max-w-[12rem] break-words">{{ $details !== '' ? $details : '—' }}</td>
-                                        <td class="px-2 py-2">
-                                            @if(!empty($v->image_url))
-                                                @php $imgUrl = ProctoringImageUrl::resolve($v->image_url); @endphp
-                                                @if($imgUrl)
-                                                    <button type="button" class="session-img-thumb" data-session-full-img="{{ $imgUrl }}" data-session-img-alt="Violation image {{ $rowNum }}" aria-label="Open violation image">
-                                                        <img src="{{ $imgUrl }}" alt="Violation image {{ $rowNum }}" class="w-8 h-8 rounded-full object-cover ring-1 ring-black/5" loading="lazy">
-                                                    </button>
-                                                @else
-                                                    <span class="text-gray-300">—</span>
-                                                @endif
-                                            @else
-                                                <span class="text-gray-300">—</span>
-                                            @endif
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        @endif
                     </table>
                 </div>
-                @if($restCount > 0)
-                <script>
-                (function() {
-                    var btn = document.getElementById('violation-log-toggle');
-                    var more = document.getElementById('violation-log-more');
-                    var chevron = document.getElementById('violation-log-chevron');
-                    var text = document.getElementById('violation-log-toggle-text');
-                    if (btn && more) {
-                        btn.addEventListener('click', function() {
-                            var isHidden = more.hasAttribute('hidden') || more.classList.contains('hidden');
-                            if (isHidden) {
-                                more.removeAttribute('hidden');
-                                more.classList.remove('hidden');
-                                if (chevron) chevron.style.transform = 'rotate(180deg)';
-                                if (text) text.textContent = 'Show less';
-                                btn.setAttribute('aria-expanded', 'true');
-                            } else {
-                                more.setAttribute('hidden', '');
-                                more.classList.add('hidden');
-                                if (chevron) chevron.style.transform = '';
-                                if (text) text.textContent = 'Show {{ $restCount }} more';
-                                btn.setAttribute('aria-expanded', 'false');
-                            }
-                        });
-                    }
-                })();
-                </script>
-                @endif
-                <p class="mt-3 text-[11px] leading-relaxed text-gray-400">Critical events auto-submit: phone, screenshot, tab switch, multiple faces, resize/fullscreen exit, another window, copy/paste, multiple IP.</p>
+                <p class="mt-3 shrink-0 text-[11px] leading-relaxed text-gray-400">Critical events auto-submit: phone, screenshot, tab switch, multiple faces, resize/fullscreen exit, another window, copy/paste, multiple IP.</p>
             @endif
         </section>
     </div>
 
     {{-- Question review --}}
-    <section class="rounded-2xl border border-gray-200 bg-white shadow-sm p-4 sm:p-5">
-        <h2 class="text-sm font-semibold text-gray-900 tracking-tight mb-3">Question review</h2>
+    <section class="rounded-2xl border border-gray-200 bg-white shadow-sm p-4 sm:p-5 flex flex-col max-h-[min(36rem,70vh)]">
+        <h2 class="text-sm font-semibold text-gray-900 tracking-tight mb-3 shrink-0">Question review</h2>
         @php
             $assignedQuestions = $assignedQuestions ?? collect();
             $answersByQuestion = $session->answers->keyBy(fn ($a) => (int) $a->question_id);
@@ -382,7 +312,16 @@
         @if($assignedQuestions->isEmpty())
             <p class="text-xs text-gray-400">No assigned question snapshot found for this session.</p>
         @else
-            <div class="space-y-2">
+            <style>
+                .session-panel-scroll {
+                    overflow-y: auto;
+                    overscroll-behavior: contain;
+                    -ms-overflow-style: none;
+                    scrollbar-width: none;
+                }
+                .session-panel-scroll::-webkit-scrollbar { width: 0; height: 0; display: none; }
+            </style>
+            <div class="session-panel-scroll space-y-2 flex-1 min-h-0 pr-0.5">
                 @foreach($assignedQuestions as $idx => $question)
                     @php
                         $answer = $answersByQuestion->get((int) $question->id);

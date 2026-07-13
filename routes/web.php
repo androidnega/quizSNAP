@@ -335,10 +335,12 @@ Route::middleware('admin.auth')->group(function () {
         Route::get('/users/{user}/edit', [\App\Http\Controllers\Admin\UserManagementController::class, 'edit'])->name('users.edit');
         Route::put('/users/{user}', [\App\Http\Controllers\Admin\UserManagementController::class, 'update'])->name('users.update');
 
-        // Super Admin and Coordinator: view examiners and assign AI tokens
+        // Super Admin and Coordinator: view examiners, assign AI tokens, create examiners
         Route::middleware('staff.tokens')->group(function () {
             Route::get('/users', [\App\Http\Controllers\Admin\UserManagementController::class, 'index'])->name('users.index');
             Route::post('/users/update-ai-tokens', [\App\Http\Controllers\Admin\UserManagementController::class, 'updateAiTokens'])->name('users.update-ai-tokens');
+            Route::get('/users/create', [\App\Http\Controllers\Admin\UserManagementController::class, 'create'])->name('users.create');
+            Route::post('/users', [\App\Http\Controllers\Admin\UserManagementController::class, 'store'])->name('users.store');
         });
         
         // QuizSnap: cascading selects for assessment creation
@@ -416,8 +418,6 @@ Route::middleware('admin.auth')->group(function () {
             Route::post('/student-levels', [\App\Http\Controllers\Admin\StudentLevelController::class, 'store'])->name('student-levels.store');
             Route::put('/student-levels/{studentLevel}', [\App\Http\Controllers\Admin\StudentLevelController::class, 'update'])->name('student-levels.update');
             Route::delete('/student-levels/{studentLevel}', [\App\Http\Controllers\Admin\StudentLevelController::class, 'destroy'])->name('student-levels.destroy');
-            Route::get('/users/create', [\App\Http\Controllers\Admin\UserManagementController::class, 'create'])->name('users.create');
-            Route::post('/users', [\App\Http\Controllers\Admin\UserManagementController::class, 'store'])->name('users.store');
             Route::get('/users/{user}/view-password', [\App\Http\Controllers\Admin\UserManagementController::class, 'showPasswordForm'])->name('users.view-password-form');
             Route::post('/users/{user}/view-password', [\App\Http\Controllers\Admin\UserManagementController::class, 'viewPassword'])->name('users.view-password');
             Route::post('/users/{user}/reset-password', [\App\Http\Controllers\Admin\UserManagementController::class, 'resetPassword'])->name('users.reset-password');

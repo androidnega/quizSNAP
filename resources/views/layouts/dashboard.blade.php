@@ -279,14 +279,14 @@
                             }
                             $aiTokenColor = ($aiTokenStatus['remaining'] ?? 0) > 0 ? 'text-indigo-700' : 'text-rose-700';
                         @endphp
-                        <div class="hidden lg:inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-2.5 py-1 text-xs {{ $aiTokenColor }}" title="AI quiz generations remaining">
-                            <span class="text-[10px] font-medium uppercase tracking-wide text-gray-400">AI</span>
+                        <div class="hidden lg:inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-100 px-2.5 py-1 text-xs {{ $aiTokenColor }}" title="AI quiz generations remaining">
+                            <span class="text-[10px] font-medium uppercase tracking-wide text-gray-500">AI</span>
                             <span class="font-semibold tabular-nums">{{ $aiTokenStatus['remaining'] }}</span>
                         </div>
                         @endif
                         @if($showSmsInHeader)
-                        <div class="hidden md:inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-2.5 py-1 text-xs {{ $smsColorClass }}" title="SMS balance">
-                            <span class="text-[10px] font-medium uppercase tracking-wide text-gray-400">SMS</span>
+                        <div class="hidden md:inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-100 px-2.5 py-1 text-xs {{ $smsColorClass }}" title="SMS balance">
+                            <span class="text-[10px] font-medium uppercase tracking-wide text-gray-500">SMS</span>
                             <span class="font-semibold tabular-nums">{{ $smsRemaining }}</span>
                         </div>
                         @endif

@@ -8,6 +8,7 @@
     $phone = $phone && trim($phone) !== '' ? trim($phone) : null;
     $displayName = $s->studentAccount?->student_name ?? $s->student_name ?? null;
     $displayName = $displayName && trim($displayName) !== '' ? trim($displayName) : '—';
+    $passwordChanges = (int) ($s->studentAccount?->password_change_count ?? 0);
 @endphp
 <tr class="hover:bg-gray-50/80">
     @can('update', $classGroup)
@@ -18,6 +19,7 @@
     <td class="px-3 py-2 text-sm font-medium text-gray-900 tabular-nums">{!! \App\Support\SearchHighlight::mark($s->index_number, $search) !!}</td>
     <td class="px-3 py-2 text-sm text-gray-600">{!! \App\Support\SearchHighlight::mark($displayName, $search) !!}</td>
     <td class="px-3 py-2 text-sm text-gray-500">{!! \App\Support\SearchHighlight::mark($phone ?? '—', $search) !!}</td>
+    <td class="px-3 py-2 text-right text-sm tabular-nums text-gray-700">{{ $passwordChanges }}</td>
     <td class="px-3 py-2 text-right">
         <div class="inline-flex items-center justify-end gap-1.5">
             <a href="{{ route('dashboard.class-groups.students.show', [$classGroup, $s]) }}" class="text-xs font-medium text-gray-500 hover:text-gray-900">View</a>
@@ -34,7 +36,7 @@
 </tr>
 @empty
 <tr>
-    <td colspan="5" class="px-4 py-10 text-center text-gray-400 text-sm">
+    <td colspan="6" class="px-4 py-10 text-center text-gray-400 text-sm">
         @if(trim((string) ($search ?? '')) !== '')
             No students match your search.
         @else

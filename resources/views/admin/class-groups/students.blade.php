@@ -163,6 +163,7 @@
                         <th class="px-3 py-2 text-left text-[10px] font-medium text-gray-400 uppercase tracking-wide">Index</th>
                         <th class="px-3 py-2 text-left text-[10px] font-medium text-gray-400 uppercase tracking-wide">Name</th>
                         <th class="px-3 py-2 text-left text-[10px] font-medium text-gray-400 uppercase tracking-wide">Phone</th>
+                        <th class="px-3 py-2 text-right text-[10px] font-medium text-gray-400 uppercase tracking-wide" title="Times the student password was changed">Pw changes</th>
                         <th class="px-3 py-2 text-right text-[10px] font-medium text-gray-400 uppercase tracking-wide">Actions</th>
                     </tr>
                 </thead>

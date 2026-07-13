@@ -91,6 +91,22 @@ class ClassGroupPolicy
         return $this->coordinatorCanAccess($user, $classGroup);
     }
 
+    /**
+     * Super admin and assigned examiners can reset a student account password.
+     */
+    public function resetStudentPassword(User $user, ClassGroup $classGroup): bool
+    {
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+
+        if ($user->isExaminer()) {
+            return $this->isExaminerAssignedToClassGroup($user, $classGroup);
+        }
+
+        return false;
+    }
+
     public function delete(User $user, ClassGroup $classGroup): bool
     {
         return $this->coordinatorCanAccess($user, $classGroup);

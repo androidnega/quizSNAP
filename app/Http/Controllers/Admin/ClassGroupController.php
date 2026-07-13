@@ -28,6 +28,9 @@ use App\Services\StudentUniversalOtp;
 use App\Support\LiveSupportAccess;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Hash;
+use App\Services\StudentAuthAuditLogger;
+use App\Services\StudentAuthThrottleService;
 use Illuminate\Validation\Rule;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -657,6 +660,12 @@ class ClassGroupController extends Controller
         $lastQuizDate = null;
         
         $isSuperAdmin = $this->adminUser()?->isSuperAdmin() ?? false;
+        $canResetStudentPassword = $this->adminUser()
+            ? $this->adminUser()->can('resetStudentPassword', $classGroup)
+            : false;
+        $passwordChangeCount = (int) ($studentAccount?->password_change_count ?? 0);
+        $passwordChangedAt = $studentAccount?->password_changed_at;
+        $hasStudentPassword = (bool) ($studentAccount && $studentAccount->hasPassword());
         
         if ($studentAccount) {
             $sessions = $studentAccount->quizSessions()->with('result')->get();
@@ -683,6 +692,10 @@ class ClassGroupController extends Controller
             'averageScore',
             'lastQuizDate',
             'isSuperAdmin',
+            'canResetStudentPassword',
+            'passwordChangeCount',
+            'passwordChangedAt',
+            'hasStudentPassword',
         ));
     }
 
@@ -960,18 +973,76 @@ class ClassGroupController extends Controller
             return $resolved;
         }
         $classGroup = $resolved;
-        
-        $indexHash = \App\Models\Student::hashIndexNumber($student->index_number);
-        $studentAccount = \App\Models\Student::where('index_number_hash', $indexHash)->first();
-        if ($studentAccount) {
-            $studentAccount->phone_contact = null;
-            $studentAccount->phone_verified_at = null;
-            $studentAccount->save();
+
+        $student->load('studentAccount');
+        $account = $student->studentAccount;
+        if ($account) {
+            $indexHash = $account->index_number_hash ?: Student::hashIndexNumber($student->index_number);
+            $account->phone_contact = null;
+            $account->phone_verified_at = null;
+            $account->save();
             Otp::where('index_number_hash', $indexHash)->where('type', Otp::TYPE_STUDENT_LOGIN)->delete();
-            return redirect()->route($this->staffRoutePrefix() . '.class-groups.students.index', $classGroup)->with('success', 'Removed');
         }
-        
-        return redirect()->route($this->staffRoutePrefix() . '.class-groups.students.index', $classGroup)->with('error', 'Not found');
+
+        return redirect()->route($this->staffRoutePrefix() . '.class-groups.students.show', [$classGroup, $student])
+            ->with('success', 'Phone number removed.');
+    }
+
+    /**
+     * Super admin or assigned examiner: set a temporary student password and show it once.
+     */
+    public function resetStudentPassword(string $classGroupId, ClassGroupStudent $student): RedirectResponse
+    {
+        $resolved = $this->resolveStudentClassGroup($classGroupId, $student, 'resetStudentPassword', 'class-groups.students.show');
+        if ($resolved instanceof RedirectResponse) {
+            return $resolved;
+        }
+        $classGroup = $resolved;
+
+        $student->load('studentAccount');
+        $account = $student->studentAccount;
+        if (! $account) {
+            $hash = Student::hashIndexNumber($student->index_number);
+            $account = Student::firstOrCreate(
+                ['index_number_hash' => $hash],
+                [
+                    'index_number' => $student->index_number,
+                    'index_number_hash' => $hash,
+                    'student_name' => $student->student_name,
+                ]
+            );
+            $this->syncStudentFromClassGroup($account, $classGroup);
+            $account->save();
+        }
+
+        $temporaryPassword = $this->generateStudentTemporaryPassword();
+        $account->password = Hash::make($temporaryPassword);
+        $account->markPasswordChanged();
+        $account->save();
+
+        StudentAuthThrottleService::clearFailures(StudentAuthThrottleService::TYPE_PASSWORD, $account->index_number_hash);
+        StudentAuthAuditLogger::log('staff_password_reset', $account, $account->index_number_hash, request(), [
+            'staff_user_id' => $this->adminUser()?->id,
+            'class_group_id' => $classGroup->id,
+        ]);
+
+        return redirect()
+            ->route($this->staffRoutePrefix() . '.class-groups.students.show', [$classGroup, $student])
+            ->with('success', 'Student password reset. Copy the temporary password now — it will not be shown again.')
+            ->with('temp_password', $temporaryPassword);
+    }
+
+    private function generateStudentTemporaryPassword(int $length = 8): string
+    {
+        $length = max($length, Student::PASSWORD_MIN_LENGTH);
+        $chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+        $password = '';
+        $max = strlen($chars) - 1;
+        for ($i = 0; $i < $length; $i++) {
+            $password .= $chars[random_int(0, $max)];
+        }
+
+        return $password;
     }
 
     /**

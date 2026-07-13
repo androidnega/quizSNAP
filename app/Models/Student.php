@@ -25,11 +25,15 @@ class Student extends Model implements Authenticatable
         'level',
         'department_id',
         'password',
+        'password_change_count',
+        'password_changed_at',
     ];
 
     protected $casts = [
         'email_verified_at' => 'datetime',
         'phone_verified_at' => 'datetime',
+        'password_changed_at' => 'datetime',
+        'password_change_count' => 'integer',
     ];
 
     /**
@@ -160,6 +164,13 @@ class Student extends Model implements Authenticatable
         $p = $this->attributes['password'] ?? null;
 
         return $p !== null && $p !== '';
+    }
+
+    /** Record a password change (self-reset or staff reset). Does not count first-time setup. Caller must save. */
+    public function markPasswordChanged(): void
+    {
+        $this->password_change_count = (int) ($this->password_change_count ?? 0) + 1;
+        $this->password_changed_at = now();
     }
 
     /** Minimum length for student account passwords (no letter/number/symbol rules). */

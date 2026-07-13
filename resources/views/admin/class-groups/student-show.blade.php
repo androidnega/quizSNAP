@@ -14,12 +14,34 @@
         <div class="alert alert-error mb-4">{{ session('error') }}</div>
     @endif
 
+    @if(session('temp_password'))
+    <div class="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <p class="text-sm font-semibold text-amber-900 mb-2">Temporary password (copy now)</p>
+        <div class="flex flex-wrap items-center gap-2">
+            <input
+                type="text"
+                id="student-temp-password"
+                value="{{ session('temp_password') }}"
+                readonly
+                class="flex-1 min-w-[12rem] font-mono text-sm bg-white border border-amber-300 rounded-lg px-3 py-2 text-gray-900"
+            >
+            <button
+                type="button"
+                onclick="(function(){var el=document.getElementById('student-temp-password');if(!el)return;navigator.clipboard.writeText(el.value).then(function(){var b=document.getElementById('copy-temp-pw-btn');if(b){b.textContent='Copied';setTimeout(function(){b.textContent='Copy';},1500);}});})()"
+                id="copy-temp-pw-btn"
+                class="inline-flex items-center rounded-lg bg-amber-600 px-3 py-2 text-sm font-semibold text-white hover:bg-amber-700"
+            >Copy</button>
+        </div>
+        <p class="text-xs text-amber-800 mt-2">Share this with the student securely. Ask them to sign in with their index and this password, then change it if needed.</p>
+    </div>
+    @endif
+
     <a href="{{ route('dashboard.class-groups.students.index', $classGroup) }}" class="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-primary-600 mb-6">
         <i class="fas fa-arrow-left"></i> Back to student list
     </a>
 
     <div class="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
+        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between gap-3 flex-wrap">
             <h2 class="text-lg font-semibold text-gray-900">Student information</h2>
             <div class="flex gap-2 flex-wrap">
                 @can('update', $classGroup)
@@ -36,6 +58,14 @@
                 </form>
                 @endif
                 @endcan
+                @if(!empty($canResetStudentPassword))
+                <form action="{{ route('dashboard.class-groups.students.reset-password', [$classGroup, $student]) }}" method="post" class="inline" onsubmit="return confirm('Reset this student\'s password? A temporary password will be shown once.');">
+                    @csrf
+                    <button type="submit" class="btn btn-sm btn-primary" style="background-color: #2563eb;">
+                        <i class="fas fa-key mr-1"></i> Reset password
+                    </button>
+                </form>
+                @endif
             </div>
         </div>
         
@@ -88,6 +118,17 @@
                         <label class="block text-xs font-medium text-gray-500 mb-1">Account created</label>
                         <p class="text-sm text-gray-900">{{ $studentAccount->created_at ? $studentAccount->created_at->format('M j, Y') : '—' }}</p>
                     </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-500 mb-1">Password set</label>
+                        <p class="text-sm text-gray-900">{{ !empty($hasStudentPassword) ? 'Yes' : 'No' }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-500 mb-1">Passwords changed</label>
+                        <p class="text-2xl font-bold text-gray-900 tabular-nums">{{ $passwordChangeCount ?? 0 }}</p>
+                        @if(!empty($passwordChangedAt))
+                            <p class="text-xs text-gray-500 mt-1">Last change {{ $passwordChangedAt->format('M j, Y g:i A') }}</p>
+                        @endif
+                    </div>
                 </div>
             </div>
 
@@ -111,6 +152,9 @@
             @else
             <div class="pt-4 border-t border-gray-200">
                 <p class="text-sm text-gray-500 italic">This student has not logged in or taken any quizzes yet.</p>
+                @if(!empty($canResetStudentPassword))
+                    <p class="text-xs text-gray-500 mt-2">You can still reset/set a password — an account will be created if needed.</p>
+                @endif
             </div>
             @endif
         </div>

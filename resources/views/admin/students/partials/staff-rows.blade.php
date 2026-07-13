@@ -7,6 +7,7 @@
     $displayName = $s->studentAccount?->student_name ?? $s->student_name;
     $displayName = $displayName && trim($displayName) !== '' ? trim($displayName) : '—';
     $institution = $classGroup?->examiner?->institution;
+    $passwordChanges = (int) ($s->studentAccount?->password_change_count ?? 0);
 @endphp
 <tr class="hover:bg-gray-50">
     <td class="px-4 py-3 text-sm font-medium text-gray-900">{!! \App\Support\SearchHighlight::mark($s->index_number, $search) !!}</td>
@@ -22,6 +23,7 @@
     @if($isSuperAdmin)
     <td class="px-4 py-3 text-sm text-gray-600">{{ $institution?->display_name ?? '—' }}</td>
     @endif
+    <td class="px-4 py-3 text-sm text-right tabular-nums text-gray-700">{{ $passwordChanges }}</td>
     <td class="px-4 py-3 text-right">
         @if($classGroup)
         <div class="inline-flex items-center justify-end gap-2 flex-wrap">
@@ -35,7 +37,7 @@
 </tr>
 @empty
 <tr>
-    <td colspan="{{ $isSuperAdmin ? 6 : 5 }}" class="px-4 py-10 text-center text-sm text-gray-500">
+    <td colspan="{{ $isSuperAdmin ? 7 : 6 }}" class="px-4 py-10 text-center text-sm text-gray-500">
         {{ trim((string) $search) !== '' ? 'No students match your search.' : 'No students found in your scope.' }}
     </td>
 </tr>

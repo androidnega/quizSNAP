@@ -160,6 +160,7 @@ class StudentPasswordResetController extends Controller
         }
 
         $student->password = Hash::make($request->password);
+        $student->markPasswordChanged();
         $student->save();
         $reset->delete();
 

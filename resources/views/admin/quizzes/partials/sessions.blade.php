@@ -123,12 +123,12 @@
                                     @endif
                                 </div>
 
-                                <div class="flex items-center gap-2.5 shrink-0">
+                                <div class="flex items-center gap-2 shrink-0">
                                     @if($session->result)
-                                        <span class="text-[13px] font-semibold tabular-nums {{ $scoreText }} min-w-[3.25rem] text-right">{{ number_format((float) $score, 1) }}%</span>
-                                        <span class="hidden sm:inline text-[11px] text-gray-400 tabular-nums min-w-[2.75rem] text-right">{{ $session->result->correct_count }}/{{ $session->result->total_questions }}</span>
+                                        <span class="text-[13px] font-semibold tabular-nums {{ $scoreText }} min-w-[2.75rem] text-right">{{ $session->result->correct_count }}/{{ $session->result->total_questions }}</span>
+                                        <span class="text-[11px] text-gray-400 tabular-nums min-w-[2.75rem] text-right">{{ number_format((float) $score, 0) }}%</span>
                                     @else
-                                        <span class="text-xs text-gray-300 min-w-[3.25rem] text-right">—</span>
+                                        <span class="text-xs text-gray-300 min-w-[2.75rem] text-right">—</span>
                                     @endif
 
                                     <a href="{{ route('dashboard.quizzes.sessions.show', [$quiz, $session]) }}"

@@ -1,3 +1,4 @@
+@php use App\Support\ProctoringImageUrl; @endphp
 <div class="space-y-4">
     {{-- Quiet summary strip --}}
     <div class="rounded-2xl border border-gray-200 bg-white px-4 py-3 sm:px-5 shadow-sm">
@@ -69,6 +70,17 @@
                     height: 0;
                     display: none;
                 }
+                .sessions-face {
+                    width: 1.875rem;
+                    height: 2.35rem;
+                    border-radius: 50%;
+                }
+                .sessions-face img {
+                    transition: transform 0.35s ease;
+                }
+                .sessions-row:hover .sessions-face img {
+                    transform: scale(1.06);
+                }
             </style>
             <div class="sessions-scroll-hide">
                 <ul class="divide-y divide-gray-100" id="sessions-table-body" role="list">
@@ -81,9 +93,23 @@
                             $scoreText = $score === null
                                 ? 'text-gray-400'
                                 : ($score >= 70 ? 'text-emerald-600' : ($score >= 50 ? 'text-amber-600' : 'text-rose-600'));
+                            $faceUrl = !empty($session->pre_face_image)
+                                ? ProctoringImageUrl::resolve($session->pre_face_image)
+                                : null;
+                            $initials = $index !== ''
+                                ? \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr(preg_replace('/[^A-Za-z0-9]/', '', $index) ?: '?', -2))
+                                : '?';
                         @endphp
                         <li class="sessions-row group" data-student-index="{{ $index }}">
                             <div class="flex items-center gap-2.5 px-3 sm:px-4 py-1.5 hover:bg-gray-50 transition-colors {{ $violationCount > 0 ? 'bg-rose-50/50' : '' }}">
+                                <div class="sessions-face shrink-0 overflow-hidden bg-gradient-to-b from-slate-100 to-slate-200 ring-1 ring-black/5 shadow-sm">
+                                    @if($faceUrl)
+                                        <img src="{{ $faceUrl }}" alt="" class="h-full w-full object-cover object-top" loading="lazy">
+                                    @else
+                                        <span class="flex h-full w-full items-center justify-center text-[10px] font-semibold tracking-wide text-slate-400">{{ $initials }}</span>
+                                    @endif
+                                </div>
+
                                 <div class="min-w-0 flex-1 flex items-center gap-2">
                                     <span class="text-[13px] font-medium text-gray-900 truncate">{{ $session->student_index }}</span>
                                     @if($name)

@@ -14,19 +14,16 @@
         <div class="examiner-sidebar-inner flex flex-col h-full">
             {{-- Brand + collapse toggle --}}
             <div class="examiner-sidebar-header flex h-16 flex-shrink-0 items-center justify-between gap-2 px-4">
-                <a href="{{ route('dashboard') }}" class="examiner-sidebar-brand flex min-w-0 flex-shrink-0 items-center gap-3 overflow-hidden transition-opacity hover:opacity-80" aria-label="Dashboard home">
-                    @php $user = auth()->user(); $inst = $user?->institution; @endphp
-                    @if($inst && $inst->logo_url)
-                        <img src="{{ $inst->logo_url }}" alt="{{ $inst->name ?? 'Logo' }}" class="h-10 w-10 flex-shrink-0 object-contain rounded-full border border-gray-200 bg-white">
-                    @else
-                        @include('partials.brand-logo', [
-                            'href' => null,
-                            'size' => 'sm',
-                            'variant' => 'plain',
-                            'showWordmark' => false,
-                            'class' => 'min-w-0',
-                        ])
-                    @endif
+                <a href="{{ route('dashboard') }}" class="examiner-sidebar-brand flex min-w-0 flex-shrink-0 items-center gap-2.5 overflow-hidden transition-opacity hover:opacity-80" aria-label="{{ trim((string) \App\Models\Setting::getValue(\App\Models\Setting::KEY_APP_NAME, 'QuizSnap')) ?: 'QuizSnap' }} home">
+                    @include('partials.brand-logo', [
+                        'href' => null,
+                        'size' => 'sm',
+                        'variant' => 'plain',
+                        'showWordmark' => true,
+                        'customLogoUrl' => \App\Support\BrandAssets::logoUrl(),
+                        'appName' => trim((string) \App\Models\Setting::getValue(\App\Models\Setting::KEY_APP_NAME, 'QuizSnap')) ?: 'QuizSnap',
+                        'class' => 'min-w-0 examiner-sidebar-brand-logo',
+                    ])
                 </a>
                 <button type="button" id="examiner-sidebar-toggle-inner" data-examiner-collapse class="examiner-sidebar-chevron flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-primary-300 md:flex" aria-label="Collapse sidebar" title="Collapse sidebar (desktop)">
                     <svg class="h-5 w-5 transition-transform hidden md:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">

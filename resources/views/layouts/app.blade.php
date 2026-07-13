@@ -226,6 +226,28 @@
             color: #fff;
             font-weight: 800;
         }
+        .examiner-sidebar-brand-logo {
+            gap: 0.55rem;
+        }
+        .examiner-sidebar-brand .quizsnap-brand-logo__wordmark,
+        .examiner-sidebar-brand-text {
+            white-space: nowrap;
+            opacity: 1;
+            max-width: 9rem;
+            transform: translateX(0);
+            transition:
+                opacity .2s cubic-bezier(.22, 1, .36, 1),
+                max-width .2s cubic-bezier(.22, 1, .36, 1),
+                transform .2s cubic-bezier(.22, 1, .36, 1);
+        }
+        .examiner-sidebar-brand .quizsnap-wordmark {
+            font-size: 1.05rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            line-height: 1;
+        }
+        .examiner-sidebar-brand .theme-wordmark-a { color: #0f172a; }
+        .examiner-sidebar-brand .theme-wordmark-b { color: #ca8a04; }
         /* When sidebar is collapsed on desktop, show only icons (no text labels) */
         @media (min-width: 768px) {
             .examiner-sidebar--collapsed {
@@ -238,11 +260,20 @@
                 box-shadow: none;
             }
             .examiner-sidebar--collapsed .examiner-nav-text,
-            .examiner-sidebar--collapsed .examiner-sidebar-brand-text,
-            .examiner-sidebar--collapsed .quizsnap-wordmark,
-            .examiner-sidebar--collapsed .quizsnap-brand-logo__wordmark,
             .examiner-sidebar--collapsed .examiner-sidebar-chevron {
                 display: none !important;
+            }
+            .examiner-sidebar--collapsed .examiner-sidebar-brand-text,
+            .examiner-sidebar--collapsed .quizsnap-wordmark,
+            .examiner-sidebar--collapsed .quizsnap-brand-logo__wordmark {
+                opacity: 0 !important;
+                max-width: 0 !important;
+                transform: translateX(-4px);
+                pointer-events: none;
+                overflow: hidden;
+            }
+            .examiner-sidebar--collapsed .examiner-sidebar-brand-logo {
+                gap: 0;
             }
             .examiner-sidebar--collapsed .examiner-sidebar-header {
                 justify-content: center;

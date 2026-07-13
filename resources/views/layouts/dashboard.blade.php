@@ -35,25 +35,16 @@
     <aside id="examiner-sidebar" class="examiner-sidebar flex h-full flex-col w-64 flex-shrink-0 bg-white" aria-label="Dashboard navigation" data-collapsed="false">
         <div class="examiner-sidebar-inner flex flex-col h-full">
             <div class="examiner-sidebar-header flex h-[4.25rem] flex-shrink-0 items-center justify-between gap-2 px-4">
-                <a href="{{ $isSystemAdmin ? $systemAdminHome : route('dashboard') }}" class="examiner-sidebar-brand flex min-w-0 flex-shrink-0 items-center gap-3 overflow-hidden transition-opacity hover:opacity-80" aria-label="Dashboard home">
-                    @php $user = auth()->user(); $inst = $user?->institution; @endphp
-                    @if($isCoordinatorOnly)
-                        @if($inst && $inst->logo_url)
-                            <img src="{{ $inst->logo_url }}" alt="{{ Str::upper($inst->name ?? 'Logo') }}" class="h-10 w-10 flex-shrink-0 object-contain rounded-full border border-gray-200 bg-white">
-                        @else
-                            <span class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-gray-900 text-white font-bold text-lg shadow-sm">C</span>
-                        @endif
-                    @elseif($inst && $inst->logo_url)
-                        <img src="{{ $inst->logo_url }}" alt="{{ Str::upper($inst->name ?? 'Logo') }}" class="h-10 w-10 flex-shrink-0 object-contain rounded-full border border-gray-200 bg-white">
-                    @else
-                        @include('partials.brand-logo', [
-                            'href' => null,
-                            'size' => 'sm',
-                            'variant' => 'plain',
-                            'showWordmark' => false,
-                            'class' => 'min-w-0',
-                        ])
-                    @endif
+                <a href="{{ $isSystemAdmin ? $systemAdminHome : route('dashboard') }}" class="examiner-sidebar-brand flex min-w-0 flex-shrink-0 items-center gap-2.5 overflow-hidden transition-opacity hover:opacity-80" aria-label="{{ trim((string) \App\Models\Setting::getValue(\App\Models\Setting::KEY_APP_NAME, 'QuizSnap')) ?: 'QuizSnap' }} home">
+                    @include('partials.brand-logo', [
+                        'href' => null,
+                        'size' => 'sm',
+                        'variant' => 'plain',
+                        'showWordmark' => true,
+                        'customLogoUrl' => \App\Support\BrandAssets::logoUrl(),
+                        'appName' => trim((string) \App\Models\Setting::getValue(\App\Models\Setting::KEY_APP_NAME, 'QuizSnap')) ?: 'QuizSnap',
+                        'class' => 'min-w-0 examiner-sidebar-brand-logo',
+                    ])
                 </a>
                 <button type="button" id="examiner-sidebar-toggle-inner" data-examiner-collapse class="examiner-sidebar-chevron md:hidden flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-gray-700 hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300" aria-label="Close sidebar" title="Close sidebar">
                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18L18 6M6 6l12 12"/></svg>

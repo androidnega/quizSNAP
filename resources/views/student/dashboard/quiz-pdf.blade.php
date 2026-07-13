@@ -160,7 +160,7 @@
         $isWithheld = $session->isResultWithheld();
         $canShowFull = $quiz && $quiz->canShowFullReview();
         $reviewWindowOpen = isset($showFullReview) && $showFullReview;
-        $hasAnswers = isset($session->answers) && $session->answers->isNotEmpty();
+        $hasAnswers = ($reviewQuestions ?? collect())->isNotEmpty() || (isset($session->answers) && $session->answers->isNotEmpty());
         
         if ($hasScore) {
             $score = round($session->result->score, 0);
@@ -175,6 +175,8 @@
                 $label = 'Average';
             }
         }
+        $reviewQuestions = $reviewQuestions ?? collect();
+        $answersByQuestion = $session->answers->keyBy(fn ($a) => (int) $a->question_id);
     @endphp
 
     @if($hasScore)
@@ -196,32 +198,27 @@
         </div>
         <div class="result-box">
             <div class="score">{{ $totalQuestions }}</div>
-            <div class="label">Total Questions</div>
+            <div class="label">Questions on attempt</div>
         </div>
         @endif
     </div>
     @endif
 
-    @if($canShowFull && $reviewWindowOpen && $hasAnswers)
+    @if($canShowFull && $reviewWindowOpen && $reviewQuestions->isNotEmpty())
     <div class="questions-section">
-        <h2>Questions & Answers</h2>
-        @foreach($session->answers as $idx => $answer)
+        <h2>Your questions ({{ $reviewQuestions->count() }} assigned)</h2>
+        @foreach($reviewQuestions as $idx => $question)
             @php
-                $question = $answer->question ?? null;
-            @endphp
-            @if(!$question)
-                @continue
-            @endif
-
-            @php
+                $answer = $answersByQuestion->get((int) $question->id);
+                $studentAnswerValue = trim((string) ($answer?->student_answer ?? ''));
                 $assignedCorrect = is_array($session->assigned_correct_answers) ? $session->assigned_correct_answers : [];
-                $sessionCorrect = $assignedCorrect[$answer->question_id] ?? $assignedCorrect[(string) $answer->question_id] ?? ($question->correct_answer ?? '');
-                $studentAnswerValue = $answer->student_answer ?? '';
-                $correct = trim((string) $studentAnswerValue) === trim((string) $sessionCorrect);
+                $sessionCorrect = $assignedCorrect[$question->id] ?? $assignedCorrect[(string) $question->id] ?? ($question->correct_answer ?? '');
+                $isAnswered = $studentAnswerValue !== '';
+                $correct = $isAnswered && strtoupper($studentAnswerValue) === strtoupper(trim((string) $sessionCorrect));
 
                 $shuffledOpts = null;
                 if (is_array($session->shuffled_question_options)) {
-                    $shuffledOpts = $session->shuffled_question_options[$answer->question_id] ?? $session->shuffled_question_options[(string) $answer->question_id] ?? null;
+                    $shuffledOpts = $session->shuffled_question_options[$question->id] ?? $session->shuffled_question_options[(string) $question->id] ?? null;
                 }
 
                 $yourText = null;
@@ -230,7 +227,7 @@
                     foreach ($shuffledOpts as $o) {
                         $k = $o['key'] ?? $o;
                         $t = $o['text'] ?? $o;
-                        if ((string) $k === trim((string) $studentAnswerValue)) {
+                        if ((string) $k === $studentAnswerValue) {
                             $yourText = $t;
                         }
                         if ((string) $k === trim((string) $sessionCorrect)) {
@@ -246,7 +243,7 @@
                         }
                         $optKey = $opt['key'] ?? '';
                         $optText = $opt['text'] ?? '';
-                        if ($yourText === null && (string) $optKey === trim((string) $studentAnswerValue)) {
+                        if ($yourText === null && (string) $optKey === $studentAnswerValue) {
                             $yourText = $optText;
                         }
                         if ($correctText === null && (string) $optKey === trim((string) $sessionCorrect)) {
@@ -259,7 +256,7 @@
             <div class="question-item {{ $correct ? 'correct' : 'incorrect' }}">
                 <div class="question-text">{{ $idx + 1 }}. {{ $question->text ?? 'Question not available' }}</div>
                 <div class="answer-info your-answer">
-                    <strong>Your answer:</strong> {{ $yourText !== null ? $studentAnswerValue . '. ' . $yourText : ($studentAnswerValue ?: '—') }}
+                    <strong>Your answer:</strong> {{ $isAnswered ? ($yourText !== null ? $studentAnswerValue . '. ' . $yourText : $studentAnswerValue) : 'Not answered' }}
                 </div>
                 <div class="answer-info correct-answer">
                     <strong>Correct answer:</strong> {{ $correctText !== null ? $sessionCorrect . '. ' . $correctText : ($sessionCorrect ?: '—') }}
@@ -267,7 +264,9 @@
 
                 @if(!$correct)
                     @php
-                        $whyWrong = $question->explanation_wrong ?? $answer->explanation_wrong ?? null;
+                        $whyWrong = ! $isAnswered
+                            ? 'This question was not answered.'
+                            : ($question->explanation_wrong ?? $answer?->explanation_wrong ?? null);
                     @endphp
                     @if(!empty($whyWrong))
                         <div class="explanation">

@@ -306,15 +306,14 @@ class StudentQuizController extends Controller
         if ($ipRedirect = $this->enforceIpForQuizSession($request, $session)) {
             return $ipRedirect;
         }
-        $questionIds = $session->assigned_question_ids ?? [];
+        $questionIds = $session->assignedQuestionIds();
         $questions = collect();
         $shuffledOptionsByQuestion = $session->shuffled_question_options ?? [];
-        if (!empty($questionIds)) {
-            $ids = array_map('intval', $questionIds);
-            $questions = Question::whereIn('id', $ids)
+        if ($questionIds !== []) {
+            $questions = Question::whereIn('id', $questionIds)
                 ->select(['id', 'type', 'text', 'options', 'points'])
                 ->get();
-            $questions = $questions->sortBy(fn ($q) => array_search($q->id, $ids))->values();
+            $questions = $questions->sortBy(fn ($q) => array_search($q->id, $questionIds))->values();
         }
         $durationSeconds = $session->quiz->duration_minutes * 60;
         $elapsed = now()->diffInSeconds($session->start_time);
@@ -497,6 +496,10 @@ class StudentQuizController extends Controller
         if ($this->isIpDeviceRestrictionEnabled() && $session->ip_address !== $request->ip()) {
             return response()->json(['success' => false], 403);
         }
+        $assignedIds = $session->assignedQuestionIds();
+        if ($assignedIds === [] || ! in_array((int) $request->question_id, $assignedIds, true)) {
+            return response()->json(['success' => false, 'message' => 'Question is not part of this attempt.'], 422);
+        }
         Answer::updateOrCreate(
             [
                 'quiz_session_id' => $session->id,
@@ -535,12 +538,18 @@ class StudentQuizController extends Controller
         if ($this->isIpDeviceRestrictionEnabled() && $session->ip_address !== $request->ip()) {
             return response()->json(['success' => false], 403);
         }
+        $assignedIds = $session->assignedQuestionIds();
+        $assignedLookup = array_fill_keys($assignedIds, true);
         $now = now();
         $rows = [];
         foreach ($request->answers as $item) {
+            $qid = (int) $item['question_id'];
+            if ($assignedIds === [] || ! isset($assignedLookup[$qid])) {
+                continue;
+            }
             $rows[] = [
                 'quiz_session_id' => $session->id,
-                'question_id' => (int) $item['question_id'],
+                'question_id' => $qid,
                 'student_answer' => $this->encryptAnswerValue($item['answer'] ?? ''),
                 'answered_at' => $now,
                 'created_at' => $now,
@@ -1165,23 +1174,20 @@ class StudentQuizController extends Controller
         if (! $session->participatedInExam()) {
             return;
         }
-        $assignedIds = collect($session->assigned_question_ids ?? [])
-            ->map(fn ($id) => (int) $id)
-            ->filter(fn ($id) => $id > 0)
-            ->unique()
-            ->values();
-        $answeredIds = $session->answers()
-            ->pluck('question_id')
-            ->map(fn ($id) => (int) $id)
-            ->filter(fn ($id) => $id > 0)
-            ->unique()
-            ->values();
-        // Union: score every question the student was assigned or answered (so all questions are graded)
-        $lockedIds = $assignedIds->merge($answeredIds)->unique()->values();
-        if ($lockedIds->isEmpty()) {
-            $lockedIds = $assignedIds->isEmpty() ? $answeredIds : $assignedIds;
+        $assignedIds = $session->assignedQuestionIds();
+        // Score only the assigned attempt set — never the full bank or extra answer rows.
+        $lockedIdsArray = $assignedIds;
+        if ($lockedIdsArray === []) {
+            // Legacy sessions without a snapshot: fall back to answers for this quiz only.
+            $lockedIdsArray = $session->answers()
+                ->whereHas('question', fn ($q) => $q->where('quiz_id', $session->quiz_id))
+                ->pluck('question_id')
+                ->map(fn ($id) => (int) $id)
+                ->filter(fn ($id) => $id > 0)
+                ->unique()
+                ->values()
+                ->all();
         }
-        $lockedIdsArray = $lockedIds->all();
         $correctAnswersSnapshot = $session->assigned_correct_answers ?? [];
         $total = count($lockedIdsArray);
         $correct = 0;
@@ -1440,16 +1446,10 @@ class StudentQuizController extends Controller
         }
 
         $assignedCorrect = $session->assigned_correct_answers ?? [];
-        $assignedIds = collect($session->assigned_question_ids ?? [])
-            ->map(fn ($id) => (int) $id)
-            ->filter(fn ($id) => $id > 0)
-            ->values()
-            ->all();
+        $assignedIds = $session->assignedQuestionIds();
         $reviewQuestions = collect();
-        if (!empty($assignedIds)) {
-            $reviewQuestions = Question::whereIn('id', $assignedIds)->get()
-                ->sortBy(fn ($q) => array_search((int) $q->id, $assignedIds, true))
-                ->values();
+        if ($assignedIds !== []) {
+            $reviewQuestions = $session->assignedQuestions();
         } else {
             $reviewQuestions = $session->answers
                 ->pluck('question')

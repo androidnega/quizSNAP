@@ -22,38 +22,46 @@ class QuestionAssignmentService
      */
     public function assignQuestions(Quiz $quiz): array
     {
-        $count = $quiz->getQuestionsPerStudent();
+        $count = max(1, (int) $quiz->getQuestionsPerStudent());
         $cacheSeconds = (int) config('quiz-scale.question_pool_cache_seconds', 0);
         $pool = $cacheSeconds > 0
             ? Cache::remember(
                 'quiz:question_pool:' . $quiz->id,
                 $cacheSeconds,
-                fn () => $quiz->questions()->get()
+                fn () => $quiz->questions()->get(['id', 'type', 'options', 'correct_answer'])
             )
-            : $quiz->questions()->get();
-        $pool = $pool->shuffle();
+            : $quiz->questions()->get(['id', 'type', 'options', 'correct_answer']);
+
+        if (! $pool instanceof \Illuminate\Support\Collection) {
+            $pool = collect($pool);
+        }
+
+        $pool = $pool->values();
         if ($pool->count() < $count) {
             return ['question_ids' => [], 'correct_answers' => [], 'shuffled_options' => []];
         }
-        $selected = $pool->take($count)->values();
-        $questionIds = $selected->pluck('id')->all();
+
+        // Each student gets exactly N questions from the approved bank — never the full pool unless N equals bank size.
+        $selected = $pool->shuffle()->take($count)->values();
+        $questionIds = $selected->pluck('id')->map(fn ($id) => (int) $id)->values()->all();
         $correctAnswers = [];
         $shuffledOptions = [];
         foreach ($selected as $question) {
-            if ($question->type === 'mcq' && is_array($question->options) && !empty($question->options)) {
+            if ($question->type === 'mcq' && is_array($question->options) && ! empty($question->options)) {
                 $displayCorrect = $this->shuffleOptionsAndGetDisplayCorrect($question->options, $question->correct_answer);
                 $correctAnswers[$question->id] = $displayCorrect['display_correct'];
                 $shuffledOptions[$question->id] = $displayCorrect['options'];
-            } elseif ($question->type === 'true_false' && is_array($question->options) && !empty($question->options)) {
+            } elseif ($question->type === 'true_false' && is_array($question->options) && ! empty($question->options)) {
                 $correctAnswers[$question->id] = $question->correct_answer;
                 $shuffledOptions[$question->id] = $question->options;
             } else {
                 $correctAnswers[$question->id] = $question->correct_answer;
-                if (is_array($question->options) && !empty($question->options)) {
+                if (is_array($question->options) && ! empty($question->options)) {
                     $shuffledOptions[$question->id] = $question->options;
                 }
             }
         }
+
         return [
             'question_ids' => $questionIds,
             'correct_answers' => $correctAnswers,

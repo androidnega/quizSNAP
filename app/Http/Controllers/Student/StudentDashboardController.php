@@ -466,10 +466,20 @@ class StudentDashboardController extends Controller
             $reviewAvailableWithinDays = 21;
             $showFullReview = $quizSession->created_at && $quizSession->created_at->gte(now()->subDays($reviewAvailableWithinDays));
 
+            $reviewQuestions = $quizSession->assignedQuestions();
+            if ($reviewQuestions->isEmpty()) {
+                // Legacy attempts without an assignment snapshot.
+                $reviewQuestions = $quizSession->answers
+                    ->pluck('question')
+                    ->filter()
+                    ->values();
+            }
+
             return view('student.dashboard.quiz-show', [
                 'student' => $student,
                 'session' => $quizSession,
                 'showFullReview' => $showFullReview,
+                'reviewQuestions' => $reviewQuestions,
             ]);
         } catch (\Exception $e) {
             \Log::error('Error showing quiz review: ' . $e->getMessage(), [
@@ -518,10 +528,19 @@ class StudentDashboardController extends Controller
             $reviewAvailableWithinDays = 21;
             $showFullReview = $quizSession->created_at && $quizSession->created_at->gte(now()->subDays($reviewAvailableWithinDays));
 
+            $reviewQuestions = $quizSession->assignedQuestions();
+            if ($reviewQuestions->isEmpty()) {
+                $reviewQuestions = $quizSession->answers
+                    ->pluck('question')
+                    ->filter()
+                    ->values();
+            }
+
             $html = view('student.dashboard.quiz-pdf', [
                 'student' => $student,
                 'session' => $quizSession,
                 'showFullReview' => $showFullReview,
+                'reviewQuestions' => $reviewQuestions,
             ])->render();
 
             $filename = 'Quiz_Result_' . ($quizSession->quiz->title ?? 'Quiz') . '_' . ($quizSession->created_at ? $quizSession->created_at->format('Y-m-d') : date('Y-m-d')) . '.pdf';

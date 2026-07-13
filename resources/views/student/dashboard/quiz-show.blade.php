@@ -14,7 +14,8 @@
     $isWithheld = $session->isResultWithheld();
     $canShowFull = $quiz && $quiz->canShowFullReview();
     $reviewWindowOpen = isset($showFullReview) && $showFullReview;
-    $hasAnswers = isset($session->answers) && $session->answers->isNotEmpty();
+    $reviewQuestions = $reviewQuestions ?? collect();
+    $answersByQuestion = $session->answers->keyBy(fn ($a) => (int) $a->question_id);
 @endphp
 
 <a href="{{ route('dashboard.my-quizzes') }}" class="text-sm text-slate-500 font-medium hover:text-slate-800 inline-block mb-4">← My quizzes</a>
@@ -78,36 +79,34 @@
                     <span class="text-xl font-medium tabular-nums {{ $scoreText }}">{{ $correctCount }} / {{ $totalQuestions }}</span>
                     <span class="text-xs font-medium {{ $scoreText }} mt-1">Correct</span>
                 </div>
-                <p class="text-sm text-slate-500 self-center">{{ $totalQuestions }} questions</p>
+                <p class="text-sm text-slate-500 self-center">{{ $totalQuestions }} questions on your attempt</p>
             </div>
     </div>
         @endif
 </section>
 @endif
 
-@if(!$isWithheld && $canShowFull && $reviewWindowOpen && $hasAnswers)
+@if(!$isWithheld && $canShowFull && $reviewWindowOpen && $reviewQuestions->isNotEmpty())
 <section class="mb-8 min-w-0 max-w-full overflow-hidden" aria-label="Questions and answers">
     <div class="bg-white rounded-xl border border-slate-200 p-4 sm:p-5 min-w-0 max-w-full">
-            <h2 class="text-sm font-medium text-slate-700 mb-2">Questions & answers</h2>
-            <p class="text-sm text-slate-500 mb-4">Review your answers and the correct answers. Available for 21 days.</p>
-            <div class="space-y-4 min-w-0 max-w-full">
-                @foreach($session->answers as $idx => $answer)
+            <div class="flex flex-wrap items-baseline justify-between gap-2 mb-2">
+                <h2 class="text-sm font-medium text-slate-700">Your questions</h2>
+                <span class="text-xs text-slate-400 tabular-nums">{{ $reviewQuestions->count() }} assigned</span>
+            </div>
+            <p class="text-sm text-slate-500 mb-4">Only the questions assigned to your attempt are shown. Available for 21 days.</p>
+            <div class="space-y-3 min-w-0 max-w-full max-h-[min(36rem,65vh)] overflow-y-auto dashboard-list-scroll">
+                @foreach($reviewQuestions as $idx => $question)
                     @php
-                        $question = $answer->question ?? null;
-                    @endphp
-                    @if(!$question)
-                        @continue
-                    @endif
-
-                    @php
+                        $answer = $answersByQuestion->get((int) $question->id);
+                        $studentAnswerValue = trim((string) ($answer?->student_answer ?? ''));
                         $assignedCorrect = is_array($session->assigned_correct_answers) ? $session->assigned_correct_answers : [];
-                        $sessionCorrect = $assignedCorrect[$answer->question_id] ?? $assignedCorrect[(string) $answer->question_id] ?? ($question->correct_answer ?? '');
-                        $studentAnswerValue = $answer->student_answer ?? '';
-                        $correct = trim((string) $studentAnswerValue) === trim((string) $sessionCorrect);
+                        $sessionCorrect = $assignedCorrect[$question->id] ?? $assignedCorrect[(string) $question->id] ?? ($question->correct_answer ?? '');
+                        $isAnswered = $studentAnswerValue !== '';
+                        $correct = $isAnswered && strtoupper($studentAnswerValue) === strtoupper(trim((string) $sessionCorrect));
 
                         $shuffledOpts = null;
                         if (is_array($session->shuffled_question_options)) {
-                            $shuffledOpts = $session->shuffled_question_options[$answer->question_id] ?? $session->shuffled_question_options[(string) $answer->question_id] ?? null;
+                            $shuffledOpts = $session->shuffled_question_options[$question->id] ?? $session->shuffled_question_options[(string) $question->id] ?? null;
                         }
 
                         $yourText = null;
@@ -116,7 +115,7 @@
                             foreach ($shuffledOpts as $o) {
                                 $k = $o['key'] ?? $o;
                                 $t = $o['text'] ?? $o;
-                                if ((string) $k === trim((string) $studentAnswerValue)) {
+                                if ((string) $k === $studentAnswerValue) {
                                     $yourText = $t;
                                 }
                                 if ((string) $k === trim((string) $sessionCorrect)) {
@@ -132,7 +131,7 @@
                                 }
                                 $optKey = $opt['key'] ?? '';
                                 $optText = $opt['text'] ?? '';
-                                if ($yourText === null && (string) $optKey === trim((string) $studentAnswerValue)) {
+                                if ($yourText === null && (string) $optKey === $studentAnswerValue) {
                                     $yourText = $optText;
                                 }
                                 if ($correctText === null && (string) $optKey === trim((string) $sessionCorrect)) {
@@ -142,16 +141,18 @@
                         }
                     @endphp
 
-                    <div class="bg-white rounded-xl border p-4 min-w-0 w-full max-w-full {{ $correct ? 'border-emerald-200 bg-emerald-50/30' : 'border-red-200 bg-red-50/30' }}">
+                    <div class="rounded-xl border p-3.5 min-w-0 w-full max-w-full {{ $correct ? 'border-emerald-200 bg-emerald-50/30' : 'border-red-200 bg-red-50/30' }}">
                         <p class="text-sm font-medium text-slate-800 mb-2 break-words">{{ $idx + 1 }}. {{ $question->text ?? 'Question not available' }}</p>
                         <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm mt-2 min-w-0">
-                            <span class="text-slate-500 break-words min-w-0">Your answer: <strong class="text-slate-800 font-medium">{{ $yourText !== null ? $studentAnswerValue . '. ' . $yourText : ($studentAnswerValue ?: '—') }}</strong></span>
+                            <span class="text-slate-500 break-words min-w-0">Your answer: <strong class="text-slate-800 font-medium">{{ $isAnswered ? ($yourText !== null ? $studentAnswerValue . '. ' . $yourText : $studentAnswerValue) : 'Not answered' }}</strong></span>
                             <span class="text-green-700 break-words min-w-0">Correct: <strong class="font-medium">{{ $correctText !== null ? $sessionCorrect . '. ' . $correctText : ($sessionCorrect ?: '—') }}</strong></span>
                         </div>
 
                         @if(!$correct)
                             @php
-                                $whyWrong = $question->explanation_wrong ?? $answer->explanation_wrong ?? null;
+                                $whyWrong = ! $isAnswered
+                                    ? 'This question was not answered.'
+                                    : ($question->explanation_wrong ?? $answer?->explanation_wrong ?? null);
                             @endphp
                             @if(!empty($whyWrong))
                                 <div class="mt-3 pt-3 border-t border-slate-200 text-sm break-words min-w-0">
@@ -182,10 +183,10 @@
 </section>
 @endif
 
-@if(!$isWithheld && $canShowFull && $reviewWindowOpen && isset($session->answers) && $session->answers->isEmpty())
+@if(!$isWithheld && $canShowFull && $reviewWindowOpen && $reviewQuestions->isEmpty())
 <section class="mb-8">
     <div class="bg-white rounded-xl border border-slate-200 p-4 sm:p-5">
-        <p class="text-sm text-slate-500">No answers recorded for this quiz session.</p>
+        <p class="text-sm text-slate-500">No assigned questions found for this quiz session.</p>
     </div>
 </section>
 @endif

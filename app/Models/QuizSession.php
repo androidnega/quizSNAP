@@ -49,6 +49,40 @@ class QuizSession extends Model
         return $this->hasMany(Answer::class, 'quiz_session_id');
     }
 
+    /**
+     * Normalized assigned question IDs for this attempt (ordered, unique).
+     *
+     * @return list<int>
+     */
+    public function assignedQuestionIds(): array
+    {
+        return collect($this->assigned_question_ids ?? [])
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn ($id) => $id > 0)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Questions the student was assigned for this attempt only (not the full quiz pool).
+     *
+     * @return \Illuminate\Support\Collection<int, Question>
+     */
+    public function assignedQuestions()
+    {
+        $ids = $this->assignedQuestionIds();
+        if ($ids === []) {
+            return collect();
+        }
+
+        return Question::query()
+            ->whereIn('id', $ids)
+            ->get()
+            ->sortBy(fn (Question $q) => array_search((int) $q->id, $ids, true))
+            ->values();
+    }
+
     public function violations(): HasMany
     {
         return $this->hasMany(QuizViolation::class, 'quiz_session_id');

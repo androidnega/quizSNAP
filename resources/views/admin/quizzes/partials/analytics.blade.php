@@ -1,106 +1,127 @@
-{{-- Question analytics tab: per-question stats, bar chart, pie chart, PDF export --}}
+{{-- Question analytics: charts first, then scrollable question list --}}
 @php
     $questionStats = $questionStats ?? [];
     $totalAnswered = collect($questionStats)->sum('answered');
     $totalCorrect = collect($questionStats)->sum('correct');
+    $totalIncorrect = max(0, $totalAnswered - $totalCorrect);
     $overallPct = $totalAnswered > 0 ? round(100.0 * $totalCorrect / $totalAnswered, 1) : 0;
 @endphp
-<div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-    <div class="px-4 py-3 border-b border-gray-200 flex flex-wrap items-center justify-between gap-3">
-        <div>
-            <h2 class="text-lg font-semibold text-gray-900">Question analytics</h2>
-            <p class="text-sm text-gray-500 mt-0.5">How students performed on each question — answered vs correct</p>
+<div class="space-y-4">
+    <div class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+        <div class="px-4 py-3.5 sm:px-5 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
+            <div class="min-w-0">
+                <h2 class="text-sm font-semibold text-gray-900 tracking-tight">Question analytics</h2>
+                <p class="text-xs text-gray-500 mt-0.5">Correct vs incorrect across every question</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+                <a href="{{ route('dashboard.quizzes.analytics.export.pdf.preview', $quiz) }}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100">
+                    Preview PDF
+                </a>
+                <a href="{{ route('dashboard.quizzes.analytics.export.pdf', $quiz) }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50" download>
+                    Download PDF
+                </a>
+            </div>
         </div>
-        <div class="flex flex-wrap items-center gap-2">
-            <a href="{{ route('dashboard.quizzes.analytics.export.pdf.preview', $quiz) }}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 hover:border-gray-300">
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                Preview PDF
-            </a>
-            <a href="{{ route('dashboard.quizzes.analytics.export.pdf', $quiz) }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 hover:border-gray-300" download>
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-                Download PDF
-            </a>
-        </div>
-    </div>
 
-    <div class="p-4 space-y-6">
-        {{-- Summary cards --}}
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div class="rounded-lg border border-gray-200 bg-gray-50 p-3">
-                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Questions</p>
-                <p class="mt-1 text-xl font-bold text-gray-900 tabular-nums">{{ count($questionStats) }}</p>
+        <div class="px-4 py-3 sm:px-5 border-b border-gray-100 grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div>
+                <p class="text-[10px] font-medium uppercase tracking-wide text-gray-400">Questions</p>
+                <p class="mt-0.5 text-xl font-semibold text-gray-900 tabular-nums">{{ count($questionStats) }}</p>
             </div>
-            <div class="rounded-lg border border-gray-200 bg-gray-50 p-3">
-                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Total responses</p>
-                <p class="mt-1 text-xl font-bold text-gray-900 tabular-nums">{{ $totalAnswered }}</p>
+            <div>
+                <p class="text-[10px] font-medium uppercase tracking-wide text-gray-400">Responses</p>
+                <p class="mt-0.5 text-xl font-semibold text-gray-900 tabular-nums">{{ $totalAnswered }}</p>
             </div>
-            <div class="rounded-lg border border-gray-200 bg-success-50 p-3 border-success-200">
-                <p class="text-xs font-medium text-success-700 uppercase tracking-wide">Total correct</p>
-                <p class="mt-1 text-xl font-bold text-success-800 tabular-nums">{{ $totalCorrect }}</p>
+            <div>
+                <p class="text-[10px] font-medium uppercase tracking-wide text-gray-400">Correct</p>
+                <p class="mt-0.5 text-xl font-semibold text-gray-900 tabular-nums">{{ $totalCorrect }}</p>
             </div>
-            <div class="rounded-lg border border-gray-200 bg-primary-50 p-3 border-primary-200">
-                <p class="text-xs font-medium text-primary-700 uppercase tracking-wide">Overall % correct</p>
-                <p class="mt-1 text-xl font-bold text-primary-800 tabular-nums">{{ $overallPct }}%</p>
+            <div>
+                <p class="text-[10px] font-medium uppercase tracking-wide text-gray-400">Overall</p>
+                <p class="mt-0.5 text-xl font-semibold text-gray-900 tabular-nums">{{ $overallPct }}%</p>
             </div>
         </div>
 
         @if(empty($questionStats))
-            <div class="rounded-lg border border-gray-200 bg-gray-50 p-8 text-center">
-                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                </svg>
-                <p class="mt-3 text-gray-600 font-medium">No question data yet</p>
-                <p class="text-sm text-gray-500 mt-1">Complete quiz attempts will appear here. Open the Sessions or Scores tab to see attempts.</p>
+            <div class="px-4 py-14 text-center">
+                <p class="text-sm font-medium text-gray-600">No question data yet</p>
+                <p class="text-xs text-gray-400 mt-1">Charts appear after students complete the quiz</p>
             </div>
         @else
-            {{-- Table --}}
-            <div>
-                <h3 class="text-sm font-semibold text-gray-800 mb-2">Per-question breakdown</h3>
-                <div class="overflow-x-auto rounded-lg border border-gray-200">
-                    <table class="min-w-full divide-y divide-gray-200 text-sm">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Question</th>
-                                <th scope="col" class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Answered</th>
-                                <th scope="col" class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Correct</th>
-                                <th scope="col" class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">% correct</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            @foreach($questionStats as $row)
-                                <tr class="hover:bg-gray-50">
-                                    <td class="px-3 py-2 text-gray-900 max-w-xs truncate" title="{{ $row['label'] }}">{{ $row['short_label'] }}</td>
-                                    <td class="px-3 py-2 text-right tabular-nums">{{ $row['answered'] }}</td>
-                                    <td class="px-3 py-2 text-right tabular-nums">{{ $row['correct'] }}</td>
-                                    <td class="px-3 py-2 text-right tabular-nums">
-                                        @if($row['percentage'] !== null)
-                                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium {{ $row['percentage'] >= 70 ? 'bg-success-100 text-success-700' : ($row['percentage'] >= 40 ? 'bg-warning-100 text-warning-700' : 'bg-danger-100 text-danger-700') }}">
-                                                {{ $row['percentage'] }}%
-                                            </span>
-                                        @else
-                                            —
-                                        @endif
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+            <div class="p-4 sm:p-5 grid grid-cols-1 lg:grid-cols-5 gap-4">
+                {{-- Curved area / bar chart --}}
+                <div class="lg:col-span-3 rounded-2xl border border-gray-100 bg-gray-50/40 p-4">
+                    <div class="flex items-baseline justify-between gap-2 mb-3">
+                        <h3 class="text-sm font-semibold text-gray-900 tracking-tight">Correct vs incorrect by question</h3>
+                        <p class="text-[11px] text-gray-400">Stacked bars + % curve</p>
+                    </div>
+                    <div class="relative h-64 sm:h-72">
+                        <canvas id="analytics-bar-chart" aria-label="Correct versus incorrect by question"></canvas>
+                    </div>
+                </div>
+
+                {{-- Overall doughnut --}}
+                <div class="lg:col-span-2 rounded-2xl border border-gray-100 bg-gray-50/40 p-4 flex flex-col">
+                    <h3 class="text-sm font-semibold text-gray-900 tracking-tight mb-3">Overall: correct vs incorrect</h3>
+                    <div class="relative flex-1 min-h-[14rem] flex items-center justify-center">
+                        <canvas id="analytics-pie-chart" aria-label="Overall correct versus incorrect"></canvas>
+                        <div class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                            <p class="text-2xl font-bold tabular-nums text-gray-900">{{ $overallPct }}%</p>
+                            <p class="text-[11px] text-gray-400">correct</p>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex items-center justify-center gap-4 text-xs text-gray-500">
+                        <span class="inline-flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-emerald-500"></span>{{ $totalCorrect }} correct</span>
+                        <span class="inline-flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-rose-400"></span>{{ $totalIncorrect }} incorrect</span>
+                    </div>
                 </div>
             </div>
 
-            {{-- Charts --}}
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="rounded-lg border border-gray-200 p-4 bg-gray-50/50">
-                    <h3 class="text-sm font-semibold text-gray-800 mb-3">Correct vs incorrect by question</h3>
-                    <div class="relative h-64 sm:h-80">
-                        <canvas id="analytics-bar-chart" width="400" height="300"></canvas>
-                    </div>
+            {{-- Scrollable list --}}
+            <div class="border-t border-gray-100">
+                <div class="px-4 sm:px-5 py-3 flex items-center justify-between gap-2">
+                    <h3 class="text-sm font-semibold text-gray-900 tracking-tight">Per-question breakdown</h3>
+                    <span class="text-[11px] text-gray-400 tabular-nums">{{ count($questionStats) }} questions</span>
                 </div>
-                <div class="rounded-lg border border-gray-200 p-4 bg-gray-50/50">
-                    <h3 class="text-sm font-semibold text-gray-800 mb-3">Overall: correct vs incorrect</h3>
-                    <div class="relative h-64 sm:h-80 flex items-center justify-center">
-                        <canvas id="analytics-pie-chart" width="280" height="280"></canvas>
-                    </div>
+                <style>
+                    .analytics-scroll-hide {
+                        max-height: min(22rem, 48vh);
+                        overflow-y: auto;
+                        overscroll-behavior: contain;
+                        -ms-overflow-style: none;
+                        scrollbar-width: none;
+                    }
+                    .analytics-scroll-hide::-webkit-scrollbar {
+                        width: 0;
+                        height: 0;
+                        display: none;
+                    }
+                </style>
+                <div class="analytics-scroll-hide px-4 sm:px-5 pb-4">
+                    <ul class="divide-y divide-gray-100 rounded-xl border border-gray-100 overflow-hidden bg-white" role="list">
+                        @foreach($questionStats as $row)
+                            @php
+                                $incorrect = max(0, (int) $row['answered'] - (int) $row['correct']);
+                                $pct = $row['percentage'];
+                            @endphp
+                            <li class="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50/80 transition-colors">
+                                <div class="min-w-0 flex-1">
+                                    <p class="text-[13px] font-medium text-gray-900 truncate" title="{{ $row['label'] }}">{{ $row['short_label'] }}</p>
+                                    <p class="text-[11px] text-gray-400 mt-0.5 truncate">{{ $row['label'] }}</p>
+                                </div>
+                                <div class="flex items-center gap-3 shrink-0 text-xs tabular-nums">
+                                    <span class="text-gray-500 hidden sm:inline" title="Answered">{{ $row['answered'] }} ans</span>
+                                    <span class="font-semibold text-emerald-600">{{ $row['correct'] }}✓</span>
+                                    <span class="font-medium text-rose-500">{{ $incorrect }}✗</span>
+                                    @if($pct !== null)
+                                        <span class="min-w-[2.75rem] text-right font-semibold text-gray-900">{{ $pct }}%</span>
+                                    @else
+                                        <span class="min-w-[2.75rem] text-right text-gray-300">—</span>
+                                    @endif
+                                </div>
+                            </li>
+                        @endforeach
+                    </ul>
                 </div>
             </div>
         @endif
@@ -111,43 +132,154 @@
 <script>
 (function() {
     var stats = @json($questionStats);
+    var chartInstances = [];
+
+    function destroyCharts() {
+        chartInstances.forEach(function(c) { try { c.destroy(); } catch (e) {} });
+        chartInstances = [];
+    }
+
     function drawCharts() {
         var barCtx = document.getElementById('analytics-bar-chart');
         var pieCtx = document.getElementById('analytics-pie-chart');
         if (!barCtx || !pieCtx || typeof Chart === 'undefined') return;
+        destroyCharts();
+
         var labels = stats.map(function(s) { return s.short_label; });
         var correctData = stats.map(function(s) { return s.correct; });
         var incorrectData = stats.map(function(s) { return Math.max(0, s.answered - s.correct); });
-        new Chart(barCtx, {
+        var pctData = stats.map(function(s) {
+            return s.answered > 0 ? Math.round((1000 * s.correct) / s.answered) / 10 : 0;
+        });
+
+        var barChart = new Chart(barCtx, {
             type: 'bar',
             data: {
                 labels: labels,
                 datasets: [
-                    { label: 'Correct', data: correctData, backgroundColor: 'rgba(34, 197, 94, 0.8)', borderColor: 'rgb(22, 163, 74)', borderWidth: 1 },
-                    { label: 'Incorrect', data: incorrectData, backgroundColor: 'rgba(239, 68, 68, 0.8)', borderColor: 'rgb(220, 38, 38)', borderWidth: 1 }
+                    {
+                        type: 'bar',
+                        label: 'Correct',
+                        data: correctData,
+                        backgroundColor: 'rgba(16, 185, 129, 0.75)',
+                        borderRadius: 6,
+                        borderSkipped: false,
+                        yAxisID: 'y',
+                        order: 2,
+                        barPercentage: 0.7,
+                        categoryPercentage: 0.7
+                    },
+                    {
+                        type: 'bar',
+                        label: 'Incorrect',
+                        data: incorrectData,
+                        backgroundColor: 'rgba(251, 113, 133, 0.7)',
+                        borderRadius: 6,
+                        borderSkipped: false,
+                        yAxisID: 'y',
+                        order: 2,
+                        barPercentage: 0.7,
+                        categoryPercentage: 0.7
+                    },
+                    {
+                        type: 'line',
+                        label: '% correct',
+                        data: pctData,
+                        borderColor: '#111827',
+                        backgroundColor: 'rgba(17, 24, 39, 0.08)',
+                        borderWidth: 2.5,
+                        tension: 0.42,
+                        fill: true,
+                        pointRadius: 3,
+                        pointHoverRadius: 5,
+                        pointBackgroundColor: '#111827',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 1.5,
+                        yAxisID: 'yPct',
+                        order: 1
+                    }
                 ]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
                 scales: {
-                    x: { stacked: true, grid: { display: false }, ticks: { maxRotation: 45, font: { size: 10 } } },
-                    y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1 } }
+                    x: {
+                        stacked: true,
+                        grid: { display: false },
+                        ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 12, font: { size: 10 }, color: '#9ca3af' },
+                        border: { display: false }
+                    },
+                    y: {
+                        stacked: true,
+                        beginAtZero: true,
+                        ticks: { stepSize: 1, color: '#9ca3af', font: { size: 10 } },
+                        grid: { color: 'rgba(15, 23, 42, 0.05)' },
+                        border: { display: false },
+                        title: { display: false }
+                    },
+                    yPct: {
+                        position: 'right',
+                        min: 0,
+                        max: 100,
+                        grid: { display: false },
+                        ticks: {
+                            color: '#9ca3af',
+                            font: { size: 10 },
+                            callback: function(v) { return v + '%'; }
+                        },
+                        border: { display: false }
+                    }
                 },
-                plugins: { legend: { position: 'top' } }
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        align: 'end',
+                        labels: { boxWidth: 10, boxHeight: 10, usePointStyle: true, pointStyle: 'circle', font: { size: 11 }, color: '#6b7280' }
+                    },
+                    tooltip: {
+                        backgroundColor: '#111827',
+                        titleFont: { size: 12 },
+                        bodyFont: { size: 11 },
+                        padding: 10,
+                        cornerRadius: 10
+                    }
+                }
             }
         });
+        chartInstances.push(barChart);
+
         var totalCorrect = stats.reduce(function(a, s) { return a + s.correct; }, 0);
         var totalIncorrect = stats.reduce(function(a, s) { return a + Math.max(0, s.answered - s.correct); }, 0);
-        new Chart(pieCtx, {
-            type: 'pie',
+        var pieChart = new Chart(pieCtx, {
+            type: 'doughnut',
             data: {
                 labels: ['Correct', 'Incorrect'],
-                datasets: [{ data: [totalCorrect, totalIncorrect], backgroundColor: ['rgba(34, 197, 94, 0.8)', 'rgba(239, 68, 68, 0.8)'], borderColor: ['rgb(22, 163, 74)', 'rgb(220, 38, 38)'], borderWidth: 1 }]
+                datasets: [{
+                    data: [totalCorrect, totalIncorrect],
+                    backgroundColor: ['rgba(16, 185, 129, 0.9)', 'rgba(251, 113, 133, 0.85)'],
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
             },
-            options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom' } } }
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '72%',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#111827',
+                        padding: 10,
+                        cornerRadius: 10
+                    }
+                }
+            }
         });
+        chartInstances.push(pieChart);
     }
+
     if (typeof Chart !== 'undefined') { drawCharts(); return; }
     var s = document.createElement('script');
     s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js';

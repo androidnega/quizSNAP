@@ -33,20 +33,15 @@ class StudentAccountController extends Controller
      */
     public function showLoginForm(): View|RedirectResponse
     {
-        // Prevent login if student is already logged in
+        // Only skip if this student account session is already active.
+        // Staff auth is a separate privilege and must not block or redirect student login.
         if (session('student_id')) {
             return redirect()->route('dashboard')
                 ->with('info', 'You are already logged in.');
         }
-        
-        // Prevent login if admin/examiner is already logged in
-        if (session('admin_authenticated', false)) {
-            return redirect()->route('dashboard')
-                ->with('info', 'You are already logged in as staff. Please logout first to login as a student.');
-        }
 
         $this->beginDashboardLogin();
-        
+
         return view('student.account-login', [
             'password_login_enabled' => Student::isPasswordLoginEnabled(),
             'password_reset_enabled' => Student::isPasswordResetEnabled() && Student::isPasswordLoginEnabled(),
@@ -63,23 +58,15 @@ class StudentAccountController extends Controller
      */
     public function verifyIndex(Request $request): JsonResponse
     {
-        // Prevent login if already authenticated
         if (session('student_id')) {
             return response()->json([
                 'success' => false,
                 'message' => 'You are already logged in. Please logout first to login with a different account.',
             ], 422);
         }
-        
-        if (session('admin_authenticated', false)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You are already logged in as staff. Please logout first to login as a student.',
-            ], 422);
-        }
 
         $this->beginDashboardLogin();
-        
+
         $request->validate(['index_number' => 'required|string|max:100']);
         $inputIndex = trim((string) $request->index_number);
 
@@ -262,13 +249,6 @@ class StudentAccountController extends Controller
             ], 422);
         }
 
-        if (session('admin_authenticated', false)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You are already logged in as staff. Please logout first to login as a student.',
-            ], 422);
-        }
-
         return null;
     }
 
@@ -423,21 +403,13 @@ class StudentAccountController extends Controller
      */
     public function verifyOtp(Request $request): JsonResponse
     {
-        // Prevent login if already authenticated
         if (session('student_id')) {
             return response()->json([
                 'success' => false,
                 'message' => 'You are already logged in. Please logout first to login with a different account.',
             ], 422);
         }
-        
-        if (session('admin_authenticated', false)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You are already logged in as staff. Please logout first to login as a student.',
-            ], 422);
-        }
-        
+
         $request->validate([
             'index_number' => 'required|string|max:100',
             'code' => 'required|string',
@@ -587,12 +559,6 @@ class StudentAccountController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'You are already logged in. Please logout first to login with a different account.',
-            ], 422);
-        }
-        if (session('admin_authenticated', false)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You are already logged in as staff. Please logout first to login as a student.',
             ], 422);
         }
         if (! Student::isPasswordLoginEnabled()) {

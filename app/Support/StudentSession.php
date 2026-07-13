@@ -4,11 +4,13 @@ namespace App\Support;
 
 use App\Models\Student;
 
-/** Student login session keys — always clear staff auth when establishing. */
+/** Student login session keys — clears staff auth (exclusive active role per browser session). */
 final class StudentSession
 {
     public static function establish(Student $student): void
     {
+        // Completing a student account login takes over this browser session.
+        // Staff can sign in again separately; both privileges stay independent at login time.
         StaffSession::clear();
         auth()->logout();
         auth()->login($student, false);

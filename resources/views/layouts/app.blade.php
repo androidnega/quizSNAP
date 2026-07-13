@@ -331,6 +331,23 @@
             color: #374151;
             box-shadow: none;
         }
+        .dashboard-chrome-search.is-disabled {
+            opacity: 0.55;
+            background: #e5e7eb;
+            border-color: #d1d5db;
+            pointer-events: none;
+        }
+        .dashboard-chrome-search.is-disabled input {
+            color: #9ca3af;
+            cursor: not-allowed;
+        }
+        .dashboard-chrome-search.is-disabled input::placeholder {
+            color: #9ca3af;
+        }
+        .dashboard-chrome-search.is-disabled button {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
         .dashboard-chrome-profile {
             display: inline-flex;
             align-items: center;

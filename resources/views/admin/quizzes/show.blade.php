@@ -174,6 +174,7 @@
                 if (typeof history !== 'undefined' && history.pushState) {
                     history.pushState({ tab: tab }, '', url);
                 }
+                document.dispatchEvent(new CustomEvent('quizsnap:tab-loaded', { detail: { tab: tab } }));
             })
             .catch(function() {
                 container.innerHTML = '<div class="rounded-lg border border-danger-200 bg-danger-50 p-4 text-danger-700">Failed to load. <a href="' + url + '">Reload page</a></div>';

@@ -44,12 +44,13 @@ class UserManagementController extends Controller
         return $phone;
     }
 
-    public function index(): View
+    public function index(Request $request): View
     {
         $user = $this->adminUser();
         $isSuperAdmin = $user && $user->isSuperAdmin();
         $isCoordinatorManager = $user && $user->isCoordinator() && ! $isSuperAdmin;
         $canManageAiTokens = $isSuperAdmin || $isCoordinatorManager;
+        $search = trim((string) $request->input('search', ''));
 
         try {
             $query = User::query()->with('courses');
@@ -65,6 +66,15 @@ class UserManagementController extends Controller
                     User::ROLE_EXAMINER,
                     User::ROLE_COORDINATOR,
                 ]);
+            }
+
+            if ($search !== '') {
+                $term = '%' . str_replace(['%', '_'], ['\\%', '\\_'], $search) . '%';
+                $query->where(function ($builder) use ($term) {
+                    $builder->where('username', 'like', $term)
+                        ->orWhere('name', 'like', $term)
+                        ->orWhere('email', 'like', $term);
+                });
             }
 
             $users = $query->with('institution')
@@ -84,7 +94,8 @@ class UserManagementController extends Controller
             'isSuperAdmin',
             'institutions',
             'canManageAiTokens',
-            'isCoordinatorManager'
+            'isCoordinatorManager',
+            'search'
         ));
     }
 

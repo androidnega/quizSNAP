@@ -106,6 +106,17 @@ class QuizManagementController extends Controller
             $query->active();
         }
 
+        $q = trim((string) $request->query('q', ''));
+        if ($q !== '') {
+            $term = '%' . str_replace(['%', '_'], ['\\%', '\\_'], $q) . '%';
+            $query->where(function ($builder) use ($term) {
+                $builder->where('title', 'like', $term)
+                    ->orWhere('topics', 'like', $term)
+                    ->orWhereHas('course', fn ($c) => $c->where('name', 'like', $term)->orWhere('code', 'like', $term))
+                    ->orWhereHas('classGroup', fn ($g) => $g->where('name', 'like', $term));
+            });
+        }
+
         $quizzes = $query->paginate(15)->withQueryString();
         return view('admin.quizzes.index', compact('quizzes', 'tab'));
     }

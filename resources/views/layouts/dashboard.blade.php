@@ -253,7 +253,115 @@
             }
             $smsRemaining = $showSmsInHeader ? $headerUser->sms_remaining : 0;
             $smsColorClass = $smsRemaining >= 100 ? 'text-emerald-700' : 'text-rose-700';
-            $searchAction = ($isExaminer || $isSuperAdmin) ? route('dashboard.quizzes.index') : route('dashboard');
+
+            // Header search: route-aware live search, or grayed out when unused on this page.
+            $headerSearch = [
+                'enabled' => false,
+                'mode' => 'server',
+                'action' => url()->current(),
+                'param' => 'q',
+                'value' => '',
+                'placeholder' => 'Search unavailable',
+                'proxyByTab' => [],
+            ];
+            if (request()->routeIs('dashboard.quizzes.index')) {
+                $headerSearch = [
+                    'enabled' => true,
+                    'mode' => 'server',
+                    'action' => route('dashboard.quizzes.index'),
+                    'param' => 'q',
+                    'value' => (string) request('q', ''),
+                    'placeholder' => 'Search quizzes…',
+                    'proxyByTab' => [],
+                ];
+            } elseif (request()->routeIs('dashboard.quizzes.show')) {
+                $proxyTabs = [
+                    'overview' => 'questions-search',
+                    'sessions' => 'sessions-search-index',
+                    'gallery' => 'gallery-search-index',
+                ];
+                $quizTab = (string) request('tab', 'overview');
+                $headerSearch = [
+                    'enabled' => true,
+                    'mode' => 'proxy',
+                    'action' => url()->current(),
+                    'param' => 'q',
+                    'value' => '',
+                    'placeholder' => 'Search this page…',
+                    'proxyByTab' => $proxyTabs,
+                    'activeTab' => $quizTab,
+                ];
+            } elseif (request()->routeIs('dashboard.class-groups.students.index')) {
+                $headerSearch = [
+                    'enabled' => true,
+                    'mode' => 'server',
+                    'action' => url()->current(),
+                    'param' => 'search',
+                    'value' => (string) request('search', ''),
+                    'placeholder' => 'Search index, name, phone…',
+                    'proxyByTab' => [],
+                ];
+            } elseif (request()->routeIs('dashboard.students.index')) {
+                $headerSearch = [
+                    'enabled' => true,
+                    'mode' => 'server',
+                    'action' => route('dashboard.students.index'),
+                    'param' => 'search',
+                    'value' => (string) request('search', ''),
+                    'placeholder' => 'Search index, name, phone…',
+                    'proxyByTab' => [],
+                ];
+            } elseif (request()->routeIs('dashboard.users.index')) {
+                $headerSearch = [
+                    'enabled' => true,
+                    'mode' => 'server',
+                    'action' => route('dashboard.users.index'),
+                    'param' => 'search',
+                    'value' => (string) request('search', ''),
+                    'placeholder' => 'Search username or name…',
+                    'proxyByTab' => [],
+                ];
+            } elseif (request()->routeIs('dashboard.monitoring.errors.index')) {
+                $headerSearch = [
+                    'enabled' => true,
+                    'mode' => 'server',
+                    'action' => route('dashboard.monitoring.errors.index'),
+                    'param' => 'search',
+                    'value' => (string) request('search', ''),
+                    'placeholder' => 'Search errors…',
+                    'proxyByTab' => [],
+                ];
+            } elseif (request()->routeIs('dashboard.monitoring.student-activities.index')) {
+                $headerSearch = [
+                    'enabled' => true,
+                    'mode' => 'server',
+                    'action' => route('dashboard.monitoring.student-activities.index'),
+                    'param' => 'search',
+                    'value' => (string) request('search', ''),
+                    'placeholder' => 'Search student or index…',
+                    'proxyByTab' => [],
+                ];
+            } elseif (request()->routeIs('dashboard.monitoring.activity.index')) {
+                $headerSearch = [
+                    'enabled' => true,
+                    'mode' => 'server',
+                    'action' => route('dashboard.monitoring.activity.index'),
+                    'param' => 'search',
+                    'value' => (string) request('search', ''),
+                    'placeholder' => 'Search activity…',
+                    'proxyByTab' => [],
+                ];
+            } elseif (request()->routeIs('dashboard.monitoring.security.index')) {
+                $headerSearch = [
+                    'enabled' => true,
+                    'mode' => 'server',
+                    'action' => route('dashboard.monitoring.security.index'),
+                    'param' => 'search',
+                    'value' => (string) request('search', ''),
+                    'placeholder' => 'Search security events…',
+                    'proxyByTab' => [],
+                ];
+            }
         @endphp
         <header class="dashboard-chrome-header relative flex flex-shrink-0 items-center z-30 min-w-0 overflow-visible safe-area-header">
             <div class="examiner-page flex flex-1 flex-wrap items-center gap-2.5 sm:gap-3 w-full min-w-0 px-3 py-2.5 sm:px-4 md:px-5 overflow-visible">
@@ -292,10 +400,28 @@
                         @endif
                     @endif
 
-                    <form action="{{ $searchAction }}" method="get" class="dashboard-chrome-search hidden sm:flex" role="search">
+                    <form
+                        action="{{ $headerSearch['action'] }}"
+                        method="get"
+                        id="dashboard-global-search-form"
+                        class="dashboard-chrome-search hidden sm:flex {{ empty($headerSearch['enabled']) ? 'is-disabled' : '' }}"
+                        role="search"
+                        data-search-enabled="{{ !empty($headerSearch['enabled']) ? '1' : '0' }}"
+                        data-search-mode="{{ $headerSearch['mode'] }}"
+                        data-search-param="{{ $headerSearch['param'] }}"
+                        data-proxy-by-tab='@json($headerSearch['proxyByTab'])'
+                    >
                         <label for="dashboard-global-search" class="sr-only">Search</label>
-                        <input id="dashboard-global-search" type="search" name="q" value="{{ request('q') }}" placeholder="Search..." autocomplete="off">
-                        <button type="submit" aria-label="Search"><i class="fas fa-search text-xs"></i></button>
+                        <input
+                            id="dashboard-global-search"
+                            type="search"
+                            name="{{ $headerSearch['param'] }}"
+                            value="{{ $headerSearch['value'] }}"
+                            placeholder="{{ $headerSearch['placeholder'] }}"
+                            autocomplete="off"
+                            @if(empty($headerSearch['enabled'])) disabled aria-disabled="true" @endif
+                        >
+                        <button type="submit" aria-label="Search" @if(empty($headerSearch['enabled'])) disabled tabindex="-1" @endif><i class="fas fa-search text-xs"></i></button>
                     </form>
 
                     @if($canAccessMonitoring ?? false)
@@ -443,6 +569,148 @@
             if (profileWrap && profileWrap.contains(e.target)) return;
             closeProfileMenu();
         });
+    }
+})();
+
+(function() {
+    var form = document.getElementById('dashboard-global-search-form');
+    var input = document.getElementById('dashboard-global-search');
+    if (!form || !input) return;
+
+    var mode = form.getAttribute('data-search-mode') || 'server';
+    var param = form.getAttribute('data-search-param') || 'q';
+    var proxyByTab = {};
+    try {
+        proxyByTab = JSON.parse(form.getAttribute('data-proxy-by-tab') || '{}') || {};
+    } catch (e) {
+        proxyByTab = {};
+    }
+    var debounceTimer = null;
+    var lastServerQuery = String(input.value || '');
+
+    function currentTab() {
+        return new URLSearchParams(window.location.search).get('tab') || 'overview';
+    }
+
+    function placeholderForTab(tab) {
+        if (tab === 'sessions' || tab === 'gallery') return 'Search index…';
+        if (tab === 'overview') return 'Filter questions…';
+        return 'Search unavailable';
+    }
+
+    function setEnabled(enabled, placeholder) {
+        form.classList.toggle('is-disabled', !enabled);
+        form.setAttribute('data-search-enabled', enabled ? '1' : '0');
+        input.disabled = !enabled;
+        input.setAttribute('aria-disabled', enabled ? 'false' : 'true');
+        if (placeholder) input.placeholder = placeholder;
+        var btn = form.querySelector('button[type="submit"]');
+        if (btn) {
+            btn.disabled = !enabled;
+            if (enabled) btn.removeAttribute('tabindex');
+            else btn.setAttribute('tabindex', '-1');
+        }
+    }
+
+    function resolveProxyTarget() {
+        var tab = currentTab();
+        var id = proxyByTab[tab] || null;
+        if (!id) return null;
+        var el = document.getElementById(id);
+        if (el) return el;
+        // Overview may only show pool search when no approved questions yet.
+        if (id === 'questions-search') {
+            return document.getElementById('pool-search');
+        }
+        return null;
+    }
+
+    function refreshProxyAvailability() {
+        if (mode !== 'proxy') return;
+        var tab = currentTab();
+        var enabled = Object.prototype.hasOwnProperty.call(proxyByTab, tab);
+        setEnabled(enabled, placeholderForTab(tab));
+        if (!enabled) {
+            input.value = '';
+            return;
+        }
+        var target = resolveProxyTarget();
+        if (target && document.activeElement !== input) {
+            input.value = target.value || '';
+        }
+    }
+
+    function runServerSearch() {
+        var value = String(input.value || '').trim();
+        if (value === lastServerQuery.trim()) return;
+        lastServerQuery = value;
+
+        var action = form.getAttribute('action') || window.location.href;
+        var url = new URL(action, window.location.origin);
+        var current = new URL(window.location.href);
+        if (url.pathname === current.pathname) {
+            current.searchParams.forEach(function(v, k) {
+                if (k === param) return;
+                url.searchParams.set(k, v);
+            });
+        }
+        if (value) url.searchParams.set(param, value);
+        else url.searchParams.delete(param);
+        // Reset pagination when searching.
+        url.searchParams.delete('page');
+        window.location.href = url.toString();
+    }
+
+    function runProxySearch() {
+        refreshProxyAvailability();
+        if (form.getAttribute('data-search-enabled') !== '1') return;
+        var target = resolveProxyTarget();
+        if (!target) return;
+        target.value = input.value || '';
+        target.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    function onLiveInput() {
+        clearTimeout(debounceTimer);
+        if (mode === 'proxy') {
+            runProxySearch();
+            return;
+        }
+        if (form.getAttribute('data-search-enabled') !== '1') return;
+        debounceTimer = setTimeout(runServerSearch, 350);
+    }
+
+    form.addEventListener('submit', function(e) {
+        if (form.getAttribute('data-search-enabled') !== '1') {
+            e.preventDefault();
+            return;
+        }
+        if (mode === 'proxy') {
+            e.preventDefault();
+            runProxySearch();
+            return;
+        }
+        e.preventDefault();
+        clearTimeout(debounceTimer);
+        runServerSearch();
+    });
+
+    input.addEventListener('input', onLiveInput);
+
+    if (mode === 'proxy') {
+        refreshProxyAvailability();
+        window.addEventListener('popstate', refreshProxyAvailability);
+        ['pushState', 'replaceState'].forEach(function(method) {
+            var original = history[method];
+            if (typeof original !== 'function') return;
+            history[method] = function() {
+                var result = original.apply(this, arguments);
+                setTimeout(refreshProxyAvailability, 0);
+                return result;
+            };
+        });
+        // After quiz-show AJAX tab swaps, re-bind availability.
+        document.addEventListener('quizsnap:tab-loaded', refreshProxyAvailability);
     }
 })();
 </script>

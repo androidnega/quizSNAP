@@ -63,7 +63,7 @@
                 <p class="text-sm text-gray-600" id="password-step-message">Enter your password.</p>
                 <div>
                     <label for="login_password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                    <input type="password" id="login_password" autocomplete="current-password" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    @include('student.partials.password-input', ['id' => 'login_password', 'autocomplete' => 'current-password'])
                 </div>
                 <div id="password-error" class="hidden">
                     <div class="bg-danger-50 border border-danger-200 rounded-lg p-3 text-sm text-danger-800" id="password-error-text"></div>
@@ -91,11 +91,11 @@
                 <div id="phone-password-setup-wrap" class="space-y-3 hidden">
                     <div>
                         <label for="setup_password" class="block text-sm font-medium text-gray-700 mb-1">Choose password (min {{ \App\Models\Student::PASSWORD_MIN_LENGTH }} characters)</label>
-                        <input type="password" id="setup_password" autocomplete="new-password" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        @include('student.partials.password-input', ['id' => 'setup_password', 'autocomplete' => 'new-password'])
                     </div>
                     <div>
                         <label for="setup_password_confirmation" class="block text-sm font-medium text-gray-700 mb-1">Confirm password</label>
-                        <input type="password" id="setup_password_confirmation" autocomplete="new-password" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        @include('student.partials.password-input', ['id' => 'setup_password_confirmation', 'autocomplete' => 'new-password'])
                     </div>
                 </div>
                 @endif
@@ -154,11 +154,11 @@
                 <p class="text-sm text-gray-600" id="setup-password-message">Phone verified. Create a password for your account.</p>
                 <div>
                     <label for="onboard_setup_password" class="block text-sm font-medium text-gray-700 mb-1">Password (min {{ \App\Models\Student::PASSWORD_MIN_LENGTH }} characters)</label>
-                    <input type="password" id="onboard_setup_password" autocomplete="new-password" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    @include('student.partials.password-input', ['id' => 'onboard_setup_password', 'autocomplete' => 'new-password'])
                 </div>
                 <div>
                     <label for="onboard_setup_password_confirmation" class="block text-sm font-medium text-gray-700 mb-1">Confirm password</label>
-                    <input type="password" id="onboard_setup_password_confirmation" autocomplete="new-password" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    @include('student.partials.password-input', ['id' => 'onboard_setup_password_confirmation', 'autocomplete' => 'new-password'])
                 </div>
                 <div id="setup-password-error" class="hidden">
                     <div class="bg-danger-50 border border-danger-200 rounded-lg p-3 text-sm text-danger-800" id="setup-password-error-text"></div>

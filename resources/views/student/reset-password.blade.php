@@ -17,13 +17,11 @@
                 <input type="hidden" name="token" value="{{ $token }}">
                 <div>
                     <label for="password" class="block text-sm font-medium text-gray-700 mb-1">New password</label>
-                    <input type="password" name="password" id="password" required autocomplete="new-password"
-                        class="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    @include('student.partials.password-input', ['id' => 'password', 'name' => 'password', 'autocomplete' => 'new-password', 'required' => true])
                 </div>
                 <div>
                     <label for="password_confirmation" class="block text-sm font-medium text-gray-700 mb-1">Confirm password</label>
-                    <input type="password" name="password_confirmation" id="password_confirmation" required autocomplete="new-password"
-                        class="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    @include('student.partials.password-input', ['id' => 'password_confirmation', 'name' => 'password_confirmation', 'autocomplete' => 'new-password', 'required' => true])
                 </div>
                 @if ($errors->any())
                     <div class="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800">

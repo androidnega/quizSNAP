@@ -83,38 +83,29 @@
         </div>
         
         {{-- Tabs (live: no full page reload) --}}
-        <div class="border-b border-gray-100 bg-gray-50" id="quiz-tabs-nav" data-quiz-show-url="{{ route('dashboard.quizzes.show', $quiz) }}">
-            <nav class="flex px-4 gap-1" aria-label="Quiz sections">
+        @php $writersCount = (int) ($sessionsStats['total_students'] ?? 0); @endphp
+        <div class="border-b border-gray-100" id="quiz-tabs-nav" data-quiz-show-url="{{ route('dashboard.quizzes.show', $quiz) }}">
+            <nav class="flex items-center gap-0 px-2 sm:px-3 overflow-x-auto" aria-label="Quiz sections" style="scrollbar-width:none;-ms-overflow-style:none">
                 <a href="{{ route('dashboard.quizzes.show', ['quiz' => $quiz, 'tab' => 'overview']) }}" data-quiz-tab="overview"
-                   class="quiz-tab-link py-3 px-4 text-sm font-semibold whitespace-nowrap border-b-3 transition-all flex items-center gap-2 {{ $activeTab === 'overview' ? 'border-primary-500 text-primary-700 bg-white shadow-sm' : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-white/70' }}">
-                    <i class="fas fa-info-circle"></i>
-                    <span>Overview</span>
+                   class="quiz-tab-link relative shrink-0 px-3.5 py-3 text-[13px] font-medium whitespace-nowrap border-b-2 transition-colors {{ $activeTab === 'overview' ? 'border-gray-900 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-800' }}">
+                    Overview
                 </a>
                 <a href="{{ route('dashboard.quizzes.show', ['quiz' => $quiz, 'tab' => 'sessions']) }}" data-quiz-tab="sessions"
-                   class="quiz-tab-link py-3 px-4 text-sm font-semibold whitespace-nowrap border-b-3 transition-all flex items-center gap-2 {{ $activeTab === 'sessions' ? 'border-primary-500 text-primary-700 bg-white shadow-sm' : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-white/70' }}">
-                    <i class="fas fa-users"></i>
+                   class="quiz-tab-link relative shrink-0 px-3.5 py-3 text-[13px] font-medium whitespace-nowrap border-b-2 transition-colors inline-flex items-center gap-2 {{ $activeTab === 'sessions' ? 'border-gray-900 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-800' }}">
                     <span>Sessions</span>
-                    @if($sessionsStats['total_students'] > 0)
-                        <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-primary-100 text-primary-700">{{ $sessionsStats['total_students'] }}</span>
-                    @endif
+                    <span class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-[11px] font-semibold tabular-nums tracking-tight {{ $writersCount > 0 ? ($activeTab === 'sessions' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600') : 'bg-gray-50 text-gray-300' }}">{{ $writersCount }}</span>
                 </a>
                 <a href="{{ route('dashboard.quizzes.show', ['quiz' => $quiz, 'tab' => 'gallery']) }}" data-quiz-tab="gallery"
-                   class="quiz-tab-link py-3 px-4 text-sm font-semibold whitespace-nowrap border-b-3 transition-all flex items-center gap-2 {{ $activeTab === 'gallery' ? 'border-primary-500 text-primary-700 bg-white shadow-sm' : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-white/70' }}">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                    <span>Gallery</span>
-                    @if($sessionsStats['total_students'] > 0)
-                        <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">{{ $sessionsStats['total_students'] }}</span>
-                    @endif
+                   class="quiz-tab-link relative shrink-0 px-3.5 py-3 text-[13px] font-medium whitespace-nowrap border-b-2 transition-colors {{ $activeTab === 'gallery' ? 'border-gray-900 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-800' }}">
+                    Gallery
                 </a>
                 <a href="{{ route('dashboard.quizzes.show', ['quiz' => $quiz, 'tab' => 'scores']) }}" data-quiz-tab="scores"
-                   class="quiz-tab-link py-3 px-4 text-sm font-semibold whitespace-nowrap border-b-3 transition-all flex items-center gap-2 {{ $activeTab === 'scores' ? 'border-primary-500 text-primary-700 bg-white shadow-sm' : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-white/70' }}">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                    <span>Scores &amp; Export</span>
+                   class="quiz-tab-link relative shrink-0 px-3.5 py-3 text-[13px] font-medium whitespace-nowrap border-b-2 transition-colors {{ $activeTab === 'scores' ? 'border-gray-900 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-800' }}">
+                    Scores
                 </a>
                 <a href="{{ route('dashboard.quizzes.show', ['quiz' => $quiz, 'tab' => 'analytics']) }}" data-quiz-tab="analytics"
-                   class="quiz-tab-link py-3 px-4 text-sm font-semibold whitespace-nowrap border-b-3 transition-all flex items-center gap-2 {{ $activeTab === 'analytics' ? 'border-primary-500 text-primary-700 bg-white shadow-sm' : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-white/70' }}">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-                    <span>Question analytics</span>
+                   class="quiz-tab-link relative shrink-0 px-3.5 py-3 text-[13px] font-medium whitespace-nowrap border-b-2 transition-colors {{ $activeTab === 'analytics' ? 'border-gray-900 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-800' }}">
+                    Analytics
                 </a>
             </nav>
         </div>
@@ -145,14 +136,18 @@
         container.setAttribute('data-current-tab', tab);
         nav.querySelectorAll('.quiz-tab-link').forEach(function(a) {
             var isActive = (a.getAttribute('data-quiz-tab') || '') === tab;
-            a.classList.toggle('border-primary-500', isActive);
-            a.classList.toggle('text-primary-700', isActive);
-            a.classList.toggle('bg-white', isActive);
-            a.classList.toggle('shadow-sm', isActive);
+            a.classList.toggle('border-gray-900', isActive);
+            a.classList.toggle('text-gray-900', isActive);
             a.classList.toggle('border-transparent', !isActive);
-            a.classList.toggle('text-gray-600', !isActive);
-            a.classList.toggle('hover:text-gray-900', !isActive);
-            a.classList.toggle('hover:bg-white/70', !isActive);
+            a.classList.toggle('text-gray-500', !isActive);
+            a.classList.toggle('hover:text-gray-800', !isActive);
+            var badge = a.querySelector('span.rounded-full');
+            if (badge) {
+                badge.classList.toggle('bg-gray-900', isActive);
+                badge.classList.toggle('text-white', isActive);
+                badge.classList.toggle('bg-gray-100', !isActive);
+                badge.classList.toggle('text-gray-600', !isActive);
+            }
         });
     }
 

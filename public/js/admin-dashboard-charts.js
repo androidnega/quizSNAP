@@ -210,12 +210,6 @@
         if (!data) return;
         if (data.quiz_activity) renderCurve('chart-quiz-activity', data.quiz_activity.labels, data.quiz_activity.values, palette[0]);
         if (data.exam_submissions) renderCurve('chart-exam-submissions', data.exam_submissions.labels, data.exam_submissions.values, palette[1]);
-        if (data.student_growth) renderBar('chart-student-growth', data.student_growth.labels, data.student_growth.values, palette[2]);
-        if (data.live_support) renderBar('chart-live-support', data.live_support.labels, data.live_support.values, palette[4]);
-        if (data.avg_exam_scores) renderCurve('chart-avg-scores', data.avg_exam_scores.labels, data.avg_exam_scores.values, palette[3], 100);
-        if (data.staff_roles) renderPie('chart-staff-roles', data.staff_roles.labels, data.staff_roles.values);
-        if (data.quiz_outcomes) renderPie('chart-quiz-outcomes', data.quiz_outcomes.labels, data.quiz_outcomes.values);
-        if (data.support_status) renderPie('chart-support-status', data.support_status.labels, data.support_status.values);
         renderInsights(data.insights || []);
     }
 

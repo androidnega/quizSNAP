@@ -88,19 +88,11 @@
         <div class="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2">
             <div class="min-w-0 rounded-xl border border-slate-100 bg-slate-50/80 p-3">
                 <h3 class="mb-2 text-xs font-semibold text-slate-700">Quiz sessions started</h3>
-                <div class="h-48"><canvas id="chart-quiz-activity"></canvas></div>
+                <div class="h-52"><canvas id="chart-quiz-activity"></canvas></div>
             </div>
             <div class="min-w-0 rounded-xl border border-slate-100 bg-slate-50/80 p-3">
                 <h3 class="mb-2 text-xs font-semibold text-slate-700">Exam submissions</h3>
-                <div class="h-48"><canvas id="chart-exam-submissions"></canvas></div>
-            </div>
-            <div class="min-w-0 rounded-xl border border-slate-100 bg-slate-50/80 p-3">
-                <h3 class="mb-2 text-xs font-semibold text-slate-700">Average exam scores</h3>
-                <div class="h-48"><canvas id="chart-avg-scores"></canvas></div>
-            </div>
-            <div class="min-w-0 rounded-xl border border-slate-100 bg-slate-50/80 p-3">
-                <h3 class="mb-2 text-xs font-semibold text-slate-700">Pass vs below 50%</h3>
-                <div class="h-48"><canvas id="chart-quiz-outcomes"></canvas></div>
+                <div class="h-52"><canvas id="chart-exam-submissions"></canvas></div>
             </div>
         </div>
     </section>

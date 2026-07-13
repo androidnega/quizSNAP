@@ -32,7 +32,7 @@ class CollectMonitoringPhase3Metrics extends Command
             try {
                 app($service)->{$method}();
             } catch (Throwable $e) {
-                report($e);
+                SafeBroadcast::reportUnlessBroadcastFailure($e);
             }
         }
 

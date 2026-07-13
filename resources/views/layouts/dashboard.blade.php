@@ -255,19 +255,19 @@
             $smsColorClass = $smsRemaining >= 100 ? 'text-emerald-700' : 'text-rose-700';
             $searchAction = ($isExaminer || $isSuperAdmin) ? route('dashboard.quizzes.index') : route('dashboard');
         @endphp
-        <header class="dashboard-chrome-header relative flex min-h-[4.5rem] flex-shrink-0 items-stretch z-30 min-w-0 overflow-visible safe-area-header">
-            <div class="examiner-page flex flex-1 flex-wrap items-center gap-3 sm:gap-4 w-full min-w-0 px-3 py-3 sm:px-5 md:px-6 overflow-visible">
-                <div class="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
+        <header class="dashboard-chrome-header relative flex flex-shrink-0 items-center z-30 min-w-0 overflow-visible safe-area-header">
+            <div class="examiner-page flex flex-1 flex-wrap items-center gap-2.5 sm:gap-3 w-full min-w-0 px-3 py-2.5 sm:px-4 md:px-5 overflow-visible">
+                <div class="flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3">
                     <button type="button" id="examiner-sidebar-menu-btn" class="dashboard-chrome-toggle flex flex-shrink-0 items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 touch-manipulation" aria-label="Toggle sidebar" title="Toggle sidebar">
                         <i class="fas fa-bars text-sm"></i>
                     </button>
                     <div class="min-w-0">
-                        <h1 class="truncate text-xl sm:text-2xl font-bold tracking-tight text-gray-900 leading-tight">Hello, {{ $headerFirst }}!</h1>
-                        <p class="truncate text-xs sm:text-sm text-gray-400 mt-0.5 hidden sm:block">@hasSection('dashboard_subheading')@yield('dashboard_subheading')@elseExplore quizzes, sessions, and activity across your platform.@endif</p>
+                        <h1 class="truncate text-lg sm:text-xl font-bold tracking-tight text-gray-900 leading-tight">Hello, {{ $headerFirst }}!</h1>
+                        <p class="truncate text-xs text-gray-400 mt-0.5 hidden sm:block">@hasSection('dashboard_subheading')@yield('dashboard_subheading')@elseExplore quizzes, sessions, and activity across your platform.@endif</p>
                     </div>
                 </div>
 
-                <div class="flex flex-shrink-0 items-center gap-2 sm:gap-3 ml-auto">
+                <div class="flex flex-shrink-0 items-center gap-2 sm:gap-2.5 ml-auto">
                     @if($headerUser && method_exists($headerUser, 'isExaminer') && ($headerUser->isExaminer() || $headerUser->isCoordinator()))
                         @if($headerUser->isExaminer())
                         @php
@@ -279,13 +279,13 @@
                             }
                             $aiTokenColor = ($aiTokenStatus['remaining'] ?? 0) > 0 ? 'text-indigo-700' : 'text-rose-700';
                         @endphp
-                        <div class="hidden lg:inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-100 px-2.5 py-1 text-xs {{ $aiTokenColor }}" title="AI quiz generations remaining">
+                        <div class="hidden lg:inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-100 px-2.5 py-1 text-xs {{ $aiTokenColor }}" title="AI quiz generations remaining">
                             <span class="text-[10px] font-medium uppercase tracking-wide text-gray-500">AI</span>
                             <span class="font-semibold tabular-nums">{{ $aiTokenStatus['remaining'] }}</span>
                         </div>
                         @endif
                         @if($showSmsInHeader)
-                        <div class="hidden md:inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-100 px-2.5 py-1 text-xs {{ $smsColorClass }}" title="SMS balance">
+                        <div class="hidden md:inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-100 px-2.5 py-1 text-xs {{ $smsColorClass }}" title="SMS balance">
                             <span class="text-[10px] font-medium uppercase tracking-wide text-gray-500">SMS</span>
                             <span class="font-semibold tabular-nums">{{ $smsRemaining }}</span>
                         </div>
@@ -308,7 +308,7 @@
 
                     <div class="relative flex flex-shrink-0 items-center" id="profile-menu-wrap">
                         <button type="button" class="dashboard-chrome-profile focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300 touch-manipulation" aria-expanded="false" aria-haspopup="true" id="profile-menu-btn" title="Profile">
-                            <span class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full overflow-hidden {{ $headerUser && ($headerUser->avatar_url ?? null) ? '' : 'bg-rose-100 text-rose-700' }}">
+                            <span class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg overflow-hidden {{ $headerUser && ($headerUser->avatar_url ?? null) ? '' : 'bg-rose-100 text-rose-700' }}">
                                 @if($headerUser && ($headerUser->avatar_url ?? null))
                                     <img src="{{ $headerUser->avatar_url }}" alt="Profile" class="h-full w-full object-cover" />
                                 @else

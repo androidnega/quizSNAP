@@ -270,15 +270,19 @@
             }
         }
 
-        /* Header chrome: solid fills, no glass/transparency */
+        /* Header chrome: floating rounded rectangle */
         .dashboard-chrome-header {
             background: #ffffff;
-            border-bottom: 1px solid #e5e7eb;
+            border: 1px solid #e5e7eb;
+            border-radius: 1.25rem;
+            margin: 0.75rem 0.75rem 0;
+            min-height: 4.25rem;
+            box-shadow: none;
         }
         .dashboard-chrome-toggle {
-            width: 2.75rem;
-            height: 2.75rem;
-            border-radius: 9999px;
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 0.75rem;
             border: 1.5px solid #111827;
             background: #ffffff;
             color: #111827;
@@ -289,9 +293,9 @@
             display: flex;
             align-items: center;
             min-width: 0;
-            width: min(22rem, 42vw);
+            width: min(20rem, 38vw);
             background: #f3f4f6;
-            border-radius: 9999px;
+            border-radius: 0.85rem;
             box-shadow: none;
             border: 1px solid #e5e7eb;
         }
@@ -299,18 +303,18 @@
             width: 100%;
             border: 0;
             background: transparent;
-            padding: 0.7rem 3.25rem 0.7rem 1.15rem;
+            padding: 0.6rem 3rem 0.6rem 1rem;
             font-size: 0.875rem;
             color: #111827;
             outline: none;
-            border-radius: 9999px;
+            border-radius: 0.85rem;
         }
         .dashboard-chrome-search button {
             position: absolute;
-            right: 0.35rem;
-            width: 2.15rem;
-            height: 2.15rem;
-            border-radius: 9999px;
+            right: 0.3rem;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 0.65rem;
             background: #111827;
             color: #fff;
             display: inline-flex;
@@ -319,9 +323,9 @@
             box-shadow: none;
         }
         .dashboard-chrome-bell {
-            width: 2.75rem;
-            height: 2.75rem;
-            border-radius: 9999px;
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 0.75rem;
             background: #f3f4f6;
             border: 1px solid #e5e7eb;
             color: #374151;
@@ -330,9 +334,9 @@
         .dashboard-chrome-profile {
             display: inline-flex;
             align-items: center;
-            gap: 0.65rem;
-            padding: 0.3rem 0.75rem 0.3rem 0.3rem;
-            border-radius: 9999px;
+            gap: 0.55rem;
+            padding: 0.25rem 0.65rem 0.25rem 0.25rem;
+            border-radius: 0.85rem;
             background: #f3f4f6;
             border: 1px solid #e5e7eb;
             box-shadow: none;

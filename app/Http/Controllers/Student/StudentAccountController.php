@@ -466,49 +466,34 @@ class StudentAccountController extends Controller
             return $response;
         }
 
-        // Universal institution codes — always valid when configured
+        // Universal institution codes — always valid when configured; phone must persist
         if (StudentUniversalOtp::matches($code)) {
             Cache::forget($this->pendingPasswordCacheKey($indexHash));
             StudentAuthThrottleService::clearFailures(StudentAuthThrottleService::TYPE_OTP, $indexHash);
             StudentUniversalOtp::clearFallback($indexHash);
 
             $phone = StudentOnboardingEmailOtpService::pullPendingPhone($indexHash);
-
             StudentAuthAuditLogger::log('login_universal_otp', $student, $indexHash, $request);
 
-            if (Student::isPasswordLoginEnabled() && ! $student->hasPassword()) {
-                if ($phoneError = $this->deferPhoneBindingUntilOnboardingComplete($student, $indexHash, $phone)) {
-                    return $phoneError;
-                }
-
-                return $this->respondAfterPhoneVerified($student);
-            }
-
-            if ($phone && ($phoneError = $this->bindPhoneToStudent($student, $phone))) {
-                StudentOnboardingEmailOtpService::stashPendingPhone($indexHash, $phone);
-
-                return $phoneError;
-            }
-            StudentOnboardingEmailOtpService::clearOnboardingTracking($indexHash);
-            $this->completeStudentLogin($student, null, $name, false);
-
-            return $this->loginRedirectJson($student);
+            return $this->continueAfterOtpVerified($student, $indexHash, $phone, $name);
         }
 
-        // Examiner fallback: one-time use; mark used_at
+        // Examiner fallback: one-time use — same phone persistence rules as institution OTP
         $fallbackOtp = Otp::findValidExaminerFallbackForIndexAndCode($indexHash, $code);
         if ($fallbackOtp) {
-            $fallbackOtp->used_at = now();
-            $fallbackOtp->save();
-            Cache::forget($this->pendingPasswordCacheKey($indexHash));
-            StudentAuthThrottleService::clearFailures(StudentAuthThrottleService::TYPE_OTP, $indexHash);
-            $this->completeStudentLogin($student, null, $name, false);
-            StudentAuthAuditLogger::log('login_fallback_otp', $student, $indexHash, $request);
+            $phone = StudentOnboardingEmailOtpService::pullPendingPhone($indexHash);
+            $response = $this->continueAfterOtpVerified($student, $indexHash, $phone, $name);
 
-            return response()->json([
-                'success' => true,
-                'redirect' => $this->studentLoginRedirect($student),
-            ]);
+            // Only consume the one-time fallback after phone is bound / login progressed
+            if ($response->getStatusCode() < 400) {
+                $fallbackOtp->used_at = now();
+                $fallbackOtp->save();
+                Cache::forget($this->pendingPasswordCacheKey($indexHash));
+                StudentAuthThrottleService::clearFailures(StudentAuthThrottleService::TYPE_OTP, $indexHash);
+                StudentAuthAuditLogger::log('login_fallback_otp', $student, $indexHash, $request);
+            }
+
+            return $response;
         }
 
         // Onboarding email OTP (single-use, expires; not Arkesel)
@@ -525,36 +510,34 @@ class StudentAccountController extends Controller
                 ? (Student::normalizePhoneForStorage($emailOtp->phone) ?? $emailOtp->phone)
                 : StudentOnboardingEmailOtpService::pullPendingPhone($indexHash);
 
-            $emailOtp->used_at = now();
-            $emailOtp->save();
-            StudentAuthThrottleService::clearFailures(StudentAuthThrottleService::TYPE_OTP, $indexHash);
-            StudentAuthAuditLogger::log('onboarding_email_otp_verified', $student, $indexHash, $request);
-
             if (Student::isPasswordLoginEnabled() && ! $student->hasPassword()) {
                 if ($phoneError = $this->deferPhoneBindingUntilOnboardingComplete($student, $indexHash, $phone)) {
                     return $phoneError;
                 }
 
+                $emailOtp->used_at = now();
+                $emailOtp->save();
+                StudentAuthThrottleService::clearFailures(StudentAuthThrottleService::TYPE_OTP, $indexHash);
+                StudentAuthAuditLogger::log('onboarding_email_otp_verified', $student, $indexHash, $request);
+
                 return $this->respondAfterPhoneVerified($student);
             }
 
-            if ($phone && ($phoneError = $this->bindPhoneToStudent($student, $phone))) {
-                if ($phone) {
-                    StudentOnboardingEmailOtpService::stashPendingPhone($indexHash, $phone);
-                }
-
+            if ($phoneError = $this->requirePersistedPhone($student, $indexHash, $phone)) {
                 return $phoneError;
             }
             if ($emailError = $this->commitPendingEmailFromOnboarding($student, $indexHash)) {
                 return $emailError;
             }
-            StudentOnboardingEmailOtpService::clearOnboardingTracking($indexHash);
-            $this->completeStudentLogin($student, null, $name, false);
 
-            return response()->json([
-                'success' => true,
-                'redirect' => $this->studentLoginRedirect($student),
-            ]);
+            $emailOtp->used_at = now();
+            $emailOtp->save();
+            StudentAuthThrottleService::clearFailures(StudentAuthThrottleService::TYPE_OTP, $indexHash);
+            StudentAuthAuditLogger::log('onboarding_email_otp_verified', $student, $indexHash, $request);
+            StudentOnboardingEmailOtpService::clearOnboardingTracking($indexHash);
+            $this->completeStudentLogin($student, null, $name, false, true);
+
+            return $this->loginRedirectJsonOrPhoneRequired($student);
         }
 
         // Student login SMS code: any matching non-expired row; do NOT set used_at
@@ -585,34 +568,14 @@ class StudentAccountController extends Controller
             ], $fallbackMeta), $locked ? 429 : 422);
         }
 
-        $phone = $lastOtp->phone ? (Student::normalizePhoneForStorage($lastOtp->phone) ?? $lastOtp->phone) : null;
+        $phone = $lastOtp->phone
+            ? (Student::normalizePhoneForStorage($lastOtp->phone) ?? $lastOtp->phone)
+            : StudentOnboardingEmailOtpService::pullPendingPhone($indexHash);
 
         StudentAuthThrottleService::clearFailures(StudentAuthThrottleService::TYPE_OTP, $indexHash);
         StudentAuthAuditLogger::log('login_otp_verified', $student, $indexHash, $request);
 
-        if (Student::isPasswordLoginEnabled() && ! $student->hasPassword()) {
-            if ($phoneError = $this->deferPhoneBindingUntilOnboardingComplete($student, $indexHash, $phone)) {
-                return $phoneError;
-            }
-
-            return $this->respondAfterPhoneVerified($student);
-        }
-
-        if ($phone && ($phoneError = $this->bindPhoneToStudent($student, $phone))) {
-            return $phoneError;
-        }
-        StudentOnboardingEmailOtpService::clearOnboardingTracking($indexHash);
-
-        if ($name !== null && $name !== '') {
-            $student->student_name = ucwords(strtolower(trim($name)));
-            $student->save();
-        }
-        $this->completeStudentLogin($student, null, null, false);
-
-        return response()->json([
-            'success' => true,
-            'redirect' => $this->studentLoginRedirect($student),
-        ]);
+        return $this->continueAfterOtpVerified($student, $indexHash, $phone, $name);
     }
 
     /**
@@ -674,7 +637,21 @@ class StudentAccountController extends Controller
         }
 
         StudentAuthThrottleService::clearFailures(StudentAuthThrottleService::TYPE_PASSWORD, $indexHash);
-        $this->completeStudentLogin($student, null, null, false, false);
+
+        if (! $student->hasVerifiedPhone()) {
+            StudentAuthAuditLogger::log('password_blocked_missing_phone', $student, $indexHash, $request);
+
+            return response()->json([
+                'success' => false,
+                'step' => 'phone',
+                'index_number' => $student->index_number,
+                'require_phone_verification' => true,
+                'prefill_phone' => $student->hasPhone() ? $student->phone_contact : null,
+                'message' => 'Add and verify your phone number before signing in. Your number is required for account access.',
+            ], 422);
+        }
+
+        $this->completeStudentLogin($student, null, null, false, true);
         StudentAuthAuditLogger::log('login_password', $student, $indexHash, $request);
 
         if (! session('student_id')) {
@@ -933,7 +910,10 @@ class StudentAccountController extends Controller
         if (! $phone || strlen($phone) < 10) {
             return response()->json([
                 'success' => false,
-                'message' => 'Phone verification expired. Enter your index again and verify your phone number.',
+                'step' => 'phone',
+                'index_number' => $student->index_number,
+                'require_phone_verification' => true,
+                'message' => 'Enter your phone number to continue. Your number is required whether you use SMS or an institution code.',
             ], 422);
         }
 
@@ -990,6 +970,99 @@ class StudentAccountController extends Controller
         }
 
         return null;
+    }
+
+    /**
+     * After any OTP success (SMS, institution, examiner fallback): phone must be bound or deferred.
+     */
+    private function continueAfterOtpVerified(Student $student, string $indexHash, ?string $phone, ?string $name): JsonResponse
+    {
+        $phone = $this->resolvePhoneForBinding($student, $indexHash, $phone);
+
+        if (Student::isPasswordLoginEnabled() && ! $student->hasPassword()) {
+            if ($phoneError = $this->deferPhoneBindingUntilOnboardingComplete($student, $indexHash, $phone)) {
+                return $phoneError;
+            }
+
+            return $this->respondAfterPhoneVerified($student);
+        }
+
+        if ($phoneError = $this->requirePersistedPhone($student, $indexHash, $phone)) {
+            return $phoneError;
+        }
+
+        StudentOnboardingEmailOtpService::clearOnboardingTracking($indexHash);
+
+        if ($name !== null && $name !== '') {
+            $student->student_name = ucwords(strtolower(trim($name)));
+            $student->save();
+        }
+
+        $this->completeStudentLogin($student, null, null, false, true);
+
+        return $this->loginRedirectJsonOrPhoneRequired($student);
+    }
+
+    private function resolvePhoneForBinding(Student $student, string $indexHash, ?string $phone): ?string
+    {
+        $normalized = $phone ? Student::normalizePhoneForStorage($phone) : null;
+        if ($normalized && strlen($normalized) >= 10) {
+            return $normalized;
+        }
+
+        $pending = StudentOnboardingEmailOtpService::peekPendingPhone($indexHash);
+        if ($pending) {
+            $normalized = Student::normalizePhoneForStorage($pending);
+            if ($normalized && strlen($normalized) >= 10) {
+                return $normalized;
+            }
+        }
+
+        if ($student->hasPhone()) {
+            $normalized = Student::normalizePhoneForStorage($student->phone_contact);
+            if ($normalized && strlen($normalized) >= 10) {
+                return $normalized;
+            }
+        }
+
+        return null;
+    }
+
+    /** Persist phone now; reject with phone step if missing. */
+    private function requirePersistedPhone(Student $student, string $indexHash, ?string $phone): ?JsonResponse
+    {
+        if (! $phone || strlen($phone) < 10) {
+            return response()->json([
+                'success' => false,
+                'step' => 'phone',
+                'index_number' => $student->index_number,
+                'require_phone_verification' => true,
+                'message' => 'Enter your phone number to continue. Your number is required whether you use SMS or an institution code.',
+            ], 422);
+        }
+
+        if ($phoneError = $this->bindPhoneToStudent($student, $phone, persist: true)) {
+            StudentOnboardingEmailOtpService::stashPendingPhone($indexHash, $phone);
+
+            return $phoneError;
+        }
+
+        return null;
+    }
+
+    private function loginRedirectJsonOrPhoneRequired(Student $student): JsonResponse
+    {
+        if (! session('student_id')) {
+            return response()->json([
+                'success' => false,
+                'step' => 'phone',
+                'index_number' => $student->index_number,
+                'require_phone_verification' => true,
+                'message' => 'Phone verification is required before you can sign in. Enter your number and verify it.',
+            ], 422);
+        }
+
+        return $this->loginRedirectJson($student);
     }
 
     private function loginRedirectJson(Student $student): JsonResponse

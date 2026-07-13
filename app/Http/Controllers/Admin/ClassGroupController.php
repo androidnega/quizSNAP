@@ -753,8 +753,12 @@ class ClassGroupController extends Controller
                     ->with('error', 'This phone number is already in use by another student.');
             }
             $studentAccount->phone_contact = $phone;
+            if (! $studentAccount->phone_verified_at) {
+                $studentAccount->phone_verified_at = now();
+            }
         } elseif ($isSuperAdmin) {
             $studentAccount->phone_contact = null;
+            $studentAccount->phone_verified_at = null;
         }
 
         try {
@@ -953,6 +957,7 @@ class ClassGroupController extends Controller
         $studentAccount = \App\Models\Student::where('index_number_hash', $indexHash)->first();
         if ($studentAccount) {
             $studentAccount->phone_contact = null;
+            $studentAccount->phone_verified_at = null;
             $studentAccount->save();
             Otp::where('index_number_hash', $indexHash)->where('type', Otp::TYPE_STUDENT_LOGIN)->delete();
             return redirect()->route($this->staffRoutePrefix() . '.class-groups.students.index', $classGroup)->with('success', 'Removed');

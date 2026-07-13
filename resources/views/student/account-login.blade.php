@@ -543,6 +543,10 @@
             .then(function(data) {
                 setLoading(document.getElementById('btn-verify-password'), false);
                 if (!data.success) {
+                    if (data.step === 'phone') {
+                        handleLoginStepData(data, currentIndexNumber);
+                        return;
+                    }
                     showError('password-error', data.message || 'Sign-in failed.');
                     return;
                 }
@@ -797,6 +801,10 @@
         .then(function(data) {
             setLoading(document.getElementById('btn-verify-otp'), false);
             if (!data.success) {
+                if (data.step === 'phone') {
+                    handleLoginStepData(data, currentIndexNumber);
+                    return;
+                }
                 showError('otp-error', data.message || 'Invalid or expired code.');
                 updateEmailFallbackUi(data, !!(data && data.show_email_fallback));
                 updateUniversalFallbackUi(data, true);

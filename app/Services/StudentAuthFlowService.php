@@ -10,29 +10,23 @@ class StudentAuthFlowService
     /**
      * Determine the next onboarding/login step after index verification.
      *
+     * Phone is always required before password login or OTP-only continue.
+     *
      * @param  callable(): JsonResponse  $issueOtp
      */
     public static function nextStepResponse(Student $student, callable $issueOtp): JsonResponse
     {
-        if (Student::isPasswordLoginEnabled() && $student->hasPassword()) {
-            return response()->json([
-                'success' => true,
-                'step' => 'password',
-                'index_number' => $student->index_number,
-                'message' => 'Enter the password you saved for your account.',
-                'password_login_enabled' => true,
-                'password_reset_enabled' => Student::isPasswordResetEnabled(),
-            ]);
-        }
-
-        if (Student::isPasswordLoginEnabled() && ! $student->hasPassword()) {
+        // Phone is mandatory — collect/verify before password or return OTP login.
+        if ($student->needsPhoneVerification() || ! $student->hasPhone()) {
             $payload = [
                 'success' => true,
                 'step' => 'phone',
                 'index_number' => $student->index_number,
                 'require_phone_verification' => true,
-                'password_login_enabled' => true,
-                'message' => 'Enter your phone number. We will send a one-time SMS code to verify it.',
+                'password_login_enabled' => Student::isPasswordLoginEnabled(),
+                'message' => $student->hasPhone()
+                    ? 'Verify your phone number with a one-time SMS code.'
+                    : 'Enter your active phone number. It is required for account access (SMS or institution code).',
             ];
             if ($student->hasPhone()) {
                 $payload['prefill_phone'] = $student->phone_contact;
@@ -41,16 +35,14 @@ class StudentAuthFlowService
             return response()->json($payload);
         }
 
-        if ($student->needsPhoneVerification()) {
+        if (Student::isPasswordLoginEnabled() && $student->hasPassword()) {
             return response()->json([
                 'success' => true,
-                'step' => 'phone',
+                'step' => 'password',
                 'index_number' => $student->index_number,
-                'require_phone_verification' => true,
-                'message' => $student->hasPhone()
-                    ? 'Verify your phone number with a one-time SMS code.'
-                    : 'Enter your active phone number to receive a one-time code.',
-                'prefill_phone' => $student->hasPhone() ? $student->phone_contact : null,
+                'message' => 'Enter the password you saved for your account.',
+                'password_login_enabled' => true,
+                'password_reset_enabled' => Student::isPasswordResetEnabled(),
             ]);
         }
 

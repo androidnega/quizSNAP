@@ -298,6 +298,10 @@
         } else if (data.step === 'phone') {
             document.getElementById('phone-step-message').textContent = data.message || 'Enter your active phone number.';
             showStep('phone');
+            if (phoneInput) {
+                if (data.prefill_phone) phoneInput.value = data.prefill_phone;
+                phoneInput.readOnly = false;
+            }
         } else if (data.step === 'otp') {
             applyOtpStepData(data);
         }
@@ -574,7 +578,14 @@
             .then(function(r) { return parseJsonResponse(r); })
             .then(function(data) {
                 setLoading(document.getElementById('btn-verify-password'), false);
-                if (!data.success) { showPasswordError(data.message || 'Sign-in failed.'); return; }
+                if (!data.success) {
+                    if (data.step === 'phone') {
+                        handleLoginStepData(data);
+                        return;
+                    }
+                    showPasswordError(data.message || 'Sign-in failed.');
+                    return;
+                }
                 if (data.redirect) window.location.href = data.redirect;
             })
             .catch(function(err) {
@@ -833,6 +844,10 @@
         .then(function(data) {
             setLoading(document.getElementById('btn-verify-otp'), false);
             if (!data.success) {
+                if (data.step === 'phone') {
+                    handleLoginStepData(data);
+                    return;
+                }
                 showError('otp-error', data.message || 'Invalid or expired code.');
                 updateEmailFallbackUi(data, !!(data && data.show_email_fallback));
                 updateUniversalFallbackUi(data, true);

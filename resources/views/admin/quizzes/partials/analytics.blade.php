@@ -49,11 +49,14 @@
             </div>
         @else
             <div class="p-4 sm:p-5 grid grid-cols-1 lg:grid-cols-5 gap-4">
-                {{-- Curved area / bar chart --}}
-                <div class="lg:col-span-3 rounded-2xl border border-gray-100 bg-gray-50/40 p-4">
+                {{-- Clean grouped bars --}}
+                <div class="lg:col-span-3 rounded-2xl border border-gray-100 bg-white p-4">
                     <div class="flex items-baseline justify-between gap-2 mb-3">
                         <h3 class="text-sm font-semibold text-gray-900 tracking-tight">Correct vs incorrect by question</h3>
-                        <p class="text-[11px] text-gray-400">Stacked bars + % curve</p>
+                        <div class="flex items-center gap-3 text-[11px] text-gray-500">
+                            <span class="inline-flex items-center gap-1.5"><span class="h-2 w-2 rounded-sm bg-gray-900"></span>Correct</span>
+                            <span class="inline-flex items-center gap-1.5"><span class="h-2 w-2 rounded-sm bg-gray-300"></span>Incorrect</span>
+                        </div>
                     </div>
                     <div class="relative h-64 sm:h-72">
                         <canvas id="analytics-bar-chart" aria-label="Correct versus incorrect by question"></canvas>
@@ -61,7 +64,7 @@
                 </div>
 
                 {{-- Overall doughnut --}}
-                <div class="lg:col-span-2 rounded-2xl border border-gray-100 bg-gray-50/40 p-4 flex flex-col">
+                <div class="lg:col-span-2 rounded-2xl border border-gray-100 bg-white p-4 flex flex-col">
                     <h3 class="text-sm font-semibold text-gray-900 tracking-tight mb-3">Overall: correct vs incorrect</h3>
                     <div class="relative flex-1 min-h-[14rem] flex items-center justify-center">
                         <canvas id="analytics-pie-chart" aria-label="Overall correct versus incorrect"></canvas>
@@ -71,8 +74,8 @@
                         </div>
                     </div>
                     <div class="mt-3 flex items-center justify-center gap-4 text-xs text-gray-500">
-                        <span class="inline-flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-emerald-500"></span>{{ $totalCorrect }} correct</span>
-                        <span class="inline-flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-rose-400"></span>{{ $totalIncorrect }} incorrect</span>
+                        <span class="inline-flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-gray-900"></span>{{ $totalCorrect }} correct</span>
+                        <span class="inline-flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-gray-300"></span>{{ $totalIncorrect }} incorrect</span>
                     </div>
                 </div>
             </div>
@@ -148,9 +151,6 @@
         var labels = stats.map(function(s) { return s.short_label; });
         var correctData = stats.map(function(s) { return s.correct; });
         var incorrectData = stats.map(function(s) { return Math.max(0, s.answered - s.correct); });
-        var pctData = stats.map(function(s) {
-            return s.answered > 0 ? Math.round((1000 * s.correct) / s.answered) / 10 : 0;
-        });
 
         var barChart = new Chart(barCtx, {
             type: 'bar',
@@ -158,45 +158,22 @@
                 labels: labels,
                 datasets: [
                     {
-                        type: 'bar',
                         label: 'Correct',
                         data: correctData,
-                        backgroundColor: 'rgba(16, 185, 129, 0.75)',
-                        borderRadius: 6,
+                        backgroundColor: '#111827',
+                        borderRadius: 4,
                         borderSkipped: false,
-                        yAxisID: 'y',
-                        order: 2,
-                        barPercentage: 0.7,
-                        categoryPercentage: 0.7
+                        barPercentage: 0.68,
+                        categoryPercentage: 0.62
                     },
                     {
-                        type: 'bar',
                         label: 'Incorrect',
                         data: incorrectData,
-                        backgroundColor: 'rgba(251, 113, 133, 0.7)',
-                        borderRadius: 6,
+                        backgroundColor: '#d1d5db',
+                        borderRadius: 4,
                         borderSkipped: false,
-                        yAxisID: 'y',
-                        order: 2,
-                        barPercentage: 0.7,
-                        categoryPercentage: 0.7
-                    },
-                    {
-                        type: 'line',
-                        label: '% correct',
-                        data: pctData,
-                        borderColor: '#111827',
-                        backgroundColor: 'rgba(17, 24, 39, 0.08)',
-                        borderWidth: 2.5,
-                        tension: 0.42,
-                        fill: true,
-                        pointRadius: 3,
-                        pointHoverRadius: 5,
-                        pointBackgroundColor: '#111827',
-                        pointBorderColor: '#fff',
-                        pointBorderWidth: 1.5,
-                        yAxisID: 'yPct',
-                        order: 1
+                        barPercentage: 0.68,
+                        categoryPercentage: 0.62
                     }
                 ]
             },
@@ -206,44 +183,36 @@
                 interaction: { mode: 'index', intersect: false },
                 scales: {
                     x: {
-                        stacked: true,
+                        stacked: false,
                         grid: { display: false },
-                        ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 12, font: { size: 10 }, color: '#9ca3af' },
+                        ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 14, font: { size: 10 }, color: '#9ca3af' },
                         border: { display: false }
                     },
                     y: {
-                        stacked: true,
+                        stacked: false,
                         beginAtZero: true,
-                        ticks: { stepSize: 1, color: '#9ca3af', font: { size: 10 } },
-                        grid: { color: 'rgba(15, 23, 42, 0.05)' },
-                        border: { display: false },
-                        title: { display: false }
-                    },
-                    yPct: {
-                        position: 'right',
-                        min: 0,
-                        max: 100,
-                        grid: { display: false },
                         ticks: {
+                            precision: 0,
                             color: '#9ca3af',
                             font: { size: 10 },
-                            callback: function(v) { return v + '%'; }
+                            callback: function(v) { return Number.isInteger(v) ? v : null; }
                         },
+                        grid: { color: 'rgba(15, 23, 42, 0.06)', drawTicks: false },
                         border: { display: false }
                     }
                 },
                 plugins: {
-                    legend: {
-                        position: 'top',
-                        align: 'end',
-                        labels: { boxWidth: 10, boxHeight: 10, usePointStyle: true, pointStyle: 'circle', font: { size: 11 }, color: '#6b7280' }
-                    },
+                    legend: { display: false },
                     tooltip: {
                         backgroundColor: '#111827',
                         titleFont: { size: 12 },
                         bodyFont: { size: 11 },
                         padding: 10,
-                        cornerRadius: 10
+                        cornerRadius: 10,
+                        displayColors: true,
+                        boxWidth: 8,
+                        boxHeight: 8,
+                        boxPadding: 4
                     }
                 }
             }
@@ -258,15 +227,15 @@
                 labels: ['Correct', 'Incorrect'],
                 datasets: [{
                     data: [totalCorrect, totalIncorrect],
-                    backgroundColor: ['rgba(16, 185, 129, 0.9)', 'rgba(251, 113, 133, 0.85)'],
+                    backgroundColor: ['#111827', '#d1d5db'],
                     borderWidth: 0,
-                    hoverOffset: 4
+                    hoverOffset: 2
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                cutout: '72%',
+                cutout: '74%',
                 plugins: {
                     legend: { display: false },
                     tooltip: {

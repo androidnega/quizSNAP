@@ -14,8 +14,9 @@
     # Root URL (/) — request is the directory itself, so send to front controller explicitly
     RewriteRule ^/?$ index.php [L]
 
-    # Browsers often request /favicon.ico; we only have favicon.svg — serve it to avoid 403
-    RewriteRule ^favicon\.ico$ favicon.svg [L]
+    # Prefer real favicon.ico when present; keep legacy SVG fallback only if ico is missing
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^favicon\.ico$ favicon-32x32.png [L]
 
     # Redirect Trailing Slashes If Not A Folder...
     RewriteCond %{REQUEST_FILENAME} !-d

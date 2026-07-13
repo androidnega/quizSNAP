@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('title', $dashboardTitle ?? 'Dashboard')
+@section('robots', 'noindex,nofollow')
 @section('body_class', 'bg-[#f4f5f7] h-screen overflow-hidden')
 
 @php

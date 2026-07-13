@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('title', $adminTitle ?? 'Admin')
+@section('robots', 'noindex,nofollow')
 @section('body_class', 'bg-offwhite')
 
 @section('content')

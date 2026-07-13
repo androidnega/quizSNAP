@@ -58,6 +58,16 @@ Route::get('/csrf-token', fn () => response()->json(['token' => csrf_token()]))-
 
 // Public landing: single Start Quiz entry; no quiz list. If direct link has token (?t= or ?token=), go straight to rules.
 Route::get('/', LandingPageController::class)->name('student.landing');
+Route::get('/sitemap.xml', \App\Http\Controllers\SitemapController::class)->name('sitemap');
+Route::get('/robots.txt', function () {
+    $path = public_path('robots.txt');
+    abort_unless(is_file($path), 404);
+
+    return response(file_get_contents($path), 200, [
+        'Content-Type' => 'text/plain; charset=UTF-8',
+        'Cache-Control' => 'public, max-age=86400',
+    ]);
+})->name('robots');
 
 Route::get('/about-system', function () {
     $studentId = session('student_id');

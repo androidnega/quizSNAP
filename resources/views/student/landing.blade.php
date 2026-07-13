@@ -8,6 +8,7 @@
 @endphp
 
 @section('title', $appName)
+@section('meta_description', $appName.' — secure online quizzes with live proctoring for schools and institutions. Start or join a quiz, or sign in to your student account.')
 @section('body_class', 'landing-page qs-landing' . (isset($student) && $student ? ' qs-landing--signed-in' : ''))
 
 @push('styles')

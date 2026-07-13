@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('robots', 'noindex,nofollow')
+
 @push('copy_restrict_styles')
 <style>
 #quizsnap-copy-warning { display: none; position: fixed; inset: 0; z-index: 99998; background: rgba(0,0,0,0.4); align-items: center; justify-content: center; padding: 1rem; }

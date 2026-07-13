@@ -4,9 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
     <title>Site Under Update</title>
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-    <link rel="apple-touch-icon" href="/favicon.svg">
-    <meta name="theme-color" content="#f59e0b">
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <meta name="theme-color" content="#fdb813">
+    <meta name="robots" content="noindex,nofollow">
     <style>
         * { box-sizing: border-box; }
         html { touch-action: manipulation; -ms-touch-action: manipulation; text-size-adjust: 100%; -webkit-text-size-adjust: 100%; }

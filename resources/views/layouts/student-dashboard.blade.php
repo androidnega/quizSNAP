@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('title', $dashboardTitle ?? 'My Dashboard')
+@section('robots', 'noindex,nofollow')
 @section('body_class', 'theme-bg')
 @section('body_extra_class', 'min-h-screen')
 

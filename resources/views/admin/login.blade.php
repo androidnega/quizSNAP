@@ -7,20 +7,22 @@
 @section('content')
 @php
     $institutionName = trim((string) \App\Models\Setting::getValue(\App\Models\Setting::KEY_INSTITUTION_NAME, ''));
-    $institutionLogo = \App\Models\Setting::institutionLogoUrl();
+    $institutionLogo = \App\Support\BrandAssets::markUrl();
+    $logoAlt = \App\Support\BrandAssets::logoAlt();
     $appName = trim((string) \App\Models\Setting::getValue(\App\Models\Setting::KEY_APP_NAME, 'QuizSnap')) ?: 'QuizSnap';
 @endphp
 <div class="min-h-[100dvh] min-h-screen flex items-center justify-center px-4 py-6">
     <div class="w-full max-w-[400px]">
         <div class="bg-white border border-gray-200 rounded-3xl shadow-sm">
             <div class="px-6 pt-6 pb-1 text-center">
-                @if($institutionLogo !== '')
-                    <img
-                        src="{{ $institutionLogo }}"
-                        alt="{{ $institutionName !== '' ? $institutionName : $appName }}"
-                        class="h-8 w-auto mx-auto mb-3 object-contain opacity-90"
-                    >
-                @endif
+                <img
+                    src="{{ $institutionLogo }}"
+                    alt="{{ $logoAlt }}"
+                    class="h-14 w-14 mx-auto mb-3 object-contain"
+                    width="56"
+                    height="56"
+                    decoding="async"
+                >
                 <h1 class="text-xl font-semibold text-gray-900 tracking-tight">Staff sign in</h1>
                 <p class="mt-1 text-xs text-gray-500">
                     @if($institutionName !== '')

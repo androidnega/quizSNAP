@@ -9,6 +9,7 @@
 @endphp
 
 @section('title', 'About ' . $appName)
+@section('meta_description', 'Learn how '.$appName.' helps institutions run secure online quizzes with live proctoring, integrity checks, and clear results.')
 @section('body_class', 'qs-marketing')
 
 @push('styles')

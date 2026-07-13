@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('title', $examinerTitle ?? 'Examiner')
+@section('robots', 'noindex,nofollow')
 @section('body_class', 'bg-offwhite')
 
 @section('content')

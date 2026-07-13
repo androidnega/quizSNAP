@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 final class Favicon
 {
     /** QuizSnap signature amber — fixed, not theme-dependent. */
-    public const COLOR_PUBLIC = '#f59e0b';
+    public const COLOR_PUBLIC = '#fdb813';
 
     /** Admin / staff chrome. */
     public const COLOR_ADMIN = '#1e293b';
@@ -29,19 +29,24 @@ final class Favicon
         return $user instanceof User && $request->routeIs('dashboard', 'dashboard.*');
     }
 
-    public static function variant(?Request $request = null): string
-    {
-        return self::isStaffContext($request) ? 'admin' : 'default';
-    }
-
-    public static function filename(?Request $request = null): string
-    {
-        return self::variant($request) === 'admin' ? 'favicon-admin.svg' : 'favicon.svg';
-    }
-
     public static function url(?Request $request = null): string
     {
-        return asset(self::filename($request));
+        return asset('favicon.ico');
+    }
+
+    public static function png32(): string
+    {
+        return asset('favicon-32x32.png');
+    }
+
+    public static function png16(): string
+    {
+        return asset('favicon-16x16.png');
+    }
+
+    public static function appleTouchIcon(): string
+    {
+        return asset('apple-touch-icon.png');
     }
 
     public static function themeColor(?Request $request = null): string

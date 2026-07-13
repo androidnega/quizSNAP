@@ -1,7 +1,7 @@
 @php
     $appName = \App\Models\Setting::getValue(\App\Models\Setting::KEY_APP_NAME, config('app.name', 'QuizSnap'));
     $institutionName = \App\Models\Setting::getValue(\App\Models\Setting::KEY_INSTITUTION_NAME, '');
-    $logoUrl = \App\Models\Setting::institutionLogoUrl();
+    $logoUrl = \App\Support\BrandAssets::markUrl();
     $expiresMinutes = $expiresMinutes ?? 60;
     $displayName = trim($student->student_name ?? '') !== '' ? $student->student_name : $student->index_number;
 @endphp

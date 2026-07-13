@@ -1,0 +1,31 @@
+# QuizSnap — https://quizsnap.online
+User-agent: *
+Allow: /
+Allow: /about-system
+Allow: /login
+Allow: /student/account/login
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /examiner
+Disallow: /operations
+Disallow: /monitoring
+Disallow: /intelligence
+Disallow: /quiz/
+Disallow: /t/
+Disallow: /take/
+Disallow: /student/proctoring
+Disallow: /student/validate-token
+Disallow: /support/sessions
+Disallow: /migrate
+Disallow: /migration
+Disallow: /themigration
+Disallow: /migrationcode
+Disallow: /run-migrations
+Disallow: /clear-cache
+Disallow: /fix-pull
+Disallow: /thekey
+Disallow: /maintenance
+Disallow: /csrf-token
+Disallow: /presence/
+
+Sitemap: https://quizsnap.online/sitemap.xml

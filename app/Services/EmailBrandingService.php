@@ -14,7 +14,7 @@ class EmailBrandingService
         return [
             'appName' => (string) Setting::getValue(Setting::KEY_APP_NAME, config('app.name', 'QuizSnap')),
             'institutionName' => (string) Setting::getValue(Setting::KEY_INSTITUTION_NAME, ''),
-            'logoUrl' => Setting::institutionLogoUrl(),
+            'logoUrl' => \App\Support\BrandAssets::markUrl(),
             'year' => (string) date('Y'),
             'fromAddress' => (string) Setting::getValue(Setting::KEY_MAIL_FROM_ADDRESS, config('mail.from.address', '')),
             'fromName' => (string) Setting::getValue(Setting::KEY_MAIL_FROM_NAME, config('mail.from.name', 'QuizSnap')),

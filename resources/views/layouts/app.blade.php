@@ -17,6 +17,7 @@
     <meta name="apple-mobile-web-app-title" content="QuizSnap">
     <meta name="format-detection" content="telephone=no">
     <title>@yield('title', 'QuizSnap')</title>
+    @include('partials.seo')
     @include('partials.favicon')
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

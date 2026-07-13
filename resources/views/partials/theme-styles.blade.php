@@ -87,8 +87,9 @@
 
     .quizsnap-brand-mark--image {
         overflow: hidden;
-        background: #ffffff;
+        background: transparent;
         color: transparent;
+        border-radius: 9999px;
     }
     .quizsnap-brand-mark__image {
         width: 100%;

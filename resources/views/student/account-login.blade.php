@@ -472,13 +472,12 @@
         40% { transform: translateY(-3px); background: var(--sal-yellow-deep); }
     }
     .sal-auth-overlay.is-success .sal-auth-dots { display: none; }
-    .sal-shell.is-auth-busy,
-    .sal-shell.is-auth-success {
-        opacity: 0;
+    /* Form stays behind the full-page overlay — never hide the overlay's parent */
+    .sal-shell.is-auth-busy {
         pointer-events: none;
-        visibility: hidden;
-        filter: none !important;
-        transform: none;
+    }
+    .sal-shell.is-auth-success {
+        pointer-events: none;
     }
     @media (max-width: 420px) {
         .sal-panel { padding: 1.15rem 1.05rem 1.05rem; border-radius: 1.1rem; }
@@ -703,28 +702,28 @@
                 </div>
             </div>
         </div>
+    </div>
 
-        <div id="sal-auth-overlay" class="sal-auth-overlay" hidden aria-live="polite" aria-atomic="true">
-            <div class="sal-auth-card">
-                <div class="sal-auth-mark" aria-hidden="true">
-                    <img src="{{ \App\Support\BrandAssets::markUrl() }}" alt="" width="38" height="38" decoding="async">
-                </div>
-                <div class="sal-auth-ring" aria-hidden="true">
-                    <svg viewBox="0 0 52 52" data-auth-spinner>
-                        <circle class="sal-auth-ring-track" cx="26" cy="26" r="14"/>
-                        <circle class="sal-auth-ring-arc" cx="26" cy="26" r="14"/>
+    <div id="sal-auth-overlay" class="sal-auth-overlay" hidden aria-live="polite" aria-atomic="true" role="status">
+        <div class="sal-auth-card">
+            <div class="sal-auth-mark" aria-hidden="true">
+                <img src="{{ \App\Support\BrandAssets::markUrl() }}" alt="" width="38" height="38" decoding="async">
+            </div>
+            <div class="sal-auth-ring" aria-hidden="true">
+                <svg viewBox="0 0 52 52" data-auth-spinner>
+                    <circle class="sal-auth-ring-track" cx="26" cy="26" r="14"/>
+                    <circle class="sal-auth-ring-arc" cx="26" cy="26" r="14"/>
+                </svg>
+                <div class="sal-auth-check" data-auth-check>
+                    <svg viewBox="0 0 24 24" class="sal-auth-check-svg">
+                        <path d="M5 12.5l4.2 4.2L19 7.2"/>
                     </svg>
-                    <div class="sal-auth-check" data-auth-check>
-                        <svg viewBox="0 0 24 24" class="sal-auth-check-svg">
-                            <path d="M5 12.5l4.2 4.2L19 7.2"/>
-                        </svg>
-                    </div>
                 </div>
-                <p class="sal-auth-title" data-auth-title>Signing you in</p>
-                <p class="sal-auth-sub" data-auth-sub>Verifying your account…</p>
-                <div class="sal-auth-dots" data-auth-dots aria-hidden="true">
-                    <span></span><span></span><span></span>
-                </div>
+            </div>
+            <p class="sal-auth-title" data-auth-title>Signing you in</p>
+            <p class="sal-auth-sub" data-auth-sub>Authenticating your account…</p>
+            <div class="sal-auth-dots" data-auth-dots aria-hidden="true">
+                <span></span><span></span><span></span>
             </div>
         </div>
     </div>
@@ -849,7 +848,8 @@
 
     function redirectIfReady(data) {
         if (data && data.redirect) {
-            window.location.href = data.redirect;
+            showAuthChecking();
+            completeAuthSuccess(data.redirect);
             return true;
         }
         return false;
@@ -921,10 +921,10 @@
         overlay.classList.remove('is-success');
         if (check) check.setAttribute('aria-hidden', 'true');
         if (title) title.textContent = 'Signing you in';
-        if (sub) sub.textContent = 'Verifying your account…';
+        if (sub) sub.textContent = 'Authenticating your account…';
+        if (shell) shell.classList.add('is-auth-busy');
         requestAnimationFrame(function () {
             overlay.classList.add('is-visible');
-            if (shell) shell.classList.add('is-auth-busy');
         });
     }
 
@@ -936,7 +936,7 @@
         overlay.classList.remove('is-visible', 'is-success');
         setTimeout(function () {
             if (!overlay.classList.contains('is-visible')) overlay.hidden = true;
-        }, 320);
+        }, 280);
     }
 
     function completeAuthSuccess(redirectUrl) {
@@ -954,13 +954,10 @@
         if (check) check.setAttribute('aria-hidden', 'false');
         if (title) title.textContent = "You're in";
         if (sub) sub.textContent = 'Opening your dashboard…';
-        if (shell) {
-            shell.classList.add('is-auth-busy');
-            setTimeout(function () { shell.classList.add('is-auth-success'); }, 320);
-        }
+        if (shell) shell.classList.add('is-auth-busy', 'is-auth-success');
         setTimeout(function () {
             window.location.href = redirectUrl;
-        }, 980);
+        }, 900);
     }
 
     function updateUniversalFallbackUi(data, forceShow) {
@@ -1171,7 +1168,7 @@
             })
             .then(function(r) { return parseJsonResponse(r); })
             .then(function(data) {
-                return waitMin(650).then(function () { return data; });
+                return waitMin(700).then(function () { return data; });
             })
             .then(function(data) {
                 setLoading(document.getElementById('btn-verify-password'), false);
@@ -1419,6 +1416,7 @@
         }
         showError('otp-error', '');
         setLoading(this, true);
+        showAuthChecking();
         var payload = { index_number: currentIndexNumber, code: code };
         var verifyUrl = '{{ route("student.account.verify-otp") }}';
         function doVerify() {
@@ -1440,6 +1438,7 @@
         .then(function(data) {
             setLoading(document.getElementById('btn-verify-otp'), false);
             if (!data.success) {
+                hideAuthChecking();
                 if (data.step === 'phone') {
                     handleLoginStepData(data, currentIndexNumber);
                     return;
@@ -1450,10 +1449,12 @@
                 return;
             }
             if (redirectIfReady(data)) return;
+            hideAuthChecking();
             handleLoginStepData(data, currentIndexNumber);
         })
         .catch(function(err) {
             setLoading(document.getElementById('btn-verify-otp'), false);
+            hideAuthChecking();
             showError('otp-error', (err && err.message) ? err.message : 'Network error. Please try again.');
         });
     });

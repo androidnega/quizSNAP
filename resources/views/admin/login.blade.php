@@ -45,7 +45,7 @@
                     </div>
                 @endif
 
-                <form action="{{ route('login.post') }}" method="post" class="space-y-3.5">
+                <form action="{{ route('login.post') }}" method="post" class="space-y-3.5" id="staff-login-form">
                     @csrf
                     <div>
                         <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Username</label>
@@ -98,7 +98,8 @@
 
                     <button
                         type="submit"
-                        class="w-full py-2 px-4 text-sm font-semibold rounded-2xl text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors"
+                        id="staff-login-submit"
+                        class="w-full py-2 px-4 text-sm font-semibold rounded-2xl text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors disabled:opacity-70"
                     >
                         Sign in
                     </button>
@@ -113,4 +114,33 @@
         </div>
     </div>
 </div>
+
+<div id="staff-auth-overlay" class="fixed inset-0 z-[90] hidden items-center justify-center bg-white" role="status" aria-live="polite" aria-atomic="true">
+    <div class="w-[min(100%,17rem)] text-center px-4">
+        <div class="mx-auto mb-4 h-11 w-11 rounded-xl overflow-hidden bg-[#ffd500] shadow-[0_8px_20px_rgba(255,213,0,0.35)]">
+            <img src="{{ \App\Support\BrandAssets::logoUrl() }}" alt="" class="h-full w-full object-contain" width="44" height="44" decoding="async">
+        </div>
+        <div class="mx-auto mb-4 h-10 w-10 rounded-full border-[3px] border-slate-200 border-t-amber-400 animate-spin" aria-hidden="true"></div>
+        <p class="text-base font-semibold text-slate-900 tracking-tight">Signing you in</p>
+        <p class="mt-1 text-sm text-slate-500">Authenticating your account…</p>
+    </div>
+</div>
+@push('scripts')
+<script>
+(function () {
+    var form = document.getElementById('staff-login-form');
+    var overlay = document.getElementById('staff-auth-overlay');
+    var btn = document.getElementById('staff-login-submit');
+    if (!form || !overlay) return;
+    form.addEventListener('submit', function () {
+        overlay.classList.remove('hidden');
+        overlay.classList.add('flex');
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Signing in…';
+        }
+    });
+})();
+</script>
+@endpush
 @endsection

@@ -11,6 +11,69 @@
 @media (max-width: 1023px) {
     #student-dashboard-support-fab { display: none !important; }
 }
+.sd-overflow-menu {
+    position: absolute;
+    top: calc(100% + 0.35rem);
+    right: 0;
+    z-index: 50;
+    min-width: 11.5rem;
+    padding: 0.35rem;
+    border-radius: 0.85rem;
+    background: #fff;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.14);
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+    transform-origin: top right;
+    transition: opacity 0.16s ease, transform 0.16s ease;
+    pointer-events: none;
+}
+.sd-overflow-menu.is-open {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+}
+.sd-overflow-item {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.7rem 0.8rem;
+    border: 0;
+    border-radius: 0.65rem;
+    background: transparent;
+    color: #1e293b;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+    font-family: inherit;
+}
+.sd-overflow-item i {
+    width: 1rem;
+    text-align: center;
+    color: #64748b;
+    font-size: 0.85rem;
+}
+.sd-overflow-item:hover,
+.sd-overflow-item:focus {
+    background: #f8fafc;
+    outline: none;
+}
+.sd-overflow-item--danger {
+    color: #b91c1c;
+}
+.sd-overflow-item--danger i {
+    color: #dc2626;
+}
+.sd-overflow-item--danger:hover,
+.sd-overflow-item--danger:focus {
+    background: #fef2f2;
+}
+@media (prefers-reduced-motion: reduce) {
+    .sd-overflow-menu { transition: none; }
+}
 </style>
 @endpush
 
@@ -39,7 +102,7 @@
     }
 @endphp
 <div class="min-h-screen flex flex-col theme-bg" id="student-dashboard-wrap">
-    {{-- Mobile top bar: menu + logout (desktop header is separate below) --}}
+    {{-- Mobile top bar: menu + brand + WhatsApp-style overflow --}}
     <div class="lg:hidden sticky top-0 z-30 flex h-14 items-center justify-between gap-3 px-4 theme-header safe-area-t" id="student-mobile-topbar">
         <button type="button" id="student-mobile-menu-btn" class="shrink-0 flex h-10 w-10 items-center justify-center rounded-xl theme-header-text theme-header-hover focus:outline-none focus:ring-2 focus:ring-slate-700 focus:ring-offset-2 focus:ring-offset-[var(--theme-brand)]" aria-label="Open menu" aria-expanded="false" aria-controls="student-mobile-sidebar">
             <i class="fas fa-bars text-base"></i>
@@ -51,13 +114,26 @@
             'variant' => 'on-brand',
             'class' => 'shrink-0',
         ])
-        <form action="{{ isset($student) && $student ? route('student.account.logout') : route('logout') }}" method="post" class="shrink-0">
-            @csrf
-            <button type="submit" class="inline-flex h-10 items-center gap-1.5 rounded-xl px-3 text-sm font-semibold theme-header-text theme-header-hover focus:outline-none focus:ring-2 focus:ring-slate-700 focus:ring-offset-2 focus:ring-offset-[var(--theme-brand)]" aria-label="Log out">
-                <i class="fas fa-sign-out-alt text-sm" aria-hidden="true"></i>
-                <span>Log out</span>
+        <div class="relative shrink-0" id="student-mobile-overflow">
+            <button type="button" id="student-mobile-overflow-btn" class="flex h-10 w-10 items-center justify-center rounded-xl theme-header-text theme-header-hover focus:outline-none focus:ring-2 focus:ring-slate-700 focus:ring-offset-2 focus:ring-offset-[var(--theme-brand)]" aria-label="More options" aria-expanded="false" aria-haspopup="true" aria-controls="student-mobile-overflow-menu">
+                <i class="fas fa-ellipsis-v text-base" aria-hidden="true"></i>
             </button>
-        </form>
+            <div id="student-mobile-overflow-menu" class="sd-overflow-menu" role="menu" aria-labelledby="student-mobile-overflow-btn" hidden>
+                @if(isset($student) && $student)
+                <a href="{{ route('dashboard.my-profile') }}" class="sd-overflow-item" role="menuitem">
+                    <i class="fas fa-user" aria-hidden="true"></i>
+                    <span>Profile</span>
+                </a>
+                @endif
+                <form action="{{ isset($student) && $student ? route('student.account.logout') : route('logout') }}" method="post">
+                    @csrf
+                    <button type="submit" class="sd-overflow-item sd-overflow-item--danger" role="menuitem">
+                        <i class="fas fa-sign-out-alt" aria-hidden="true"></i>
+                        <span>Log out</span>
+                    </button>
+                </form>
+            </div>
+        </div>
     </div>
 
     <header class="hidden lg:block sticky top-0 z-30 theme-header">
@@ -177,15 +253,6 @@
         <nav class="p-4 space-y-1 flex-1 overflow-y-auto" aria-label="Dashboard navigation">
             @include('student.partials.dashboard-sidebar-nav')
         </nav>
-        <div class="shrink-0 border-t border-slate-200 p-4 safe-area-b">
-            <form action="{{ isset($student) && $student ? route('student.account.logout') : route('logout') }}" method="post">
-                @csrf
-                <button type="submit" class="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 hover:bg-slate-100">
-                    <i class="fas fa-sign-out-alt text-slate-500" aria-hidden="true"></i>
-                    Log out
-                </button>
-            </form>
-        </div>
     </aside>
     <div id="student-mobile-sidebar-overlay" class="fixed inset-0 z-30 bg-slate-900/40 lg:hidden cursor-pointer pointer-events-none" aria-hidden="true" role="button" tabindex="-1" aria-label="Close menu" style="visibility: hidden;"></div>
 
@@ -259,6 +326,42 @@
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape' && isOpen()) { e.preventDefault(); closeSidebar(); }
         });
+
+        var overflowBtn = document.getElementById('student-mobile-overflow-btn');
+        var overflowMenu = document.getElementById('student-mobile-overflow-menu');
+        var overflowWrap = document.getElementById('student-mobile-overflow');
+        if (overflowBtn && overflowMenu && overflowWrap) {
+            var overflowTimer = null;
+            function openOverflow() {
+                if (overflowTimer) { clearTimeout(overflowTimer); overflowTimer = null; }
+                overflowMenu.hidden = false;
+                requestAnimationFrame(function () { overflowMenu.classList.add('is-open'); });
+                overflowBtn.setAttribute('aria-expanded', 'true');
+            }
+            function closeOverflow() {
+                overflowMenu.classList.remove('is-open');
+                overflowBtn.setAttribute('aria-expanded', 'false');
+                overflowTimer = setTimeout(function () {
+                    if (!overflowMenu.classList.contains('is-open')) overflowMenu.hidden = true;
+                    overflowTimer = null;
+                }, 160);
+            }
+            overflowBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                overflowMenu.classList.contains('is-open') ? closeOverflow() : openOverflow();
+            });
+            document.addEventListener('click', function (e) {
+                if (overflowWrap.contains(e.target)) return;
+                if (overflowMenu.classList.contains('is-open')) closeOverflow();
+            });
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && overflowMenu.classList.contains('is-open')) {
+                    closeOverflow();
+                    overflowBtn.focus();
+                }
+            });
+        }
     }
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', run);

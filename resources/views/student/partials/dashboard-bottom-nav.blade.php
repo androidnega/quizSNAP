@@ -246,7 +246,7 @@
 <div class="sd-nav-fab-wrap lg:hidden" id="sd-nav-fab-wrap" aria-hidden="true">
     <div class="sd-nav-fab-backdrop" id="sd-nav-fab-backdrop" aria-hidden="true"></div>
     <div class="sd-nav-fab" id="sd-nav-fab">
-        <div class="sd-nav-fab-menu" id="sd-nav-fab-menu" role="menu" aria-label="Dashboard navigation" style="--fab-max: {{ count($fabItems) + 1 }}">
+        <div class="sd-nav-fab-menu" id="sd-nav-fab-menu" role="menu" aria-label="Dashboard navigation" style="--fab-max: {{ count($fabItems) + (\App\Support\LiveSupportAccess::isEnabled() ? 2 : 0) }}">
             @foreach($fabItems as $fabIndex => $item)
             <a href="{{ route($item['route']) }}"
                class="sd-nav-fab-item {{ $item['active'] ? 'is-active' : '' }}"
@@ -256,22 +256,14 @@
                 {{ $item['label'] }}
             </a>
             @endforeach
-            <div class="sd-nav-fab-divider" style="--fab-i: {{ count($fabItems) }}" role="separator" aria-hidden="true"></div>
-            <form action="{{ isset($student) && $student ? route('student.account.logout') : route('logout') }}" method="post" style="--fab-i: {{ count($fabItems) + 1 }}" class="sd-nav-fab-item" role="menuitem">
-                @csrf
-                <button type="submit" class="flex items-center gap-2 w-full text-left bg-transparent border-0 p-0 m-0 font-inherit text-inherit cursor-pointer" aria-label="Log out">
-                    <span class="sd-nav-fab-item-icon" aria-hidden="true"><i class="fas fa-sign-out-alt"></i></span>
-                    Log out
-                </button>
-            </form>
             @if(\App\Support\LiveSupportAccess::isEnabled())
-            <div class="sd-nav-fab-divider" style="--fab-i: {{ count($fabItems) + 2 }}" role="separator" aria-hidden="true"></div>
+            <div class="sd-nav-fab-divider" style="--fab-i: {{ count($fabItems) }}" role="separator" aria-hidden="true"></div>
             <button type="button"
                role="menuitem"
                data-qs-support-live
                data-support-context='@json($supportTriggerContext)'
                class="sd-nav-fab-item sd-nav-fab-item--support"
-               style="--fab-i: {{ count($fabItems) + 3 }}"
+               style="--fab-i: {{ count($fabItems) + 1 }}"
                aria-label="Open live chat with support">
                 <span class="sd-nav-fab-item-icon sd-nav-fab-item-icon--live" aria-hidden="true">
                     <i class="fas fa-comments"></i>

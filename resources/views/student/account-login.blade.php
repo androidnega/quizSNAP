@@ -319,6 +319,116 @@
     }
     .sal-foot a { color: var(--sal-ink); font-weight: 650; text-decoration: none; }
     .sal-foot a:hover { text-decoration: underline; }
+    .sal-auth-overlay {
+        position: absolute;
+        inset: 0;
+        z-index: 20;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+        background: rgba(247, 245, 239, 0.72);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-radius: inherit;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.28s ease;
+    }
+    .sal-auth-overlay.is-visible {
+        opacity: 1;
+        pointer-events: auto;
+    }
+    .sal-auth-overlay[hidden] { display: none !important; }
+    .sal-auth-card {
+        width: min(100%, 17.5rem);
+        text-align: center;
+        padding: 1.35rem 1.1rem 1.2rem;
+        border-radius: 1.15rem;
+        background: rgba(255, 255, 255, 0.92);
+        border: 1px solid rgba(255, 255, 255, 0.8);
+        box-shadow: 0 18px 40px rgba(18, 20, 26, 0.08);
+        transform: translateY(10px) scale(0.98);
+        transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .sal-auth-overlay.is-visible .sal-auth-card {
+        transform: translateY(0) scale(1);
+    }
+    .sal-auth-spinner {
+        width: 2.5rem;
+        height: 2.5rem;
+        margin: 0 auto 0.9rem;
+        border-radius: 999px;
+        border: 2.5px solid rgba(18, 20, 26, 0.1);
+        border-top-color: var(--sal-yellow-deep);
+        animation: sal-spin 0.75s linear infinite;
+    }
+    @keyframes sal-spin {
+        to { transform: rotate(360deg); }
+    }
+    .sal-auth-check {
+        width: 2.75rem;
+        height: 2.75rem;
+        margin: 0 auto 0.9rem;
+    }
+    .sal-auth-check-svg {
+        width: 100%;
+        height: 100%;
+    }
+    .sal-auth-check-svg circle {
+        stroke: rgba(22, 163, 74, 0.25);
+        stroke-width: 2.5;
+    }
+    .sal-auth-check-svg path {
+        stroke: #16a34a;
+        stroke-width: 3.2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-dasharray: 48;
+        stroke-dashoffset: 48;
+    }
+    .sal-auth-overlay.is-success .sal-auth-check-svg path {
+        animation: sal-check-draw 0.45s ease forwards 0.05s;
+    }
+    @keyframes sal-check-draw {
+        to { stroke-dashoffset: 0; }
+    }
+    .sal-auth-title {
+        margin: 0;
+        font-family: 'Sora', ui-sans-serif, system-ui, sans-serif;
+        font-size: 1.05rem;
+        font-weight: 650;
+        letter-spacing: -0.02em;
+        color: var(--sal-ink);
+    }
+    .sal-auth-sub {
+        margin: 0.35rem 0 0;
+        font-size: 0.86rem;
+        color: var(--sal-muted);
+    }
+    .sal-auth-overlay.is-success .sal-auth-spinner { display: none; }
+    .sal-panel {
+        position: relative;
+        transition: opacity 0.28s ease, filter 0.28s ease, transform 0.35s ease;
+    }
+    .sal-shell.is-auth-busy .sal-panel {
+        opacity: 0.35;
+        filter: blur(1.5px);
+        pointer-events: none;
+    }
+    .sal-shell.is-auth-success {
+        animation: sal-shell-out 0.45s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+    @keyframes sal-shell-out {
+        to { opacity: 0; transform: translateY(-12px) scale(0.985); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .sal-auth-spinner,
+        .sal-auth-check-svg path,
+        .sal-shell.is-auth-success,
+        .sal-auth-overlay,
+        .sal-auth-card { animation: none !important; transition: none !important; }
+    }
     .sal-panel [data-password-toggle] {
         color: #7a8190 !important;
     }
@@ -553,7 +663,24 @@
             </div>
         </div>
 
+        <div id="sal-auth-overlay" class="sal-auth-overlay" hidden aria-live="polite" aria-atomic="true">
+            <div class="sal-auth-card">
+                <div class="sal-auth-spinner" data-auth-spinner aria-hidden="true"></div>
+                <div class="sal-auth-check" data-auth-check hidden aria-hidden="true">
+                    <svg viewBox="0 0 52 52" class="sal-auth-check-svg">
+                        <circle cx="26" cy="26" r="24" fill="none"/>
+                        <path fill="none" d="M14.5 27.5l7.2 7.2 15.8-15.8"/>
+                    </svg>
+                </div>
+                <p class="sal-auth-title" data-auth-title>Signing you in</p>
+                <p class="sal-auth-sub" data-auth-sub>Checking your credentials…</p>
+            </div>
+        </div>
 
+        <p class="sal-foot">
+            Staff member?
+            <a href="{{ route('login') }}">Staff sign in</a>
+        </p>
     </div>
 </div>
 
@@ -735,6 +862,63 @@
         btn.disabled = loading;
         btn.dataset.originalText = btn.dataset.originalText || btn.textContent;
         btn.textContent = loading ? 'Please wait…' : (btn.dataset.originalText || 'Continue');
+    }
+
+    function showAuthChecking() {
+        var shell = document.querySelector('.sal-shell');
+        var overlay = document.getElementById('sal-auth-overlay');
+        if (!overlay) return;
+        var spinner = overlay.querySelector('[data-auth-spinner]');
+        var check = overlay.querySelector('[data-auth-check]');
+        var title = overlay.querySelector('[data-auth-title]');
+        var sub = overlay.querySelector('[data-auth-sub]');
+        overlay.hidden = false;
+        overlay.classList.remove('is-success');
+        if (spinner) spinner.hidden = false;
+        if (check) check.hidden = true;
+        if (title) title.textContent = 'Signing you in';
+        if (sub) sub.textContent = 'Checking your credentials…';
+        requestAnimationFrame(function () {
+            overlay.classList.add('is-visible');
+            if (shell) shell.classList.add('is-auth-busy');
+        });
+    }
+
+    function hideAuthChecking() {
+        var shell = document.querySelector('.sal-shell');
+        var overlay = document.getElementById('sal-auth-overlay');
+        if (shell) shell.classList.remove('is-auth-busy', 'is-auth-success');
+        if (!overlay) return;
+        overlay.classList.remove('is-visible', 'is-success');
+        setTimeout(function () {
+            if (!overlay.classList.contains('is-visible')) overlay.hidden = true;
+        }, 280);
+    }
+
+    function completeAuthSuccess(redirectUrl) {
+        var shell = document.querySelector('.sal-shell');
+        var overlay = document.getElementById('sal-auth-overlay');
+        if (!overlay) {
+            window.location.href = redirectUrl;
+            return;
+        }
+        var spinner = overlay.querySelector('[data-auth-spinner]');
+        var check = overlay.querySelector('[data-auth-check]');
+        var title = overlay.querySelector('[data-auth-title]');
+        var sub = overlay.querySelector('[data-auth-sub]');
+        overlay.hidden = false;
+        overlay.classList.add('is-visible', 'is-success');
+        if (spinner) spinner.hidden = true;
+        if (check) check.hidden = false;
+        if (title) title.textContent = 'Welcome back';
+        if (sub) sub.textContent = 'Taking you to your dashboard…';
+        if (shell) {
+            shell.classList.add('is-auth-busy');
+            setTimeout(function () { shell.classList.add('is-auth-success'); }, 280);
+        }
+        setTimeout(function () {
+            window.location.href = redirectUrl;
+        }, 720);
     }
 
     function updateUniversalFallbackUi(data, forceShow) {
@@ -923,6 +1107,8 @@
             }
             showError('password-error', '');
             setLoading(this, true);
+            showAuthChecking();
+            var startedAt = Date.now();
             var verifyPwUrl = '{{ route("student.account.verify-password") }}';
             function doPw() {
                 return fetch(verifyPwUrl, {
@@ -932,6 +1118,10 @@
                     body: JSON.stringify({ index_number: currentIndexNumber, password: v })
                 });
             }
+            function waitMin(ms) {
+                var left = Math.max(0, ms - (Date.now() - startedAt));
+                return left ? new Promise(function (resolve) { setTimeout(resolve, left); }) : Promise.resolve();
+            }
             ensureFreshCsrf().then(function() { return doPw(); })
             .then(function(r) {
                 if (r.status === 419) return ensureFreshCsrf().then(function() { return doPw(); });
@@ -939,8 +1129,12 @@
             })
             .then(function(r) { return parseJsonResponse(r); })
             .then(function(data) {
+                return waitMin(650).then(function () { return data; });
+            })
+            .then(function(data) {
                 setLoading(document.getElementById('btn-verify-password'), false);
                 if (!data.success) {
+                    hideAuthChecking();
                     if (data.step === 'phone') {
                         handleLoginStepData(data, currentIndexNumber);
                         return;
@@ -948,10 +1142,15 @@
                     showError('password-error', data.message || 'Sign-in failed.');
                     return;
                 }
-                if (data.redirect) window.location.href = data.redirect;
+                if (data.redirect) {
+                    completeAuthSuccess(data.redirect);
+                    return;
+                }
+                hideAuthChecking();
             })
             .catch(function(err) {
                 setLoading(document.getElementById('btn-verify-password'), false);
+                hideAuthChecking();
                 showError('password-error', (err && err.message) ? err.message : 'Network error. Please try again.');
             });
         });

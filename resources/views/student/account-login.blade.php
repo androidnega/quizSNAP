@@ -553,10 +553,7 @@
             </div>
         </div>
 
-        <p class="sal-foot">
-            Staff member?
-            <a href="{{ route('login') }}">Staff sign in</a>
-        </p>
+
     </div>
 </div>
 

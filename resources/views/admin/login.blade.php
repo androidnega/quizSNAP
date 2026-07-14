@@ -106,8 +106,8 @@
             </div>
 
             <div class="px-6 py-2.5 text-center">
-                <a href="{{ route('student.landing') }}" class="text-xs text-gray-500 hover:text-primary-600 transition-colors">
-                    Student portal
+                <a href="{{ route('student.account.login.form') }}" class="text-xs text-gray-500 hover:text-primary-600 transition-colors">
+                    Student login
                 </a>
             </div>
         </div>

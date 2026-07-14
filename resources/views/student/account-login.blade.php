@@ -51,16 +51,15 @@
         width: 18rem;
         height: 18rem;
         border-radius: 50%;
-        background: radial-gradient(circle, rgba(255, 213, 0, 0.32) 0%, rgba(255, 213, 0, 0) 72%);
-        filter: blur(2px);
+        background: radial-gradient(circle, rgba(255, 213, 0, 0.28) 0%, rgba(255, 213, 0, 0) 72%);
         top: -5rem;
         left: 50%;
         transform: translateX(-50%);
         animation: sal-float 10s ease-in-out infinite;
     }
     @keyframes sal-float {
-        0%, 100% { transform: translateX(-50%) translateY(0); opacity: 0.9; }
-        50% { transform: translateX(-50%) translateY(1rem); opacity: 1; }
+        0%, 100% { transform: translateX(-50%) translateY(0); opacity: 0.85; }
+        50% { transform: translateX(-50%) translateY(0.85rem); opacity: 1; }
     }
     .sal-shell {
         position: relative;
@@ -68,11 +67,11 @@
         width: 100%;
         max-width: 24.5rem;
         animation: sal-rise 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
-        transition: opacity 0.35s ease, transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), filter 0.35s ease;
+        transition: opacity 0.32s cubic-bezier(0.22, 1, 0.36, 1), transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
     }
     @keyframes sal-rise {
-        from { opacity: 0; transform: translateY(14px); }
-        to { opacity: 1; transform: translateY(0); }
+        from { opacity: 0; transform: translateY(16px) scale(0.98); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
     }
     .sal-brand {
         display: flex;
@@ -299,7 +298,7 @@
     .sal-stack.hidden,
     .sal-step.hidden { display: none !important; }
 
-    /* Full-page auth animation */
+    /* Full-page auth animation — crisp, no blur */
     .sal-auth-overlay {
         position: fixed;
         inset: 0;
@@ -308,12 +307,10 @@
         align-items: center;
         justify-content: center;
         padding: 1.25rem;
-        background: rgba(255, 255, 255, 0.72);
-        backdrop-filter: blur(14px) saturate(1.1);
-        -webkit-backdrop-filter: blur(14px) saturate(1.1);
+        background: rgba(255, 255, 255, 0.94);
         opacity: 0;
         pointer-events: none;
-        transition: opacity 0.35s ease;
+        transition: opacity 0.32s cubic-bezier(0.22, 1, 0.36, 1);
     }
     .sal-auth-overlay.is-visible {
         opacity: 1;
@@ -323,15 +320,15 @@
     .sal-auth-overlay::before {
         content: '';
         position: absolute;
-        width: 22rem;
-        height: 22rem;
+        width: 20rem;
+        height: 20rem;
         border-radius: 50%;
-        background: radial-gradient(circle, rgba(255, 213, 0, 0.28) 0%, transparent 68%);
-        animation: sal-auth-glow 2.4s ease-in-out infinite;
+        background: radial-gradient(circle, rgba(255, 213, 0, 0.22) 0%, transparent 70%);
+        animation: sal-auth-glow 2.6s cubic-bezier(0.45, 0, 0.2, 1) infinite;
     }
     @keyframes sal-auth-glow {
-        0%, 100% { transform: scale(0.92); opacity: 0.7; }
-        50% { transform: scale(1.08); opacity: 1; }
+        0%, 100% { transform: scale(0.94); opacity: 0.65; }
+        50% { transform: scale(1.06); opacity: 1; }
     }
     .sal-auth-card {
         position: relative;
@@ -340,11 +337,15 @@
         padding: 1.6rem 1.2rem 1.35rem;
         border-radius: 1.35rem;
         background: #fff;
-        border: 1px solid rgba(17, 19, 24, 0.06);
-        box-shadow: 0 24px 60px rgba(17, 19, 24, 0.1);
-        transform: translateY(16px) scale(0.96);
+        border: 1px solid rgba(17, 19, 24, 0.07);
+        box-shadow:
+            0 1px 2px rgba(17, 19, 24, 0.04),
+            0 18px 48px rgba(17, 19, 24, 0.08);
+        transform: translateY(18px) scale(0.96);
         opacity: 0;
-        transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.35s ease;
+        transition:
+            transform 0.48s cubic-bezier(0.22, 1, 0.36, 1),
+            opacity 0.32s cubic-bezier(0.22, 1, 0.36, 1);
     }
     .sal-auth-overlay.is-visible .sal-auth-card {
         transform: translateY(0) scale(1);

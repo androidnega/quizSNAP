@@ -468,15 +468,13 @@
     }
     .sal-auth-overlay.is-success .sal-auth-dots { display: none; }
     .sal-shell.is-auth-busy {
-        opacity: 0.28;
-        filter: blur(2px);
+        opacity: 0.22;
         pointer-events: none;
-        transform: scale(0.985);
+        transform: scale(0.985) translateY(4px);
     }
     .sal-shell.is-auth-success {
         opacity: 0;
-        transform: translateY(-10px) scale(0.97);
-        filter: blur(3px);
+        transform: translateY(-12px) scale(0.98);
     }
     @media (max-width: 420px) {
         .sal-panel { padding: 1.15rem 1.05rem 1.05rem; border-radius: 1.1rem; }
@@ -488,6 +486,8 @@
         .sal-auth-ring-arc, .sal-auth-dots span, .sal-auth-check-svg path,
         .sal-auth-overlay::before { animation: none !important; }
         .sal-auth-overlay, .sal-auth-card, .sal-shell { transition: none !important; }
+        .sal-shell.is-auth-busy,
+        .sal-shell.is-auth-success { transform: none; }
     }
 </style>
 @endpush

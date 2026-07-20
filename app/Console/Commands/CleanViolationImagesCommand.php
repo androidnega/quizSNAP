@@ -12,7 +12,7 @@ class CleanViolationImagesCommand extends Command
 {
     protected $signature = 'violations:clean-old-images {--days= : Override retention days (default from settings)}';
 
-    protected $description = 'Delete violation and verification images older than configured retention days and clear DB references';
+    protected $description = 'Delete violation/verification images and audio clips older than configured retention days and clear DB references';
 
     public function handle(): int
     {

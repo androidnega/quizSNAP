@@ -384,23 +384,23 @@
         if (detectorReady || model) return;
 
         if (typeof tf === 'undefined' || typeof blazeface === 'undefined') {
-            setFaceStatus('Preparing verification...', 'pending');
+            setFaceStatus('Please wait… getting the camera ready.', 'pending');
             setTimeout(initFaceDetector, 250);
             return;
         }
 
         try {
-            setFaceStatus('Preparing verification...', 'pending');
+            setFaceStatus('Please wait… preparing face check.', 'pending');
             model = await blazeface.load();
             detectorReady = true;
-            setFaceStatus('Verification ready. Keep exactly one face in frame.', 'pending');
+            setFaceStatus('Ready. Keep exactly one face in the frame.', 'pending');
             updateCaptureButton();
             startLiveFaceLoop();
         } catch (e) {
             console.error('BlazeFace initialization error:', e);
             model = null;
             detectorReady = false;
-            setFaceStatus('Face verification failed to initialize. Refresh and try again.', 'error');
+            setFaceStatus('Could not start face check. Refresh and try again.', 'error');
         }
     }
 

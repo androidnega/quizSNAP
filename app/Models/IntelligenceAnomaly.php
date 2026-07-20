@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class IntelligenceAnomaly extends Model
 {
+    /** Table uses detected_at only — no Laravel created_at/updated_at columns. */
+    public const CREATED_AT = null;
     public const UPDATED_AT = null;
     public const STATUS_OPEN = 'open';
     public const STATUS_RESOLVED = 'resolved';

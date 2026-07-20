@@ -12,8 +12,8 @@
     $cardClasses = $isReady
         ? 'max-w-md w-full bg-white border border-gray-200 rounded-xl p-6 shadow-lg text-center'
         : 'bg-white border border-gray-200 rounded-2xl shadow-xl p-6 max-w-md w-full text-center';
-    $readyMessage = 'Before you start, your browser must be in <strong>full screen mode</strong> (tabs and address bar hidden). Click the button below and allow full screen when prompted.';
-    $quizMessage = 'Your quiz runs in browser full screen so tabs and the address bar are hidden. Click below and choose <strong>Allow</strong> when your browser asks.';
+    $readyMessage = 'Before you start, your browser must be in <strong>full screen</strong>. Tap below and choose <strong>Allow</strong>. On iPhone, use <strong>Chrome</strong> if full screen fails in Safari.';
+    $quizMessage = 'Your quiz must stay in full screen. Tap below and choose <strong>Allow</strong>. On iPhone, open this quiz in <strong>Chrome</strong>, then Allow full screen.';
 @endphp
 
 <div id="{{ $overlayId }}" class="{{ $overlayClasses }}" aria-hidden="{{ $isReady ? 'false' : 'true' }}">
@@ -27,19 +27,37 @@
             <{{ $titleTag }} class="text-lg font-bold text-gray-900 mb-2">Full screen required</{{ $titleTag }}>
         @endif
         @if($messageId)
-            <p id="{{ $messageId }}" class="text-sm text-gray-600 mb-5">{!! $quizMessage !!}</p>
+            <p id="{{ $messageId }}" class="text-sm text-gray-600 mb-5 quiz-fs-hint-copy">{!! $quizMessage !!}</p>
         @else
-            <p class="text-sm text-gray-600 mb-5">{!! $readyMessage !!}</p>
+            <p class="text-sm text-gray-600 mb-5 quiz-fs-hint-copy">{!! $readyMessage !!}</p>
         @endif
         <button type="button" id="{{ $btnId }}" class="btn btn-primary w-full py-2.5 px-5 text-sm font-semibold text-white border-0 mb-3">
             Enter full screen
         </button>
         @unless($isReady)
             <p id="resize-blur-warning" class="text-sm font-medium text-amber-700 mb-3 hidden">Repeated violations will result in auto-submission of your quiz.</p>
-            <p id="resize-blur-final-warning" class="text-sm font-bold text-red-600 mb-3 hidden">One more resize or exit from full screen will auto-submit your quiz.</p>
+            <p id="resize-blur-final-warning" class="text-sm font-bold text-red-600 mb-3 hidden">One more exit from full screen will auto-submit your quiz.</p>
         @endunless
         @if($isReady)
             <p id="quiz-fs-gate-hint" class="mt-3 text-xs text-gray-500 hidden">Full screen active. You can start the quiz below.</p>
         @endif
     </div>
 </div>
+<script>
+(function () {
+    function applyFsHint() {
+        var ws = window.QuizSnapWindowState;
+        if (!ws || !ws.getFullscreenHintMessage) return;
+        var nodes = document.querySelectorAll('.quiz-fs-hint-copy');
+        var html = ws.getFullscreenHintMessage();
+        for (var i = 0; i < nodes.length; i++) {
+            nodes[i].innerHTML = html;
+        }
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function () { setTimeout(applyFsHint, 0); });
+    } else {
+        setTimeout(applyFsHint, 0);
+    }
+})();
+</script>

@@ -590,9 +590,17 @@ class StudentQuizController extends Controller
         $request->validate([
             'session_id' => 'required|exists:quiz_sessions,id',
             'violation_type' => 'required|string',
-            'image_base64' => 'required|string',
+            'image_base64' => 'nullable|string',
+            'audio_base64' => 'nullable|string',
             'metadata' => 'nullable',
         ]);
+
+        if (!$request->filled('image_base64') && !$request->filled('audio_base64')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Capture requires an image or audio clip.',
+            ], 422);
+        }
 
         $session = QuizSession::where('session_token', $token)->where('id', $request->session_id)->first();
         if (!$session) {
@@ -629,7 +637,7 @@ class StudentQuizController extends Controller
         // Global cap on stored violation images per session (all types combined),
         // but always allow captures for critical events like phone_detected or multiple faces.
         $capturedCount = $session->violations()->whereNotNull('image_url')->count();
-        $isCriticalCapture = in_array($violationType, ['phone_detected', 'multiple_faces_during_quiz', 'multiple_faces_pre_quiz'], true);
+        $isCriticalCapture = in_array($violationType, ['phone_detected', 'multiple_faces_during_quiz', 'multiple_faces_pre_quiz', 'external_audio'], true);
         if (! $isCriticalCapture && $capturedCount >= self::MAX_QUIZ_VIOLATION_CAPTURES) {
             return response()->json([
                 'success' => true,
@@ -641,25 +649,45 @@ class StudentQuizController extends Controller
         }
 
         $imageUrl = null;
-        $data = $request->image_base64;
+        $audioPath = null;
         $capturedAt = now();
-
-        if (!Str::startsWith($data, 'data:image')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid capture payload.',
-            ], 422);
-        }
+        $studentIndex = $session->student_index ?? 'unknown';
 
         try {
-            $studentIndex = $session->student_index ?? 'unknown';
-            $imageUrl = $this->storeViolationCaptureLocally($session->id, $data, $studentIndex);
+            if ($request->filled('image_base64')) {
+                $data = (string) $request->image_base64;
+                if (!Str::startsWith($data, 'data:image')) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Invalid image capture payload.',
+                    ], 422);
+                }
+                $imageUrl = $this->storeViolationCaptureLocally($session->id, $data, $studentIndex);
+            }
+            if ($request->filled('audio_base64')) {
+                $audioData = (string) $request->audio_base64;
+                if (!Str::startsWith($audioData, 'data:audio')) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Invalid audio capture payload.',
+                    ], 422);
+                }
+                $audioPath = $this->storeViolationAudioLocally($session->id, $audioData, $studentIndex);
+                $metadata['audio_path'] = $audioPath;
+            }
         } catch (\Throwable $e) {
             report($e);
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to upload image.',
+                'message' => 'Failed to upload capture.',
             ], 500);
+        }
+
+        if ($imageUrl === null && $audioPath === null) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Nothing was stored.',
+            ], 422);
         }
 
         // Create or update violation record
@@ -690,8 +718,10 @@ class StudentQuizController extends Controller
             $updatePayload = [
                 'severity' => $severity,
                 'metadata' => json_encode(array_merge($existingMeta, $metadata)),
-                'image_url' => $imageUrl,
             ];
+            if ($imageUrl !== null) {
+                $updatePayload['image_url'] = $imageUrl;
+            }
             if ($outOfFrameDuration !== null) {
                 $updatePayload['out_of_frame_duration'] = $outOfFrameDuration;
             }
@@ -724,11 +754,12 @@ class StudentQuizController extends Controller
         return response()->json([
             'success' => true,
             'image_url' => $imageUrl,
+            'audio_path' => $audioPath,
             'captured' => true,
             'violation_id' => $savedViolation?->id,
             'remaining_captures' => max(
                 0,
-                self::MAX_QUIZ_VIOLATION_CAPTURES - ($capturedCount + 1)
+                self::MAX_QUIZ_VIOLATION_CAPTURES - ($capturedCount + ($imageUrl ? 1 : 0))
             ),
         ]);
     }
@@ -1365,6 +1396,44 @@ class StudentQuizController extends Controller
         $path = 'violations/' . $safeIndex . '/' . $fileName;
         $disk = Storage::disk('public');
         $disk->makeDirectory('violations/' . $safeIndex);
+        $disk->put($path, $binary);
+
+        return $path;
+    }
+
+    /**
+     * Store short audio evidence under violations/{index}/audio/ (same retention purge as photos).
+     */
+    private function storeViolationAudioLocally(int $sessionId, string $dataUrl, string $studentIndex = 'unknown'): string
+    {
+        $parts = explode(',', $dataUrl, 2);
+        if (count($parts) !== 2) {
+            throw new \RuntimeException('Invalid audio data URL');
+        }
+        $header = $parts[0];
+        $binary = base64_decode($parts[1], true);
+        if ($binary === false) {
+            throw new \RuntimeException('Failed to decode audio');
+        }
+
+        $ext = 'webm';
+        if (str_contains($header, 'audio/mp4') || str_contains($header, 'audio/m4a')) {
+            $ext = 'm4a';
+        } elseif (str_contains($header, 'audio/ogg')) {
+            $ext = 'ogg';
+        } elseif (str_contains($header, 'audio/mpeg') || str_contains($header, 'audio/mp3')) {
+            $ext = 'mp3';
+        } elseif (str_contains($header, 'audio/wav')) {
+            $ext = 'wav';
+        }
+
+        $safeIndex = preg_replace('/[^a-zA-Z0-9_-]/', '_', trim((string) $studentIndex)) ?: 'unknown';
+        $now = now();
+        $fileName = $now->format('Y-m-d') . '_' . $now->format('His') . '_s' . $sessionId . '_' . Str::random(8) . '.' . $ext;
+        $dir = 'violations/' . $safeIndex . '/audio';
+        $path = $dir . '/' . $fileName;
+        $disk = Storage::disk('public');
+        $disk->makeDirectory($dir);
         $disk->put($path, $binary);
 
         return $path;

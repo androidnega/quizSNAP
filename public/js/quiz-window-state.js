@@ -2,11 +2,23 @@
  * QuizSnap window state: browser full-screen detection (Fullscreen API only).
  * Used by quiz-ready gate and quiz-proctoring.js.
  *
- * We intentionally do NOT treat a maximized window as full screen — tabs and
- * the address bar must be hidden via the browser Fullscreen API (or F11).
+ * Full screen stays required on iPhone — students should use Chrome and Allow
+ * when prompted. We do not treat a maximized window as full screen.
  */
 (function () {
     'use strict';
+
+    function isIOS() {
+        var ua = navigator.userAgent || '';
+        return /iPad|iPhone|iPod/i.test(ua)
+            || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    }
+
+    function isMobileLike() {
+        return isIOS()
+            || /Android|webOS|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(navigator.userAgent || '')
+            || (window.matchMedia && window.matchMedia('(max-width: 900px) and (pointer: coarse)').matches);
+    }
 
     function isBrowserFullscreen() {
         return !!(
@@ -15,14 +27,6 @@
             || document.mozFullScreenElement
             || document.msFullscreenElement
         );
-    }
-
-    function isDisplayModeFullscreen() {
-        try {
-            return window.matchMedia && window.matchMedia('(display-mode: fullscreen)').matches;
-        } catch (e) {
-            return false;
-        }
     }
 
     /** True only when the page is in browser full-screen mode (Fullscreen API). */
@@ -48,7 +52,6 @@
         return out;
     }
 
-    /** Try Fullscreen API on one element (with/without options, vendor-prefixed). */
     function tryRequestFullscreenOn(el) {
         if (!el) {
             return null;
@@ -74,7 +77,6 @@
         return { ok: false, error: lastError || new Error('unsupported') };
     }
 
-    /** Quiz content root, used only as a fallback fullscreen target. */
     function getPreferredFullscreenRoot() {
         return document.querySelector('.quiz-writing-content')
             || document.getElementById('quiz-mobile-root')
@@ -83,35 +85,42 @@
     }
 
     /**
-     * Request browser full screen for the WHOLE page (documentElement) on a user gesture.
-     *
-     * IMPORTANT: never full-screen the clicked button or its overlay. Those elements are
-     * hidden right after fullscreen starts; if one of them is the fullscreen element, the
-     * browser freezes the page in a non-interactive fullscreen (no scroll, no clicks).
-     * We full-screen the quiz content root (its `:fullscreen` CSS enables scrolling), then
-     * fall back to documentElement (`html:fullscreen` CSS) so the whole quiz stays visible
-     * and interactive.
-     *
-     * Browsers require requestFullscreen in the same turn as the click; call this
-     * synchronously from the click handler.
+     * Request browser full screen on a user gesture.
+     * On iOS, try documentElement first (Chrome/Safari Fullscreen API), then content root.
      */
     function requestFullscreenFromGesture(sourceEl) {
         if (isFullscreenOrMaximized()) {
             fsDebug('requestFullscreen skipped (already active)');
             return Promise.resolve();
         }
-        var candidates = uniqueElements([
-            getPreferredFullscreenRoot(),
-            document.documentElement,
-            document.body
-        ]);
-        fsDebug('requestFullscreenFromGesture', { candidates: candidates.length, sourceId: sourceEl && sourceEl.id });
+        var candidates;
+        if (isIOS()) {
+            candidates = uniqueElements([
+                document.documentElement,
+                document.body,
+                getPreferredFullscreenRoot()
+            ]);
+        } else {
+            candidates = uniqueElements([
+                getPreferredFullscreenRoot(),
+                document.documentElement,
+                document.body
+            ]);
+        }
+        fsDebug('requestFullscreenFromGesture', {
+            candidates: candidates.length,
+            sourceId: sourceEl && sourceEl.id,
+            ios: isIOS()
+        });
 
         var lastError = new Error('unsupported');
         for (var i = 0; i < candidates.length; i++) {
             var attempt = tryRequestFullscreenOn(candidates[i]);
             if (attempt && attempt.ok) {
-                return attempt.promise;
+                return attempt.promise.catch(function (err) {
+                    lastError = err || lastError;
+                    return Promise.reject(err);
+                });
             }
             if (attempt && attempt.error) {
                 lastError = attempt.error;
@@ -124,13 +133,12 @@
         return requestFullscreenFromGesture(sourceEl || null);
     }
 
-    /** Quiz enforcement entry point — full screen API only (no window maximize fallback). */
     function requestMaximizeOrFullscreen() {
         return requestFullscreen();
     }
 
     function waitForBrowserFullscreen(maxMs) {
-        maxMs = maxMs || 5000;
+        maxMs = maxMs || (isIOS() ? 12000 : 5000);
         return new Promise(function (resolve, reject) {
             if (isFullscreenOrMaximized()) {
                 resolve();
@@ -156,16 +164,30 @@
         return waitForBrowserFullscreen(maxMs);
     }
 
-    var FULLSCREEN_DENIED_MESSAGE = 'Could not enter full screen. Click the button and allow full screen in your browser, or press F11 (Windows) / Ctrl+Cmd+F (Mac).';
-
     function getFullscreenDeniedMessage() {
-        return FULLSCREEN_DENIED_MESSAGE;
+        if (isIOS()) {
+            return 'Could not enter full screen on this phone. Open this quiz in Chrome (or Safari), tap Enter full screen again, then tap Allow. Stay in full screen for the whole quiz.';
+        }
+        if (isMobileLike()) {
+            return 'Could not enter full screen. Tap Enter full screen and choose Allow. Use Chrome if your browser blocks full screen.';
+        }
+        return 'Could not enter full screen. Click the button and allow full screen in your browser, or press F11 (Windows) / Ctrl+Cmd+F (Mac).';
     }
 
-    /** Request browser full screen, then wait until the API reports active. */
+    function getFullscreenHintMessage() {
+        if (isIOS()) {
+            return 'On iPhone, open this quiz in <strong>Chrome</strong>, tap <strong>Enter full screen</strong>, then tap <strong>Allow</strong>. Keep full screen on for the whole quiz.';
+        }
+        if (isMobileLike()) {
+            return 'Your quiz must run in <strong>full screen</strong>. Tap below and choose <strong>Allow</strong>. Chrome works best on phones.';
+        }
+        return 'Your quiz runs in browser full screen so tabs and the address bar are hidden. Click below and choose <strong>Allow</strong> when your browser asks.';
+    }
+
     function enterAndWait(maxMs, sourceEl) {
+        var waitMs = maxMs || (isIOS() ? 12000 : 8000);
         return requestFullscreenFromGesture(sourceEl || null).then(function () {
-            return waitForBrowserFullscreen(maxMs);
+            return waitForBrowserFullscreen(waitMs);
         });
     }
 
@@ -228,16 +250,16 @@
             return;
         }
         btn.dataset.quizsnapFsBound = '1';
-        btn.addEventListener('click', function onEnterFullscreenClick(evt) {
+        btn.addEventListener('click', function onEnterFullscreenClick() {
             if (btn.dataset.quizsnapFsBusy === '1') {
                 return;
             }
             btn.dataset.quizsnapFsBusy = '1';
-            fsDebug('enter fullscreen button clicked', { id: btn.id });
+            fsDebug('enter fullscreen button clicked', { id: btn.id, ios: isIOS() });
 
             var enterPromise;
             try {
-                enterPromise = enterAndWait(8000, btn);
+                enterPromise = enterAndWait(isIOS() ? 12000 : 8000, btn);
             } catch (err) {
                 btn.dataset.quizsnapFsBusy = '0';
                 alert(getFullscreenDeniedMessage());
@@ -271,6 +293,8 @@
     }
 
     window.QuizSnapWindowState = {
+        isIOS: isIOS,
+        isMobileLike: isMobileLike,
         isBrowserFullscreen: isBrowserFullscreen,
         isFullscreenOrMaximized: isFullscreenOrMaximized,
         requestFullscreen: requestFullscreen,
@@ -280,6 +304,7 @@
         waitForFullscreenOrMaximized: waitForFullscreenOrMaximized,
         enterAndWait: enterAndWait,
         getFullscreenDeniedMessage: getFullscreenDeniedMessage,
+        getFullscreenHintMessage: getFullscreenHintMessage,
         bindFullscreenSync: bindFullscreenSync,
         bindEnterFullscreenButton: bindEnterFullscreenButton,
         getPreferredFullscreenRoot: getPreferredFullscreenRoot,

@@ -1,6 +1,6 @@
 /**
- * Audio Monitor: Web Audio API for detecting external audio/sound.
- * Only measures volume levels, does not record audio.
+ * Audio Monitor: volume detection + short evidence clips on sustained sound.
+ * Clips upload with the same retention as violation photos (violations/).
  */
 (function () {
     'use strict';
@@ -9,16 +9,16 @@
     const violationCaptureUrl = config.violationCaptureUrl || '/quiz/violation/capture';
     const csrfToken = config.csrfToken || (document.querySelector('meta[name="csrf-token"]') && document.querySelector('meta[name="csrf-token"]').content) || '';
     const sessionId = config.sessionId || 0;
-    const videoElement = config.videoElement || null;
+    let videoElement = config.videoElement || null;
     const onViolation = config.onViolation || null;
 
-    // Detection settings
-    const AUDIO_THRESHOLD = 0.7; // Volume threshold (0-1)
-    const SUSTAINED_DURATION_MS = 3000; // 3 seconds of sustained audio
-    const CHECK_INTERVAL_MS = 500; // Check every 500ms
+    const AUDIO_THRESHOLD = 0.7;
+    const SUSTAINED_DURATION_MS = 3000;
+    const CHECK_INTERVAL_MS = 500;
     const SMOOTHING_TIME_CONSTANT = 0.8;
+    const CLIP_MS = 8000;
+    const CLIP_COOLDOWN_MS = 45000;
 
-    // State
     let audioContext = null;
     let analyser = null;
     let microphone = null;
@@ -27,25 +27,22 @@
     let sustainedAudioStartTime = null;
     let dataArray = null;
     let bufferLength = 0;
+    let mediaRecorder = null;
+    let recordingInFlight = false;
+    let lastClipAt = 0;
 
-    /**
-     * Get CSRF token
-     */
     function csrf() {
         return csrfToken;
     }
 
-    /**
-     * Capture current video frame as base64
-     */
     function captureFrame() {
         if (!videoElement) return null;
-        
+
         const canvas = document.createElement('canvas');
         canvas.width = videoElement.videoWidth || 640;
         canvas.height = videoElement.videoHeight || 480;
         const ctx = canvas.getContext('2d');
-        
+
         try {
             ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
             return canvas.toDataURL('image/jpeg', 0.85);
@@ -54,11 +51,110 @@
         }
     }
 
+    function pickRecorderMime() {
+        if (typeof MediaRecorder === 'undefined') return '';
+        const candidates = [
+            'audio/webm;codecs=opus',
+            'audio/webm',
+            'audio/mp4',
+            'audio/ogg;codecs=opus',
+        ];
+        for (let i = 0; i < candidates.length; i++) {
+            if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(candidates[i])) {
+                return candidates[i];
+            }
+        }
+        return '';
+    }
+
+    function blobToDataUrl(blob) {
+        return new Promise(function (resolve, reject) {
+            const reader = new FileReader();
+            reader.onloadend = function () {
+                resolve(typeof reader.result === 'string' ? reader.result : null);
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    }
+
     /**
-     * Send violation capture to backend
+     * Record a short clip from the live mic stream (same retention path as photos).
      */
-    function sendViolationCapture(violationType, imageBase64) {
-        if (!violationCaptureUrl || !sessionId || !imageBase64) return;
+    function recordEvidenceClip() {
+        if (!microphone || typeof MediaRecorder === 'undefined' || recordingInFlight) {
+            return Promise.resolve(null);
+        }
+        if (Date.now() - lastClipAt < CLIP_COOLDOWN_MS) {
+            return Promise.resolve(null);
+        }
+
+        const mime = pickRecorderMime();
+        let recorder;
+        try {
+            recorder = mime
+                ? new MediaRecorder(microphone, { mimeType: mime })
+                : new MediaRecorder(microphone);
+        } catch (err) {
+            console.warn('MediaRecorder unavailable:', err);
+            return Promise.resolve(null);
+        }
+
+        recordingInFlight = true;
+        const chunks = [];
+
+        return new Promise(function (resolve) {
+            recorder.ondataavailable = function (e) {
+                if (e.data && e.data.size > 0) {
+                    chunks.push(e.data);
+                }
+            };
+            recorder.onerror = function () {
+                recordingInFlight = false;
+                resolve(null);
+            };
+            recorder.onstop = function () {
+                recordingInFlight = false;
+                lastClipAt = Date.now();
+                if (!chunks.length) {
+                    resolve(null);
+                    return;
+                }
+                const type = (recorder.mimeType || mime || 'audio/webm').split(';')[0];
+                const blob = new Blob(chunks, { type: type });
+                blobToDataUrl(blob).then(resolve).catch(function () {
+                    resolve(null);
+                });
+            };
+            try {
+                recorder.start(250);
+                setTimeout(function () {
+                    try {
+                        if (recorder.state !== 'inactive') {
+                            recorder.stop();
+                        }
+                    } catch (e) {
+                        recordingInFlight = false;
+                        resolve(null);
+                    }
+                }, CLIP_MS);
+            } catch (err) {
+                recordingInFlight = false;
+                resolve(null);
+            }
+        });
+    }
+
+    function sendViolationCapture(violationType, imageBase64, audioBase64) {
+        if (!violationCaptureUrl || !sessionId) return;
+        if (!imageBase64 && !audioBase64) return;
+
+        const body = {
+            session_id: sessionId,
+            violation_type: violationType,
+        };
+        if (imageBase64) body.image_base64 = imageBase64;
+        if (audioBase64) body.audio_base64 = audioBase64;
 
         fetch(violationCaptureUrl, {
             method: 'POST',
@@ -67,39 +163,27 @@
                 'X-CSRF-TOKEN': csrf(),
                 'Accept': 'application/json',
             },
-            body: JSON.stringify({
-                session_id: sessionId,
-                violation_type: violationType,
-                image_base64: imageBase64,
-            }),
+            body: JSON.stringify(body),
         }).catch(function () {});
     }
 
-    /**
-     * Trigger violation callback
-     */
-    function triggerViolation(type, severity, imageBase64) {
-        // Show warning banner
+    function triggerViolation(type, severity, imageBase64, audioBase64) {
         showAudioWarning();
 
-        // Capture snapshot
-        if (imageBase64) {
-            sendViolationCapture(type, imageBase64);
+        if (imageBase64 || audioBase64) {
+            sendViolationCapture(type, imageBase64, audioBase64);
         }
 
-        // Call external violation handler
         if (onViolation && typeof onViolation === 'function') {
             onViolation({
                 type: type,
                 severity: severity,
                 image_base64: imageBase64,
+                audio_base64: audioBase64 || null,
             });
         }
     }
 
-    /**
-     * Show audio detection warning
-     */
     function showAudioWarning() {
         const existingWarning = document.getElementById('audio-detection-warning');
         if (existingWarning) {
@@ -109,7 +193,7 @@
         const warning = document.createElement('div');
         warning.id = 'audio-detection-warning';
         warning.className = 'fixed top-20 left-4 right-4 sm:left-auto sm:right-4 sm:max-w-md z-[60] px-4 py-3 rounded-lg shadow-lg border bg-orange-50 border-orange-400 text-orange-800';
-        warning.innerHTML = '<p class="text-sm font-bold">🔊 External Audio Detected: Sustained sound detected. This is a major violation.</p>';
+        warning.innerHTML = '<p class="text-sm font-bold">External audio detected: sustained sound is a major violation.</p>';
 
         document.body.appendChild(warning);
 
@@ -124,26 +208,20 @@
         }, 8000);
     }
 
-    /**
-     * Calculate audio volume level
-     */
     function getAudioLevel() {
         if (!analyser || !dataArray) return 0;
 
         analyser.getByteFrequencyData(dataArray);
-        
+
         let sum = 0;
         for (let i = 0; i < bufferLength; i++) {
             sum += dataArray[i];
         }
-        
+
         const average = sum / bufferLength;
-        return average / 255; // Normalize to 0-1
+        return average / 255;
     }
 
-    /**
-     * Check audio levels
-     */
     function checkAudio() {
         if (!isRunning || !analyser) return;
 
@@ -154,19 +232,17 @@
             if (sustainedAudioStartTime === null) {
                 sustainedAudioStartTime = now;
             } else if (now - sustainedAudioStartTime >= SUSTAINED_DURATION_MS) {
-                // Sustained audio violation
+                sustainedAudioStartTime = null;
                 const imageBase64 = captureFrame();
-                triggerViolation('external_audio', 'major', imageBase64);
-                sustainedAudioStartTime = null; // Reset to avoid repeated violations
+                recordEvidenceClip().then(function (audioBase64) {
+                    triggerViolation('external_audio', 'major', imageBase64, audioBase64);
+                });
             }
         } else {
             sustainedAudioStartTime = null;
         }
     }
 
-    /**
-     * Request microphone access
-     */
     function requestMicrophone() {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             console.warn('getUserMedia not supported');
@@ -184,9 +260,6 @@
             });
     }
 
-    /**
-     * Initialize audio context and analyser
-     */
     function initAudioContext(stream) {
         try {
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -207,9 +280,6 @@
         }
     }
 
-    /**
-     * Start audio monitoring
-     */
     function start() {
         if (isRunning) return;
 
@@ -222,21 +292,22 @@
             })
             .catch(function (err) {
                 console.warn('Audio monitoring not available:', err);
-                // Don't fail quiz if microphone access is denied
-                // Some students may not have microphones
             });
     }
 
-    /**
-     * Stop audio monitoring
-     */
     function stop() {
         isRunning = false;
-        
+
         if (audioCheckInterval) {
             clearInterval(audioCheckInterval);
             audioCheckInterval = null;
         }
+
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+            try { mediaRecorder.stop(); } catch (e) { /* ignore */ }
+        }
+        mediaRecorder = null;
+        recordingInFlight = false;
 
         if (microphone) {
             microphone.getTracks().forEach(function (track) {
@@ -255,33 +326,27 @@
         sustainedAudioStartTime = null;
     }
 
-    /**
-     * Initialize when ready
-     */
     function init() {
-        // Get video element if not provided
         if (!videoElement) {
             const videoEl = document.getElementById('face-monitor-video') ||
                            document.querySelector('video[autoplay]');
             if (videoEl) {
+                videoElement = videoEl;
                 config.videoElement = videoEl;
             }
         }
     }
 
-    // Export API
     window.QuizSnapAudioMonitor = window.QuizSnapAudioMonitor || {};
     window.QuizSnapAudioMonitor.start = start;
     window.QuizSnapAudioMonitor.stop = stop;
     window.QuizSnapAudioMonitor.triggerViolation = triggerViolation;
 
-    // Initialize when ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
     } else {
         init();
     }
 
-    // Cleanup on page unload
     window.addEventListener('beforeunload', stop);
 })();

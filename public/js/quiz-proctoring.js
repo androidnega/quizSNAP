@@ -1014,17 +1014,26 @@
         : 'Could not enter full screen.';
     var wasFullscreenOrMaximized = isFullscreenOrMaximized();
     var invalidStateTimer = null;
-    var INVALID_PERSISTENCE_MS = 1500;
-    // Track how many times the user has left fullscreen / maximized state during this quiz.
-    // First time: show strong warning that next time will auto-submit.
-    // Second time: record critical window_resize violation (server will auto-submit).
+    var isIOSDevice = !!(ws && ws.isIOS && ws.isIOS());
+    var isMobileDevice = !!(ws && ws.isMobileLike && ws.isMobileLike()) || isIOSDevice;
+    // Longer grace on phones: camera permission / layout churn often flickers fullscreen briefly.
+    var INVALID_PERSISTENCE_MS = isIOSDevice ? 4500 : (isMobileDevice ? 3000 : 1500);
+    // Track how many times the user has left fullscreen during this quiz.
+    // Phones get an extra warning before critical auto-submit (viewport/camera noise).
+    // Desktop: 2nd exit is critical. Mobile/iOS: 3rd exit is critical.
     var windowResizeExitCount = 0;
+    var WINDOW_RESIZE_CRITICAL_AFTER = isMobileDevice ? 3 : 2;
     var fsEnterGraceUntil = 0;
-    var FS_ENTER_GRACE_MS = 2500;
+    var FS_ENTER_GRACE_MS = isIOSDevice ? 8000 : (isMobileDevice ? 6000 : 2500);
     var cameraStartDeferred = false;
     var onFullscreenReadyCallback = null;
     /** Stays true until the student clicks "Enter full screen" on first load (blocks auto-dismiss). */
     var initialFullscreenGatePending = false;
+
+    function extendFullscreenGrace(ms) {
+        var extra = typeof ms === 'number' ? ms : FS_ENTER_GRACE_MS;
+        fsEnterGraceUntil = Math.max(fsEnterGraceUntil, Date.now() + extra);
+    }
 
     function markFullscreenEntered(fromUserGesture) {
         if (initialFullscreenGatePending && !fromUserGesture) {
@@ -1035,11 +1044,12 @@
             initialFullscreenGatePending = false;
         }
         wasFullscreenOrMaximized = isFullscreenOrMaximized();
-        fsEnterGraceUntil = Date.now() + FS_ENTER_GRACE_MS;
+        extendFullscreenGrace(FS_ENTER_GRACE_MS);
         fsDebug('fullscreen entered / confirmed', {
             active: wasFullscreenOrMaximized,
             fromUserGesture: !!fromUserGesture,
-            graceUntil: fsEnterGraceUntil
+            graceUntil: fsEnterGraceUntil,
+            ios: isIOSDevice
         });
         if (fromUserGesture || wasFullscreenOrMaximized) {
             hideResizeBlur();
@@ -1125,24 +1135,26 @@
         if (remainingSeconds <= 0) return;
         if (!wasFullscreenOrMaximized) return;
 
-        // Mark that we have left fullscreen/maximized at least once
+        // Mark that we have left fullscreen at least once
         wasFullscreenOrMaximized = false;
         windowResizeExitCount++;
 
-        var isSecondExit = windowResizeExitCount >= 2;
+        var isCriticalExit = windowResizeExitCount >= WINDOW_RESIZE_CRITICAL_AFTER;
+        var isFinalWarning = windowResizeExitCount === WINDOW_RESIZE_CRITICAL_AFTER - 1;
 
-        // Show overlay every time, but on the first exit, also show the final warning
-        // so the message matches behaviour: "One more resize will auto-submit your quiz."
-        if (resizeBlurTitle) resizeBlurTitle.textContent = 'Window resized or left full screen';
-        if (resizeBlurMessage) resizeBlurMessage.textContent = 'Return to full screen to continue. The timer is still running.';
-        showResizeBlur(!isSecondExit); // first exit => showFinalWarning=true, second => already warned
+        if (resizeBlurTitle) resizeBlurTitle.textContent = 'Left full screen';
+        if (resizeBlurMessage) {
+            resizeBlurMessage.textContent = isIOSDevice
+                ? 'Tap Enter full screen and Allow. Stay in full screen — leaving again may submit your quiz. The timer is still running.'
+                : 'Return to full screen to continue. The timer is still running.';
+        }
+        showResizeBlur(isFinalWarning);
 
-        // First exit: warn only (no violation yet).
-        if (!isSecondExit) {
+        // Warn until the critical threshold, then record window_resize (backend auto-submits).
+        if (!isCriticalExit) {
             return;
         }
 
-        // Second (or later) exit: record critical violation; backend auto-submits.
         var timestamp = new Date().toISOString();
         recordViolation('window_resize', { timestamp: timestamp });
         if (resizeBlurWarning) resizeBlurWarning.classList.remove('hidden');
@@ -1329,7 +1341,9 @@
             }
             
             console.log('Requesting camera access for quiz monitoring...');
-            
+            // getUserMedia often flickers fullscreen on iOS/Chrome — extend grace before and after.
+            extendFullscreenGrace(isIOSDevice ? 10000 : (isMobileDevice ? 8000 : FS_ENTER_GRACE_MS));
+
             // Request with explicit constraints so browser shows permission prompt
             var constraints = { video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }, audio: false };
             
@@ -1345,6 +1359,7 @@
                 })
                 .then(function (stream) {
                     console.log('Camera access granted successfully');
+                    extendFullscreenGrace(isIOSDevice ? 8000 : (isMobileDevice ? 5000 : FS_ENTER_GRACE_MS));
                     hideCameraOffOverlay();
                     unlockQuizPageInteraction();
                     hideResizeBlur();

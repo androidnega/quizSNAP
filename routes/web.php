@@ -416,6 +416,7 @@ Route::middleware('admin.auth')->group(function () {
             Route::post('/system/reset', [\App\Http\Controllers\Admin\SystemResetController::class, 'reset'])->name('system.reset');
             Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
             Route::post('/settings', [SettingsController::class, 'update'])->name('settings.update');
+            Route::post('/settings/birthday-celebration/reset', [SettingsController::class, 'resetBirthdayCelebrationSurprises'])->name('settings.birthday-celebration.reset');
             Route::post('/settings/study-guide/unlock', [SettingsController::class, 'studyGuideUnlock'])->name('settings.study-guide.unlock');
             if (! app()->environment('production')) {
             }

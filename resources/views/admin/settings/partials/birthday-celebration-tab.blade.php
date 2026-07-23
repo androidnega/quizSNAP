@@ -41,6 +41,24 @@
                 <label for="birthday_celebration_honoree_name" class="block text-sm font-medium text-gray-700 mb-1.5">Full name (public)</label>
                 <input type="text" name="birthday_celebration_honoree_name" id="birthday_celebration_honoree_name" value="{{ old('birthday_celebration_honoree_name', $birthday_celebration_honoree_name ?? '') }}" class="block w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm">
             </div>
+
+            <div>
+                <label for="birthday_celebration_dashboard_max_shows" class="block text-sm font-medium text-gray-700 mb-1.5">Dashboard surprise times per honoree</label>
+                <input type="number" min="0" max="99" name="birthday_celebration_dashboard_max_shows" id="birthday_celebration_dashboard_max_shows" value="{{ old('birthday_celebration_dashboard_max_shows', $birthday_celebration_dashboard_max_shows ?? 1) }}" class="block w-full max-w-xs rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm">
+                <p class="text-xs text-gray-500 mt-1">How many times the modal appears when they open the dashboard during this celebration. Use <strong>0</strong> for every visit. Default <strong>1</strong>.</p>
+            </div>
+
+            <div class="rounded-lg border border-dashed border-amber-300 bg-amber-50/40 p-4 space-y-3">
+                <p class="text-sm font-medium text-gray-800">Reset honoree surprises</p>
+                <p class="text-xs text-gray-600">If someone already saw the modal, reset so the next dashboard visit shows balloons and music again (does not change your dates or copy).</p>
+                <p class="text-xs text-gray-500">Current reset generation: <span class="font-mono">{{ $birthday_celebration_reset_token ?? '1' }}</span></p>
+                <form action="{{ route('dashboard.settings.birthday-celebration.reset') }}" method="post" class="pt-1" onsubmit="return confirm('Reset dashboard birthday surprises for all honorees? They will see the modal again on next visit.');">
+                    @csrf
+                    <button type="submit" class="inline-flex items-center justify-center rounded-lg border border-amber-500 bg-white px-4 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-50">
+                        Reset dashboard surprises
+                    </button>
+                </form>
+            </div>
         </div>
 
         <div class="rounded-lg border border-gray-200 bg-white p-5 space-y-4">

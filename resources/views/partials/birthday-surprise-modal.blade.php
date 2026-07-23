@@ -1,11 +1,10 @@
 @if(!empty($birthdayDashboardSurprise))
-<div id="birthday-surprise-root" class="birthday-surprise-root" data-storage-key="{{ e($birthdayDashboardSurprise['storage_key']) }}" data-play-song="{{ ($birthdayDashboardSurprise['play_song'] ?? false) ? '1' : '0' }}" data-song-url="{{ e($birthdayDashboardSurprise['song_url'] ?? '') }}" aria-hidden="true">
+<div id="birthday-surprise-root" class="birthday-surprise-root" data-storage-key="{{ e($birthdayDashboardSurprise['storage_key']) }}" data-max-shows="{{ (int) ($birthdayDashboardSurprise['max_shows'] ?? 1) }}" data-play-song="{{ ($birthdayDashboardSurprise['play_song'] ?? false) ? '1' : '0' }}" data-song-url="{{ e($birthdayDashboardSurprise['song_url'] ?? '') }}" aria-hidden="true">
     <div class="birthday-surprise-backdrop" id="birthday-surprise-backdrop"></div>
     <div class="birthday-surprise-balloons" aria-hidden="true"></div>
     <div class="birthday-surprise-confetti" id="birthday-surprise-confetti" aria-hidden="true"></div>
 
     <div class="birthday-surprise-modal" role="dialog" aria-modal="true" aria-labelledby="birthday-surprise-title">
-        <button type="button" class="birthday-surprise-close" id="birthday-surprise-close" aria-label="Close birthday message">&times;</button>
         <div class="birthday-surprise-modal__glow" aria-hidden="true"></div>
         <div class="birthday-surprise-modal__inner">
             <p class="birthday-surprise-eyebrow">🎂 From the QuizSnap team</p>
@@ -15,7 +14,7 @@
                 <img src="{{ e($birthdayDashboardSurprise['image_url']) }}" alt="" class="birthday-surprise-photo" loading="eager">
             </div>
             <p class="birthday-surprise-message">{{ $birthdayDashboardSurprise['message'] }}</p>
-            <button type="button" class="birthday-surprise-cta" id="birthday-surprise-cta">Thank you — let’s build!</button>
+            <button type="button" class="birthday-surprise-cta" id="birthday-surprise-cta">Continue to dashboard</button>
         </div>
     </div>
 </div>

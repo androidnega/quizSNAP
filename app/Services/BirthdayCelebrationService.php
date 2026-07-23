@@ -32,9 +32,16 @@ class BirthdayCelebrationService
             Setting::KEY_BIRTHDAY_CELEBRATION_IMAGE,
             Setting::KEY_BIRTHDAY_CELEBRATION_PLAY_SONG,
             Setting::KEY_BIRTHDAY_CELEBRATION_SONG_URL,
+            Setting::KEY_BIRTHDAY_CELEBRATION_DASHBOARD_MAX_SHOWS,
+            Setting::KEY_BIRTHDAY_CELEBRATION_RESET_TOKEN,
         ];
 
         $settings = Setting::getMany($keys, $this->defaults());
+
+        $maxShows = (int) ($settings[Setting::KEY_BIRTHDAY_CELEBRATION_DASHBOARD_MAX_SHOWS] ?? '1');
+        if ($maxShows < 0) {
+            $maxShows = 0;
+        }
 
         return [
             'enabled' => ($settings[Setting::KEY_BIRTHDAY_CELEBRATION_ENABLED] ?? '0') === '1',
@@ -50,7 +57,19 @@ class BirthdayCelebrationService
             'image' => trim((string) ($settings[Setting::KEY_BIRTHDAY_CELEBRATION_IMAGE] ?? '')),
             'play_song' => ($settings[Setting::KEY_BIRTHDAY_CELEBRATION_PLAY_SONG] ?? '1') === '1',
             'song_url' => trim((string) ($settings[Setting::KEY_BIRTHDAY_CELEBRATION_SONG_URL] ?? '')),
+            'dashboard_max_shows' => $maxShows,
+            'reset_token' => trim((string) ($settings[Setting::KEY_BIRTHDAY_CELEBRATION_RESET_TOKEN] ?? '1')),
         ];
+    }
+
+    /** Bump reset token so honorees see the dashboard surprise again (new browser storage key). */
+    public function resetDashboardSurprises(): int
+    {
+        $current = (int) Setting::getValue(Setting::KEY_BIRTHDAY_CELEBRATION_RESET_TOKEN, '1');
+        $next = max(1, $current + 1);
+        Setting::setValue(Setting::KEY_BIRTHDAY_CELEBRATION_RESET_TOKEN, (string) $next);
+
+        return $next;
     }
 
     public function isActive(?Carbon $now = null): bool
@@ -115,6 +134,8 @@ class BirthdayCelebrationService
 
         $cfg = $this->config();
         $firstName = $this->honoreeFirstName($user, $cfg['honoree_name']);
+        $resetToken = $cfg['reset_token'] !== '' ? $cfg['reset_token'] : '1';
+        $periodKey = $cfg['start'].'_'.$cfg['end'];
 
         return [
             'title' => $cfg['dashboard_title'] ?: 'It\'s your birthday today!',
@@ -124,7 +145,8 @@ class BirthdayCelebrationService
             'play_song' => $cfg['play_song'],
             'song_url' => $cfg['song_url'] !== '' ? $cfg['song_url'] : null,
             'first_name' => $firstName,
-            'storage_key' => 'quizsnap_birthday_surprise_'.$user->id.'_'.$this->nowInAppTimezone()->format('Y-m-d'),
+            'max_shows' => $cfg['dashboard_max_shows'],
+            'storage_key' => 'quizsnap_birthday_'.$user->id.'_'.$periodKey.'_r'.$resetToken,
         ];
     }
 
@@ -168,6 +190,8 @@ class BirthdayCelebrationService
             Setting::KEY_BIRTHDAY_CELEBRATION_IMAGE => self::DEFAULT_IMAGE_PATH,
             Setting::KEY_BIRTHDAY_CELEBRATION_PLAY_SONG => '1',
             Setting::KEY_BIRTHDAY_CELEBRATION_SONG_URL => '',
+            Setting::KEY_BIRTHDAY_CELEBRATION_DASHBOARD_MAX_SHOWS => '1',
+            Setting::KEY_BIRTHDAY_CELEBRATION_RESET_TOKEN => '1',
         ];
     }
 

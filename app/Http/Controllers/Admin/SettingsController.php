@@ -201,7 +201,22 @@ class SettingsController extends Controller
             'birthday_celebration_song_url' => $cfg['song_url'],
             'birthday_celebration_image' => $cfg['image'],
             'birthday_celebration_image_preview' => $service->resolveImageUrl($cfg['image']),
+            'birthday_celebration_dashboard_max_shows' => $cfg['dashboard_max_shows'],
+            'birthday_celebration_reset_token' => $cfg['reset_token'],
         ];
+    }
+
+    public function resetBirthdayCelebrationSurprises(): RedirectResponse
+    {
+        if (! $this->actingSuperAdmin()) {
+            return redirect()->route('dashboard.settings.index')->with('error', 'Access denied.')->withFragment('celebration');
+        }
+
+        $token = app(BirthdayCelebrationService::class)->resetDashboardSurprises();
+
+        return redirect()->route('dashboard.settings.index')
+            ->with('success', 'Dashboard birthday surprises reset (generation '.$token.'). Honorees will see the modal again on their next dashboard visit.')
+            ->withFragment('celebration');
     }
 
     /**
@@ -396,6 +411,7 @@ class SettingsController extends Controller
                 'birthday_celebration_song_file' => 'nullable|file|mimes:mp3,mpeg|max:8192',
                 'birthday_celebration_image_url' => 'nullable|string|max:2048',
                 'birthday_celebration_image_file' => 'nullable|image|max:5120',
+                'birthday_celebration_dashboard_max_shows' => 'nullable|integer|min:0|max:99',
             ]) : $rules,
             'backup' => $canManageBackup ? array_merge($rules, [
                 'notify_digest_recipient' => 'nullable|email|max:255',
@@ -714,6 +730,10 @@ class SettingsController extends Controller
         Setting::setValue(Setting::KEY_BIRTHDAY_CELEBRATION_DASHBOARD_TITLE, $request->filled('birthday_celebration_dashboard_title') ? trim($request->birthday_celebration_dashboard_title) : null);
         Setting::setValue(Setting::KEY_BIRTHDAY_CELEBRATION_DASHBOARD_MESSAGE, $request->filled('birthday_celebration_dashboard_message') ? trim($request->birthday_celebration_dashboard_message) : null);
         Setting::setValue(Setting::KEY_BIRTHDAY_CELEBRATION_PLAY_SONG, $request->boolean('birthday_celebration_play_song') ? '1' : '0');
+        $maxShows = $request->has('birthday_celebration_dashboard_max_shows')
+            ? max(0, min(99, (int) $request->birthday_celebration_dashboard_max_shows))
+            : (int) Setting::getValue(Setting::KEY_BIRTHDAY_CELEBRATION_DASHBOARD_MAX_SHOWS, '1');
+        Setting::setValue(Setting::KEY_BIRTHDAY_CELEBRATION_DASHBOARD_MAX_SHOWS, (string) $maxShows);
 
         $imagePath = Setting::getValue(Setting::KEY_BIRTHDAY_CELEBRATION_IMAGE, BirthdayCelebrationService::DEFAULT_IMAGE_PATH);
         if ($request->hasFile('birthday_celebration_image_file')) {

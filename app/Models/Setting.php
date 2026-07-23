@@ -159,6 +159,8 @@ class Setting extends Model
             self::KEY_BIRTHDAY_CELEBRATION_IMAGE,
             self::KEY_BIRTHDAY_CELEBRATION_PLAY_SONG,
             self::KEY_BIRTHDAY_CELEBRATION_SONG_URL,
+            self::KEY_BIRTHDAY_CELEBRATION_DASHBOARD_MAX_SHOWS,
+            self::KEY_BIRTHDAY_CELEBRATION_RESET_TOKEN,
             self::KEY_SUPABASE_URL,
             self::KEY_SUPABASE_SERVICE_KEY,
             self::KEY_SUPABASE_BUCKET,
@@ -207,6 +209,8 @@ class Setting extends Model
                 self::KEY_BIRTHDAY_CELEBRATION_IMAGE,
                 self::KEY_BIRTHDAY_CELEBRATION_PLAY_SONG,
                 self::KEY_BIRTHDAY_CELEBRATION_SONG_URL,
+                self::KEY_BIRTHDAY_CELEBRATION_DASHBOARD_MAX_SHOWS,
+                self::KEY_BIRTHDAY_CELEBRATION_RESET_TOKEN,
             ], true)) {
             app(PageCacheService::class)->bumpVersion();
         }
@@ -348,6 +352,10 @@ class Setting extends Model
     public const KEY_BIRTHDAY_CELEBRATION_IMAGE = 'birthday_celebration_image';
     public const KEY_BIRTHDAY_CELEBRATION_PLAY_SONG = 'birthday_celebration_play_song';
     public const KEY_BIRTHDAY_CELEBRATION_SONG_URL = 'birthday_celebration_song_url';
+    /** Max dashboard surprise opens per honoree per celebration window (0 = every dashboard visit). */
+    public const KEY_BIRTHDAY_CELEBRATION_DASHBOARD_MAX_SHOWS = 'birthday_celebration_dashboard_max_shows';
+    /** Incremented when admin resets surprises so honorees see the modal again. */
+    public const KEY_BIRTHDAY_CELEBRATION_RESET_TOKEN = 'birthday_celebration_reset_token';
 
     /** Supabase Storage (student documents) */
     public const KEY_SUPABASE_URL = 'supabase_url';

@@ -11,6 +11,8 @@ class BirthdayCelebrationService
 {
     public const DEFAULT_IMAGE_PATH = '/images/celebrations/augustine-dankwah-yeboah.png';
 
+    public const DEFAULT_SONG_PATH = '/audio/celebrations/happy-birthday-dashboard.mp3';
+
     public const DEFAULT_HONOREE_USER_IDS = '3,4';
 
     /**
@@ -143,7 +145,7 @@ class BirthdayCelebrationService
             'message' => $cfg['dashboard_message'] ?: $this->defaultDashboardMessage($cfg['honoree_name']),
             'image_url' => $this->resolveImageUrl($cfg['image']),
             'play_song' => $cfg['play_song'],
-            'song_url' => $cfg['song_url'] !== '' ? $cfg['song_url'] : null,
+            'song_url' => $this->resolveSongUrl($cfg['song_url']),
             'first_name' => $firstName,
             'max_shows' => $cfg['dashboard_max_shows'],
             'storage_key' => 'quizsnap_birthday_'.$user->id.'_'.$periodKey.'_r'.$resetToken,
@@ -168,6 +170,38 @@ class BirthdayCelebrationService
         return asset($stored);
     }
 
+    public function resolveSongUrl(?string $stored): ?string
+    {
+        $stored = trim((string) $stored);
+        if ($stored === '') {
+            $stored = self::DEFAULT_SONG_PATH;
+        }
+
+        if (preg_match('#^https?://#i', $stored)) {
+            return $stored;
+        }
+
+        if (str_starts_with($stored, '/')) {
+            $relative = ltrim($stored, '/');
+            if (! is_file(public_path($relative))) {
+                return null;
+            }
+
+            return asset($stored);
+        }
+
+        if (str_starts_with($stored, 'uploads/') || str_starts_with($stored, 'audio/')) {
+            return Storage::disk('public')->url($stored);
+        }
+
+        $path = ltrim($stored, '/');
+        if (is_file(public_path($path))) {
+            return asset('/'.$path);
+        }
+
+        return null;
+    }
+
     /**
      * @return array<string, string>
      */
@@ -189,7 +223,7 @@ class BirthdayCelebrationService
             Setting::KEY_BIRTHDAY_CELEBRATION_DASHBOARD_MESSAGE => $this->defaultDashboardMessage($name),
             Setting::KEY_BIRTHDAY_CELEBRATION_IMAGE => self::DEFAULT_IMAGE_PATH,
             Setting::KEY_BIRTHDAY_CELEBRATION_PLAY_SONG => '1',
-            Setting::KEY_BIRTHDAY_CELEBRATION_SONG_URL => '',
+            Setting::KEY_BIRTHDAY_CELEBRATION_SONG_URL => self::DEFAULT_SONG_PATH,
             Setting::KEY_BIRTHDAY_CELEBRATION_DASHBOARD_MAX_SHOWS => '1',
             Setting::KEY_BIRTHDAY_CELEBRATION_RESET_TOKEN => '1',
         ];

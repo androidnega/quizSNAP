@@ -89,11 +89,12 @@
             </div>
             <label class="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" name="birthday_celebration_play_song" value="1" {{ old('birthday_celebration_play_song', $birthday_celebration_play_song ?? true) ? 'checked' : '' }} class="w-4 h-4 text-primary-600 border-gray-300 rounded">
-                <span class="text-sm text-gray-700">Play birthday music when the modal opens (built-in tune if no custom file)</span>
+                <span class="text-sm text-gray-700">Play birthday music when the modal opens (loops until Continue)</span>
             </label>
             <div>
-                <label for="birthday_celebration_song_url" class="block text-sm font-medium text-gray-700 mb-1.5">Custom song URL (optional)</label>
-                <input type="text" name="birthday_celebration_song_url" id="birthday_celebration_song_url" value="{{ old('birthday_celebration_song_url', $birthday_celebration_song_url ?? '') }}" placeholder="/storage/... or https://..." class="block w-full rounded-md border border-gray-300 px-3 py-2.5 text-sm">
+                <label for="birthday_celebration_song_url" class="block text-sm font-medium text-gray-700 mb-1.5">Song URL</label>
+                <input type="text" name="birthday_celebration_song_url" id="birthday_celebration_song_url" value="{{ old('birthday_celebration_song_url', $birthday_celebration_song_url ?? \App\Services\BirthdayCelebrationService::DEFAULT_SONG_PATH) }}" placeholder="{{ \App\Services\BirthdayCelebrationService::DEFAULT_SONG_PATH }}" class="block w-full rounded-md border border-gray-300 px-3 py-2.5 text-sm">
+                <p class="text-xs text-gray-500 mt-1">Default file: <code class="px-1 py-0.5 bg-gray-100 rounded">{{ \App\Services\BirthdayCelebrationService::DEFAULT_SONG_PATH }}</code></p>
             </div>
             <div>
                 <label for="birthday_celebration_song_file" class="block text-sm font-medium text-gray-700 mb-1.5">Or upload song (MP3)</label>

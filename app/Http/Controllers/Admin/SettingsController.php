@@ -758,7 +758,7 @@ class SettingsController extends Controller
         } elseif ($request->filled('birthday_celebration_song_url')) {
             $songUrl = trim($request->birthday_celebration_song_url);
         }
-        Setting::setValue(Setting::KEY_BIRTHDAY_CELEBRATION_SONG_URL, $songUrl !== '' ? $songUrl : null);
+        Setting::setValue(Setting::KEY_BIRTHDAY_CELEBRATION_SONG_URL, $songUrl !== '' ? $songUrl : BirthdayCelebrationService::DEFAULT_SONG_PATH);
 
         app(\App\Services\PageCacheService::class)->bumpVersion();
     }

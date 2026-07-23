@@ -21,6 +21,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class SettingsController extends Controller
@@ -184,12 +185,17 @@ class SettingsController extends Controller
     {
         $service = app(BirthdayCelebrationService::class);
         $cfg = $service->config();
+        $startParts = $service->splitScheduleFields($cfg['start']);
+        $endParts = $service->splitScheduleFields($cfg['end']);
 
         return [
             'birthday_celebration_enabled' => $cfg['enabled'],
             'birthday_celebration_active_now' => $service->isActive(),
-            'birthday_celebration_start' => $cfg['start'],
-            'birthday_celebration_end' => $cfg['end'],
+            'birthday_celebration_start' => $startParts['date'],
+            'birthday_celebration_start_time' => $startParts['time'],
+            'birthday_celebration_end' => $endParts['date'],
+            'birthday_celebration_end_time' => $endParts['time'],
+            'birthday_celebration_schedule_timezone' => $service->appTimezone(),
             'birthday_celebration_user_ids' => implode(', ', $cfg['user_ids']),
             'birthday_celebration_honoree_name' => $cfg['honoree_name'],
             'birthday_celebration_homepage_badge' => $cfg['homepage_badge'],
@@ -259,6 +265,10 @@ class SettingsController extends Controller
         $canManageBackup = $isSuperAdmin;
 
         $request->validate($this->validationRulesForTab($tab, $canManageProctoring, $canManageBackup, $isSuperAdmin));
+
+        if ($tab === 'celebration' && $isSuperAdmin) {
+            $this->validateCelebrationSchedule($request);
+        }
 
         match ($tab) {
             'general' => $this->saveGeneralTabSettings($request, $isSuperAdmin),
@@ -398,7 +408,9 @@ class SettingsController extends Controller
             'celebration' => $isSuperAdmin ? array_merge($rules, [
                 'birthday_celebration_enabled' => 'nullable|boolean',
                 'birthday_celebration_start' => 'nullable|date',
+                'birthday_celebration_start_time' => ['nullable', 'regex:/^\d{1,2}:\d{2}$/'],
                 'birthday_celebration_end' => 'nullable|date|after_or_equal:birthday_celebration_start',
+                'birthday_celebration_end_time' => ['nullable', 'regex:/^\d{1,2}:\d{2}$/'],
                 'birthday_celebration_user_ids' => 'nullable|string|max:120',
                 'birthday_celebration_honoree_name' => 'nullable|string|max:160',
                 'birthday_celebration_homepage_badge' => 'nullable|string|max:80',
@@ -717,11 +729,55 @@ class SettingsController extends Controller
         }
     }
 
+    private function validateCelebrationSchedule(Request $request): void
+    {
+        $service = app(BirthdayCelebrationService::class);
+        $startRaw = $service->combineScheduleFields(
+            $request->input('birthday_celebration_start'),
+            $request->input('birthday_celebration_start_time'),
+            true
+        );
+        $endRaw = $service->combineScheduleFields(
+            $request->input('birthday_celebration_end'),
+            $request->input('birthday_celebration_end_time'),
+            false
+        );
+
+        if ($startRaw === null || $endRaw === null) {
+            return;
+        }
+
+        $start = $service->parseScheduleBoundary($startRaw, true);
+        $end = $service->parseScheduleBoundary($endRaw, false);
+
+        if ($start && $end && $end->lt($start)) {
+            throw ValidationException::withMessages([
+                'birthday_celebration_end_time' => 'End date and time must be on or after the start.',
+            ]);
+        }
+    }
+
     private function saveCelebrationTabSettings(Request $request): void
     {
+        $service = app(BirthdayCelebrationService::class);
+
         Setting::setValue(Setting::KEY_BIRTHDAY_CELEBRATION_ENABLED, $request->boolean('birthday_celebration_enabled') ? '1' : '0');
-        Setting::setValue(Setting::KEY_BIRTHDAY_CELEBRATION_START, $request->filled('birthday_celebration_start') ? trim($request->birthday_celebration_start) : null);
-        Setting::setValue(Setting::KEY_BIRTHDAY_CELEBRATION_END, $request->filled('birthday_celebration_end') ? trim($request->birthday_celebration_end) : null);
+        Setting::setValue(
+            Setting::KEY_BIRTHDAY_CELEBRATION_START,
+            $service->combineScheduleFields(
+                $request->input('birthday_celebration_start'),
+                $request->input('birthday_celebration_start_time'),
+                true
+            )
+        );
+        Setting::setValue(
+            Setting::KEY_BIRTHDAY_CELEBRATION_END,
+            $service->combineScheduleFields(
+                $request->input('birthday_celebration_end'),
+                $request->input('birthday_celebration_end_time'),
+                false
+            )
+        );
         Setting::setValue(Setting::KEY_BIRTHDAY_CELEBRATION_USER_IDS, $request->filled('birthday_celebration_user_ids') ? trim($request->birthday_celebration_user_ids) : BirthdayCelebrationService::DEFAULT_HONOREE_USER_IDS);
         Setting::setValue(Setting::KEY_BIRTHDAY_CELEBRATION_HONOREE_NAME, $request->filled('birthday_celebration_honoree_name') ? trim($request->birthday_celebration_honoree_name) : null);
         Setting::setValue(Setting::KEY_BIRTHDAY_CELEBRATION_HOMEPAGE_BADGE, $request->filled('birthday_celebration_homepage_badge') ? trim($request->birthday_celebration_homepage_badge) : null);

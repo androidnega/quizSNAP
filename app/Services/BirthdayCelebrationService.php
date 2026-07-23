@@ -87,8 +87,8 @@ class BirthdayCelebrationService
         }
 
         $now = $now ?? $this->nowInAppTimezone();
-        $start = $this->parseDateBoundary($cfg['start'], true);
-        $end = $this->parseDateBoundary($cfg['end'], false);
+        $start = $this->parseScheduleBoundary($cfg['start'], true);
+        $end = $this->parseScheduleBoundary($cfg['end'], false);
 
         if (! $start || ! $end) {
             return false;
@@ -114,7 +114,7 @@ class BirthdayCelebrationService
     public function studentDashboardBannerOverlay(): ?array
     {
         $cfg = $this->config();
-        if (! $cfg['enabled']) {
+        if (! $cfg['enabled'] || ! $this->isActive()) {
             return null;
         }
 
@@ -311,6 +311,79 @@ class BirthdayCelebrationService
         return 'Happy Birthday, '.$name.'! Your work as a creator and developer is seen and appreciated. You help make the world a better place through education, integrity, and innovation online. Keep being a proud builder — the whole team celebrates you today.';
     }
 
+    public function appTimezone(): string
+    {
+        $tz = Setting::getValue(Setting::KEY_APP_TIMEZONE, config('app.timezone', 'UTC'));
+
+        return is_string($tz) && $tz !== '' ? $tz : (string) config('app.timezone', 'UTC');
+    }
+
+    /**
+     * @return array{date: string, time: string}
+     */
+    public function splitScheduleFields(?string $stored): array
+    {
+        $stored = trim((string) $stored);
+        if ($stored === '') {
+            return ['date' => '', 'time' => ''];
+        }
+
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $stored)) {
+            return ['date' => $stored, 'time' => ''];
+        }
+
+        try {
+            $dt = Carbon::parse($stored, $this->appTimezone());
+
+            return ['date' => $dt->format('Y-m-d'), 'time' => $dt->format('H:i')];
+        } catch (\Throwable) {
+            return ['date' => '', 'time' => ''];
+        }
+    }
+
+    public function combineScheduleFields(?string $date, ?string $time, bool $isStart): ?string
+    {
+        $date = trim((string) $date);
+        if ($date === '') {
+            return null;
+        }
+
+        $time = trim((string) $time);
+        if ($time === '') {
+            return $date;
+        }
+
+        if (! preg_match('/^\d{1,2}:\d{2}$/', $time)) {
+            return $date;
+        }
+
+        try {
+            return Carbon::parse($date.' '.$time, $this->appTimezone())->format('Y-m-d H:i:s');
+        } catch (\Throwable) {
+            return $date;
+        }
+    }
+
+    public function parseScheduleBoundary(string $value, bool $isStart): ?Carbon
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return null;
+        }
+
+        try {
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+                $dt = Carbon::parse($value, $this->appTimezone());
+
+                return $isStart ? $dt->copy()->startOfDay() : $dt->copy()->endOfDay();
+            }
+
+            return Carbon::parse($value, $this->appTimezone());
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
     /**
      * @return list<int>
      */
@@ -330,25 +403,7 @@ class BirthdayCelebrationService
 
     private function nowInAppTimezone(): Carbon
     {
-        $tz = Setting::getValue(Setting::KEY_APP_TIMEZONE, config('app.timezone', 'UTC'));
-
-        return now()->timezone(is_string($tz) && $tz !== '' ? $tz : config('app.timezone', 'UTC'));
-    }
-
-    private function parseDateBoundary(string $value, bool $startOfDay): ?Carbon
-    {
-        $value = trim($value);
-        if ($value === '') {
-            return null;
-        }
-
-        try {
-            $dt = Carbon::parse($value, $this->nowInAppTimezone()->timezone);
-        } catch (\Throwable) {
-            return null;
-        }
-
-        return $startOfDay ? $dt->copy()->startOfDay() : $dt->copy()->endOfDay();
+        return now()->timezone($this->appTimezone());
     }
 
     private function honoreeFirstName(?User $user, string $configuredName): string

@@ -4,9 +4,12 @@
             <h3 class="text-sm font-semibold text-gray-900">Team birthday celebration</h3>
             <p class="text-sm text-gray-600">Turn this on for a colleague’s birthday. The public homepage shows a clean “celebrating” message with their photo (left copy, right image). Honoree staff see a surprise modal with balloons and optional birthday music when they open the dashboard.</p>
             @if($birthday_celebration_active_now ?? false)
-                <p class="text-sm font-medium text-emerald-700">Status: live now (within your start/end dates).</p>
+                <p class="text-sm font-medium text-emerald-700">Status: live now (within your scheduled start and end).</p>
             @else
-                <p class="text-sm text-gray-500">Status: off or outside the scheduled dates.</p>
+                <p class="text-sm text-gray-500">Status: off or outside the scheduled window.</p>
+            @endif
+            @if(!empty($birthday_celebration_schedule_timezone ?? ''))
+                <p class="text-xs text-gray-500">Schedule uses app timezone: <span class="font-mono">{{ $birthday_celebration_schedule_timezone }}</span> (Settings → General).</p>
             @endif
         </div>
 
@@ -20,14 +23,27 @@
             </label>
 
             <div class="grid sm:grid-cols-2 gap-4">
-                <div>
-                    <label for="birthday_celebration_start" class="block text-sm font-medium text-gray-700 mb-1.5">Start date</label>
-                    <input type="date" name="birthday_celebration_start" id="birthday_celebration_start" value="{{ old('birthday_celebration_start', $birthday_celebration_start ?? '') }}" class="block w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm">
+                <div class="space-y-4">
+                    <div>
+                        <label for="birthday_celebration_start" class="block text-sm font-medium text-gray-700 mb-1.5">Start date</label>
+                        <input type="date" name="birthday_celebration_start" id="birthday_celebration_start" value="{{ old('birthday_celebration_start', $birthday_celebration_start ?? '') }}" class="block w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm">
+                    </div>
+                    <div>
+                        <label for="birthday_celebration_start_time" class="block text-sm font-medium text-gray-700 mb-1.5">Start time</label>
+                        <input type="time" name="birthday_celebration_start_time" id="birthday_celebration_start_time" value="{{ old('birthday_celebration_start_time', $birthday_celebration_start_time ?? '') }}" class="block w-full max-w-xs rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm">
+                        <p class="text-xs text-gray-500 mt-1">Optional. Leave blank for midnight at the start of that date.</p>
+                    </div>
                 </div>
-                <div>
-                    <label for="birthday_celebration_end" class="block text-sm font-medium text-gray-700 mb-1.5">End date</label>
-                    <input type="date" name="birthday_celebration_end" id="birthday_celebration_end" value="{{ old('birthday_celebration_end', $birthday_celebration_end ?? '') }}" class="block w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm">
-                    <p class="text-xs text-gray-500 mt-1">Inclusive. After end date, the default homepage hero returns automatically.</p>
+                <div class="space-y-4">
+                    <div>
+                        <label for="birthday_celebration_end" class="block text-sm font-medium text-gray-700 mb-1.5">End date</label>
+                        <input type="date" name="birthday_celebration_end" id="birthday_celebration_end" value="{{ old('birthday_celebration_end', $birthday_celebration_end ?? '') }}" class="block w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm">
+                    </div>
+                    <div>
+                        <label for="birthday_celebration_end_time" class="block text-sm font-medium text-gray-700 mb-1.5">End time</label>
+                        <input type="time" name="birthday_celebration_end_time" id="birthday_celebration_end_time" value="{{ old('birthday_celebration_end_time', $birthday_celebration_end_time ?? '') }}" class="block w-full max-w-xs rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm">
+                        <p class="text-xs text-gray-500 mt-1">Optional. Leave blank for end of that date (11:59:59 PM).</p>
+                    </div>
                 </div>
             </div>
 

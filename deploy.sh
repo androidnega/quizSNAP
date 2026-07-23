@@ -42,6 +42,18 @@ if command -v supervisorctl >/dev/null 2>&1; then
   if [[ "$restarted" -eq 0 ]]; then
     echo "WARN: no quizsnap supervisor programs found — check /etc/supervisor/conf.d/quizsnap.conf"
   fi
+
+  echo "==> Reverb health check..."
+  if supervisorctl status quizsnap-reverb 2>/dev/null | grep -qF RUNNING; then
+    echo "quizsnap-reverb: RUNNING"
+  elif [[ -f scripts/vps/consolidate-reverb.sh ]]; then
+    echo "WARN: quizsnap-reverb not RUNNING — running consolidate-reverb.sh..."
+    if [[ "$(id -u)" -eq 0 ]]; then
+      bash scripts/vps/consolidate-reverb.sh || echo "WARN: consolidate-reverb failed — see /var/log/supervisor/quizsnap-reverb.log"
+    else
+      sudo bash scripts/vps/consolidate-reverb.sh || echo "WARN: consolidate-reverb failed — run: sudo bash scripts/vps/consolidate-reverb.sh"
+    fi
+  fi
 else
   echo "WARN: supervisorctl not found — restart Reverb and queue workers manually."
 fi

@@ -1,6 +1,10 @@
 @if(!empty($birthdayDashboardSurprise))
 <div id="birthday-surprise-root" class="birthday-surprise-root" data-storage-key="{{ e($birthdayDashboardSurprise['storage_key']) }}" data-max-shows="{{ (int) ($birthdayDashboardSurprise['max_shows'] ?? 1) }}" data-play-song="{{ ($birthdayDashboardSurprise['play_song'] ?? false) ? '1' : '0' }}" data-song-url="{{ e($birthdayDashboardSurprise['song_url'] ?? '') }}" aria-hidden="true">
     <div class="birthday-surprise-backdrop" id="birthday-surprise-backdrop"></div>
+    <div class="birthday-surprise-countdown" id="birthday-surprise-countdown" aria-live="polite" aria-atomic="true">
+        <span class="birthday-surprise-countdown__label">Get ready</span>
+        <span class="birthday-surprise-countdown__num" id="birthday-surprise-countdown-num">3</span>
+    </div>
     <div class="birthday-surprise-balloons" aria-hidden="true"></div>
     <div class="birthday-surprise-confetti" id="birthday-surprise-confetti" aria-hidden="true"></div>
 
@@ -41,6 +45,63 @@
     transition: opacity 0.45s ease;
 }
 .birthday-surprise-root.is-open .birthday-surprise-backdrop { opacity: 1; }
+.birthday-surprise-root.is-flash .birthday-surprise-backdrop {
+    background: rgba(251, 191, 36, 0.42);
+    transition: background 0.08s ease;
+}
+
+.birthday-surprise-countdown {
+    display: none;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    z-index: 205;
+    pointer-events: none;
+    text-align: center;
+}
+.birthday-surprise-root.is-countdown .birthday-surprise-countdown {
+    display: flex;
+}
+.birthday-surprise-root.is-countdown .birthday-surprise-modal {
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+}
+.birthday-surprise-countdown__label {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(255, 251, 235, 0.92);
+    text-shadow: 0 2px 12px rgba(15, 23, 42, 0.45);
+}
+.birthday-surprise-countdown__num {
+    display: block;
+    font-size: clamp(4.5rem, 18vw, 7rem);
+    font-weight: 800;
+    line-height: 1;
+    color: #fff;
+    text-shadow:
+        0 0 40px rgba(251, 191, 36, 0.85),
+        0 8px 32px rgba(15, 23, 42, 0.35);
+    transform: scale(0.72);
+    opacity: 0;
+    transition: transform 0.28s cubic-bezier(0.34, 1.4, 0.64, 1), opacity 0.18s ease;
+}
+.birthday-surprise-countdown__num.is-pop {
+    transform: scale(1);
+    opacity: 1;
+}
+.birthday-surprise-countdown__num.is-exit {
+    transform: scale(1.15);
+    opacity: 0;
+    transition: transform 0.22s ease, opacity 0.22s ease;
+}
 
 .birthday-surprise-modal {
     position: absolute;
@@ -111,15 +172,17 @@
 }
 .birthday-surprise-photo-wrap {
     margin: 0 auto 1rem;
-    max-width: 11rem;
+    max-width: 12.5rem;
 }
 .birthday-surprise-photo {
     width: 100%;
     height: auto;
+    aspect-ratio: 819 / 1024;
     border-radius: 1rem;
     border: 3px solid #fff;
     box-shadow: 0 12px 28px -8px rgba(15, 23, 42, 0.25);
     object-fit: cover;
+    object-position: center top;
 }
 .birthday-surprise-message {
     font-size: 0.9375rem;

@@ -714,13 +714,32 @@
 
 @section('content')
 @php
+    $celebration = $birthdayCelebration ?? null;
     $heroDesktopPath = public_path('images/landing/hero-student-home.webp');
     $heroMobilePath = public_path('images/landing/hero-student-home-mobile.webp');
     $heroDesktopVer = is_file($heroDesktopPath) ? (string) filemtime($heroDesktopPath) : '1';
     $heroMobileVer = is_file($heroMobilePath) ? (string) filemtime($heroMobilePath) : '1';
     $heroDesktopUrl = asset('images/landing/hero-student-home.webp').'?v='.$heroDesktopVer;
     $heroMobileUrl = asset('images/landing/hero-student-home-mobile.webp').'?v='.$heroMobileVer;
+    if ($celebration && !empty($celebration['image_url'])) {
+        $heroDesktopUrl = $celebration['image_url'];
+        $heroMobileUrl = $celebration['image_url'];
+    }
+    $heroImageAlt = $celebration
+        ? ('Celebrating '.$celebration['honoree_name'])
+        : ('Student using '.$appName.' for online assessments');
 @endphp
+@if($celebration)
+@push('styles')
+<style>
+.qs-hero-photo img {
+    object-fit: contain;
+    object-position: center top;
+    background: #fff;
+}
+</style>
+@endpush
+@endif
 <div class="qs-landing-shell">
     @include('student.partials.marketing-header', [
         'appName' => $appName,
@@ -738,7 +757,7 @@
                         <source media="(max-width: 767px)" srcset="{{ $heroMobileUrl }}" type="image/webp">
                         <img
                             src="{{ $heroDesktopUrl }}"
-                            alt="Student using {{ $appName }} for online assessments"
+                            alt="{{ $heroImageAlt }}"
                             width="960"
                             height="639"
                             loading="eager"
@@ -752,6 +771,18 @@
 
             <div class="qs-hero-copy">
                 <div class="qs-hero-head">
+                    @if($celebration)
+                    <span class="qs-badge">{{ $celebration['badge'] }}</span>
+                    <h1 class="qs-hero-title">
+                        {{ $celebration['title'] }}
+                    </h1>
+                    <p class="qs-hero-sub qs-hero-sub--desktop">
+                        {{ $celebration['message'] }}
+                    </p>
+                    <p class="qs-hero-sub qs-hero-sub--mobile">
+                        {{ $celebration['message'] }}
+                    </p>
+                    @else
                     <span class="qs-badge">Secure · Proctored · Reliable</span>
 
                     <h1 class="qs-hero-title">
@@ -775,6 +806,7 @@
                         Secure proctored quizzes and student dashboards — enter your token to begin.
                     @endif
                     </p>
+                    @endif
                 </div>
 
                 @if(($landingShowQuizToken ?? false) || (isset($student) && $student))

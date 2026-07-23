@@ -42,6 +42,7 @@ class LandingPageController extends Controller
             'landingHeroImage' => $public['landingHeroImage'],
             'landingHeroEnabled' => $public['landingHeroEnabled'],
             'landingShowQuizToken' => $public['landingShowQuizToken'],
+            'birthdayCelebration' => $public['birthdayCelebration'] ?? null,
         ]);
     }
 }

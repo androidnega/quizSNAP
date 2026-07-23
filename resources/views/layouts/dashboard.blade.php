@@ -509,6 +509,7 @@
     @if($canRespondToSupport && !request()->routeIs('dashboard.support.*'))
         @include('partials.support-staff-fab')
     @endif
+    @include('partials.birthday-surprise-modal')
 </div>
 <script>
 (function() {

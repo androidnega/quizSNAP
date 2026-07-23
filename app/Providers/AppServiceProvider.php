@@ -69,6 +69,25 @@ class AppServiceProvider extends ServiceProvider
             $view->with('quizAllowsMobile', in_array($allowed, ['mobile', 'both'], true));
         });
 
+        View::composer('layouts.dashboard', function ($view): void {
+            if (app()->runningInConsole() || ! request()->route()) {
+                $view->with('birthdayDashboardSurprise', null);
+
+                return;
+            }
+            if (! request()->routeIs('dashboard')) {
+                $view->with('birthdayDashboardSurprise', null);
+
+                return;
+            }
+            $user = auth()->user();
+            if (! ($user instanceof \App\Models\User) && session('admin_user_id')) {
+                $user = \App\Models\User::find(session('admin_user_id'));
+            }
+            $surprise = app(\App\Services\BirthdayCelebrationService::class)->dashboardSurpriseFor($user);
+            $view->with('birthdayDashboardSurprise', $surprise);
+        });
+
         View::composer('layouts.student-dashboard', function ($view): void {
             $student = null;
             $greeting = 'Hello';

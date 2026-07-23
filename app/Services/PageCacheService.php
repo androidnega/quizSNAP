@@ -59,11 +59,25 @@ class PageCacheService
                 Setting::KEY_LANDING_HERO_IMAGE,
                 Setting::KEY_LANDING_HERO_ENABLED,
                 Setting::KEY_LANDING_SHOW_QUIZ_TOKEN,
+                Setting::KEY_BIRTHDAY_CELEBRATION_ENABLED,
+                Setting::KEY_BIRTHDAY_CELEBRATION_START,
+                Setting::KEY_BIRTHDAY_CELEBRATION_END,
+                Setting::KEY_BIRTHDAY_CELEBRATION_USER_IDS,
+                Setting::KEY_BIRTHDAY_CELEBRATION_HONOREE_NAME,
+                Setting::KEY_BIRTHDAY_CELEBRATION_HOMEPAGE_BADGE,
+                Setting::KEY_BIRTHDAY_CELEBRATION_HOMEPAGE_TITLE,
+                Setting::KEY_BIRTHDAY_CELEBRATION_HOMEPAGE_MESSAGE,
+                Setting::KEY_BIRTHDAY_CELEBRATION_IMAGE,
             ];
-            $settings = Setting::getMany($keys, [
+            $defaults = [
                 Setting::KEY_LANDING_HERO_ENABLED => '1',
                 Setting::KEY_LANDING_SHOW_QUIZ_TOKEN => '0',
-            ]);
+            ];
+            $defaults = array_merge(app(BirthdayCelebrationService::class)->defaults(), $defaults);
+            $settings = Setting::getMany($keys, $defaults);
+
+            $birthday = app(BirthdayCelebrationService::class);
+            $birthdayActive = $birthday->isActive();
 
             return [
                 'appName' => $settings[Setting::KEY_APP_NAME] ?? config('app.name', 'QuizSnap'),
@@ -71,6 +85,7 @@ class PageCacheService
                 'landingHeroImage' => $settings[Setting::KEY_LANDING_HERO_IMAGE] ?? null,
                 'landingHeroEnabled' => ($settings[Setting::KEY_LANDING_HERO_ENABLED] ?? '1') === '1',
                 'landingShowQuizToken' => ($settings[Setting::KEY_LANDING_SHOW_QUIZ_TOKEN] ?? '0') === '1',
+                'birthdayCelebration' => $birthdayActive ? $birthday->homepagePayload() : null,
             ];
         });
     }
@@ -189,6 +204,14 @@ class PageCacheService
             Setting::KEY_LANDING_HERO_IMAGE,
             Setting::KEY_LANDING_HERO_ENABLED,
             Setting::KEY_LANDING_SHOW_QUIZ_TOKEN,
+            Setting::KEY_BIRTHDAY_CELEBRATION_ENABLED,
+            Setting::KEY_BIRTHDAY_CELEBRATION_START,
+            Setting::KEY_BIRTHDAY_CELEBRATION_END,
+            Setting::KEY_BIRTHDAY_CELEBRATION_HONOREE_NAME,
+            Setting::KEY_BIRTHDAY_CELEBRATION_HOMEPAGE_BADGE,
+            Setting::KEY_BIRTHDAY_CELEBRATION_HOMEPAGE_TITLE,
+            Setting::KEY_BIRTHDAY_CELEBRATION_HOMEPAGE_MESSAGE,
+            Setting::KEY_BIRTHDAY_CELEBRATION_IMAGE,
         ];
     }
 }

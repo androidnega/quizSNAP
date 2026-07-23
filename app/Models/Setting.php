@@ -146,6 +146,19 @@ class Setting extends Model
             self::KEY_STUDENT_DASHBOARD_BANNER_SUBTITLE,
             self::KEY_STUDENT_DASHBOARD_BANNER_IMAGES,
             self::KEY_STUDENT_DASHBOARD_MOBILE_LAYOUT,
+            self::KEY_BIRTHDAY_CELEBRATION_ENABLED,
+            self::KEY_BIRTHDAY_CELEBRATION_START,
+            self::KEY_BIRTHDAY_CELEBRATION_END,
+            self::KEY_BIRTHDAY_CELEBRATION_USER_IDS,
+            self::KEY_BIRTHDAY_CELEBRATION_HONOREE_NAME,
+            self::KEY_BIRTHDAY_CELEBRATION_HOMEPAGE_BADGE,
+            self::KEY_BIRTHDAY_CELEBRATION_HOMEPAGE_TITLE,
+            self::KEY_BIRTHDAY_CELEBRATION_HOMEPAGE_MESSAGE,
+            self::KEY_BIRTHDAY_CELEBRATION_DASHBOARD_TITLE,
+            self::KEY_BIRTHDAY_CELEBRATION_DASHBOARD_MESSAGE,
+            self::KEY_BIRTHDAY_CELEBRATION_IMAGE,
+            self::KEY_BIRTHDAY_CELEBRATION_PLAY_SONG,
+            self::KEY_BIRTHDAY_CELEBRATION_SONG_URL,
             self::KEY_SUPABASE_URL,
             self::KEY_SUPABASE_SERVICE_KEY,
             self::KEY_SUPABASE_BUCKET,
@@ -181,6 +194,19 @@ class Setting extends Model
                 self::KEY_STUDENT_DASHBOARD_BANNER_SUBTITLE,
                 self::KEY_STUDENT_DASHBOARD_BANNER_IMAGES,
                 self::KEY_STUDENT_DASHBOARD_MOBILE_LAYOUT,
+                self::KEY_BIRTHDAY_CELEBRATION_ENABLED,
+                self::KEY_BIRTHDAY_CELEBRATION_START,
+                self::KEY_BIRTHDAY_CELEBRATION_END,
+                self::KEY_BIRTHDAY_CELEBRATION_USER_IDS,
+                self::KEY_BIRTHDAY_CELEBRATION_HONOREE_NAME,
+                self::KEY_BIRTHDAY_CELEBRATION_HOMEPAGE_BADGE,
+                self::KEY_BIRTHDAY_CELEBRATION_HOMEPAGE_TITLE,
+                self::KEY_BIRTHDAY_CELEBRATION_HOMEPAGE_MESSAGE,
+                self::KEY_BIRTHDAY_CELEBRATION_DASHBOARD_TITLE,
+                self::KEY_BIRTHDAY_CELEBRATION_DASHBOARD_MESSAGE,
+                self::KEY_BIRTHDAY_CELEBRATION_IMAGE,
+                self::KEY_BIRTHDAY_CELEBRATION_PLAY_SONG,
+                self::KEY_BIRTHDAY_CELEBRATION_SONG_URL,
             ], true)) {
             app(PageCacheService::class)->bumpVersion();
         }
@@ -307,6 +333,21 @@ class Setting extends Model
     public const KEY_STUDENT_DASHBOARD_MOBILE_LAYOUT = 'student_dashboard_mobile_layout';
     public const KEY_INSTITUTION_NAME = 'institution_name';
     public const KEY_INSTITUTION_LOGO = 'institution_logo';
+
+    /** Team birthday celebration (Super Admin). Homepage hero + honoree dashboard surprise. */
+    public const KEY_BIRTHDAY_CELEBRATION_ENABLED = 'birthday_celebration_enabled';
+    public const KEY_BIRTHDAY_CELEBRATION_START = 'birthday_celebration_start';
+    public const KEY_BIRTHDAY_CELEBRATION_END = 'birthday_celebration_end';
+    public const KEY_BIRTHDAY_CELEBRATION_USER_IDS = 'birthday_celebration_user_ids';
+    public const KEY_BIRTHDAY_CELEBRATION_HONOREE_NAME = 'birthday_celebration_honoree_name';
+    public const KEY_BIRTHDAY_CELEBRATION_HOMEPAGE_BADGE = 'birthday_celebration_homepage_badge';
+    public const KEY_BIRTHDAY_CELEBRATION_HOMEPAGE_TITLE = 'birthday_celebration_homepage_title';
+    public const KEY_BIRTHDAY_CELEBRATION_HOMEPAGE_MESSAGE = 'birthday_celebration_homepage_message';
+    public const KEY_BIRTHDAY_CELEBRATION_DASHBOARD_TITLE = 'birthday_celebration_dashboard_title';
+    public const KEY_BIRTHDAY_CELEBRATION_DASHBOARD_MESSAGE = 'birthday_celebration_dashboard_message';
+    public const KEY_BIRTHDAY_CELEBRATION_IMAGE = 'birthday_celebration_image';
+    public const KEY_BIRTHDAY_CELEBRATION_PLAY_SONG = 'birthday_celebration_play_song';
+    public const KEY_BIRTHDAY_CELEBRATION_SONG_URL = 'birthday_celebration_song_url';
 
     /** Supabase Storage (student documents) */
     public const KEY_SUPABASE_URL = 'supabase_url';

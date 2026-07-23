@@ -22,6 +22,9 @@
                             General
                         </button>
                         @if($is_super_admin ?? false)
+                        <button type="button" role="tab" class="settings-tab-btn inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-white/80 touch-manipulation transition-colors" data-tab="celebration" id="tab-btn-celebration" aria-selected="false">
+                            Celebration
+                        </button>
                         <button type="button" role="tab" class="settings-tab-btn inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-white/80 touch-manipulation transition-colors" data-tab="student-dashboard" id="tab-btn-student-dashboard" aria-selected="false">
                             Student dashboard
                         </button>
@@ -663,6 +666,10 @@
                 @endif
                 @if($is_super_admin ?? false)
                 <!-- Tab: Student dashboard banner -->
+                @if($is_super_admin ?? false)
+                @include('admin.settings.partials.birthday-celebration-tab')
+                @endif
+
                 <div class="settings-tab-content p-6 hidden" data-tab-content="student-dashboard" id="tab-content-student-dashboard">
                     <div class="mb-6">
                         <h2 class="text-base font-semibold text-gray-900 mb-1">Student dashboard</h2>

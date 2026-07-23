@@ -12,6 +12,7 @@ use App\Services\MailConfigService;
 use App\Services\StudentOnboardingEmailOtpService;
 use App\Models\Student;
 use App\Services\ArkeselService;
+use App\Services\BirthdayCelebrationService;
 use App\Services\LocalUploadService;
 use App\Services\StudentUniversalOtp;
 use App\Services\SupabaseStorageService;
@@ -172,7 +173,35 @@ class SettingsController extends Controller
             'class_groups_for_study_guide' => ($canManageBackup && session('study_guide_unlocked', false))
                 ? ClassGroup::orderBy('name')->get(['id', 'name'])
                 : collect(),
+            ...$this->birthdayCelebrationViewData(),
         ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function birthdayCelebrationViewData(): array
+    {
+        $service = app(BirthdayCelebrationService::class);
+        $cfg = $service->config();
+
+        return [
+            'birthday_celebration_enabled' => $cfg['enabled'],
+            'birthday_celebration_active_now' => $service->isActive(),
+            'birthday_celebration_start' => $cfg['start'],
+            'birthday_celebration_end' => $cfg['end'],
+            'birthday_celebration_user_ids' => implode(', ', $cfg['user_ids']),
+            'birthday_celebration_honoree_name' => $cfg['honoree_name'],
+            'birthday_celebration_homepage_badge' => $cfg['homepage_badge'],
+            'birthday_celebration_homepage_title' => $cfg['homepage_title'],
+            'birthday_celebration_homepage_message' => $cfg['homepage_message'],
+            'birthday_celebration_dashboard_title' => $cfg['dashboard_title'],
+            'birthday_celebration_dashboard_message' => $cfg['dashboard_message'],
+            'birthday_celebration_play_song' => $cfg['play_song'],
+            'birthday_celebration_song_url' => $cfg['song_url'],
+            'birthday_celebration_image' => $cfg['image'],
+            'birthday_celebration_image_preview' => $service->resolveImageUrl($cfg['image']),
+        ];
     }
 
     /**
@@ -203,7 +232,7 @@ class SettingsController extends Controller
      */
     public function update(Request $request): RedirectResponse
     {
-        $validTabs = ['general', 'email', 'ai', 'supabase', 'otp', 'proctoring', 'backup', 'student-dashboard'];
+        $validTabs = ['general', 'email', 'ai', 'supabase', 'otp', 'proctoring', 'backup', 'student-dashboard', 'celebration'];
         $tab = $request->input('settings_tab', 'general');
         if (! in_array($tab, $validTabs, true)) {
             $tab = 'general';
@@ -224,6 +253,7 @@ class SettingsController extends Controller
             'otp' => $this->saveOtpTabSettings($request),
             'proctoring' => $canManageProctoring ? $this->saveProctoringTabSettings($request) : null,
             'student-dashboard' => $isSuperAdmin ? $this->saveStudentDashboardTabSettings($request) : null,
+            'celebration' => $isSuperAdmin ? $this->saveCelebrationTabSettings($request) : null,
             'backup' => $canManageBackup ? $this->saveBackupTabSettings($request) : null,
             default => null,
         };
@@ -349,6 +379,23 @@ class SettingsController extends Controller
                 'student_dashboard_banner_image_url' => 'nullable|string|max:2048',
                 'student_dashboard_banner_image_file' => 'nullable|image|max:5120',
                 'student_dashboard_mobile_layout' => 'nullable|string|in:classic,modern',
+            ]) : $rules,
+            'celebration' => $isSuperAdmin ? array_merge($rules, [
+                'birthday_celebration_enabled' => 'nullable|boolean',
+                'birthday_celebration_start' => 'nullable|date',
+                'birthday_celebration_end' => 'nullable|date|after_or_equal:birthday_celebration_start',
+                'birthday_celebration_user_ids' => 'nullable|string|max:120',
+                'birthday_celebration_honoree_name' => 'nullable|string|max:160',
+                'birthday_celebration_homepage_badge' => 'nullable|string|max:80',
+                'birthday_celebration_homepage_title' => 'nullable|string|max:200',
+                'birthday_celebration_homepage_message' => 'nullable|string|max:2000',
+                'birthday_celebration_dashboard_title' => 'nullable|string|max:160',
+                'birthday_celebration_dashboard_message' => 'nullable|string|max:3000',
+                'birthday_celebration_play_song' => 'nullable|boolean',
+                'birthday_celebration_song_url' => 'nullable|string|max:2048',
+                'birthday_celebration_song_file' => 'nullable|file|mimes:mp3,mpeg|max:8192',
+                'birthday_celebration_image_url' => 'nullable|string|max:2048',
+                'birthday_celebration_image_file' => 'nullable|image|max:5120',
             ]) : $rules,
             'backup' => $canManageBackup ? array_merge($rules, [
                 'notify_digest_recipient' => 'nullable|email|max:255',
@@ -652,6 +699,48 @@ class SettingsController extends Controller
         ] as $key) {
             Cache::forget('setting:' . $key);
         }
+    }
+
+    private function saveCelebrationTabSettings(Request $request): void
+    {
+        Setting::setValue(Setting::KEY_BIRTHDAY_CELEBRATION_ENABLED, $request->boolean('birthday_celebration_enabled') ? '1' : '0');
+        Setting::setValue(Setting::KEY_BIRTHDAY_CELEBRATION_START, $request->filled('birthday_celebration_start') ? trim($request->birthday_celebration_start) : null);
+        Setting::setValue(Setting::KEY_BIRTHDAY_CELEBRATION_END, $request->filled('birthday_celebration_end') ? trim($request->birthday_celebration_end) : null);
+        Setting::setValue(Setting::KEY_BIRTHDAY_CELEBRATION_USER_IDS, $request->filled('birthday_celebration_user_ids') ? trim($request->birthday_celebration_user_ids) : BirthdayCelebrationService::DEFAULT_HONOREE_USER_IDS);
+        Setting::setValue(Setting::KEY_BIRTHDAY_CELEBRATION_HONOREE_NAME, $request->filled('birthday_celebration_honoree_name') ? trim($request->birthday_celebration_honoree_name) : null);
+        Setting::setValue(Setting::KEY_BIRTHDAY_CELEBRATION_HOMEPAGE_BADGE, $request->filled('birthday_celebration_homepage_badge') ? trim($request->birthday_celebration_homepage_badge) : null);
+        Setting::setValue(Setting::KEY_BIRTHDAY_CELEBRATION_HOMEPAGE_TITLE, $request->filled('birthday_celebration_homepage_title') ? trim($request->birthday_celebration_homepage_title) : null);
+        Setting::setValue(Setting::KEY_BIRTHDAY_CELEBRATION_HOMEPAGE_MESSAGE, $request->filled('birthday_celebration_homepage_message') ? trim($request->birthday_celebration_homepage_message) : null);
+        Setting::setValue(Setting::KEY_BIRTHDAY_CELEBRATION_DASHBOARD_TITLE, $request->filled('birthday_celebration_dashboard_title') ? trim($request->birthday_celebration_dashboard_title) : null);
+        Setting::setValue(Setting::KEY_BIRTHDAY_CELEBRATION_DASHBOARD_MESSAGE, $request->filled('birthday_celebration_dashboard_message') ? trim($request->birthday_celebration_dashboard_message) : null);
+        Setting::setValue(Setting::KEY_BIRTHDAY_CELEBRATION_PLAY_SONG, $request->boolean('birthday_celebration_play_song') ? '1' : '0');
+
+        $imagePath = Setting::getValue(Setting::KEY_BIRTHDAY_CELEBRATION_IMAGE, BirthdayCelebrationService::DEFAULT_IMAGE_PATH);
+        if ($request->hasFile('birthday_celebration_image_file')) {
+            $uploaded = LocalUploadService::storePublicImage($request->file('birthday_celebration_image_file'), 'uploads/celebrations');
+            if ($uploaded) {
+                $imagePath = $uploaded;
+            }
+        } elseif ($request->filled('birthday_celebration_image_url')) {
+            $url = trim(preg_replace('/[\r\n]+/', '', $request->birthday_celebration_image_url) ?? '');
+            if ($url !== '') {
+                $imagePath = $url;
+            }
+        }
+        Setting::setValue(Setting::KEY_BIRTHDAY_CELEBRATION_IMAGE, $imagePath ?: BirthdayCelebrationService::DEFAULT_IMAGE_PATH);
+
+        $songUrl = Setting::getValue(Setting::KEY_BIRTHDAY_CELEBRATION_SONG_URL, '');
+        if ($request->hasFile('birthday_celebration_song_file')) {
+            $stored = LocalUploadService::storePublicFile($request->file('birthday_celebration_song_file'), 'uploads/celebrations/audio');
+            if ($stored && ! empty($stored['url'])) {
+                $songUrl = $stored['url'];
+            }
+        } elseif ($request->filled('birthday_celebration_song_url')) {
+            $songUrl = trim($request->birthday_celebration_song_url);
+        }
+        Setting::setValue(Setting::KEY_BIRTHDAY_CELEBRATION_SONG_URL, $songUrl !== '' ? $songUrl : null);
+
+        app(\App\Services\PageCacheService::class)->bumpVersion();
     }
 
     private function saveBackupTabSettings(Request $request): void

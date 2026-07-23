@@ -67,6 +67,11 @@ if [[ "$(id -u)" -eq 0 ]]; then
   done
 fi
 
+echo "==> nginx WebSocket proxy (/app → Reverb)..."
+if [[ "$(id -u)" -eq 0 ]] && [[ -f scripts/vps/install-nginx-reverb-proxy.sh ]]; then
+  bash scripts/vps/install-nginx-reverb-proxy.sh || echo "WARN: nginx Reverb proxy install failed"
+fi
+
 echo ""
 echo "==> Done. Latest commit:"
 git log -1 --oneline

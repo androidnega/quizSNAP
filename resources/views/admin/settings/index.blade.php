@@ -889,13 +889,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const tabBtns = document.querySelectorAll('.settings-tab-btn');
     const tabContents = document.querySelectorAll('.settings-tab-content');
-    const validTabs = ['general', 'celebration', 'email', 'ai', 'supabase', 'otp', 'proctoring', 'backup', 'student-dashboard'];
+    const validTabs = Array.from(tabBtns).map(function(b) { return b.getAttribute('data-tab'); }).filter(Boolean);
     let activeTab = 'general';
 
     function switchToTab(targetTab) {
-        if (!validTabs.includes(targetTab)) targetTab = 'general';
+        var contentIds = Array.from(tabContents).map(function(c) { return c.getAttribute('data-tab-content'); });
+        if (!validTabs.includes(targetTab) || !contentIds.includes(targetTab)) {
+            targetTab = 'general';
+        }
         activeTab = targetTab;
-        location.hash = targetTab;
+        if (location.hash.replace(/^#/, '') !== targetTab) {
+            location.hash = targetTab;
+        }
         tabBtns.forEach(function(b) {
             var on = b.getAttribute('data-tab') === targetTab;
             b.setAttribute('aria-selected', on ? 'true' : 'false');

@@ -17,12 +17,19 @@
     }
     $defaultSlug = \App\Models\Setting::STUDENT_DASHBOARD_DEFAULT_BANNER_SLUG;
     $birthdaySlug = \App\Models\Setting::STUDENT_DASHBOARD_BIRTHDAY_BANNER_SLUG;
-    $bundledSlug = $banner['bundled_slug'] ?? $defaultSlug;
+    $imagePath = (string) $image;
+    if (! empty($banner['bundled_slug'])) {
+        $bundledSlug = (string) $banner['bundled_slug'];
+    } elseif (str_contains($imagePath, $birthdaySlug)) {
+        $bundledSlug = $birthdaySlug;
+    } else {
+        $bundledSlug = $defaultSlug;
+    }
     if ($bundledSlug !== $defaultSlug && $bundledSlug !== $birthdaySlug) {
         $bundledSlug = $defaultSlug;
     }
     $aspectW = max(1, (int) ($banner['aspect_width'] ?? 1024));
-    $aspectH = max(1, (int) ($banner['aspect_height'] ?? 374));
+    $aspectH = max(1, (int) ($banner['aspect_height'] ?? ($bundledSlug === $birthdaySlug ? 375 : 374)));
     $aspectStyle = 'aspect-ratio: '.$aspectW.' / '.$aspectH.';';
     $isBirthdayBanner = $bundledSlug === $birthdaySlug;
     $usesBundledBanner = $mode === 'image' && (

@@ -113,11 +113,11 @@ class BirthdayCelebrationService
      */
     public function studentDashboardBannerOverlay(): ?array
     {
-        if (! $this->isActive()) {
+        $cfg = $this->config();
+        if (! $cfg['enabled']) {
             return null;
         }
 
-        $cfg = $this->config();
         $name = $cfg['honoree_name'] !== '' ? $cfg['honoree_name'] : 'Mr Yaboah Dankwah Augustine';
 
         return [

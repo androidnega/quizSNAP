@@ -9,7 +9,12 @@ use Illuminate\Support\Facades\Storage;
 
 class BirthdayCelebrationService
 {
-    public const DEFAULT_IMAGE_PATH = '/images/celebrations/augustine-dankwah-yeboah.png';
+    public const DEFAULT_IMAGE_PATH = '/images/celebrations/augustine-dankwah-yeboah.webp';
+
+    public const DEFAULT_IMAGE_MOBILE_PATH = '/images/celebrations/augustine-dankwah-yeboah-640.webp';
+
+    /** @deprecated Legacy PNG path — migrated to WebP. */
+    public const LEGACY_DEFAULT_IMAGE_PATH = '/images/celebrations/augustine-dankwah-yeboah.png';
 
     public const DEFAULT_SONG_PATH = '/audio/celebrations/happy-birthday-dashboard.mp3';
 
@@ -113,12 +118,14 @@ class BirthdayCelebrationService
         }
 
         $cfg = $this->config();
+        $desktopPath = $this->normalizeImagePath($cfg['image']);
 
         return [
             'badge' => $cfg['homepage_badge'] ?: 'Celebrating today',
             'title' => $cfg['homepage_title'] ?: 'Happy Birthday, '.$cfg['honoree_name'],
             'message' => $cfg['homepage_message'] ?: $this->defaultHomepageMessage($cfg['honoree_name']),
-            'image_url' => $this->resolveImageUrl($cfg['image']),
+            'image_url' => $this->versionedPublicAsset($desktopPath),
+            'image_mobile_url' => $this->versionedPublicAsset($this->mobileCompanionPath($desktopPath)),
             'honoree_name' => $cfg['honoree_name'],
         ];
     }
@@ -143,7 +150,7 @@ class BirthdayCelebrationService
             'title' => $cfg['dashboard_title'] ?: 'It\'s your birthday today!',
             'headline' => $this->dashboardHeadline($user, $cfg['honoree_name']),
             'message' => $cfg['dashboard_message'] ?: $this->defaultDashboardMessage($cfg['honoree_name']),
-            'image_url' => $this->resolveImageUrl($cfg['image']),
+            'image_url' => $this->versionedPublicAsset($this->normalizeImagePath($cfg['image'])),
             'play_song' => $cfg['play_song'],
             'song_url' => $this->resolveSongUrl($cfg['song_url']),
             'first_name' => $firstName,
@@ -154,20 +161,59 @@ class BirthdayCelebrationService
 
     public function resolveImageUrl(?string $stored): string
     {
-        $stored = trim((string) $stored);
-        if ($stored === '') {
-            return asset(self::DEFAULT_IMAGE_PATH);
-        }
+        $stored = $this->normalizeImagePath($stored);
 
         if (preg_match('#^https?://#i', $stored) || str_starts_with($stored, '/')) {
-            return $stored;
+            if (preg_match('#^https?://#i', $stored)) {
+                return $stored;
+            }
+
+            return $this->versionedPublicAsset($stored);
         }
 
         if (str_starts_with($stored, 'uploads/') || str_starts_with($stored, 'celebrations/')) {
             return Storage::disk('public')->url($stored);
         }
 
-        return asset($stored);
+        return $this->versionedPublicAsset('/'.ltrim($stored, '/'));
+    }
+
+    public function normalizeImagePath(?string $stored): string
+    {
+        $stored = trim((string) $stored);
+        if ($stored === '' || $stored === self::LEGACY_DEFAULT_IMAGE_PATH) {
+            return self::DEFAULT_IMAGE_PATH;
+        }
+
+        return $stored;
+    }
+
+    public function mobileCompanionPath(string $desktopPath): string
+    {
+        if ($desktopPath === self::DEFAULT_IMAGE_PATH) {
+            return self::DEFAULT_IMAGE_MOBILE_PATH;
+        }
+
+        if (str_ends_with($desktopPath, '.webp') && ! str_contains($desktopPath, '-640.')) {
+            $candidate = preg_replace('/\.webp$/', '-640.webp', $desktopPath);
+            if (is_string($candidate) && is_file(public_path(ltrim($candidate, '/')))) {
+                return $candidate;
+            }
+        }
+
+        return $desktopPath;
+    }
+
+    public function versionedPublicAsset(string $path): string
+    {
+        if (preg_match('#^https?://#i', $path)) {
+            return $path;
+        }
+
+        $relative = ltrim($path, '/');
+        $ver = is_file(public_path($relative)) ? (string) filemtime(public_path($relative)) : '1';
+
+        return asset($path).'?v='.$ver;
     }
 
     public function resolveSongUrl(?string $stored): ?string

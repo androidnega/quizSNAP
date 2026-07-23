@@ -723,7 +723,7 @@
     $heroMobileUrl = asset('images/landing/hero-student-home-mobile.webp').'?v='.$heroMobileVer;
     if ($celebration && !empty($celebration['image_url'])) {
         $heroDesktopUrl = $celebration['image_url'];
-        $heroMobileUrl = $celebration['image_url'];
+        $heroMobileUrl = $celebration['image_mobile_url'] ?? $celebration['image_url'];
     }
     $heroImageAlt = $celebration
         ? ('Celebrating '.$celebration['honoree_name'])
@@ -732,10 +732,20 @@
 @if($celebration)
 @push('styles')
 <style>
+.qs-hero-photo {
+    background: linear-gradient(180deg, #f8fafc 0%, #fff 100%);
+    border-radius: 1.25rem;
+    padding: 0.5rem;
+    box-shadow: 0 20px 50px -24px rgba(15, 23, 42, 0.35);
+}
 .qs-hero-photo img {
     object-fit: contain;
-    object-position: center top;
-    background: #fff;
+    object-position: center center;
+    background: transparent;
+    border-radius: 1rem;
+    max-height: min(72vh, 28rem);
+    width: 100%;
+    height: auto;
 }
 </style>
 @endpush

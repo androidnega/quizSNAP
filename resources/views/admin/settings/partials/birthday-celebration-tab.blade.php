@@ -109,7 +109,8 @@
             @endif
             <div>
                 <label for="birthday_celebration_image_url" class="block text-sm font-medium text-gray-700 mb-1.5">Image URL</label>
-                <input type="text" name="birthday_celebration_image_url" id="birthday_celebration_image_url" value="{{ old('birthday_celebration_image_url', $birthday_celebration_image ?? '') }}" placeholder="/images/celebrations/... or upload below" class="block w-full rounded-md border border-gray-300 px-3 py-2.5 text-sm">
+                <input type="text" name="birthday_celebration_image_url" id="birthday_celebration_image_url" value="{{ old('birthday_celebration_image_url', $birthday_celebration_image ?? \App\Services\BirthdayCelebrationService::DEFAULT_IMAGE_PATH) }}" placeholder="{{ \App\Services\BirthdayCelebrationService::DEFAULT_IMAGE_PATH }}" class="block w-full rounded-md border border-gray-300 px-3 py-2.5 text-sm">
+                <p class="text-xs text-gray-500 mt-1">Default WebP (desktop + mobile): <code class="px-1 py-0.5 bg-gray-100 rounded">{{ \App\Services\BirthdayCelebrationService::DEFAULT_IMAGE_PATH }}</code></p>
             </div>
             <div>
                 <label for="birthday_celebration_image_file" class="block text-sm font-medium text-gray-700 mb-1.5">Upload / replace photo</label>

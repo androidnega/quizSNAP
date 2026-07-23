@@ -209,15 +209,6 @@
                     @endif
                 </ul>
             </nav>
-            <div class="examiner-sidebar-footer shrink-0 border-t border-slate-200 p-3 safe-area-b">
-                <form action="{{ route('logout') }}" method="post">
-                    @csrf
-                    <button type="submit" class="examiner-nav-link group flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-slate-700 hover:bg-rose-50 hover:text-rose-700 transition-all touch-manipulation" title="Log out">
-                        <svg class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-                        <span class="examiner-nav-text truncate">Log out</span>
-                    </button>
-                </form>
-            </div>
         </div>
     </aside>
 
@@ -426,7 +417,7 @@
                     @endif
 
                     <div class="relative flex flex-shrink-0 items-center" id="profile-menu-wrap">
-                        <button type="button" class="dashboard-chrome-profile focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300 touch-manipulation" aria-expanded="false" aria-haspopup="true" aria-controls="profile-menu-dropdown" id="profile-menu-btn" title="Profile">
+                        <button type="button" class="dashboard-chrome-profile focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300 touch-manipulation min-h-[44px]" aria-expanded="false" aria-haspopup="true" aria-controls="profile-menu-dropdown" id="profile-menu-btn" title="Profile">
                             <span class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg overflow-hidden {{ $headerUser && ($headerUser->avatar_url ?? null) ? '' : 'bg-rose-100 text-rose-700' }}">
                                 @if($headerUser && ($headerUser->avatar_url ?? null))
                                     <img src="{{ $headerUser->avatar_url }}" alt="" class="h-full w-full object-cover" />
@@ -465,13 +456,7 @@
                                 </a>
                             </div>
                             <div class="profile-menu-foot">
-                                <form action="{{ route('logout') }}" method="post">
-                                    @csrf
-                                    <button type="submit" class="profile-menu-item profile-menu-item--danger" role="menuitem">
-                                        <span class="profile-menu-item-icon" aria-hidden="true"><i class="fas fa-sign-out-alt"></i></span>
-                                        Log out
-                                    </button>
-                                </form>
+                                @include('partials.quizsnap-logout-form', ['action' => route('logout')])
                             </div>
                         </div>
                     </div>

@@ -136,6 +136,20 @@ class AdminAuthController extends Controller
     }
 
     /**
+     * GET /logout is not supported (avoids accidental sign-out from links/bookmarks).
+     */
+    public function redirectLogoutGet(Request $request): RedirectResponse
+    {
+        $target = url()->previous();
+        if (! is_string($target) || $target === '' || str_contains($target, '/logout')) {
+            $target = route('dashboard.profile.show', absolute: false);
+        }
+
+        return redirect()->to($target)
+            ->with('info', 'To sign out, use Log out in the profile menu at the top of your dashboard.');
+    }
+
+    /**
      * Log out.
      */
     public function logout(Request $request): RedirectResponse

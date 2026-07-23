@@ -90,8 +90,17 @@
             </div>
             <div class="rounded-lg border border-gray-200 bg-white p-4">
                 <h2 class="text-xs font-semibold text-gray-800 mb-1">Security</h2>
-                <p class="text-xs text-gray-500 mb-2">Manage your password</p>
-                <a href="{{ route('dashboard.profile.password') }}" class="inline-flex items-center justify-center rounded-md border border-transparent bg-blue-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1">Change password</a>
+                <p class="text-xs text-gray-500 mb-2">Manage your password or sign out on this device.</p>
+                <div class="flex flex-wrap items-center gap-2">
+                    <a href="{{ route('dashboard.profile.password') }}" class="inline-flex items-center justify-center rounded-md border border-transparent bg-blue-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 min-h-[44px] sm:min-h-0 touch-manipulation">Change password</a>
+                    @include('partials.quizsnap-logout-form', [
+                        'action' => route('logout'),
+                        'buttonClass' => 'inline-flex items-center justify-center rounded-md border border-rose-200 bg-white px-2.5 py-1 text-xs font-medium text-rose-700 hover:bg-rose-50 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-1 min-h-[44px] sm:min-h-0 touch-manipulation',
+                        'showIcon' => false,
+                        'label' => 'Log out of this device',
+                        'menuItem' => false,
+                    ])
+                </div>
             </div>
         </div>
     </div>

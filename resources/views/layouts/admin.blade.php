@@ -29,7 +29,13 @@
                 <div id="admin-profile-dropdown" class="absolute right-0 top-full z-50 mt-1.5 w-48 sm:w-56 rounded-lg border border-gray-200 bg-white py-1 shadow-lg hidden">
                     <a href="{{ route('admin.profile.show') }}" class="block px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100 whitespace-nowrap">Profile</a>
                     <a href="{{ route('admin.profile.password') }}" class="block px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100 whitespace-nowrap">Password</a>
-                    <form action="{{ route('logout') }}" method="post" class="border-t border-gray-100 mt-1">@csrf<button type="submit" class="block w-full px-4 py-2.5 text-left text-sm font-medium text-gray-700 hover:bg-gray-100 whitespace-nowrap">Log out</button></form>
+                    <div class="border-t border-gray-100 mt-1 pt-1">
+                        @include('partials.quizsnap-logout-form', [
+                            'action' => route('logout'),
+                            'buttonClass' => 'block w-full px-4 py-2.5 text-left text-sm font-medium text-gray-700 hover:bg-gray-100 whitespace-nowrap min-h-[44px] touch-manipulation',
+                            'showIcon' => false,
+                        ])
+                    </div>
                 </div>
             </div>
         </div>

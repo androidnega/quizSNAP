@@ -2,7 +2,7 @@
     <div class="space-y-6">
         <div class="rounded-lg border border-amber-200 bg-amber-50/60 p-5 space-y-2">
             <h3 class="text-sm font-semibold text-gray-900">Team birthday celebration</h3>
-            <p class="text-sm text-gray-600">Turn this on for a colleague’s birthday. The public homepage shows a clean “celebrating” message with their photo (left copy, right image). Honoree staff see a surprise modal with balloons and optional birthday music when they open the dashboard.</p>
+            <p class="text-sm text-gray-600">Turn this on for a colleague’s birthday. During the scheduled window, the public homepage keeps the normal QuizSnap message on the left and shows the birthday banner on the right; after the end time it returns to the standard homepage hero. Honoree staff see a surprise modal with balloons and optional birthday music when they open the dashboard.</p>
             @if($birthday_celebration_active_now ?? false)
                 <p class="text-sm font-medium text-emerald-700">Status: live now (within your scheduled start and end).</p>
             @else

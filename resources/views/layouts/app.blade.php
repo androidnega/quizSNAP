@@ -540,6 +540,18 @@
             cursor: pointer;
             text-align: left;
             transition: background-color .15s ease, color .15s ease, transform .15s ease;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+        @media (max-width: 1023px) {
+            .profile-menu-item {
+                min-height: 2.75rem;
+                padding-top: 0.75rem;
+                padding-bottom: 0.75rem;
+            }
+            .profile-menu-panel {
+                z-index: 250;
+            }
         }
         .profile-menu-item:hover {
             background: #f8fafc;
@@ -774,6 +786,7 @@
     <script src="{{ asset('js/quizsnap-presence.js') }}?v={{ filemtime(public_path('js/quizsnap-presence.js')) }}" defer></script>
     @yield('copy_restriction_script')
     <script src="{{ asset('js/app.js') }}" defer></script>
+    <script src="{{ asset('js/quizsnap-logout.js') }}?v={{ filemtime(public_path('js/quizsnap-logout.js')) }}" defer></script>
     <script>window.QuizSnapLive=window.QuizSnapLive||{refreshers:[],registerRefresher:function(fn){if(typeof fn==='function')this.refreshers.push(fn);}};</script>
     @stack('scripts')
     @include('partials.support-issue-modal')

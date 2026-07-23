@@ -11,65 +11,10 @@
 @media (max-width: 1023px) {
     #student-dashboard-support-fab { display: none !important; }
 }
-.sd-overflow-menu {
+.sd-mobile-profile-menu .profile-menu-panel {
     position: absolute;
-    top: calc(100% + 0.35rem);
     right: 0;
-    z-index: 50;
-    min-width: 11.5rem;
-    padding: 0.35rem;
-    border-radius: 0.85rem;
-    background: #fff;
-    border: 1px solid rgba(15, 23, 42, 0.08);
-    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.14);
-    opacity: 0;
-    transform: translateY(-6px) scale(0.98);
-    transform-origin: top right;
-    transition: opacity 0.16s ease, transform 0.16s ease;
-    pointer-events: none;
-}
-.sd-overflow-menu.is-open {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-    pointer-events: auto;
-}
-.sd-overflow-item {
-    display: flex;
-    width: 100%;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.7rem 0.8rem;
-    border: 0;
-    border-radius: 0.65rem;
-    background: transparent;
-    color: #1e293b;
-    font-size: 0.9375rem;
-    font-weight: 500;
-    text-align: left;
-    text-decoration: none;
-    cursor: pointer;
-    font-family: inherit;
-}
-.sd-overflow-item i {
-    width: 1rem;
-    text-align: center;
-    color: #64748b;
-    font-size: 0.85rem;
-}
-.sd-overflow-item:hover,
-.sd-overflow-item:focus {
-    background: #f8fafc;
-    outline: none;
-}
-.sd-overflow-item--danger {
-    color: #b91c1c;
-}
-.sd-overflow-item--danger i {
-    color: #dc2626;
-}
-.sd-overflow-item--danger:hover,
-.sd-overflow-item--danger:focus {
-    background: #fef2f2;
+    top: calc(100% + 0.35rem);
 }
 @media (prefers-reduced-motion: reduce) {
     .sd-overflow-menu { transition: none; }
@@ -102,7 +47,7 @@
     }
 @endphp
 <div class="min-h-screen flex flex-col theme-bg" id="student-dashboard-wrap">
-    {{-- Mobile top bar: menu + brand + WhatsApp-style overflow --}}
+    {{-- Mobile top bar: menu + brand + profile menu --}}
     <div class="lg:hidden sticky top-0 z-30 flex h-14 items-center justify-between gap-3 px-4 theme-header safe-area-t" id="student-mobile-topbar">
         <button type="button" id="student-mobile-menu-btn" class="shrink-0 flex h-10 w-10 items-center justify-center rounded-xl theme-header-text theme-header-hover focus:outline-none focus:ring-2 focus:ring-slate-700 focus:ring-offset-2 focus:ring-offset-[var(--theme-brand)]" aria-label="Open menu" aria-expanded="false" aria-controls="student-mobile-sidebar">
             <i class="fas fa-bars text-base"></i>
@@ -114,25 +59,49 @@
             'variant' => 'on-brand',
             'class' => 'shrink-0',
         ])
-        <div class="relative shrink-0" id="student-mobile-overflow">
-            <button type="button" id="student-mobile-overflow-btn" class="flex h-10 w-10 items-center justify-center rounded-xl theme-header-text theme-header-hover focus:outline-none focus:ring-2 focus:ring-slate-700 focus:ring-offset-2 focus:ring-offset-[var(--theme-brand)]" aria-label="More options" aria-expanded="false" aria-haspopup="true" aria-controls="student-mobile-overflow-menu">
-                <i class="fas fa-ellipsis-v text-base" aria-hidden="true"></i>
+        <div class="relative shrink-0 sd-mobile-profile-menu" id="student-mobile-profile-menu">
+            @if(isset($student) && $student)
+            <button type="button" id="student-mobile-profile-btn" class="dashboard-chrome-profile !bg-white/75 !border-white/60 focus:outline-none focus:ring-2 focus:ring-slate-700 focus:ring-offset-2 focus:ring-offset-[var(--theme-brand)] touch-manipulation min-h-[44px]" aria-expanded="false" aria-haspopup="true" aria-controls="student-mobile-profile-dropdown" title="Profile and account">
+                <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-900/10 text-slate-800 font-medium text-sm"><i class="fas fa-user text-xs" aria-hidden="true"></i></span>
+                <i class="fas fa-chevron-down text-[10px] text-slate-600 profile-chevron" aria-hidden="true"></i>
             </button>
-            <div id="student-mobile-overflow-menu" class="sd-overflow-menu" role="menu" aria-labelledby="student-mobile-overflow-btn" hidden>
-                @if(isset($student) && $student)
-                <a href="{{ route('dashboard.my-profile') }}" class="sd-overflow-item" role="menuitem">
-                    <i class="fas fa-user" aria-hidden="true"></i>
-                    <span>Profile</span>
-                </a>
-                @endif
-                <form action="{{ isset($student) && $student ? route('student.account.logout') : route('logout') }}" method="post">
-                    @csrf
-                    <button type="submit" class="sd-overflow-item sd-overflow-item--danger" role="menuitem">
-                        <i class="fas fa-sign-out-alt" aria-hidden="true"></i>
-                        <span>Log out</span>
-                    </button>
-                </form>
+            <div id="student-mobile-profile-dropdown" class="profile-menu-panel" role="menu" aria-labelledby="student-mobile-profile-btn" hidden>
+                <div class="profile-menu-head">
+                    <span class="profile-menu-head-avatar bg-slate-100 text-slate-700"><i class="fas fa-user text-xs" aria-hidden="true"></i></span>
+                    <span class="min-w-0">
+                        <span class="block text-sm font-semibold text-slate-900 truncate">{{ $student->display_name }}</span>
+                        <span class="block text-[11px] text-slate-500 font-mono truncate mt-0.5">{{ $student->index_number }}</span>
+                    </span>
+                </div>
+                <div class="profile-menu-list">
+                    <a href="{{ route('dashboard.my-profile') }}" class="profile-menu-item" role="menuitem">
+                        <span class="profile-menu-item-icon" aria-hidden="true"><i class="fas fa-user"></i></span>
+                        Profile
+                    </a>
+                </div>
+                <div class="profile-menu-foot">
+                    @include('partials.quizsnap-logout-form', ['action' => route('student.account.logout')])
+                </div>
             </div>
+            @elseif(isset($user) && $user)
+            <button type="button" id="student-mobile-profile-btn" class="dashboard-chrome-profile !bg-white/75 !border-white/60 focus:outline-none focus:ring-2 focus:ring-slate-700 focus:ring-offset-2 focus:ring-offset-[var(--theme-brand)] touch-manipulation min-h-[44px]" aria-expanded="false" aria-haspopup="true" aria-controls="student-mobile-profile-dropdown" title="Profile and account">
+                <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-900/10 text-slate-800 font-medium text-sm"><i class="fas fa-user text-xs" aria-hidden="true"></i></span>
+                <i class="fas fa-chevron-down text-[10px] text-slate-600 profile-chevron" aria-hidden="true"></i>
+            </button>
+            <div id="student-mobile-profile-dropdown" class="profile-menu-panel" role="menu" aria-labelledby="student-mobile-profile-btn" hidden>
+                <div class="profile-menu-head">
+                    <span class="profile-menu-head-avatar bg-slate-100 text-slate-700"><i class="fas fa-user text-xs" aria-hidden="true"></i></span>
+                    <span class="min-w-0">
+                        <span class="block text-sm font-semibold text-slate-900 truncate">{{ $user->name ?? $user->username }}</span>
+                    </span>
+                </div>
+                <div class="profile-menu-foot">
+                    @include('partials.quizsnap-logout-form', ['action' => route('logout')])
+                </div>
+            </div>
+            @else
+            <a href="{{ route('dashboard.my-profile') }}" class="flex h-10 items-center px-3 rounded-xl text-sm font-semibold theme-header-text theme-header-hover touch-manipulation min-h-[44px]">Profile</a>
+            @endif
         </div>
     </div>
 
@@ -171,13 +140,7 @@
                         </a>
                     </div>
                     <div class="profile-menu-foot">
-                        <form action="{{ route('student.account.logout') }}" method="post">
-                            @csrf
-                            <button type="submit" class="profile-menu-item profile-menu-item--danger" role="menuitem">
-                                <span class="profile-menu-item-icon" aria-hidden="true"><i class="fas fa-sign-out-alt"></i></span>
-                                Log out
-                            </button>
-                        </form>
+                        @include('partials.quizsnap-logout-form', ['action' => route('student.account.logout')])
                     </div>
                 </div>
             </div>
@@ -212,13 +175,7 @@
                         </span>
                     </div>
                     <div class="profile-menu-foot">
-                        <form action="{{ route('logout') }}" method="post">
-                            @csrf
-                            <button type="submit" class="profile-menu-item profile-menu-item--danger" role="menuitem">
-                                <span class="profile-menu-item-icon" aria-hidden="true"><i class="fas fa-sign-out-alt"></i></span>
-                                Log out
-                            </button>
-                        </form>
+                        @include('partials.quizsnap-logout-form', ['action' => route('logout')])
                     </div>
                 </div>
             </div>
@@ -238,8 +195,13 @@
             </script>
             @else
             <div class="flex items-center gap-2 shrink-0">
-                <a href="{{ route('dashboard.my-profile') }}" class="px-3 py-2 rounded-lg text-sm font-semibold theme-header-text theme-header-hover transition-colors">Profile</a>
-                <form action="{{ route('student.account.logout') }}" method="post" class="inline">@csrf<button type="submit" class="px-3 py-2 rounded-lg text-sm font-semibold theme-header-text theme-header-hover transition-colors">Log out</button></form>
+                <a href="{{ route('dashboard.my-profile') }}" class="px-3 py-2 rounded-lg text-sm font-semibold theme-header-text theme-header-hover transition-colors min-h-[44px] inline-flex items-center touch-manipulation">Profile</a>
+                @include('partials.quizsnap-logout-form', [
+                    'action' => route('student.account.logout'),
+                    'formClass' => 'inline',
+                    'buttonClass' => 'px-3 py-2 rounded-lg text-sm font-semibold theme-header-text theme-header-hover transition-colors min-h-[44px] touch-manipulation inline-flex items-center border-0 bg-transparent cursor-pointer',
+                    'showIcon' => false,
+                ])
             </div>
             @endif
         </div>
@@ -327,38 +289,38 @@
             if (e.key === 'Escape' && isOpen()) { e.preventDefault(); closeSidebar(); }
         });
 
-        var overflowBtn = document.getElementById('student-mobile-overflow-btn');
-        var overflowMenu = document.getElementById('student-mobile-overflow-menu');
-        var overflowWrap = document.getElementById('student-mobile-overflow');
-        if (overflowBtn && overflowMenu && overflowWrap) {
-            var overflowTimer = null;
-            function openOverflow() {
-                if (overflowTimer) { clearTimeout(overflowTimer); overflowTimer = null; }
-                overflowMenu.hidden = false;
-                requestAnimationFrame(function () { overflowMenu.classList.add('is-open'); });
-                overflowBtn.setAttribute('aria-expanded', 'true');
+        var mobileProfileBtn = document.getElementById('student-mobile-profile-btn');
+        var mobileProfileDrop = document.getElementById('student-mobile-profile-dropdown');
+        var mobileProfileWrap = document.getElementById('student-mobile-profile-menu');
+        if (mobileProfileBtn && mobileProfileDrop && mobileProfileWrap) {
+            var mobileProfileTimer = null;
+            function openMobileProfile() {
+                if (mobileProfileTimer) { clearTimeout(mobileProfileTimer); mobileProfileTimer = null; }
+                mobileProfileDrop.hidden = false;
+                requestAnimationFrame(function () { mobileProfileDrop.classList.add('is-open'); });
+                mobileProfileBtn.setAttribute('aria-expanded', 'true');
             }
-            function closeOverflow() {
-                overflowMenu.classList.remove('is-open');
-                overflowBtn.setAttribute('aria-expanded', 'false');
-                overflowTimer = setTimeout(function () {
-                    if (!overflowMenu.classList.contains('is-open')) overflowMenu.hidden = true;
-                    overflowTimer = null;
-                }, 160);
+            function closeMobileProfile() {
+                mobileProfileDrop.classList.remove('is-open');
+                mobileProfileBtn.setAttribute('aria-expanded', 'false');
+                mobileProfileTimer = setTimeout(function () {
+                    if (!mobileProfileDrop.classList.contains('is-open')) mobileProfileDrop.hidden = true;
+                    mobileProfileTimer = null;
+                }, 180);
             }
-            overflowBtn.addEventListener('click', function (e) {
+            mobileProfileBtn.addEventListener('click', function (e) {
                 e.preventDefault();
                 e.stopPropagation();
-                overflowMenu.classList.contains('is-open') ? closeOverflow() : openOverflow();
+                mobileProfileDrop.classList.contains('is-open') ? closeMobileProfile() : openMobileProfile();
             });
             document.addEventListener('click', function (e) {
-                if (overflowWrap.contains(e.target)) return;
-                if (overflowMenu.classList.contains('is-open')) closeOverflow();
+                if (mobileProfileWrap.contains(e.target)) return;
+                if (mobileProfileDrop.classList.contains('is-open')) closeMobileProfile();
             });
             document.addEventListener('keydown', function (e) {
-                if (e.key === 'Escape' && overflowMenu.classList.contains('is-open')) {
-                    closeOverflow();
-                    overflowBtn.focus();
+                if (e.key === 'Escape' && mobileProfileDrop.classList.contains('is-open')) {
+                    closeMobileProfile();
+                    mobileProfileBtn.focus();
                 }
             });
         }

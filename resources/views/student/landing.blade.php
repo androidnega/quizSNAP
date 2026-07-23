@@ -714,22 +714,22 @@
 
 @section('content')
 @php
-    $celebration = $birthdayCelebration ?? null;
+    $celebrationHero = $birthdayCelebration ?? null;
     $heroDesktopPath = public_path('images/landing/hero-student-home.webp');
     $heroMobilePath = public_path('images/landing/hero-student-home-mobile.webp');
     $heroDesktopVer = is_file($heroDesktopPath) ? (string) filemtime($heroDesktopPath) : '1';
     $heroMobileVer = is_file($heroMobilePath) ? (string) filemtime($heroMobilePath) : '1';
     $heroDesktopUrl = asset('images/landing/hero-student-home.webp').'?v='.$heroDesktopVer;
     $heroMobileUrl = asset('images/landing/hero-student-home-mobile.webp').'?v='.$heroMobileVer;
-    if ($celebration && !empty($celebration['image_url'])) {
-        $heroDesktopUrl = $celebration['image_url'];
-        $heroMobileUrl = $celebration['image_mobile_url'] ?? $celebration['image_url'];
+    if ($celebrationHero && !empty($celebrationHero['image_url'])) {
+        $heroDesktopUrl = $celebrationHero['image_url'];
+        $heroMobileUrl = $celebrationHero['image_mobile_url'] ?? $celebrationHero['image_url'];
     }
-    $heroImageAlt = $celebration
-        ? ('Celebrating '.$celebration['honoree_name'])
+    $heroImageAlt = ($celebrationHero && !empty($celebrationHero['honoree_name']))
+        ? ('Happy Birthday — '.$celebrationHero['honoree_name'].', Team Lead QuizSnap')
         : ('Student using '.$appName.' for online assessments');
 @endphp
-@if($celebration)
+@if($celebrationHero && !empty($celebrationHero['image_url']))
 @push('styles')
 <style>
 .qs-hero-photo {
@@ -782,18 +782,6 @@
 
             <div class="qs-hero-copy">
                 <div class="qs-hero-head">
-                    @if($celebration)
-                    <span class="qs-badge">{{ $celebration['badge'] }}</span>
-                    <h1 class="qs-hero-title">
-                        {{ $celebration['title'] }}
-                    </h1>
-                    <p class="qs-hero-sub qs-hero-sub--desktop">
-                        {{ $celebration['message'] }}
-                    </p>
-                    <p class="qs-hero-sub qs-hero-sub--mobile">
-                        {{ $celebration['message'] }}
-                    </p>
-                    @else
                     <span class="qs-badge">Secure · Proctored · Reliable</span>
 
                     <h1 class="qs-hero-title">
@@ -817,7 +805,6 @@
                         Secure proctored quizzes and student dashboards — enter your token to begin.
                     @endif
                     </p>
-                    @endif
                 </div>
 
                 @if(($landingShowQuizToken ?? false) || (isset($student) && $student))

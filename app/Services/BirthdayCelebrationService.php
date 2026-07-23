@@ -13,6 +13,11 @@ class BirthdayCelebrationService
 
     public const DEFAULT_IMAGE_MOBILE_PATH = '/images/celebrations/augustine-dankwah-yeboah-640.webp';
 
+    /** Public homepage hero (right column) during an active celebration window. */
+    public const DEFAULT_HOMEPAGE_HERO_PATH = '/images/celebrations/augustine-homepage-birthday-banner.webp';
+
+    public const DEFAULT_HOMEPAGE_HERO_MOBILE_PATH = '/images/celebrations/augustine-homepage-birthday-banner-640.webp';
+
     /** @deprecated Legacy PNG path — migrated to WebP. */
     public const LEGACY_DEFAULT_IMAGE_PATH = '/images/celebrations/augustine-dankwah-yeboah.png';
 
@@ -133,7 +138,7 @@ class BirthdayCelebrationService
     }
 
     /**
-     * Public homepage hero swap while celebration is active.
+     * Public homepage right-column hero image while celebration is active (copy stays default).
      *
      * @return array<string, string>|null
      */
@@ -144,15 +149,13 @@ class BirthdayCelebrationService
         }
 
         $cfg = $this->config();
-        $desktopPath = $this->normalizeImagePath($cfg['image']);
+        $name = $cfg['honoree_name'] !== '' ? $cfg['honoree_name'] : 'Mr. Augustine Dankwah Yeboah';
+        $desktopPath = self::DEFAULT_HOMEPAGE_HERO_PATH;
 
         return [
-            'badge' => $cfg['homepage_badge'] ?: 'Celebrating today',
-            'title' => $cfg['homepage_title'] ?: 'Happy Birthday, '.$cfg['honoree_name'],
-            'message' => $cfg['homepage_message'] ?: $this->defaultHomepageMessage($cfg['honoree_name']),
             'image_url' => $this->versionedPublicAsset($desktopPath),
-            'image_mobile_url' => $this->versionedPublicAsset($this->mobileCompanionPath($desktopPath)),
-            'honoree_name' => $cfg['honoree_name'],
+            'image_mobile_url' => $this->versionedPublicAsset(self::DEFAULT_HOMEPAGE_HERO_MOBILE_PATH),
+            'honoree_name' => $name,
         ];
     }
 
@@ -218,6 +221,10 @@ class BirthdayCelebrationService
     {
         if ($desktopPath === self::DEFAULT_IMAGE_PATH) {
             return self::DEFAULT_IMAGE_MOBILE_PATH;
+        }
+
+        if ($desktopPath === self::DEFAULT_HOMEPAGE_HERO_PATH) {
+            return self::DEFAULT_HOMEPAGE_HERO_MOBILE_PATH;
         }
 
         if (str_ends_with($desktopPath, '.webp') && ! str_contains($desktopPath, '-640.')) {

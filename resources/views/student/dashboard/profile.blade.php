@@ -129,6 +129,20 @@
     </div>
 </section>
 @endif
+
+<section class="mb-8" aria-label="Session">
+    <h2 class="text-sm font-medium text-slate-700 mb-3">Session</h2>
+    <div class="bg-white rounded-xl border border-slate-200 p-4 sm:p-5">
+        <p class="text-xs text-slate-500 mb-3">Sign out on this phone or computer when you are finished.</p>
+        @include('partials.quizsnap-logout-form', [
+            'action' => route('student.account.logout'),
+            'buttonClass' => 'inline-flex items-center justify-center px-4 py-2 rounded-lg text-sm font-medium border border-rose-200 bg-white text-rose-700 hover:bg-rose-50 min-h-[44px] sm:min-h-0 touch-manipulation w-full sm:w-auto',
+            'showIcon' => true,
+            'label' => 'Log out',
+            'menuItem' => false,
+        ])
+    </div>
+</section>
 </div>
 
 @endsection

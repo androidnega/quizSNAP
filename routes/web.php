@@ -209,7 +209,7 @@ Route::post('/password/reset', [\App\Http\Controllers\Admin\StaffPasswordResetCo
 // Staff dashboard and all staff pages under /dashboard (admin + examiner)
 Route::middleware('admin.auth')->group(function () {
     Route::post('/logout', [AdminAuthController::class, 'logout'])->name('logout');
-    Route::get('/logout', [AdminAuthController::class, 'logout'])->name('logout.get');
+    Route::get('/logout', [AdminAuthController::class, 'redirectLogoutGet'])->name('logout.get');
     Route::get('/dashboard/live-stats', [AdminDashboardController::class, 'liveStats'])->name('dashboard.live-stats');
     Route::get('/dashboard/charts', [AdminDashboardController::class, 'charts'])->name('dashboard.charts');
     Route::get('/dashboard/csrf-token', fn () => response()->json(['token' => csrf_token()]))->name('dashboard.csrf-token');

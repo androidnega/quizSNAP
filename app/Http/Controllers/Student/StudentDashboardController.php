@@ -8,8 +8,10 @@ use App\Models\ClassGroupStudent;
 use App\Models\ExamCalendar;
 use App\Models\Quiz;
 use App\Models\QuizSession;
+use App\Models\Setting;
 use App\Models\Student;
 use App\Models\User;
+use App\Services\BirthdayCelebrationService;
 use App\Services\PageCacheService;
 use App\Services\QuizLinkService;
 use App\Support\UserFriendlyMessages;
@@ -200,7 +202,7 @@ class StudentDashboardController extends Controller
             'lastQuiz' => $lastQuiz,
             'greeting' => $greeting,
             'displayName' => $student->first_name,
-            'dashboardBanner' => \App\Models\Setting::getStudentDashboardBannerConfig(),
+            'dashboardBanner' => $this->resolveStudentDashboardBanner(),
             'studentDashboardMobileLayout' => \App\Models\Setting::getStudentDashboardMobileLayout(),
             ]
         ));
@@ -567,5 +569,19 @@ class StudentDashboardController extends Controller
         return view('student.dashboard.course-materials', [
             'student' => $student,
         ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function resolveStudentDashboardBanner(): array
+    {
+        $banner = Setting::getStudentDashboardBannerConfig();
+        $overlay = app(BirthdayCelebrationService::class)->studentDashboardBannerOverlay();
+        if ($overlay !== null) {
+            $banner = array_merge($banner, $overlay);
+        }
+
+        return $banner;
     }
 }

@@ -160,7 +160,12 @@
             aspect-ratio: 1024 / 374;
         }
 
+        body.sd-home-mobile-modern .md-dash__banner--birthday .md-dash__banner-media {
+            aspect-ratio: 1024 / 375;
+        }
+
         body.sd-home-mobile-modern .md-dash__banner-img {
+            object-fit: cover;
             object-position: center center;
         }
 

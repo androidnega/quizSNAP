@@ -107,6 +107,32 @@ class BirthdayCelebrationService
     }
 
     /**
+     * Replace the student dashboard right-column banner while celebration is active.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function studentDashboardBannerOverlay(): ?array
+    {
+        if (! $this->isActive()) {
+            return null;
+        }
+
+        $cfg = $this->config();
+        $name = $cfg['honoree_name'] !== '' ? $cfg['honoree_name'] : 'Mr Yaboah Dankwah Augustine';
+
+        return [
+            'enabled' => true,
+            'mode' => 'image',
+            'image' => Setting::STUDENT_DASHBOARD_BIRTHDAY_BANNER_PATH,
+            'images' => [Setting::STUDENT_DASHBOARD_BIRTHDAY_BANNER_PATH],
+            'bundled_slug' => Setting::STUDENT_DASHBOARD_BIRTHDAY_BANNER_SLUG,
+            'aspect_width' => 1024,
+            'aspect_height' => 375,
+            'alt' => 'Happy Birthday — '.$name.', Team Lead QuizSnap',
+        ];
+    }
+
+    /**
      * Public homepage hero swap while celebration is active.
      *
      * @return array<string, string>|null

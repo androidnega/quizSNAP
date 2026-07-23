@@ -325,6 +325,11 @@ class Setting extends Model
 
     public const STUDENT_DASHBOARD_DEFAULT_BANNER_PATH = '/images/student-dashboard-csd-banner.webp';
 
+    /** Wide birthday hero used on student dashboard during an active celebration. */
+    public const STUDENT_DASHBOARD_BIRTHDAY_BANNER_SLUG = 'student-dashboard-birthday-banner';
+
+    public const STUDENT_DASHBOARD_BIRTHDAY_BANNER_PATH = '/images/student-dashboard-birthday-banner.webp';
+
     public const KEY_STUDENT_DASHBOARD_BANNER_ENABLED = 'student_dashboard_banner_enabled';
     /** Banner layout: image (image only) or image_text (text left, image right). */
     public const KEY_STUDENT_DASHBOARD_BANNER_MODE = 'student_dashboard_banner_mode';

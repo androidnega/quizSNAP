@@ -15,25 +15,41 @@
     if (is_string($bannerImageUrl) && $bannerImageUrl !== '' && ! preg_match('#^https?://#i', $bannerImageUrl)) {
         $bannerImageUrl = asset(ltrim($bannerImageUrl, '/'));
     }
-    $bundledSlug = \App\Models\Setting::STUDENT_DASHBOARD_DEFAULT_BANNER_SLUG;
+    $defaultSlug = \App\Models\Setting::STUDENT_DASHBOARD_DEFAULT_BANNER_SLUG;
+    $birthdaySlug = \App\Models\Setting::STUDENT_DASHBOARD_BIRTHDAY_BANNER_SLUG;
+    $bundledSlug = $banner['bundled_slug'] ?? $defaultSlug;
+    if ($bundledSlug !== $defaultSlug && $bundledSlug !== $birthdaySlug) {
+        $bundledSlug = $defaultSlug;
+    }
+    $aspectW = max(1, (int) ($banner['aspect_width'] ?? 1024));
+    $aspectH = max(1, (int) ($banner['aspect_height'] ?? 374));
+    $aspectStyle = 'aspect-ratio: '.$aspectW.' / '.$aspectH.';';
+    $isBirthdayBanner = $bundledSlug === $birthdaySlug;
     $usesBundledBanner = $mode === 'image' && (
-        empty($image)
-        || str_contains((string) $image, $bundledSlug)
+        ! empty($banner['bundled_slug'])
+        || empty($image)
+        || str_contains((string) $image, $defaultSlug)
+        || str_contains((string) $image, $birthdaySlug)
     );
-    $bundledBase = asset('images/' . $bundledSlug);
+    $bundledBase = asset('images/'.$bundledSlug);
     $showBanner = ! empty($banner['enabled']) && (
         ($mode === 'image' && ($usesBundledBanner || ! empty($bannerImageUrl)))
         || ($mode === 'image_text')
     );
-    $bannerAlt = 'Learn Today, Lead Tomorrow. CSD-TTU — Research, Innovate, Build.';
+    $bannerAlt = $banner['alt'] ?? 'Learn Today, Lead Tomorrow. CSD-TTU — Research, Innovate, Build.';
     $mobileLayout = ! empty($bannerLayout) && $bannerLayout === 'mobile';
+    $bannerMediaClass = 'relative m-0 w-full flex-1 min-h-[168px] overflow-hidden rounded-2xl lg:rounded-3xl bg-white h-full border border-slate-200/80';
+    if ($isBirthdayBanner) {
+        $bannerMediaClass .= ' ring-1 ring-amber-200/60 shadow-[0_8px_32px_-12px_rgba(245,158,11,0.35)]';
+    }
+    $bannerImgClass = 'absolute inset-0 block h-full w-full object-cover object-center';
 @endphp
 
 @if($showBanner)
 @if($mode === 'image' && ($usesBundledBanner || ! empty($bannerImageUrl)))
 @if($mobileLayout)
-<section class="md-dash__banner" aria-label="Dashboard banner">
-    <figure class="md-dash__banner-media">
+<section class="md-dash__banner @if($isBirthdayBanner) md-dash__banner--birthday @endif" aria-label="Dashboard banner">
+    <figure class="md-dash__banner-media" style="{{ $aspectStyle }}">
         @if($usesBundledBanner)
         <picture>
             <source type="image/webp"
@@ -45,8 +61,8 @@
             <img src="{{ $bundledBase }}.jpg"
                  alt="{{ $bannerAlt }}"
                  class="md-dash__banner-img"
-                 width="1024"
-                 height="374"
+                 width="{{ $aspectW }}"
+                 height="{{ $aspectH }}"
                  loading="eager"
                  decoding="async"
                  fetchpriority="high">
@@ -55,8 +71,8 @@
         <img src="{{ e($bannerImageUrl) }}"
              alt="{{ $bannerAlt }}"
              class="md-dash__banner-img"
-             width="1024"
-             height="374"
+             width="{{ $aspectW }}"
+             height="{{ $aspectH }}"
              loading="eager"
              decoding="async"
              fetchpriority="high">
@@ -64,8 +80,8 @@
     </figure>
 </section>
 @else
-<section aria-label="Dashboard banner" class="sd-hero-banner w-full min-w-0 h-full flex flex-col">
-    <figure class="sd-hero-banner__media relative m-0 w-full flex-1 min-h-[168px] overflow-hidden rounded-2xl lg:rounded-3xl bg-white aspect-[1024/374] h-full border border-slate-200/80">
+<section aria-label="Dashboard banner" class="sd-hero-banner w-full min-w-0 h-full flex flex-col @if($isBirthdayBanner) sd-hero-banner--birthday @endif">
+    <figure class="sd-hero-banner__media {{ $bannerMediaClass }}" style="{{ $aspectStyle }}">
         @if($usesBundledBanner)
         <picture>
             <source type="image/webp"
@@ -76,9 +92,9 @@
                     sizes="(max-width: 1024px) 100vw, 66vw">
             <img src="{{ $bundledBase }}.jpg"
                  alt="{{ $bannerAlt }}"
-                 class="sd-hero-banner__img absolute inset-0 block h-full w-full object-contain object-center"
-                 width="1024"
-                 height="374"
+                 class="sd-hero-banner__img {{ $bannerImgClass }}"
+                 width="{{ $aspectW }}"
+                 height="{{ $aspectH }}"
                  loading="eager"
                  decoding="async"
                  fetchpriority="high">
@@ -86,9 +102,9 @@
         @else
         <img src="{{ e($bannerImageUrl) }}"
              alt="{{ $bannerAlt }}"
-             class="sd-hero-banner__img absolute inset-0 block h-full w-full object-contain object-center"
-             width="1024"
-             height="374"
+             class="sd-hero-banner__img {{ $bannerImgClass }}"
+             width="{{ $aspectW }}"
+             height="{{ $aspectH }}"
              loading="eager"
              decoding="async"
              fetchpriority="high">

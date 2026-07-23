@@ -746,6 +746,7 @@
     max-height: min(72vh, 28rem);
     width: 100%;
     height: auto;
+    aspect-ratio: 1024 / 681;
 }
 </style>
 @endpush

@@ -198,7 +198,7 @@ class SettingsController extends Controller
             'birthday_celebration_dashboard_title' => $cfg['dashboard_title'],
             'birthday_celebration_dashboard_message' => $cfg['dashboard_message'],
             'birthday_celebration_play_song' => $cfg['play_song'],
-            'birthday_celebration_song_url' => $cfg['song_url'],
+            'birthday_celebration_song_url' => $cfg['song_url'] !== '' ? $cfg['song_url'] : BirthdayCelebrationService::DEFAULT_SONG_PATH,
             'birthday_celebration_image' => $cfg['image'],
             'birthday_celebration_image_preview' => $service->resolveImageUrl($cfg['image']),
             'birthday_celebration_dashboard_max_shows' => $cfg['dashboard_max_shows'],

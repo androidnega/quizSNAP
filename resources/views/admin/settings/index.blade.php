@@ -839,6 +839,12 @@
             </div>
         </form>
 
+        @if($is_super_admin ?? false)
+        <form id="birthday-celebration-reset-form" action="{{ route('dashboard.settings.birthday-celebration.reset') }}" method="post" class="hidden">
+            @csrf
+        </form>
+        @endif
+
         {{-- Standalone form for study guide unlock (cannot nest form inside settings form) --}}
         @if($show_backup_tab ?? false)
         <form id="study-guide-unlock-form" action="{{ route('dashboard.settings.study-guide.unlock') }}" method="post" class="hidden">
@@ -883,7 +889,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const tabBtns = document.querySelectorAll('.settings-tab-btn');
     const tabContents = document.querySelectorAll('.settings-tab-content');
-    const validTabs = ['general', 'email', 'ai', 'supabase', 'otp', 'proctoring', 'backup', 'student-dashboard'];
+    const validTabs = ['general', 'celebration', 'email', 'ai', 'supabase', 'otp', 'proctoring', 'backup', 'student-dashboard'];
     let activeTab = 'general';
 
     function switchToTab(targetTab) {

@@ -52,12 +52,9 @@
                 <p class="text-sm font-medium text-gray-800">Reset honoree surprises</p>
                 <p class="text-xs text-gray-600">If someone already saw the modal, reset so the next dashboard visit shows balloons and music again (does not change your dates or copy).</p>
                 <p class="text-xs text-gray-500">Current reset generation: <span class="font-mono">{{ $birthday_celebration_reset_token ?? '1' }}</span></p>
-                <form action="{{ route('dashboard.settings.birthday-celebration.reset') }}" method="post" class="pt-1" onsubmit="return confirm('Reset dashboard birthday surprises for all honorees? They will see the modal again on next visit.');">
-                    @csrf
-                    <button type="submit" class="inline-flex items-center justify-center rounded-lg border border-amber-500 bg-white px-4 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-50">
-                        Reset dashboard surprises
-                    </button>
-                </form>
+                <button type="submit" form="birthday-celebration-reset-form" class="inline-flex items-center justify-center rounded-lg border border-amber-500 bg-white px-4 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-50" onclick="return confirm('Reset dashboard birthday surprises for all honorees? They will see the modal again on next visit.');">
+                    Reset dashboard surprises
+                </button>
             </div>
         </div>
 
